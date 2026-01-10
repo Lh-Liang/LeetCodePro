@@ -20,20 +20,25 @@ class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
         if not root:
             return False
-        # Check if the path matches starting at the current node,
-        # or if it exists starting from any node in the children subtrees.
-        return self._dfs(head, root) or self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
+        
+        # Check if the path starts at the current root, or in the left/right subtrees
+        return self.checkPath(head, root) or \
+               self.isSubPath(head, root.left) or \
+               self.isSubPath(head, root.right)
 
-    def _dfs(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        # If the entire linked list has been traversed, we found a match.
+    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
+        # If we reached the end of the linked list, we found the path
         if not head:
             return True
-        # If the tree ends before the linked list is finished, no match.
-        if not root:
+        # If we reached a leaf in the tree but the list isn't finished, no match
+        if not node:
             return False
-        # If values don't match, this specific downward path is invalid.
-        if head.val != root.val:
-            return False
-        # Continue checking the next list node with both potential tree children.
-        return self._dfs(head.next, root.left) or self._dfs(head.next, root.right)
+        
+        # Current values must match
+        if head.val == node.val:
+            # Continue matching the next list node with either tree child
+            return self.checkPath(head.next, node.left) or \
+                   self.checkPath(head.next, node.right)
+        
+        return False
 # @lc code=end
