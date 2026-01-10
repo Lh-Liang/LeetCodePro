@@ -18,38 +18,34 @@
 #         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        if not root:
-            return False
-        
         def check(h, r):
             # If we've reached the end of the linked list, we found a match
             if not h:
                 return True
-            # If the tree ends before the list, no match
+            # If the tree path ends before the linked list, no match
             if not r:
                 return False
             # If values don't match, this path is invalid
             if h.val != r.val:
                 return False
-            # Recursively check the next list node in both child paths
+            # Recursively check left and right children
             return check(h.next, r.left) or check(h.next, r.right)
-        
-        # Iterative DFS to explore every node in the tree as a potential starting point
+
+        if not root:
+            return False
+
+        # Iterative DFS to traverse every node in the tree as a potential starting point
         stack = [root]
         while stack:
-            curr = stack.pop()
-            if not curr:
+            node = stack.pop()
+            if not node:
                 continue
-            
-            # Check if the list matches a path starting from the current node
-            if check(head, curr):
+            # If the linked list starts at the current tree node, return True
+            if check(head, node):
                 return True
+            # Push children to the stack to continue the search
+            stack.append(node.left)
+            stack.append(node.right)
             
-            # Add children to the stack to check other potential starting points
-            if curr.left:
-                stack.append(curr.left)
-            if curr.right:
-                stack.append(curr.right)
-                
         return False
 # @lc code=end
