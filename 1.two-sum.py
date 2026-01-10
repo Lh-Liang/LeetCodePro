@@ -1,3 +1,4 @@
+
 #
 # @lc app=leetcode id=1 lang=python3
 #
@@ -14,3 +15,4 @@ class Solution:
             hashmap[num] = i
         return []
 # @lc code=end
+    
