@@ -10,11 +10,13 @@ from collections import deque
 class FrontMiddleBackQueue:
 
     def __init__(self):
+        # We maintain two deques: left and right.
+        # Invariant: len(right) is always equal to or one greater than len(left).
         self.left = deque()
         self.right = deque()
 
-    def _balance(self):
-        # Invariant: len(left) <= len(right) <= len(left) + 1
+    def rebalance(self):
+        # Maintain the invariant: 0 <= len(right) - len(left) <= 1
         if len(self.left) > len(self.right):
             self.right.appendleft(self.left.pop())
         elif len(self.right) > len(self.left) + 1:
@@ -22,44 +24,45 @@ class FrontMiddleBackQueue:
 
     def pushFront(self, val: int) -> None:
         self.left.appendleft(val)
-        self._balance()
+        self.rebalance()
 
     def pushMiddle(self, val: int) -> None:
         if len(self.left) == len(self.right):
             self.right.appendleft(val)
         else:
             self.left.append(val)
+        # pushMiddle logic naturally maintains balance, but rebalance() is safe.
 
     def pushBack(self, val: int) -> None:
         self.right.append(val)
-        self._balance()
+        self.rebalance()
 
     def popFront(self) -> int:
-        if not self.right:
+        if not self.left and not self.right:
             return -1
-        if self.left:
-            val = self.left.popleft()
+        if not self.left:
+            res = self.right.popleft()
         else:
-            val = self.right.popleft()
-        self._balance()
-        return val
+            res = self.left.popleft()
+        self.rebalance()
+        return res
 
     def popMiddle(self) -> int:
-        if not self.right:
+        if not self.left and not self.right:
             return -1
         if len(self.left) == len(self.right):
-            val = self.left.pop()
+            res = self.left.pop()
         else:
-            val = self.right.popleft()
-        self._balance()
-        return val
+            res = self.right.popleft()
+        self.rebalance()
+        return res
 
     def popBack(self) -> int:
         if not self.right:
             return -1
-        val = self.right.pop()
-        self._balance()
-        return val
+        res = self.right.pop()
+        self.rebalance()
+        return res
 
 
 # Your FrontMiddleBackQueue object will be instantiated and called as such:
