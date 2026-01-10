@@ -18,34 +18,27 @@
 #         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        def check(h, r):
-            # If we've reached the end of the linked list, we found a match
-            if not h:
-                return True
-            # If the tree path ends before the linked list, no match
-            if not r:
-                return False
-            # If values don't match, this path is invalid
-            if h.val != r.val:
-                return False
-            # Recursively check left and right children
-            return check(h.next, r.left) or check(h.next, r.right)
-
         if not root:
             return False
+        
+        # Check if the path starts at the current root node
+        # or if it exists in the left or right subtrees.
+        return self.checkPath(head, root) or \
+               self.isSubPath(head, root.left) or \
+               self.isSubPath(head, root.right)
 
-        # Iterative DFS to traverse every node in the tree as a potential starting point
-        stack = [root]
-        while stack:
-            node = stack.pop()
-            if not node:
-                continue
-            # If the linked list starts at the current tree node, return True
-            if check(head, node):
-                return True
-            # Push children to the stack to continue the search
-            stack.append(node.left)
-            stack.append(node.right)
-            
-        return False
+    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
+        # If we reached the end of the list, we found the path.
+        if not head:
+            return True
+        # If we reached the end of the tree path before the list, no match.
+        if not node:
+            return False
+        # If values do not match, this specific path is not a subpath.
+        if head.val != node.val:
+            return False
+        
+        # Continue checking the next node in the list in either the left or right child.
+        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
+
 # @lc code=end
