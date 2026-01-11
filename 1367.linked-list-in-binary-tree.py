@@ -18,30 +18,24 @@
 #         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        def check(h, r):
-            if not h:
-                return True
-            if not r:
-                return False
-            if h.val != r.val:
-                return False
-            return check(h.next, r.left) or check(h.next, r.right)
-        
         if not root:
             return False
-            
-        # Iterative DFS to visit every node in the tree
-        stack = [root]
-        while stack:
-            node = stack.pop()
-            # Check if linked list starts at the current tree node
-            if check(head, node):
-                return True
-            # Push children to stack to continue searching
-            if node.right:
-                stack.append(node.right)
-            if node.left:
-                stack.append(node.left)
-        
-        return False
+        # Check if the path starts at the current root node
+        if self.checkPath(head, root):
+            return True
+        # Otherwise, check recursively in left and right subtrees
+        return self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
+
+    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
+        # If we successfully traversed the whole list, return True
+        if not head:
+            return True
+        # If we hit a null node in the tree but haven't finished the list, return False
+        if not node:
+            return False
+        # If values don't match, return False
+        if head.val != node.val:
+            return False
+        # Continue checking the next list node in both left and right children
+        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
 # @lc code=end
