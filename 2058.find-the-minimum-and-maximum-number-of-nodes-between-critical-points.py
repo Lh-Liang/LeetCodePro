@@ -12,40 +12,47 @@
 #         self.next = next
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
+        # A critical point requires at least 3 nodes to exist.
         if not head or not head.next or not head.next.next:
             return [-1, -1]
         
-        first_idx = -1
-        last_idx = -1
+        first_cp = -1
+        prev_cp = -1
         min_dist = float('inf')
         
-        prev = head
-        curr = head.next
-        idx = 1
+        # Start from the second node (index 1)
+        prev_node = head
+        curr_node = head.next
+        curr_idx = 1
         
-        while curr.next:
-            # Check if current node is a local maxima or local minima
+        while curr_node.next:
+            p_val = prev_node.val
+            c_val = curr_node.val
+            n_val = curr_node.next.val
+            
             is_critical = False
-            if curr.val > prev.val and curr.val > curr.next.val:
+            # Local Maxima
+            if c_val > p_val and c_val > n_val:
                 is_critical = True
-            elif curr.val < prev.val and curr.val < curr.next.val:
+            # Local Minima
+            elif c_val < p_val and c_val < n_val:
                 is_critical = True
             
             if is_critical:
-                if first_idx == -1:
-                    first_idx = idx
+                if first_cp == -1:
+                    first_cp = curr_idx
                 else:
-                    min_dist = min(min_dist, idx - last_idx)
-                last_idx = idx
+                    min_dist = min(min_dist, curr_idx - prev_cp)
+                prev_cp = curr_idx
             
-            # Move pointers forward
-            prev = curr
-            curr = curr.next
-            idx += 1
+            # Move to the next node
+            prev_node = curr_node
+            curr_node = curr_node.next
+            curr_idx += 1
             
-        if min_dist == float('inf'):
+        # If fewer than two critical points were found
+        if first_cp == -1 or prev_cp == first_cp:
             return [-1, -1]
             
-        return [min_dist, last_idx - first_idx]
-
+        return [int(min_dist), prev_cp - first_cp]
 # @lc code=end
