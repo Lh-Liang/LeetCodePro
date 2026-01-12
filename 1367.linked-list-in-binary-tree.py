@@ -21,24 +21,23 @@ class Solution:
         if not root:
             return False
         
-        # Check if the linked list starts at the current tree node
-        if self._dfs(head, root):
-            return True
-        
-        # Otherwise, recursively check the left and right subtrees
-        return self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
+        # Check if the list starts at the current root, or search in left/right subtrees
+        return self.checkPath(head, root) or \
+               self.isSubPath(head, root.left) or \
+               self.isSubPath(head, root.right)
 
-    def _dfs(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
-        # If we have matched all nodes in the linked list
+    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
+        # If we reached the end of the linked list, we found a match
         if not head:
             return True
-        # If we reach the end of a tree path but the linked list isn't finished
+        # If the tree ends but the list hasn't, no match
         if not node:
             return False
-        # If values do not match, this path is invalid
+        # If values don't match, this path is invalid
         if head.val != node.val:
             return False
         
-        # Continue matching the next linked list node in either the left or right child
-        return self._dfs(head.next, node.left) or self._dfs(head.next, node.right)
+        # Current values match, continue checking the next list node in both child paths
+        return self.checkPath(head.next, node.left) or \
+               self.checkPath(head.next, node.right)
 # @lc code=end
