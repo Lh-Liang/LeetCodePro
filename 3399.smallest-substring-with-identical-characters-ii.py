@@ -8,30 +8,30 @@
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-
-        def check(mid):
-            if mid == 1:
+        
+        def check(k):
+            if k == 1:
                 # Check alternating patterns 0101... and 1010...
-                cnt1 = 0 # pattern starting with 0
-                cnt2 = 0 # pattern starting with 1
+                ops0 = 0
+                ops1 = 0
                 for i in range(n):
-                    expected1 = '0' if i % 2 == 0 else '1'
-                    if s[i] != expected1:
-                        cnt1 += 1
-                    if s[i] == expected1:
-                        cnt2 += 1
-                return min(cnt1, cnt2) <= numOps
+                    expected0 = '0' if i % 2 == 0 else '1'
+                    if s[i] != expected0:
+                        ops0 += 1
+                    else:
+                        ops1 += 1
+                return min(ops0, ops1) <= numOps
             
-            # For mid >= 2, count flips needed for blocks of identical characters
+            # For k >= 2, we break identical segments
             total_ops = 0
             count = 1
             for i in range(1, n):
                 if s[i] == s[i-1]:
                     count += 1
                 else:
-                    total_ops += count // (mid + 1)
+                    total_ops += count // (k + 1)
                     count = 1
-            total_ops += count // (mid + 1)
+            total_ops += count // (k + 1)
             return total_ops <= numOps
 
         low = 1
