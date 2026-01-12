@@ -7,37 +7,35 @@
 # @lc code=start
 class Solution:
     def countSubstrings(self, s: str) -> int:
-        ans = 0
         # dp[d][r] stores the number of substrings ending at the current index
-        # that have a remainder r when divided by d.
-        dp = [[0] * d for d in range(10)]
+        # that have a remainder 'r' when divided by 'd'.
+        dp = [[0] * 10 for _ in range(10)]
+        total_count = 0
         
         for char in s:
-            v = int(char)
-            # Create a new DP table for the next position
-            new_dp = [[0] * d for d in range(10)]
+            v = ord(char) - 48
+            # next_dp will store the counts for substrings ending at the current character
+            next_dp = [[0] * 10 for _ in range(10)]
             
             for d in range(1, 10):
-                # For each possible divisor d, update the counts of remainders
-                # based on adding the current digit v to the end of previous substrings.
-                curr_d_dp = dp[d]
-                curr_new_d_dp = new_dp[d]
-                
+                # For each divisor d, update the remainders for existing substrings
+                # extended by the current digit v.
+                d_row = dp[d]
+                nd_row = next_dp[d]
                 for r in range(d):
-                    count = curr_d_dp[r]
-                    if count > 0:
+                    if d_row[r] > 0:
                         new_rem = (r * 10 + v) % d
-                        curr_new_d_dp[new_rem] += count
+                        nd_row[new_rem] += d_row[r]
                 
-                # Account for the single-digit substring ending at the current position
-                curr_new_d_dp[v % d] += 1
+                # Also add the substring consisting of only the current digit itself.
+                nd_row[v % d] += 1
             
-            # If the current digit is non-zero, it acts as a divisor for all
-            # substrings ending at this position.
+            # If the current digit is non-zero, it can be a divisor.
+            # Add the count of substrings ending here that are divisible by v.
             if v > 0:
-                ans += new_dp[v][0]
+                total_count += next_dp[v][0]
             
-            dp = new_dp
+            dp = next_dp
             
-        return ans
+        return total_count
 # @lc code=end
