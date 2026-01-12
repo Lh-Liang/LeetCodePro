@@ -8,70 +8,67 @@
 import random
 
 class Node:
-    def __init__(self, val, next=None, down=None):
+    def __init__(self, val, right=None, down=None):
         self.val = val
-        self.next = next
+        self.right = right
         self.down = down
 
 class Skiplist:
 
     def __init__(self):
-        # Use a dummy head node. Value -1 is safe as 0 <= num.
+        # Initialize with a sentinel head node. 
+        # Since values are >= 0, -1 is a safe sentinel value.
         self.head = Node(-1)
 
     def search(self, target: int) -> bool:
         curr = self.head
         while curr:
-            # Move right as much as possible at current level
-            while curr.next and curr.next.val < target:
-                curr = curr.next
-            # Check if target is found
-            if curr.next and curr.next.val == target:
+            while curr.right and curr.right.val < target:
+                curr = curr.right
+            if curr.right and curr.right.val == target:
                 return True
-            # Move down to next level
             curr = curr.down
         return False
 
     def add(self, num: int) -> None:
-        stack = []
+        # Keep track of the 'path' where we transitioned down levels
+        path = []
         curr = self.head
-        # Find insertion path
         while curr:
-            while curr.next and curr.next.val < num:
-                curr = curr.next
-            stack.append(curr)
+            while curr.right and curr.right.val < num:
+                curr = curr.right
+            path.append(curr)
             curr = curr.down
         
-        insert = True
+        insert_up = True
         down_node = None
-        # Insert from bottom up based on random probability
-        while insert and stack:
-            prev = stack.pop()
-            prev.next = Node(num, prev.next, down_node)
-            down_node = prev.next
-            # 50% chance to promote to a higher level
-            insert = (random.random() < 0.5)
         
-        # If we still need to promote but reached the top, create a new level
-        if insert:
-            self.head = Node(-1, Node(num, None, down_node), self.head)
+        while insert_up:
+            if path:
+                prev = path.pop()
+                prev.right = Node(num, prev.right, down_node)
+                down_node = prev.right
+            else:
+                # If path is empty but we still need to insert up, create a new level
+                new_node = Node(num, None, down_node)
+                self.head = Node(-1, new_node, self.head)
+                down_node = new_node
+            
+            # Probabilistically decide to add another level (50% chance)
+            insert_up = (random.random() < 0.5)
 
     def erase(self, num: int) -> bool:
         curr = self.head
         found = False
         while curr:
-            # Move right
-            while curr.next and curr.next.val < num:
-                curr = curr.next
-            
-            # If found, remove the node at this level and continue down
-            if curr.next and curr.next.val == num:
+            while curr.right and curr.right.val < num:
+                curr = curr.right
+            if curr.right and curr.right.val == num:
                 found = True
-                curr.next = curr.next.next
-            
+                # Remove the node at this level and continue to the level below
+                curr.right = curr.right.right
             curr = curr.down
         return found
-
 
 # Your Skiplist object will be instantiated and called as such:
 # obj = Skiplist()
