@@ -10,51 +10,40 @@
 #     def __init__(self, val=0, next=None):
 #         self.val = val
 #         self.next = next
-from typing import Optional
-
 class Solution:
     def reverseEvenLengthGroups(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        if not head or not head.next:
-            return head
-        
-        # The first group consists of only the head node (length 1, which is odd).
-        # So we can start processing from the second group, with prev pointing to head.
         prev = head
-        d = 2
+        group_len = 2
         
         while prev.next:
-            # Count actual nodes available in the current group
+            # Count actual nodes in the current group
+            node = prev.next
             count = 0
-            temp = prev.next
-            while count < d and temp:
-                temp = temp.next
+            while count < group_len and node:
                 count += 1
+                node = node.next
             
             if count % 2 == 0:
-                # Record the start of the group to be reversed
-                group_start = prev.next
-                curr = group_start
-                rev_prev = None
-                
-                # Standard in-place reversal for 'count' nodes
+                # Reverse the nodes in this group
+                curr = prev.next
+                reverse_prev = None
                 for _ in range(count):
                     nxt = curr.next
-                    curr.next = rev_prev
-                    rev_prev = curr
+                    curr.next = reverse_prev
+                    reverse_prev = curr
                     curr = nxt
                 
-                # After reversal, rev_prev is the new head of the group,
-                # group_start is the new tail, and curr is the node after the group.
-                prev.next = rev_prev
-                group_start.next = curr
-                prev = group_start
+                # Reconnect the reversed group
+                group_end = prev.next
+                prev.next = reverse_prev
+                group_end.next = curr
+                prev = group_end
             else:
-                # If the actual count is odd, skip the group
+                # Skip the nodes in this group
                 for _ in range(count):
                     prev = prev.next
             
-            # Move to the next expected group size
-            d += 1
+            group_len += 1
             
         return head
 # @lc code=end
