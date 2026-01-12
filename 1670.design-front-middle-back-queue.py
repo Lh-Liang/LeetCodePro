@@ -10,13 +10,15 @@ from collections import deque
 class FrontMiddleBackQueue:
 
     def __init__(self):
-        # We maintain two deques: left and right.
-        # Invariant: len(right) is always equal to or one greater than len(left).
+        """
+        Initialize the queue with two deques.
+        Invariant: len(self.left) == len(self.right) or len(self.right) == len(self.left) + 1
+        """
         self.left = deque()
         self.right = deque()
 
-    def rebalance(self):
-        # Maintain the invariant: 0 <= len(right) - len(left) <= 1
+    def _balance(self):
+        """Helper to maintain the size invariant between the two halves."""
         if len(self.left) > len(self.right):
             self.right.appendleft(self.left.pop())
         elif len(self.right) > len(self.left) + 1:
@@ -24,44 +26,47 @@ class FrontMiddleBackQueue:
 
     def pushFront(self, val: int) -> None:
         self.left.appendleft(val)
-        self.rebalance()
+        self._balance()
 
     def pushMiddle(self, val: int) -> None:
         if len(self.left) == len(self.right):
+            # New size will be odd, right half gets the extra element
             self.right.appendleft(val)
         else:
+            # New size will be even, left half gets the element to balance
             self.left.append(val)
-        # pushMiddle logic naturally maintains balance, but rebalance() is safe.
 
     def pushBack(self, val: int) -> None:
         self.right.append(val)
-        self.rebalance()
+        self._balance()
 
     def popFront(self) -> int:
-        if not self.left and not self.right:
+        if not self.right:
             return -1
         if not self.left:
             res = self.right.popleft()
         else:
             res = self.left.popleft()
-        self.rebalance()
+        self._balance()
         return res
 
     def popMiddle(self) -> int:
-        if not self.left and not self.right:
+        if not self.right:
             return -1
         if len(self.left) == len(self.right):
+            # Even size: pop the last element of the front half
             res = self.left.pop()
         else:
+            # Odd size: pop the first element of the back half
             res = self.right.popleft()
-        self.rebalance()
+        self._balance()
         return res
 
     def popBack(self) -> int:
         if not self.right:
             return -1
         res = self.right.pop()
-        self.rebalance()
+        self._balance()
         return res
 
 
