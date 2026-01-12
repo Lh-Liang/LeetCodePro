@@ -16,57 +16,58 @@ class Node:
 class Skiplist:
 
     def __init__(self):
-        # Initialize with a sentinel head node. 
-        # Since values are >= 0, -1 is a safe sentinel value.
+        # Initialize with a dummy head node for the top-most level
         self.head = Node(-1)
 
     def search(self, target: int) -> bool:
         curr = self.head
         while curr:
+            # Move right as long as the next node's value is less than target
             while curr.right and curr.right.val < target:
                 curr = curr.right
+            # If target found at current level, return True
             if curr.right and curr.right.val == target:
                 return True
+            # Move down to search in the lower level
             curr = curr.down
         return False
 
     def add(self, num: int) -> None:
-        # Keep track of the 'path' where we transitioned down levels
         path = []
         curr = self.head
+        # Traverse and record the path of nodes where we move down
         while curr:
             while curr.right and curr.right.val < num:
                 curr = curr.right
             path.append(curr)
             curr = curr.down
         
-        insert_up = True
-        down_node = None
+        insert = True
+        down_ptr = None
+        # Insert at the current level and potentially promote to higher levels
+        while insert and path:
+            prev = path.pop()
+            prev.right = Node(num, prev.right, down_ptr)
+            down_ptr = prev.right
+            # Probability 0.5 to promote to the next level
+            insert = (random.random() < 0.5)
         
-        while insert_up:
-            if path:
-                prev = path.pop()
-                prev.right = Node(num, prev.right, down_node)
-                down_node = prev.right
-            else:
-                # If path is empty but we still need to insert up, create a new level
-                new_node = Node(num, None, down_node)
-                self.head = Node(-1, new_node, self.head)
-                down_node = new_node
-            
-            # Probabilistically decide to add another level (50% chance)
-            insert_up = (random.random() < 0.5)
+        # If promotion continues beyond existing levels, create a new top level
+        if insert:
+            self.head = Node(-1, Node(num, None, down_ptr), self.head)
 
     def erase(self, num: int) -> bool:
         curr = self.head
         found = False
         while curr:
+            # Move right as long as the next node's value is less than num
             while curr.right and curr.right.val < num:
                 curr = curr.right
+            # If num found at current level, remove it and mark as found
             if curr.right and curr.right.val == num:
                 found = True
-                # Remove the node at this level and continue to the level below
                 curr.right = curr.right.right
+            # Move down to continue removal in lower levels
             curr = curr.down
         return found
 
