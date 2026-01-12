@@ -1,3 +1,5 @@
+import random
+
 #
 # @lc app=leetcode id=1206 lang=python3
 #
@@ -5,73 +7,63 @@
 #
 
 # @lc code=start
-import random
-
 class Node:
-    __slots__ = 'val', 'right', 'down'
-    def __init__(self, val, right=None, down=None):
+    __slots__ = 'val', 'next'
+    def __init__(self, val, level):
         self.val = val
-        self.right = right
-        self.down = down
+        self.next = [None] * level
 
 class Skiplist:
 
     def __init__(self):
-        # Initialize with a sentinel head node
-        self.head = Node(-1)
+        self.max_level = 16
+        self.head = Node(-1, self.max_level)
+
+    def _random_level(self) -> int:
+        lvl = 1
+        while lvl < self.max_level and random.random() < 0.5:
+            lvl += 1
+        return lvl
 
     def search(self, target: int) -> bool:
         curr = self.head
-        while curr:
-            # Move right as much as possible at the current level
-            while curr.right and curr.right.val < target:
-                curr = curr.right
-            # If target found in current level express lane
-            if curr.right and curr.right.val == target:
+        for i in range(self.max_level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < target:
+                curr = curr.next[i]
+            if curr.next[i] and curr.next[i].val == target:
                 return True
-            # Move down to search in the next level
-            curr = curr.down
         return False
 
     def add(self, num: int) -> None:
-        stack = []
+        update = [None] * self.max_level
         curr = self.head
-        # Find insertion points at each level
-        while curr:
-            while curr.right and curr.right.val < num:
-                curr = curr.right
-            stack.append(curr)
-            curr = curr.down
+        for i in range(self.max_level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < num:
+                curr = curr.next[i]
+            update[i] = curr
         
-        down_node = None
-        should_add = True
-        # Insert the node and decide levels via coin flip
-        while should_add:
-            if stack:
-                prev = stack.pop()
-                prev.right = Node(num, prev.right, down_node)
-                down_node = prev.right
-            else:
-                # If we need a new level above current maximum
-                self.head = Node(-1, Node(num, None, down_node), self.head)
-                down_node = self.head.right
-            # 50% chance to go up one more level
-            should_add = (random.random() < 0.5)
+        lvl = self._random_level()
+        node = Node(num, lvl)
+        for i in range(lvl):
+            node.next[i] = update[i].next[i]
+            update[i].next[i] = node
 
     def erase(self, num: int) -> bool:
+        update = [None] * self.max_level
         curr = self.head
-        found = False
-        while curr:
-            # Find the node just before the target value
-            while curr.right and curr.right.val < num:
-                curr = curr.right
-            if curr.right and curr.right.val == num:
-                # Found the value, remove the node at this level
-                found = True
-                curr.right = curr.right.right
-                # Move down to remove the same tower at lower levels
-            curr = curr.down
-        return found
+        for i in range(self.max_level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < num:
+                curr = curr.next[i]
+            update[i] = curr
+        
+        node = update[0].next[0]
+        if not node or node.val != num:
+            return False
+        
+        for i in range(len(node.next)):
+            update[i].next[i] = node.next[i]
+        return True
+
 
 # Your Skiplist object will be instantiated and called as such:
 # obj = Skiplist()
