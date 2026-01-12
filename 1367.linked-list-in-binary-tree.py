@@ -20,24 +20,21 @@ class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
         if not root:
             return False
-        
-        # Check if the list starts at the current root, or search in left/right subtrees
+        # Check if the list starts at the current root or any of its descendants
         return self.checkPath(head, root) or \
                self.isSubPath(head, root.left) or \
                self.isSubPath(head, root.right)
 
     def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
-        # If we reached the end of the linked list, we found a match
+        # If we reached the end of the list, we found a successful subpath
         if not head:
             return True
-        # If the tree ends but the list hasn't, no match
+        # If we reached the end of a tree path but list is not finished
         if not node:
             return False
-        # If values don't match, this path is invalid
+        # If values don't match, this path is not valid
         if head.val != node.val:
             return False
-        
-        # Current values match, continue checking the next list node in both child paths
-        return self.checkPath(head.next, node.left) or \
-               self.checkPath(head.next, node.right)
+        # Continue matching the rest of the list in the left or right child
+        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
 # @lc code=end
