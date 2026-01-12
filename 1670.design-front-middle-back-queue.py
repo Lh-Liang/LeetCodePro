@@ -10,15 +10,11 @@ from collections import deque
 class FrontMiddleBackQueue:
 
     def __init__(self):
-        """
-        Initialize the queue with two deques.
-        Invariant: len(self.left) == len(self.right) or len(self.right) == len(self.left) + 1
-        """
         self.left = deque()
         self.right = deque()
 
     def _balance(self):
-        """Helper to maintain the size invariant between the two halves."""
+        # Invariant: len(left) <= len(right) <= len(left) + 1
         if len(self.left) > len(self.right):
             self.right.appendleft(self.left.pop())
         elif len(self.right) > len(self.left) + 1:
@@ -30,10 +26,8 @@ class FrontMiddleBackQueue:
 
     def pushMiddle(self, val: int) -> None:
         if len(self.left) == len(self.right):
-            # New size will be odd, right half gets the extra element
             self.right.appendleft(val)
         else:
-            # New size will be even, left half gets the element to balance
             self.left.append(val)
 
     def pushBack(self, val: int) -> None:
@@ -54,10 +48,8 @@ class FrontMiddleBackQueue:
         if not self.right:
             return -1
         if len(self.left) == len(self.right):
-            # Even size: pop the last element of the front half
             res = self.left.pop()
         else:
-            # Odd size: pop the first element of the back half
             res = self.right.popleft()
         self._balance()
         return res
