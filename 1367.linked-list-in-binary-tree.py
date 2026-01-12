@@ -18,24 +18,24 @@
 #         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
+        def check_path(h, r):
+            # If we reached the end of the linked list, it's a match
+            if not h:
+                return True
+            # If we reached the end of a tree path but list isn't finished
+            if not r:
+                return False
+            # If values don't match, this path is invalid
+            if h.val != r.val:
+                return False
+            # Continue checking the rest of the list in child nodes
+            return check_path(h.next, r.left) or check_path(h.next, r.right)
+        
         if not root:
             return False
-        # Check if the path starts at the current root node
-        if self.checkPath(head, root):
-            return True
-        # Otherwise, check recursively in left and right subtrees
-        return self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
-
-    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
-        # If we successfully traversed the whole list, return True
-        if not head:
-            return True
-        # If we hit a null node in the tree but haven't finished the list, return False
-        if not node:
-            return False
-        # If values don't match, return False
-        if head.val != node.val:
-            return False
-        # Continue checking the next list node in both left and right children
-        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
+        
+        # Try starting the match from the current root, or search in subtrees
+        return check_path(head, root) or \
+               self.isSubPath(head, root.left) or \
+               self.isSubPath(head, root.right)
 # @lc code=end
