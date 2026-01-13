@@ -5,6 +5,8 @@
 #
 
 # @lc code=start
+from typing import Optional, List
+
 # Definition for singly-linked list.
 # class ListNode:
 #     def __init__(self, val=0, next=None):
@@ -16,25 +18,48 @@
 #         self.val = val
 #         self.left = left
 #         self.right = right
-class Solution:
-    def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        if not root:
-            return False
-        # Check if the list starts at the current root or any of its descendants
-        return self.checkPath(head, root) or \
-               self.isSubPath(head, root.left) or \
-               self.isSubPath(head, root.right)
 
-    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
-        # If we reached the end of the list, we found a successful subpath
+class Solution:
+    def isSubPath(self, head: Optional['ListNode'], root: Optional['TreeNode']) -> bool:
         if not head:
             return True
-        # If we reached the end of a tree path but list is not finished
-        if not node:
+        if not root:
             return False
-        # If values don't match, this path is not valid
-        if head.val != node.val:
-            return False
-        # Continue matching the rest of the list in the left or right child
-        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
+
+        # Build pattern from linked list
+        pat: List[int] = []
+        cur = head
+        while cur:
+            pat.append(cur.val)
+            cur = cur.next
+        m = len(pat)
+
+        # Build LPS (KMP failure function)
+        lps = [0] * m
+        j = 0
+        for i in range(1, m):
+            while j > 0 and pat[i] != pat[j]:
+                j = lps[j - 1]
+            if pat[i] == pat[j]:
+                j += 1
+                lps[i] = j
+
+        # Iterative DFS with KMP state
+        stack = [(root, 0)]  # (tree_node, matched_length)
+        while stack:
+            node, j = stack.pop()
+            if not node:
+                continue
+
+            while j > 0 and node.val != pat[j]:
+                j = lps[j - 1]
+            if node.val == pat[j]:
+                j += 1
+                if j == m:
+                    return True
+
+            stack.append((node.left, j))
+            stack.append((node.right, j))
+
+        return False
 # @lc code=end
