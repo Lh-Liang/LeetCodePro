@@ -4,111 +4,174 @@
 # [3501] Maximize Active Section with Trade II
 #
 
-import math
+from typing import List
 
+# @lc code=start
 class Solution:
     def maxActiveSectionsAfterTrade(self, s: str, queries: List[List[int]]) -> List[int]:
         n = len(s)
-        pref = [0] * (n + 1)
+        bits = [1 if c == '1' else 0 for c in s]
+        total_ones = sum(bits)
+
+        INF = 10**9
+        # Node tuple layout:
+        # (len, rc,
+        #  pref_c1, pref_l1, pref_c2, pref_l2,
+        #  suf_c1,  suf_l1,  suf_c2,  suf_l2,
+        #  maxZero, minSurOne, maxAdj)
+        EMPTY = (0, 0, -1, 0, -1, 0, -1, 0, -1, 0, 0, INF, 0)
+
+        def leaf(bit: int):
+            mz = 1 if bit == 0 else 0
+            return (1, 1, bit, 1, -1, 0, bit, 1, -1, 0, mz, INF, 0)
+
+        def merge(A, B):
+            if A[0] == 0:
+                return B
+            if B[0] == 0:
+                return A
+
+            (lenA, rcA, apc1, apl1, apc2, apl2, asc1, asl1, asc2, asl2, amaxZ, amin1, amaxAdj) = A
+            (lenB, rcB, bpc1, bpl1, bpc2, bpl2, bsc1, bsl1, bsc2, bsl2, bmaxZ, bmin1, bmaxAdj) = B
+
+            # maxZero
+            crossZ = 0
+            if asc1 == 0 and bpc1 == 0:
+                crossZ = asl1 + bpl1
+            maxZero = amaxZ
+            if bmaxZ > maxZero:
+                maxZero = bmaxZ
+            if crossZ > maxZero:
+                maxZero = crossZ
+
+            # internal surrounded-one stats
+            minSur = amin1 if amin1 < bmin1 else bmin1
+            maxAdj = amaxAdj if amaxAdj > bmaxAdj else bmaxAdj
+
+            # Cross-boundary candidates:
+            # Case A: [0-run][1-run] | [0-run]
+            if asc1 == 1 and bpc1 == 0 and rcA >= 2 and asc2 == 0:
+                b_len = asl1
+                adj_sum = asl2 + bpl1
+                if b_len < minSur:
+                    minSur = b_len
+                if adj_sum > maxAdj:
+                    maxAdj = adj_sum
+
+            # Case B: [0-run] | [1-run][0-run]
+            if asc1 == 0 and bpc1 == 1 and rcB >= 2 and bpc2 == 0:
+                b_len = bpl1
+                adj_sum = asl1 + bpl2
+                if b_len < minSur:
+                    minSur = b_len
+                if adj_sum > maxAdj:
+                    maxAdj = adj_sum
+
+            # Case C: [0-run][1-run] | [1-run][0-run] (merged 1-run)
+            if asc1 == 1 and bpc1 == 1 and rcA >= 2 and rcB >= 2 and asc2 == 0 and bpc2 == 0:
+                b_len = asl1 + bpl1
+                adj_sum = asl2 + bpl2
+                if b_len < minSur:
+                    minSur = b_len
+                if adj_sum > maxAdj:
+                    maxAdj = adj_sum
+
+            # run count capped at 3
+            if rcA == 3 or rcB == 3:
+                rc = 3
+            else:
+                runs = rcA + rcB
+                if asc1 == bpc1:
+                    runs -= 1
+                rc = 3 if runs >= 3 else runs
+
+            totalLen = lenA + lenB
+
+            # prefix: first two runs
+            if rcA == 3:
+                pref_c1, pref_l1, pref_c2, pref_l2 = apc1, apl1, apc2, apl2
+            elif rcA == 2:
+                pref_c1, pref_l1 = apc1, apl1
+                pref_c2, pref_l2 = apc2, apl2 + (bpl1 if bpc1 == apc2 else 0)
+            else:  # rcA == 1
+                pref_c1 = apc1
+                pref_l1 = lenA + (bpl1 if bpc1 == apc1 else 0)
+                if bpc1 == apc1:
+                    if rcB >= 2:
+                        pref_c2, pref_l2 = bpc2, bpl2
+                    else:
+                        pref_c2, pref_l2 = -1, 0
+                else:
+                    pref_c2, pref_l2 = bpc1, bpl1
+
+            # suffix: last two runs (stored as last run then second last)
+            if rcB == 3:
+                suf_c1, suf_l1, suf_c2, suf_l2 = bsc1, bsl1, bsc2, bsl2
+            elif rcB == 2:
+                suf_c1, suf_l1 = bsc1, bsl1
+                suf_c2, suf_l2 = bsc2, bsl2 + (asl1 if asc1 == bsc2 else 0)
+            else:  # rcB == 1
+                suf_c1 = bsc1
+                suf_l1 = lenB + (asl1 if asc1 == bsc1 else 0)
+                if asc1 == bsc1:
+                    if rcA >= 2:
+                        suf_c2, suf_l2 = asc2, asl2
+                    else:
+                        suf_c2, suf_l2 = -1, 0
+                else:
+                    suf_c2, suf_l2 = asc1, asl1
+
+            # If combined is a single run, normalize pref/suf second runs to -1
+            if rc == 1:
+                pref_c2, pref_l2 = -1, 0
+                suf_c2, suf_l2 = -1, 0
+                # ensure lengths match totalLen
+                pref_l1 = totalLen
+                suf_l1 = totalLen
+
+            return (
+                totalLen, rc,
+                pref_c1, pref_l1, pref_c2, pref_l2,
+                suf_c1, suf_l1, suf_c2, suf_l2,
+                maxZero, minSur, maxAdj
+            )
+
+        # Build iterative segtree
+        size = 1
+        while size < n:
+            size <<= 1
+        tree = [EMPTY] * (2 * size)
         for i in range(n):
-            pref[i+1] = pref[i] + (1 if s[i] == '1' else 0)
-            
-        def get_ones(l, r):
-            return pref[r+1] - pref[l]
+            tree[size + i] = leaf(bits[i])
+        for i in range(size - 1, 0, -1):
+            tree[i] = merge(tree[2 * i], tree[2 * i + 1])
 
-        zero_blocks = []
-        one_blocks = []
-        
-        i = 0
-        while i < n:
-            start = i
-            val = s[i]
-            while i < n and s[i] == val:
-                i += 1
-            if val == '0':
-                zero_blocks.append((start, i - 1))
-            else:
-                one_blocks.append((start, i - 1))
+        def query(l: int, r: int):
+            l += size
+            r += size
+            leftRes = EMPTY
+            rightRes = EMPTY
+            while l <= r:
+                if l & 1:
+                    leftRes = merge(leftRes, tree[l])
+                    l += 1
+                if not (r & 1):
+                    rightRes = merge(tree[r], rightRes)
+                    r -= 1
+                l >>= 1
+                r >>= 1
+            return merge(leftRes, rightRes)
 
-        m0 = len(zero_blocks)
-        m1 = len(one_blocks)
-        
-        # Sparse Table for Max Zero Block Length
-        # A zero block in s[l...r] is surrounded by 1s if it's not the first/last block in augmented string
-        # In augmented string 1 + s[l...r] + 1, any block of 0s in s[l...r] is surrounded by 1s (or boundary 1s)
-        st_max_z = []
-        if m0 > 0:
-            k = int(math.log2(m0)) + 1
-            st_max_z = [[0] * k for _ in range(m0)]
-            for i in range(m0):
-                st_max_z[i][0] = zero_blocks[i][1] - zero_blocks[i][0] + 1
-            for j in range(1, k):
-                for i in range(m0 - (1 << j) + 1):
-                    st_max_z[i][j] = max(st_max_z[i][j-1], st_max_z[i + (1 << (j-1))][j-1])
-
-        def query_max_z(L, R):
-            if L > R: return -float('inf')
-            j = int(math.log2(R - L + 1))
-            return max(st_max_z[L][j], st_max_z[R - (1 << j) + 1][j])
-
-        # Sparse Table for Min One Block Length
-        # A one block is surrounded by 0s if it's not the first or last block of the original s,
-        # and within the range [l, r], it must not touch the boundaries if those boundaries are effectively 1s.
-        st_min_o = []
-        valid_one_indices = []
-        for idx, (start, end) in enumerate(one_blocks):
-            if start > 0 and end < n - 1 and s[start-1] == '0' and s[end+1] == '0':
-                valid_one_indices.append(idx)
-        
-        m1_v = len(valid_one_indices)
-        if m1_v > 0:
-            k = int(math.log2(m1_v)) + 1
-            st_min_o = [[0] * k for _ in range(m1_v)]
-            for i in range(m1_v):
-                idx = valid_one_indices[i]
-                st_min_o[i][0] = one_blocks[idx][1] - one_blocks[idx][0] + 1
-            for j in range(1, k):
-                for i in range(m1_v - (1 << j) + 1):
-                    st_min_o[i][j] = min(st_min_o[i][j-1], st_min_o[i + (1 << (j-1))][j-1])
-
-        def query_min_o(L, R):
-            if L > R: return float('inf')
-            j = int(math.log2(R - L + 1))
-            return min(st_min_o[L][j], st_min_o[R - (1 << j) + 1][j])
-
-        import bisect
         ans = []
-        z_starts = [b[0] for b in zero_blocks]
-        o_v_starts = [one_blocks[idx][0] for idx in valid_one_indices]
-
         for l, r in queries:
-            initial_ones = get_ones(l, r)
-            
-            # Find zero blocks fully contained in [l, r]
-            idx_z_start = bisect.bisect_left(z_starts, l)
-            idx_z_end = bisect.bisect_right(z_starts, r)
-            max_z = -float('inf')
-            if idx_z_start < idx_z_end:
-                # Check if block is fully contained
-                actual_end = idx_z_end - 1
-                while actual_end >= idx_z_start and zero_blocks[actual_end][1] > r:
-                    actual_end -= 1
-                if idx_z_start <= actual_end:
-                    max_z = query_max_z(idx_z_start, actual_end)
-            
-            # Find valid one blocks fully contained in [l, r]
-            idx_o_start = bisect.bisect_left(o_v_starts, l)
-            idx_o_end = bisect.bisect_right(o_v_starts, r)
-            min_o = float('inf')
-            if idx_o_start < idx_o_end:
-                actual_end = idx_o_end - 1
-                while actual_end >= idx_o_start and one_blocks[valid_one_indices[actual_end]][1] > r:
-                    actual_end -= 1
-                if idx_o_start <= actual_end:
-                    min_o = query_min_o(idx_o_start, actual_end)
-            
-            if max_z != -float('inf') and min_o != float('inf'):
-                ans.append(max(initial_ones, initial_ones + max_z - min_o))
+            node = query(l, r)
+            minSurOne = node[11]
+            if minSurOne >= INF:
+                gain = 0
             else:
-                ans.append(initial_ones)
+                maxZeroLen = node[10]
+                maxAdjSum = node[12]
+                gain = max(maxZeroLen - minSurOne, maxAdjSum)
+            ans.append(total_ones + gain)
         return ans
+# @lc code=end
