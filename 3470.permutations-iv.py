@@ -5,65 +5,113 @@
 #
 
 # @lc code=start
+from typing import List
+from bisect import bisect_left
+
 class Solution:
     def permute(self, n: int, k: int) -> List[int]:
-        MAX_K = 10**15 + 7
+        # Precompute factorials up to n (Python big ints are fine for n<=100)
         fact = [1] * (n + 1)
         for i in range(2, n + 1):
-            fact[i] = min(MAX_K, fact[i-1] * i)
+            fact[i] = fact[i - 1] * i
 
-        def count_ways(m, np, nq):
-            # m slots left, first slot must be parity P (np elements available)
-            # Sequence: P, Q, P, Q, ...
-            # Number of P slots: (m + 1) // 2
-            # Number of Q slots: m // 2
-            if np == (m + 1) // 2 and nq == m // 2:
-                if nq == 0:
-                    return fact[np]
-                if fact[np] > MAX_K // fact[nq]:
-                    return MAX_K
-                return fact[np] * fact[nq]
-            return 0
+        odds = list(range(1, n + 1, 2))
+        evens = list(range(2, n + 1, 2))
+        ro, re = len(odds), len(evens)
 
-        available_odds = [i for i in range(1, n + 1) if i % 2 != 0]
-        available_evens = [i for i in range(1, n + 1) if i % 2 == 0]
-        result = []
-        last_parity = -1
+        # Total count check
+        if ro == re:
+            total = 2 * fact[ro] * fact[re]
+        elif ro == re + 1:
+            total = fact[ro] * fact[re]
+        else:
+            total = 0
 
-        for i in range(n):
-            found = False
-            combined = sorted(available_odds + available_evens)
-            for x in combined:
-                if last_parity != -1 and (x % 2) == last_parity:
-                    continue
-                
-                rem_odd = len(available_odds) - (1 if x % 2 != 0 else 0)
-                rem_even = len(available_evens) - (1 if x % 2 == 0 else 0)
-                m = rem_odd + rem_even
-                
-                if m == 0:
-                    ways = 1
+        if k > total:
+            return []
+
+        def completions_after_pick(is_odd_pick: bool, ro0: int, re0: int, m: int) -> int:
+            """Number of ways to fill m remaining positions after picking current number.
+            ro0/re0 are remaining counts AFTER the pick. Next parity is opposite of pick."""
+            if m == 0:
+                return 1
+
+            next_is_odd = not is_odd_pick
+            if next_is_odd:
+                odd_slots = (m + 1) // 2
+                even_slots = m // 2
+            else:
+                even_slots = (m + 1) // 2
+                odd_slots = m // 2
+
+            if ro0 != odd_slots or re0 != even_slots:
+                return 0
+            return fact[ro0] * fact[re0]
+
+        ans: List[int] = []
+        prev_is_odd = None  # unknown before first pick
+
+        for i in range(1, n + 1):
+            # Determine allowed parity for this position
+            if i == 1:
+                if ro == re:
+                    allow_odd = allow_even = True
                 else:
-                    next_parity_needed = 1 - (x % 2)
-                    if next_parity_needed == 1: # Next must be odd
-                        ways = count_ways(m, rem_odd, rem_even)
-                    else: # Next must be even
-                        ways = count_ways(m, rem_even, rem_odd)
-                
-                if k <= ways:
-                    result.append(x)
-                    if x % 2 != 0:
-                        available_odds.remove(x)
+                    # n is odd case: must start with odd
+                    allow_odd, allow_even = True, False
+            else:
+                # Must alternate
+                allow_odd = not prev_is_odd
+                allow_even = prev_is_odd
+
+            m = n - i
+            picked = None
+
+            # Iterate candidates in increasing order
+            if allow_odd and allow_even:
+                p1 = p2 = 0
+                while p1 < len(odds) or p2 < len(evens):
+                    if p2 == len(evens) or (p1 < len(odds) and odds[p1] < evens[p2]):
+                        x = odds[p1]
+                        p1 += 1
                     else:
-                        available_evens.remove(x)
-                    last_parity = x % 2
-                    found = True
-                    break
-                else:
-                    k -= ways
-            
-            if not found:
+                        x = evens[p2]
+                        p2 += 1
+
+                    is_odd = (x & 1) == 1
+                    nro, nre = (ro - 1, re) if is_odd else (ro, re - 1)
+                    cnt = completions_after_pick(is_odd, nro, nre, m)
+                    if k > cnt:
+                        k -= cnt
+                    else:
+                        picked = x
+                        break
+            else:
+                cand_list = odds if allow_odd else evens
+                for x in cand_list:
+                    is_odd = (x & 1) == 1
+                    nro, nre = (ro - 1, re) if is_odd else (ro, re - 1)
+                    cnt = completions_after_pick(is_odd, nro, nre, m)
+                    if k > cnt:
+                        k -= cnt
+                    else:
+                        picked = x
+                        break
+
+            if picked is None:
                 return []
-        
-        return result
+
+            # Commit the pick: remove from the corresponding list
+            ans.append(picked)
+            prev_is_odd = (picked & 1) == 1
+            if prev_is_odd:
+                idx = bisect_left(odds, picked)
+                del odds[idx]
+                ro -= 1
+            else:
+                idx = bisect_left(evens, picked)
+                del evens[idx]
+                re -= 1
+
+        return ans
 # @lc code=end
