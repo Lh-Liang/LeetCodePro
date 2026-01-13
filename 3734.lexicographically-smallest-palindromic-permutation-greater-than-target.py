@@ -5,71 +5,82 @@
 #
 
 # @lc code=start
-from collections import Counter
-
 class Solution:
     def lexPalindromicPermutation(self, s: str, target: str) -> str:
         n = len(s)
-        counts = Counter(s)
-        odd_chars = [char for char, count in counts.items() if count % 2 != 0]
-        
-        if len(odd_chars) > 1:
+        freq = [0] * 26
+        for ch in s:
+            freq[ord(ch) - 97] += 1
+
+        odd = [i for i in range(26) if freq[i] % 2 == 1]
+        if n % 2 == 0:
+            if odd:
+                return ""
+            mid = ""
+        else:
+            if len(odd) != 1:
+                return ""
+            mid = chr(odd[0] + 97)
+
+        m = n // 2
+        half = [f // 2 for f in freq]
+        tp = target[:m]
+
+        def can_form_exact(t: str) -> bool:
+            cnt = half[:]
+            for ch in t:
+                idx = ord(ch) - 97
+                cnt[idx] -= 1
+                if cnt[idx] < 0:
+                    return False
+            return True
+
+        def build_suffix(cnt):
+            # smallest arrangement from remaining counts
+            parts = []
+            for i in range(26):
+                if cnt[i]:
+                    parts.append(chr(i + 97) * cnt[i])
+            return "".join(parts)
+
+        def next_greater_multiset(tp: str):
+            # returns smallest multiset permutation strictly greater than tp, or None
+            if m == 0:
+                return None
+
+            # prefixUsed[i] = counts used by tp[:i]
+            prefixUsed = [[0] * 26 for _ in range(m + 1)]
+            for i, ch in enumerate(tp):
+                prefixUsed[i + 1] = prefixUsed[i][:]
+                prefixUsed[i + 1][ord(ch) - 97] += 1
+
+            for i in range(m - 1, -1, -1):
+                # check if tp[:i] is feasible
+                rem = [half[j] - prefixUsed[i][j] for j in range(26)]
+                if any(x < 0 for x in rem):
+                    continue
+
+                cur = ord(tp[i]) - 97
+                for nxt in range(cur + 1, 26):
+                    if rem[nxt] > 0:
+                        rem[nxt] -= 1
+                        suffix = build_suffix(rem)
+                        return tp[:i] + chr(nxt + 97) + suffix
+            return None
+
+        def make_pal(L: str) -> str:
+            return L + mid + L[::-1]
+
+        # 1) If we can exactly match the left half to tp, check if that palindrome already beats target.
+        if can_form_exact(tp):
+            cand = make_pal(tp)
+            if cand > target:
+                return cand
+
+        # 2) Otherwise find the smallest left half strictly greater than tp.
+        L2 = next_greater_multiset(tp)
+        if L2 is None:
             return ""
-            
-        mid_char = odd_chars[0] if odd_chars else ""
-        half_chars = []
-        for char, count in sorted(counts.items()):
-            half_chars.extend([char] * (count // 2))
-            
-        half_len = n // 2
-        
-        def build_palindrome(half):
-            res = list(half)
-            if n % 2 != 0:
-                res.append(mid_char)
-            res.extend(reversed(half))
-            return "".join(res)
+        return make_pal(L2)
 
-        # Try to see if the target itself (or the smallest palindrome >= target) works
-        # We iterate from the middle to the front to find the first point of divergence
-        for i in range(half_len, -1, -1):
-            # Try to increment at index i
-            prefix = target[:i]
-            current_counts = Counter(half_chars)
-            possible = True
-            for char in prefix:
-                if current_counts[char] > 0:
-                    current_counts[char] -= 1
-                else:
-                    possible = False
-                    break
-            if not possible: continue
-            
-            # Find a character at index i that is > target[i]
-            target_char = target[i] if i < half_len else ""
-            
-            # Special case: if i == half_len, we only check if the current prefix + mid + rev(prefix) > target
-            if i == half_len:
-                candidate_half = "".join(list(target[:half_len]))
-                # Re-verify if target[:half_len] is constructible from half_chars
-                if Counter(candidate_half) == Counter(half_chars):
-                    p = build_palindrome(candidate_half)
-                    if p > target:
-                        return p
-                continue
-
-            for char_code in range(ord(target_char) + 1, ord('z') + 1):
-                char = chr(char_code)
-                if current_counts[char] > 0:
-                    # Found the smallest char to make it strictly greater
-                    temp_half = list(prefix) + [char]
-                    temp_counts = Counter(current_counts)
-                    temp_counts[char] -= 1
-                    # Fill the rest with smallest available
-                    for c in sorted(temp_counts.keys()):
-                        temp_half.extend([c] * temp_counts[c])
-                    
-                    return build_palindrome("".join(temp_half))
-        
-        return ""
 # @lc code=end
