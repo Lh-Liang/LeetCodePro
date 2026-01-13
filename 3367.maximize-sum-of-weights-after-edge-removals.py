@@ -4,6 +4,8 @@
 # [3367] Maximize Sum of Weights after Edge Removals
 #
 
+from typing import List
+
 # @lc code=start
 class Solution:
     def maximizeSumOfWeights(self, edges: List[List[int]], k: int) -> int:
@@ -12,50 +14,51 @@ class Solution:
         for u, v, w in edges:
             adj[u].append((v, w))
             adj[v].append((u, w))
-        
-        # Use iterative approach to get post-order traversal sequence
-        order = []
+
         parent = [-1] * n
-        stack = [0]
-        visited = [False] * n
-        visited[0] = True
-        
-        while stack:
-            u = stack.pop()
+        order = []
+        st = [0]
+        parent[0] = -2  # mark root visited
+
+        # Build parent array and traversal order
+        while st:
+            u = st.pop()
             order.append(u)
             for v, w in adj[u]:
-                if not visited[v]:
-                    visited[v] = True
-                    parent[v] = u
-                    stack.append(v)
-        
-        dp0 = [0] * n
-        dp1 = [0] * n
-        
-        # Process nodes in reverse pre-order (post-order traversal)
+                if v == parent[u]:
+                    continue
+                if parent[v] != -1:
+                    continue
+                parent[v] = u
+                st.append(v)
+
+        parent[0] = -1
+
+        dp0 = [0] * n  # parent edge not kept
+        dp1 = [0] * n  # parent edge kept
+
         for u in reversed(order):
-            total_sum = 0
+            base = 0
             gains = []
             for v, w in adj[u]:
                 if v == parent[u]:
                     continue
-                
-                # Subtree at v is already processed
-                total_sum += dp0[v]
-                
-                # Calculate potential gain if we keep edge (u, v)
-                # dp1[v] + w is the sum if edge is kept, dp0[v] if removed
-                gain = (dp1[v] + w) - dp0[v]
+                base += dp0[v]
+                gain = dp1[v] + w - dp0[v]
                 if gain > 0:
                     gains.append(gain)
-            
+
             gains.sort(reverse=True)
-            
-            # dp0[u]: Max sum if u can have k edges to children
-            dp0[u] = total_sum + sum(gains[:k])
-            
-            # dp1[u]: Max sum if u can have k-1 edges to children (leaving 1 for parent)
-            dp1[u] = total_sum + sum(gains[:k-1])
-            
+            m = len(gains)
+            pref = [0] * (m + 1)
+            for i, g in enumerate(gains, 1):
+                pref[i] = pref[i - 1] + g
+
+            take0 = min(k, m)
+            dp0[u] = base + pref[take0]
+
+            take1 = min(k - 1, m) if k > 0 else 0
+            dp1[u] = base + pref[take1]
+
         return dp0[0]
 # @lc code=end
