@@ -9,39 +9,46 @@ from functools import lru_cache
 
 class Solution:
     def totalWaviness(self, num1: int, num2: int) -> int:
-        def solve(n):
-            s = str(n)
-            
+        def total_upto(N: int) -> int:
+            if N <= 0:
+                return 0
+            digits = list(map(int, str(N)))
+            m = len(digits)
+
             @lru_cache(None)
-            def dp(idx, last1, last2, is_less, is_started):
-                if idx == len(s):
-                    return 0, 1 # (total waviness, count of numbers)
-                
-                res_waviness = 0
-                res_count = 0
-                limit = int(s[idx]) if not is_less else 9
-                
+            def dfs(pos: int, tight: int, started: int, last2: int, last1: int):
+                # returns (count_numbers, sum_waviness) for all completions
+                if pos == m:
+                    return 1, 0
+
+                limit = digits[pos] if tight else 9
+                total_cnt = 0
+                total_sum = 0
+
                 for d in range(limit + 1):
-                    new_less = is_less or (d < limit)
-                    new_started = is_started or (d > 0)
-                    
-                    # Calculate if last1 is a peak or valley
-                    # last2, last1, d
-                    waviness_inc = 0
-                    if is_started and last2 != -1 and last1 != -1:
-                        if last2 < last1 > d:
-                            waviness_inc = 1
-                        elif last2 > last1 < d:
-                            waviness_inc = 1
-                    
-                    sub_waviness, sub_count = dp(idx + 1, d if new_started else -1, last1 if new_started else -1, new_less, new_started)
-                    
-                    res_waviness += sub_waviness + (waviness_inc * sub_count)
-                    res_count += sub_count
-                
-                return res_waviness, res_count
+                    ntight = 1 if (tight and d == limit) else 0
 
-            return dp(0, -1, -1, False, False)[0]
+                    if not started:
+                        if d == 0:
+                            cnt, sm = dfs(pos + 1, ntight, 0, -1, -1)
+                            total_cnt += cnt
+                            total_sum += sm
+                        else:
+                            cnt, sm = dfs(pos + 1, ntight, 1, -1, d)
+                            total_cnt += cnt
+                            total_sum += sm
+                    else:
+                        inc = 0
+                        if last2 != -1:
+                            if (last1 > last2 and last1 > d) or (last1 < last2 and last1 < d):
+                                inc = 1
+                        cnt, sm = dfs(pos + 1, ntight, 1, last1, d)
+                        total_cnt += cnt
+                        total_sum += sm + inc * cnt
 
-        return solve(num2) - solve(num1 - 1)
+                return total_cnt, total_sum
+
+            return dfs(0, 1, 0, -1, -1)[1]
+
+        return total_upto(num2) - total_upto(num1 - 1)
 # @lc code=end
