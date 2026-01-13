@@ -4,34 +4,53 @@
 # [3419] Minimize the Maximum Edge Weight of Graph
 #
 
-from typing import List
-import heapq
-import math
-
 # @lc code=start
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # Build reversed graph: b -> a with weight w (original a -> b)
-        rev = [[] for _ in range(n)]
-        for a, b, w in edges:
-            rev[b].append((a, w))
-
-        INF = math.inf
-        dist = [INF] * n
-        dist[0] = 0
-        pq = [(0, 0)]  # (bottleneck value to reach 0, node)
-
-        while pq:
-            d, v = heapq.heappop(pq)
-            if d != dist[v]:
-                continue
-            for u, w in rev[v]:
-                nd = max(d, w)
-                if nd < dist[u]:
-                    dist[u] = nd
-                    heapq.heappush(pq, (nd, u))
-
-        if any(x is INF for x in dist):
-            return -1
-        return max(dist)
+        from collections import defaultdict, deque
+        
+        # Get all unique weights and sort them
+        weights = sorted(set(w for _, _, w in edges))
+        
+        def canReachAll(maxWeight):
+            # Filter edges by maxWeight
+            filtered = [(a, b, w) for a, b, w in edges if w <= maxWeight]
+            
+            # Group by source node
+            outgoing = defaultdict(list)
+            for a, b, w in filtered:
+                outgoing[a].append((b, w))
+            
+            # For each node, keep at most threshold edges (prioritize smaller weights)
+            graph = defaultdict(list)
+            for node in outgoing:
+                outgoing[node].sort(key=lambda x: x[1])
+                for i in range(min(threshold, len(outgoing[node]))):
+                    graph[node].append(outgoing[node][i][0])
+            
+            # Reverse the graph to check reachability
+            reversed_graph = defaultdict(list)
+            for a in graph:
+                for b in graph[a]:
+                    reversed_graph[b].append(a)
+            
+            # BFS from node 0 in reversed graph
+            visited = set([0])
+            queue = deque([0])
+            while queue:
+                node = queue.popleft()
+                for neighbor in reversed_graph[node]:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+            
+            # Check if all nodes can reach node 0
+            return len(visited) == n
+        
+        # Try each weight in ascending order
+        for w in weights:
+            if canReachAll(w):
+                return w
+        
+        return -1
 # @lc code=end
