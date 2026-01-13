@@ -3,9 +3,6 @@
 #
 # [3217] Delete Nodes From Linked List Present in Array
 #
-
-from typing import List, Optional
-
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -13,17 +10,19 @@ from typing import List, Optional
 #         self.val = val
 #         self.next = next
 class Solution:
-    def modifiedList(self, nums: List[int], head: Optional['ListNode']) -> Optional['ListNode']:
-        to_delete = set(nums)
-
-        dummy = ListNode(0, head)
-        cur = dummy
-
-        while cur.next:
-            if cur.next.val in to_delete:
-                cur.next = cur.next.next
+    def modifiedList(self, nums: List[int], head: Optional[ListNode]) -> Optional[ListNode]:
+        nums_set = set(nums)
+        dummy = ListNode(0)
+        dummy.next = head
+        prev = dummy
+        curr = head
+        
+        while curr:
+            if curr.val in nums_set:
+                prev.next = curr.next
             else:
-                cur = cur.next
-
+                prev = curr
+            curr = curr.next
+        
         return dummy.next
 # @lc code=end
