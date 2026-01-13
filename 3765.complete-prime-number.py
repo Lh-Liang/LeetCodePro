@@ -7,35 +7,28 @@
 # @lc code=start
 class Solution:
     def completePrime(self, num: int) -> bool:
-        def is_prime(n: int) -> bool:
-            """Check if a number is prime using trial division up to sqrt(n)."""
-            if n < 2:
+        def is_prime(x: int) -> bool:
+            if x < 2:
                 return False
-            if n == 2 or n == 3:
-                return True
-            if n % 2 == 0 or n % 3 == 0:
-                return False
+            if x % 2 == 0:
+                return x == 2
+            if x % 3 == 0:
+                return x == 3
             i = 5
-            while i * i <= n:
-                if n % i == 0 or n % (i + 2) == 0:
+            step = 2
+            while i * i <= x:
+                if x % i == 0:
                     return False
-                i += 6
+                i += step
+                step = 6 - step  # checks 6k-1, 6k+1
             return True
-        
+
         s = str(num)
-        length = len(s)
-        
-        # Check all prefixes and all suffixes
-        for i in range(1, length + 1):
-            # Prefix is the first i digits
-            prefix = int(s[:i])
-            if not is_prime(prefix):
+        n = len(s)
+        for k in range(1, n + 1):
+            if not is_prime(int(s[:k])):
                 return False
-            
-            # Suffix is the last i digits
-            suffix = int(s[length - i:])
-            if not is_prime(suffix):
+            if not is_prime(int(s[-k:])):
                 return False
-                
         return True
 # @lc code=end
