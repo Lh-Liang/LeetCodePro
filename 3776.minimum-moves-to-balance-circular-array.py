@@ -5,50 +5,45 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def minMoves(self, balance: List[int]) -> int:
         n = len(balance)
-        total_sum = sum(balance)
-        
-        # If the total sum is negative, it's impossible to balance the array.
-        if total_sum < 0:
-            return -1
-        
-        # Find the index with the negative balance.
-        k = -1
-        for i in range(n):
-            if balance[i] < 0:
-                k = i
+
+        neg = -1
+        for i, x in enumerate(balance):
+            if x < 0:
+                neg = i
                 break
-        
-        # If no index is negative, no moves are needed.
-        if k == -1:
+
+        # Already all non-negative
+        if neg == -1:
             return 0
-        
-        X = -balance[k]
-        ans = 0
-        
-        # Use a greedy approach by taking balance from the closest neighbors first.
-        # Circular distance d goes from 1 up to n // 2.
-        for d in range(1, n // 2 + 1):
-            # Check index clockwise at distance d
-            i1 = (k + d) % n
-            if balance[i1] > 0:
-                take = min(X, balance[i1])
-                ans += take * d
-                X -= take
-                if X == 0:
-                    return ans
-            
-            # Check index counter-clockwise at distance d
-            i2 = (k - d) % n
-            # Ensure we don't process the same index twice if n is even and d = n/2
-            if i2 != i1 and balance[i2] > 0:
-                take = min(X, balance[i2])
-                ans += take * d
-                X -= take
-                if X == 0:
-                    return ans
-                    
-        return ans
+
+        # Total balance must be >= 0 to end with all non-negative
+        if sum(balance) < 0:
+            return -1
+
+        need = -balance[neg]
+
+        supplies = []  # (distance_to_neg, available_units)
+        for i, x in enumerate(balance):
+            if i == neg or x <= 0:
+                continue
+            diff = abs(i - neg)
+            dist = min(diff, n - diff)
+            supplies.append((dist, x))
+
+        supplies.sort()
+
+        moves = 0
+        for dist, s in supplies:
+            if need == 0:
+                break
+            take = s if s < need else need
+            moves += take * dist
+            need -= take
+
+        return moves if need == 0 else -1
 # @lc code=end
