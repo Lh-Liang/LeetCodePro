@@ -7,62 +7,112 @@
 # @lc code=start
 from typing import List
 from collections import defaultdict
-import math
+from math import gcd
 
 class Solution:
     def countTrapezoids(self, points: List[List[int]]) -> int:
         n = len(points)
-        if n < 4:
-            return 0
-        
-        # Group pairs by slope and then by line constant c
-        # slope = (dy, dx) reduced, c = x*dy - y*dx
-        slope_groups = defaultdict(lambda: defaultdict(int))
-        # Group pairs by midpoint to count parallelograms
-        midpoint_groups = defaultdict(int)
-        
+        xs = [p[0] for p in points]
+        ys = [p[1] for p in points]
+
+        def norm_dir(dx: int, dy: int):
+            g = gcd(abs(dx), abs(dy))
+            dx //= g
+            dy //= g
+            if dx < 0 or (dx == 0 and dy < 0):
+                dx = -dx
+                dy = -dy
+            return dx, dy
+
+        # 1) Group all segments by slope, store (i, j, c) where c identifies the supporting line
+        # for this slope via a*x + b*y = c, with (a,b) being the canonical normal to the slope.
+        slope_segs = defaultdict(list)  # (dx,dy) -> list[(i,j,c)]
+
         for i in range(n):
-            x1, y1 = points[i]
+            xi, yi = xs[i], ys[i]
             for j in range(i + 1, n):
-                x2, y2 = points[j]
-                
-                # Midpoint calculation (scaled by 2 to keep integers)
-                mx, my = x1 + x2, y1 + y2
-                midpoint_groups[(mx, my)] += 1
-                
-                # Slope calculation
-                dx = x2 - x1
-                dy = y2 - y1
-                
-                if dx == 0:
-                    dy = 1
-                elif dy == 0:
-                    dx = 1
-                else:
-                    if dx < 0:
-                        dx, dy = -dx, -dy
-                    common = math.gcd(dx, dy)
-                    dx //= common
-                    dy //= common
-                
-                # c = x*dy - y*dx is the constant for the line equation dy*X - dx*Y = c
-                c = x1 * dy - y1 * dx
-                slope_groups[(dy, dx)][c] += 1
-                
+                dx0 = xs[j] - xi
+                dy0 = ys[j] - yi
+                dx, dy = norm_dir(dx0, dy0)
+
+                # Normal vector to direction (dx,dy) is (dy,-dx). Canonicalize sign.
+                a, b = dy, -dx
+                if a < 0 or (a == 0 and b < 0):
+                    a, b = -a, -b
+                c = a * xi + b * yi
+
+                slope_segs[(dx, dy)].append((i, j, c))
+
+        def comb2(x: int) -> int:
+            return x * (x - 1) // 2
+
+        # 2) Count trapezoids via parallel opposite sides
         total_parallel_pairs = 0
-        for slope in slope_groups:
-            counts = list(slope_groups[slope].values())
-            total_slope_segments = sum(counts)
-            # Calculate pairs of segments with same slope on different lines
-            # Sum_{i < j} counts[i] * counts[j]
-            sum_sq = sum(c * c for c in counts)
-            total_parallel_pairs += (total_slope_segments**2 - sum_sq) // 2
-            
-        parallelogram_count = 0
-        for count in midpoint_groups.values():
-            if count >= 2:
-                parallelogram_count += (count * (count - 1)) // 2
-                
-        # Unique Trapezoids = (Pairs of Parallel Segments) - (Parallelograms)
-        return total_parallel_pairs - parallelogram_count
+        for segs in slope_segs.values():
+            k = len(segs)
+            if k < 2:
+                continue
+
+            total_pairs = comb2(k)
+
+            # pairs sharing an endpoint
+            deg_point = defaultdict(int)
+
+            # line counts and (line,point) endpoint degrees within that line
+            line_seg = defaultdict(int)          # c -> count of segments on that line
+            line_point_deg = defaultdict(int)    # (c, point) -> count
+
+            for i, j, c in segs:
+                deg_point[i] += 1
+                deg_point[j] += 1
+
+                line_seg[c] += 1
+                line_point_deg[(c, i)] += 1
+                line_point_deg[(c, j)] += 1
+
+            shared_endpoint_pairs = sum(comb2(v) for v in deg_point.values())
+
+            # disjoint collinear pairs (segments on same line with no shared endpoints)
+            line_shared = defaultdict(int)  # c -> sum over points on that line of C(deg,2)
+            for (c, _p), v in line_point_deg.items():
+                if v >= 2:
+                    line_shared[c] += comb2(v)
+
+            disjoint_collinear_pairs = 0
+            for c, t in line_seg.items():
+                col_pairs = comb2(t)
+                disjoint_collinear_pairs += col_pairs - line_shared.get(c, 0)
+
+            valid = total_pairs - shared_endpoint_pairs - disjoint_collinear_pairs
+            total_parallel_pairs += valid
+
+        # 3) Count (non-degenerate) parallelograms to fix double counting
+        mid_total = defaultdict(int)     # (mx,my) -> total diagonals with this midpoint
+        diag_count = defaultdict(int)    # (mx,my,dx,dy) -> count of diagonals with this midpoint and slope
+
+        for i in range(n):
+            xi, yi = xs[i], ys[i]
+            for j in range(i + 1, n):
+                mx = xi + xs[j]
+                my = yi + ys[j]
+                mid_total[(mx, my)] += 1
+
+                dx0 = xs[j] - xi
+                dy0 = ys[j] - yi
+                dx, dy = norm_dir(dx0, dy0)
+                diag_count[(mx, my, dx, dy)] += 1
+
+        mid_collinear_pairs = defaultdict(int)  # (mx,my) -> sum over slopes of C(cnt,2)
+        for key, cnt in diag_count.items():
+            if cnt >= 2:
+                mx, my, _dx, _dy = key
+                mid_collinear_pairs[(mx, my)] += comb2(cnt)
+
+        parallelograms = 0
+        for mid, t in mid_total.items():
+            if t >= 2:
+                parallelograms += comb2(t) - mid_collinear_pairs.get(mid, 0)
+
+        return total_parallel_pairs - parallelograms
+
 # @lc code=end
