@@ -4,69 +4,67 @@
 # [3414] Maximum Score of Non-overlapping Intervals
 #
 
-from typing import List, Tuple
-import bisect
-
 # @lc code=start
 class Solution:
     def maximumWeight(self, intervals: List[List[int]]) -> List[int]:
         n = len(intervals)
-        K = 4
-
-        # Sort by end time; keep (l, r, w, original_index)
-        arr = [(l, r, w, idx) for idx, (l, r, w) in enumerate(intervals)]
-        arr.sort(key=lambda x: (x[1], x[0], x[3]))
-
-        # 1-indexed for DP convenience
-        starts = [0] * (n + 1)
-        ends = [-(10**30)] * (n + 1)  # dummy at 0
-        weights = [0] * (n + 1)
-        orig = [0] * (n + 1)
-        for i in range(1, n + 1):
-            l, r, w, idx = arr[i - 1]
-            starts[i] = l
-            ends[i] = r
-            weights[i] = w
-            orig[i] = idx
-
-        # prev[i] = max j < i with ends[j] < starts[i]
-        prev = [0] * (n + 1)
-        for i in range(1, n + 1):
-            # first position with end >= starts[i]
-            pos = bisect.bisect_left(ends, starts[i], 1, n + 1)
-            prev[i] = pos - 1  # could be 0
-
-        def insert_sorted(tup: Tuple[int, ...], x: int) -> Tuple[int, ...]:
-            # keep indices sorted ascending to minimize lexicographically
-            p = bisect.bisect_left(tup, x)
-            return tup[:p] + (x,) + tup[p:]
-
-        def better(w1: int, c1: Tuple[int, ...], w2: int, c2: Tuple[int, ...]) -> Tuple[int, Tuple[int, ...]]:
-            # Return the better of (w1,c1) vs (w2,c2)
-            if w1 != w2:
-                return (w1, c1) if w1 > w2 else (w2, c2)
-            return (w1, c1) if c1 < c2 else (w2, c2)
-
-        # dpW[t][i], dpC[t][i]
-        dpW = [[0] * (n + 1) for _ in range(K + 1)]
-        dpC = [[() for _ in range(n + 1)] for _ in range(K + 1)]
-
-        for t in range(1, K + 1):
-            for i in range(1, n + 1):
-                # skip
-                sw, sc = dpW[t][i - 1], dpC[t][i - 1]
-                # take
-                j = prev[i]
-                tw = dpW[t - 1][j] + weights[i]
-                tc = insert_sorted(dpC[t - 1][j], orig[i])
-
-                bw, bc = better(sw, sc, tw, tc)
-                dpW[t][i], dpC[t][i] = bw, bc
-
-        # Choose best among taking up to 4 intervals
-        bestW, bestC = 0, ()
-        for t in range(1, K + 1):
-            bestW, bestC = better(bestW, bestC, dpW[t][n], dpC[t][n])
-
-        return list(bestC)
+        # Create list of (start, end, weight, original_index)
+        indexed_intervals = [(intervals[i][0], intervals[i][1], intervals[i][2], i) for i in range(n)]
+        
+        # Sort by end time for efficient processing
+        indexed_intervals.sort(key=lambda x: x[1])
+        
+        # dp[i][k] = (max_weight, indices_list) 
+        # considering first i intervals (in sorted order), selecting exactly k
+        dp = [[None for _ in range(5)] for _ in range(n + 1)]
+        dp[0][0] = (0, [])
+        
+        for i in range(n):
+            start, end, weight, orig_idx = indexed_intervals[i]
+            
+            # Option 1: Don't take current interval
+            for k in range(5):
+                if dp[i][k] is not None:
+                    curr_weight, curr_indices = dp[i][k]
+                    if dp[i+1][k] is None or dp[i+1][k][0] < curr_weight:
+                        dp[i+1][k] = (curr_weight, curr_indices[:])
+                    elif dp[i+1][k][0] == curr_weight and curr_indices < dp[i+1][k][1]:
+                        dp[i+1][k] = (curr_weight, curr_indices[:])
+            
+            # Option 2: Take current interval (if we haven't selected 4 yet)
+            for k in range(4):
+                if dp[i][k] is not None:
+                    curr_weight, curr_indices = dp[i][k]
+                    
+                    # Check if current interval doesn't overlap with already selected ones
+                    can_take = True
+                    for prev_orig_idx in curr_indices:
+                        prev_start, prev_end, prev_weight = intervals[prev_orig_idx]
+                        # Two intervals are non-overlapping if one ends before the other starts
+                        if not (prev_end < start or end < prev_start):
+                            can_take = False
+                            break
+                    
+                    if can_take:
+                        new_weight = curr_weight + weight
+                        new_indices = sorted(curr_indices + [orig_idx])
+                        
+                        if dp[i+1][k+1] is None or dp[i+1][k+1][0] < new_weight:
+                            dp[i+1][k+1] = (new_weight, new_indices)
+                        elif dp[i+1][k+1][0] == new_weight and new_indices < dp[i+1][k+1][1]:
+                            dp[i+1][k+1] = (new_weight, new_indices)
+        
+        # Find the result: maximum weight with lexicographically smallest indices
+        max_weight = 0
+        result = []
+        for k in range(5):
+            if dp[n][k] is not None:
+                weight, indices = dp[n][k]
+                if weight > max_weight:
+                    max_weight = weight
+                    result = indices
+                elif weight == max_weight and indices < result:
+                    result = indices
+        
+        return result
 # @lc code=end
