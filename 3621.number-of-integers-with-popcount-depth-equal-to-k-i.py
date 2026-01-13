@@ -4,56 +4,68 @@
 # [3621] Number of Integers With Popcount-Depth Equal to K I
 #
 
-import math
-
 # @lc code=start
 class Solution:
     def popcountDepth(self, n: int, k: int) -> int:
+        # Special case: depth(1) = 0, and no other positive integer has depth 0.
         if k == 0:
-            return 1
-        
-        # Precompute depths for popcount values 1 to 60
-        depths = {1: 0}
-        def get_depth(c):
-            if c in depths: return depths[c]
-            depths[c] = 1 + get_depth(bin(c).count('1'))
-            return depths[c]
+            return 1  # since n >= 1
 
-        # Find all c in [1, 60] such that depth(c) == k - 1
-        target_popcounts = []
-        for c in range(1, 61):
-            if get_depth(c) == k - 1:
-                target_popcounts.append(c)
-        
-        if not target_popcounts:
-            return 0
+        # Max bits needed: n <= 1e15 < 2^50, but keep some margin.
+        MAXB = 64
 
-        def count_with_popcount(n, target):
-            if target < 0: return 0
+        # Precompute combinations C[n][r] for 0 <= n,r <= MAXB.
+        C = [[0] * (MAXB + 1) for _ in range(MAXB + 1)]
+        for i in range(MAXB + 1):
+            C[i][0] = 1
+            for j in range(1, i + 1):
+                if j == i:
+                    C[i][j] = 1
+                else:
+                    C[i][j] = C[i - 1][j - 1] + C[i - 1][j]
+
+        def popcount(x: int) -> int:
+            return x.bit_count()
+
+        # Precompute depth for values up to MAXB.
+        depth = [0] * (MAXB + 1)
+        depth[1] = 0
+        for v in range(2, MAXB + 1):
+            depth[v] = 1 + depth[popcount(v)]
+
+        # Count numbers in [0, n] with exactly `ones` set bits.
+        def count_leq(nval: int, ones: int) -> int:
+            if ones < 0:
+                return 0
+            bits = list(map(int, bin(nval)[2:]))  # MSB -> LSB
+            m = len(bits)
             res = 0
-            current_popcount = 0
-            s = bin(n)[2:]
-            L = len(s)
-            for i in range(L):
-                if s[i] == '1':
-                    # If we place a '0' at this bit, we need to choose 'target - current_popcount'
-                    # '1's from the remaining 'L - 1 - i' bits.
-                    remaining_bits = L - 1 - i
-                    needed_bits = target - current_popcount
-                    if 0 <= needed_bits <= remaining_bits:
-                        res += math.comb(remaining_bits, needed_bits)
-                    current_popcount += 1
-            if current_popcount == target:
-                res += 1
+            c = ones
+            for i, b in enumerate(bits):
+                rem = m - i - 1
+                if b == 1:
+                    if c <= rem:
+                        res += C[rem][c]
+                    c -= 1
+                    if c < 0:
+                        break
+            else:
+                # If we matched all bits and used exactly `ones` ones
+                if c == 0:
+                    res += 1
             return res
 
+        # For k >= 1: sum over popcount c such that depth(c) == k-1.
+        target = k - 1
+        max_ones = n.bit_length()  # maximum possible popcount for numbers <= n
         ans = 0
-        for c in target_popcounts:
-            ans += count_with_popcount(n, c)
-        
-        # If k=1, the logic counts x=1 (popcount 1), but depth(1)=0, not 1.
-        if k == 1:
+        for c in range(1, max_ones + 1):
+            if depth[c] == target:
+                ans += count_leq(n, c)
+
+        # Remove x=1 when k=1, because it has depth 0 but popcount 1.
+        if k == 1 and n >= 1:
             ans -= 1
-            
+
         return ans
 # @lc code=end
