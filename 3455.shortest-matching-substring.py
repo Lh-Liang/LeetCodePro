@@ -5,64 +5,89 @@
 #
 
 # @lc code=start
-import bisect
-
 class Solution:
     def shortestMatchingSubstring(self, s: str, p: str) -> int:
-        def find_all(text, pattern):
-            if not pattern:
-                return list(range(len(text) + 1))
-            
-            m = len(pattern)
-            n = len(text)
+        n = len(s)
+
+        # Split p into A*B*C (exactly two '*')
+        i1 = p.find('*')
+        i2 = p.find('*', i1 + 1)
+        A = p[:i1]
+        B = p[i1 + 1:i2]
+        C = p[i2 + 1:]
+
+        def kmp_matches(text: str, pat: str):
+            """Return boolean array match[i] (0<=i<=n) if pat matches text starting at i.
+            If pat is empty, it matches at every i (including n).
+            """
+            nn = len(text)
+            m = len(pat)
+            if m == 0:
+                return [True] * (nn + 1)
+
+            # prefix function
             pi = [0] * m
-            j = 0
             for i in range(1, m):
-                while j > 0 and pattern[i] != pattern[j]:
-                    j = pi[j-1]
-                if pattern[i] == pattern[j]:
+                j = pi[i - 1]
+                while j > 0 and pat[i] != pat[j]:
+                    j = pi[j - 1]
+                if pat[i] == pat[j]:
                     j += 1
                 pi[i] = j
-            
-            res = []
+
+            res = [False] * (nn + 1)
             j = 0
-            for i in range(n):
-                while j > 0 and text[i] != pattern[j]:
-                    j = pi[j-1]
-                if text[i] == pattern[j]:
+            for i, ch in enumerate(text):
+                while j > 0 and ch != pat[j]:
+                    j = pi[j - 1]
+                if ch == pat[j]:
                     j += 1
                 if j == m:
-                    res.append(i - m + 1)
-                    j = pi[j-1]
+                    start = i - m + 1
+                    res[start] = True
+                    j = pi[j - 1]
             return res
 
-        parts = p.split('*')
-        p1, p2, p3 = parts[0], parts[1], parts[2]
-        
-        pos1 = find_all(s, p1)
-        pos2 = find_all(s, p2)
-        pos3 = find_all(s, p3)
-        
-        if not pos1 or not pos2 or not pos3:
-            return -1
-        
-        ans = float('inf')
-        len1, len2, len3 = len(p1), len(p2), len(p3)
-        
-        for s2 in pos2:
-            # Find largest s1 in pos1 such that s1 <= s2 - len1
-            idx1 = bisect.bisect_right(pos1, s2 - len1)
-            if idx1 == 0:
+        Amatch = kmp_matches(s, A)
+        Bmatch = kmp_matches(s, B)
+        Cmatch = kmp_matches(s, C)
+
+        lenA, lenB, lenC = len(A), len(B), len(C)
+        INF = 10**18
+
+        # nextC[i] = smallest j>=i with Cmatch[j]
+        nextC = [INF] * (n + 2)
+        nextC[n] = n if Cmatch[n] else INF
+        for i in range(n - 1, -1, -1):
+            nextC[i] = i if Cmatch[i] else nextC[i + 1]
+
+        # minEndFromB[i] = minimal end position (exclusive) for some B at b>=i then C after it
+        minEndFromB = [INF] * (n + 2)
+        minEndFromB[n + 1] = INF
+        for i in range(n, -1, -1):
+            best = minEndFromB[i + 1]
+            if Bmatch[i]:
+                endB = i + lenB
+                if endB <= n:
+                    cpos = nextC[endB]
+                    if cpos != INF:
+                        end = cpos + lenC
+                        if end < best:
+                            best = end
+            minEndFromB[i] = best
+
+        ans = INF
+        for l in range(0, n + 1):
+            if not Amatch[l]:
                 continue
-            s1 = pos1[idx1 - 1]
-            
-            # Find smallest s3 in pos3 such that s3 >= s2 + len2
-            idx3 = bisect.bisect_left(pos3, s2 + len2)
-            if idx3 == len(pos3):
+            posAend = l + lenA
+            if posAend > n:
                 continue
-            s3 = pos3[idx3]
-            
-            ans = min(ans, (s3 + len3) - s1)
-            
-        return int(ans) if ans != float('inf') else -1
+            end = minEndFromB[posAend]
+            if end != INF:
+                cand = end - l
+                if cand < ans:
+                    ans = cand
+
+        return -1 if ans == INF else ans
 # @lc code=end
