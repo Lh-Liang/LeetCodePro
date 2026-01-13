@@ -5,47 +5,44 @@
 #
 
 # @lc code=start
-import math
 from typing import List
+from math import gcd
 
 class Solution:
     def numGoodSubarrays(self, nums: List[int], k: int) -> int:
-        # Step 1: Count all good subarrays based on indices
-        prefix_sum = 0
-        remainder_counts = {0: 1}
-        total_index_based = 0
-        
-        for x in nums:
-            prefix_sum = (prefix_sum + x) % k
-            total_index_based += remainder_counts.get(prefix_sum, 0)
-            remainder_counts[prefix_sum] = remainder_counts.get(prefix_sum, 0) + 1
-            
-        # Step 2: Subtract redundant counts from identical value blocks
-        # Two subarrays are the same sequence only if they consist of the same repeated value.
-        redundant_count = 0
         n = len(nums)
+
+        # 1) Total number of good subarrays by position (not distinct)
+        cnt = {0: 1}
+        pref = 0
+        total_good_pos = 0
+        for x in nums:
+            pref = (pref + x) % k
+            total_good_pos += cnt.get(pref, 0)
+            cnt[pref] = cnt.get(pref, 0) + 1
+
+        # 2) Compute positional-good and distinct-good subarrays fully inside each equal-value block
+        within_good_pos = 0
+        within_good_distinct = 0
+
         i = 0
         while i < n:
-            val = nums[i]
-            count = 0
-            start = i
-            while i < n and nums[i] == val:
-                count += 1
-                i += 1
-            
-            # For this block of value 'val' and size 'count', find lengths L such that (L * val) % k == 0
-            # L * val = m * k  => L * (val / gcd(val, k)) = m * (k / gcd(val, k))
-            # Since (val / gcd) and (k / gcd) are coprime, L must be a multiple of (k / gcd(val, k))
-            g = math.gcd(val, k)
-            step = k // g
-            
-            # Number of such L in range [1, count]
-            q = count // step
-            if q > 0:
-                # Sum of (count - L) for L = step, 2*step, ..., q*step
-                # Sum = q * count - step * (q * (q + 1) // 2)
-                redundant_count += q * count - step * (q * (q + 1) // 2)
-                
-        return total_index_based - redundant_count
+            j = i
+            v = nums[i]
+            while j < n and nums[j] == v:
+                j += 1
+            c = j - i
 
+            g = gcd(v, k)
+            t = k // g  # L must be multiple of t
+            q = c // t
+
+            within_good_distinct += q
+            # sum_{p=1..q} (c - p*t + 1)
+            within_good_pos += q * (c + 1) - t * (q * (q + 1) // 2)
+
+            i = j
+
+        # 3) Replace within-block positional counts by distinct counts
+        return total_good_pos - within_good_pos + within_good_distinct
 # @lc code=end
