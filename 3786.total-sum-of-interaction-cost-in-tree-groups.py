@@ -4,50 +4,59 @@
 # [3786] Total Sum of Interaction Cost in Tree Groups
 #
 
-# @lc code=start
-import sys
 from typing import List
+from array import array
 
-# Increase recursion depth for deep trees
-sys.setrecursionlimit(200000)
-
+# @lc code=start
 class Solution:
     def interactionCosts(self, n: int, edges: List[List[int]], group: List[int]) -> int:
+        if n <= 1:
+            return 0
+
+        K = 20  # group labels are 1..20
+
+        # Build adjacency list
         adj = [[] for _ in range(n)]
         for u, v in edges:
             adj[u].append(v)
             adj[v].append(u)
-        
-        # Count total nodes in each group. 
-        # group[i] is between 1 and 20.
-        group_counts = [0] * 21
-        for g in group:
-            group_counts[g] += 1
-            
-        total_cost = 0
-        
-        # subtree_group_counts[u] will store the number of nodes of each group in subtree u
-        # To save memory and time, we perform a DFS and calculate contribution on the fly.
-        def dfs(u, p):
-            nonlocal total_cost
-            # current_counts[g] = nodes of group g in subtree u
-            current_counts = [0] * 21
-            current_counts[group[u]] = 1
-            
-            for v in adj[u]:
-                if v == p:
-                    continue
-                child_counts = dfs(v, u)
-                for g in range(1, 21):
-                    if child_counts[g] > 0:
-                        # Number of nodes of group g in subtree v vs outside subtree v
-                        in_subtree = child_counts[g]
-                        out_subtree = group_counts[g] - in_subtree
-                        total_cost += in_subtree * out_subtree
-                        current_counts[g] += child_counts[g]
-            
-            return current_counts
 
-        dfs(0, -1)
-        return total_cost
+        # Total counts per group
+        total = [0] * K
+
+        # Flattened subtree counts: counts[node*K + k]
+        counts = array('I', [0]) * (n * K)
+        for i, g in enumerate(group):
+            idx = g - 1
+            total[idx] += 1
+            counts[i * K + idx] = 1
+
+        # Iterative DFS to get parent and traversal order
+        parent = [-1] * n
+        order = []
+        stack = [0]
+        parent[0] = 0
+        while stack:
+            u = stack.pop()
+            order.append(u)
+            for v in adj[u]:
+                if v == parent[u]:
+                    continue
+                parent[v] = u
+                stack.append(v)
+
+        # Postorder accumulate counts and compute answer
+        ans = 0
+        for i in range(n - 1, 0, -1):  # skip root at index 0
+            u = order[i]
+            p = parent[u]
+            bu = u * K
+            bp = p * K
+            for k in range(K):
+                x = counts[bu + k]
+                if x:
+                    ans += x * (total[k] - x)
+                    counts[bp + k] += x
+
+        return ans
 # @lc code=end
