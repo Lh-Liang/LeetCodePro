@@ -9,52 +9,49 @@ class Solution:
     def maxSubstringLength(self, s: str, k: int) -> bool:
         if k == 0:
             return True
-        
+
         n = len(s)
-        first = {}
-        last = {}
-        
-        # Precompute the first and last occurrence of each character
-        for i, char in enumerate(s):
-            if char not in first:
-                first[char] = i
-            last[char] = i
-        
+        first = [n] * 26
+        last = [-1] * 26
+
+        for i, ch in enumerate(s):
+            idx = ord(ch) - 97
+            if first[idx] == n:
+                first[idx] = i
+            last[idx] = i
+
         intervals = []
-        # For each character, find the minimal special substring starting at its first occurrence
-        for char in first:
-            L = first[char]
-            R = last[char]
-            
-            i = L
-            possible = True
-            while i <= R:
-                char_at_i = s[i]
-                # If any character in the current range starts before our start index L,
-                # then no special substring can start at L.
-                if first[char_at_i] < L:
-                    possible = False
+
+        # Build minimal valid intervals starting at first occurrence of each character
+        for c in range(26):
+            l = first[c]
+            if l == n:
+                continue
+            r = last[c]
+            i = l
+            valid = True
+            while i <= r:
+                x = ord(s[i]) - 97
+                if first[x] < l:
+                    valid = False
                     break
-                # Expand the range to include all occurrences of the current character
-                if last[char_at_i] > R:
-                    R = last[char_at_i]
+                r = max(r, last[x])
                 i += 1
-            
-            if possible:
-                # A special substring cannot be the entire string
-                if not (L == 0 and R == n - 1):
-                    intervals.append((L, R))
-        
-        # Greedy approach to find the maximum number of disjoint intervals
-        # Sort intervals by their end positions
-        intervals.sort(key=lambda x: x[1])
-        
+
+            if valid and not (l == 0 and r == n - 1):
+                intervals.append((l, r))
+
+        # Maximum number of non-overlapping intervals via greedy scheduling
+        intervals.sort(key=lambda p: (p[1], -p[0]))
+
         count = 0
-        last_end = -1
-        for start, end in intervals:
-            if start > last_end:
+        end = -1
+        for l, r in intervals:
+            if l > end:
                 count += 1
-                last_end = end
-        
-        return count >= k
+                end = r
+                if count >= k:
+                    return True
+
+        return False
 # @lc code=end
