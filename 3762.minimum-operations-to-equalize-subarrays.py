@@ -4,156 +4,128 @@
 # [3762] Minimum Operations to Equalize Subarrays
 #
 
+from typing import List
+
 # @lc code=start
-import bisect
-
-class FenwickTree:
-    def __init__(self, n):
-        self.tree = [0] * (n + 1)
-
-    def add(self, i, delta):
-        i += 1
-        while i < len(self.tree):
-            self.tree[i] += delta
-            i += i & (-i)
-
-    def query(self, i):
-        i += 1
-        s = 0
-        while i > 0:
-            s += self.tree[i]
-            i -= i & (-i)
-        return s
-
 class Solution:
     def minOperations(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
         n = len(nums)
-        rems = [x % k for x in nums]
-        bad_rem = [0] * n
-        for i in range(1, n):
-            bad_rem[i] = bad_rem[i-1] + (1 if rems[i] != rems[i-1] else 0)
-        
-        vals = [x // k for x in nums]
-        sorted_vals = sorted(list(set(vals)))
-        rank_map = {v: i for i, v in enumerate(sorted_vals)}
-        m = len(sorted_vals)
-        
-        q_len = len(queries)
-        ans = [0] * q_len
-        valid_queries = []
-        for i, (l, r) in enumerate(queries):
-            if bad_rem[r] - bad_rem[l] > 0:
-                ans[i] = -1
-            else:
-                valid_queries.append((l, r, i))
-        
-        # Use offline processing with Fenwick trees to calculate median-based sum
-        # For each query [L, R], median is at index (R-L)//2 in sorted nums[L..R]
-        # Sum |x - median| = (count_gt * median - sum_gt) + (sum_lt - count_lt * median) 
-        # No, it's (sum_gt - count_gt * median) + (count_lt * median - sum_lt)
-        
-        # To solve this efficiently, we use a persistent segment tree or wavelet tree logic.
-        # Since Python might be slow for complex trees, we use a simpler approach if possible.
-        # Given constraints, we'll use a segment tree approach to find the kth element and sums.
-        
-        tree_cnt = [0] * (4 * m)
-        tree_sum = [0] * (4 * m)
+        rem = [x % k for x in nums]
+        b = [x // k for x in nums]
 
-        def update(node, start, end, idx, val, delta_cnt):
-            if start == end:
-                tree_cnt[node] += delta_cnt
-                tree_sum[node] += val * delta_cnt
-                return
-            mid = (start + end) // 2
-            if idx <= mid:
-                update(2 * node, start, mid, idx, val, delta_cnt)
-            else:
-                update(2 * node + 1, mid + 1, end, idx, val, delta_cnt)
-            tree_cnt[node] = tree_cnt[2 * node] + tree_cnt[2 * node + 1]
-            tree_sum[node] = tree_sum[2 * node] + tree_sum[2 * node + 1]
+        # ---------- Sparse Table for range min/max on rem ----------
+        lg = [0] * (n + 1)
+        for i in range(2, n + 1):
+            lg[i] = lg[i // 2] + 1
+        K = lg[n] + 1
 
-        def query_kth(node, start, end, k_rank):
-            if start == end:
-                return sorted_vals[start]
-            mid = (start + end) // 2
-            if tree_cnt[2 * node] >= k_rank:
-                return query_kth(2 * node, start, mid, k_rank)
-            else:
-                return query_kth(2 * node + 1, mid + 1, end, k_rank - tree_cnt[2 * node])
+        st_min = [rem[:]]
+        st_max = [rem[:]]
+        j = 1
+        while (1 << j) <= n:
+            prev_min = st_min[j - 1]
+            prev_max = st_max[j - 1]
+            length = 1 << j
+            half = length >> 1
+            cur_min = [0] * (n - length + 1)
+            cur_max = [0] * (n - length + 1)
+            for i in range(n - length + 1):
+                cur_min[i] = min(prev_min[i], prev_min[i + half])
+                cur_max[i] = max(prev_max[i], prev_max[i + half])
+            st_min.append(cur_min)
+            st_max.append(cur_max)
+            j += 1
 
-        def query_stats(node, start, end, limit_val):
-            if sorted_vals[end] <= limit_val:
-                return tree_cnt[node], tree_sum[node]
-            if sorted_vals[start] > limit_val:
-                return 0, 0
-            mid = (start + end) // 2
-            c1, s1 = query_stats(2 * node, start, mid, limit_val)
-            c2, s2 = query_stats(2 * node + 1, mid + 1, end, limit_val)
-            return c1 + c2, s1 + s2
+        def range_min_max(l: int, r: int) -> (int, int):
+            length = r - l + 1
+            j = lg[length]
+            p = 1 << j
+            mn = min(st_min[j][l], st_min[j][r - p + 1])
+            mx = max(st_max[j][l], st_max[j][r - p + 1])
+            return mn, mx
 
-        # Mo's algorithm or similar is too slow. Use a persistent segment tree logic.
-        # But since we need a single file, let's use a Fenwick tree with offline queries.
-        # Actually, the standard way is a Persistent Segment Tree.
-        
-        class PersistentSegmentTree:
-            def __init__(self, size):
-                self.size = size
-                self.cnt = [0] * (size * 40)
-                self.sum = [0] * (size * 40)
-                self.L = [0] * (size * 40)
-                self.R = [0] * (size * 40)
-                self.roots = [0]
-                self.node_count = 0
+        # ---------- Persistent Segment Tree over values of b ----------
+        vals = sorted(set(b))
+        m = len(vals)
+        idx_map = {v: i for i, v in enumerate(vals)}
 
-            def update(self, prev_root, start, end, idx, val):
-                self.node_count += 1
-                node = self.node_count
-                self.cnt[node] = self.cnt[prev_root] + 1
-                self.sum[node] = self.sum[prev_root] + val
-                self.L[node] = self.L[prev_root]
-                self.R[node] = self.R[prev_root]
-                if start == end: return node
-                mid = (start + end) // 2
-                if idx <= mid: self.L[node] = self.update(self.L[node], start, mid, idx, val)
-                else: self.R[node] = self.update(self.R[node], mid + 1, end, idx, val)
-                return node
+        lch = [0]
+        rch = [0]
+        cnt = [0]
+        sm = [0]
 
-            def query(self, node_l, node_r, start, end, k):
-                if start == end: return sorted_vals[start]
-                mid = (start + end) // 2
-                count_left = self.cnt[self.L[node_r]] - self.cnt[self.L[node_l]]
-                if k <= count_left: return self.query(self.L[node_l], self.L[node_r], start, mid, k)
-                else: return self.query(self.R[node_l], self.R[node_r], mid + 1, end, k - count_left)
+        def new_node(L: int, R: int, C: int, S: int) -> int:
+            lch.append(L)
+            rch.append(R)
+            cnt.append(C)
+            sm.append(S)
+            return len(cnt) - 1
 
-            def get_sum_and_cnt(self, node_l, node_r, start, end, limit_idx):
-                if end <= limit_idx:
-                    return self.cnt[node_r] - self.cnt[node_l], self.sum[node_r] - self.sum[node_l]
-                mid = (start + end) // 2
-                c, s = self.get_sum_and_cnt(self.L[node_l], self.L[node_r], start, mid, limit_idx)
-                if limit_idx > mid:
-                    c2, s2 = self.get_sum_and_cnt(self.R[node_l], self.R[node_r], mid + 1, end, limit_idx)
-                    c += c2; s += s2
-                return c, s
+        def update(prev: int, tl: int, tr: int, pos: int, addv: int) -> int:
+            node = new_node(lch[prev], rch[prev], cnt[prev] + 1, sm[prev] + addv)
+            if tl != tr:
+                tm = (tl + tr) // 2
+                if pos <= tm:
+                    nl = update(lch[prev], tl, tm, pos, addv)
+                    lch[node] = nl
+                else:
+                    nr = update(rch[prev], tm + 1, tr, pos, addv)
+                    rch[node] = nr
+            return node
 
-        pst = PersistentSegmentTree(n)
         roots = [0] * (n + 1)
         for i in range(n):
-            roots[i+1] = pst.update(roots[i], 0, m - 1, rank_map[vals[i]], vals[i])
+            p = idx_map[b[i]]
+            roots[i + 1] = update(roots[i], 0, m - 1, p, b[i])
 
-        for l, r, idx in valid_queries:
-            total_cnt = r - l + 1
-            median_rank = (total_cnt + 1) // 2
-            median = pst.query(roots[l], roots[r+1], 0, m - 1, median_rank)
-            
-            # find sum of elements <= median
-            # We need to find the index of the largest value in sorted_vals <= median
-            m_idx = bisect.bisect_right(sorted_vals, median) - 1
-            count_le, sum_le = pst.get_sum_and_cnt(roots[l], roots[r+1], 0, m - 1, m_idx)
-            
-            count_gt = total_cnt - count_le
-            sum_gt = (pst.sum[roots[r+1]] - pst.sum[roots[l]]) - sum_le
-            
-            ans[idx] = (count_le * median - sum_le) + (sum_gt - count_gt * median)
-            
+        def kth(nodeR: int, nodeL: int, tl: int, tr: int, ksmall: int) -> int:
+            if tl == tr:
+                return tl
+            leftR = lch[nodeR]
+            leftL = lch[nodeL]
+            leftCount = cnt[leftR] - cnt[leftL]
+            tm = (tl + tr) // 2
+            if ksmall <= leftCount:
+                return kth(leftR, leftL, tl, tm, ksmall)
+            return kth(rch[nodeR], rch[nodeL], tm + 1, tr, ksmall - leftCount)
+
+        def query(nodeR: int, nodeL: int, tl: int, tr: int, ql: int, qr: int) -> (int, int):
+            if qr < tl or tr < ql:
+                return 0, 0
+            if ql <= tl and tr <= qr:
+                return cnt[nodeR] - cnt[nodeL], sm[nodeR] - sm[nodeL]
+            tm = (tl + tr) // 2
+            c1, s1 = query(lch[nodeR], lch[nodeL], tl, tm, ql, qr)
+            c2, s2 = query(rch[nodeR], rch[nodeL], tm + 1, tr, ql, qr)
+            return c1 + c2, s1 + s2
+
+        ans = []
+        for l, r in queries:
+            if l == r:
+                ans.append(0)
+                continue
+
+            mn, mx = range_min_max(l, r)
+            if mn != mx:
+                ans.append(-1)
+                continue
+
+            rootR = roots[r + 1]
+            rootL = roots[l]
+            length = r - l + 1
+
+            # lower median
+            ksmall = (length + 1) // 2
+            pos = kth(rootR, rootL, 0, m - 1, ksmall)
+            med = vals[pos]
+
+            leftCnt, leftSum = query(rootR, rootL, 0, m - 1, 0, pos)
+            totalSum = sm[rootR] - sm[rootL]
+            rightCnt = length - leftCnt
+            rightSum = totalSum - leftSum
+
+            cost = med * leftCnt - leftSum + rightSum - med * rightCnt
+            ans.append(cost)
+
         return ans
 # @lc code=end
