@@ -4,74 +4,97 @@
 # [3575] Maximum Good Subtree Score
 #
 
-# @lc code=start
 from typing import List
 
+# @lc code=start
 class Solution:
     def goodSubtreeSum(self, vals: List[int], par: List[int]) -> int:
+        MOD = 10**9 + 7
         n = len(vals)
-        adj = [[] for _ in range(n)]
+
+        # Build rooted tree children lists
+        children = [[] for _ in range(n)]
         for i in range(1, n):
-            adj[par[i]].append(i)
-        
-        def get_mask(val):
+            children[par[i]].append(i)
+
+        # Precompute digit masks; -1 means invalid (repeated digit within the number)
+        def digit_mask(x: int) -> int:
             m = 0
-            s = str(val)
-            for char in s:
-                digit = int(char)
-                bit = 1 << digit
+            while x > 0:
+                d = x % 10
+                bit = 1 << d
                 if m & bit:
                     return -1
                 m |= bit
+                x //= 10
             return m
 
-        val_masks = [get_mask(v) for v in vals]
-        MOD = 10**9 + 7
-        total_max_score_sum = 0
+        node_mask = [digit_mask(v) for v in vals]
 
-        # We need to compute DP for each node's subtree
-        # dp[u] will be a dictionary {mask: max_sum}
-        def solve(u):
-            nonlocal total_max_score_sum
-            # current_dp represents the max sum for each mask in the subtree of u
-            current_dp = {0: 0}
-            
-            # Process children
-            for v in adj[u]:
-                child_dp = solve(v)
-                new_dp = current_dp.copy()
-                for m1, s1 in current_dp.items():
-                    for m2, s2 in child_dp.items():
-                        if m2 == 0: continue
-                        if (m1 & m2) == 0:
-                            combined_mask = m1 | m2
-                            new_score = s1 + s2
-                            if new_score > new_dp.get(combined_mask, -1):
-                                new_dp[combined_mask] = new_score
-                current_dp = new_dp
-            
-            # After combining all children, we have the max sums for subsets NOT including u.
-            # Now consider subsets including u.
-            u_mask = val_masks[u]
-            if u_mask != -1:
-                # To include u, we must combine it with a mask from the children
-                # that doesn't conflict with u_mask.
-                # However, the problem says "a subset of nodes within the subtree".
-                # This means we can pick any nodes such that digits are unique.
-                # The logic above already finds the best subset within the subtree
-                # formed by children. Now we just need to try adding u.
-                for m, s in list(current_dp.items()):
-                    if (m & u_mask) == 0:
-                        new_mask = m | u_mask
-                        new_score = s + vals[u]
-                        if new_score > current_dp.get(new_mask, -1):
-                            current_dp[new_mask] = new_score
-            
-            max_val = max(current_dp.values()) if current_dp else 0
-            total_max_score_sum = (total_max_score_sum + max_val) % MOD
-            return current_dp
+        # Precompute submasks for every mask (total ~59049 entries)
+        submasks = [[] for _ in range(1 << 10)]
+        for S in range(1 << 10):
+            t = S
+            while True:
+                submasks[S].append(t)
+                if t == 0:
+                    break
+                t = (t - 1) & S
 
-        solve(0)
-        return total_max_score_sum
+        NEG = -10**30  # safely below any achievable sum
 
+        # Postorder traversal order
+        order = []
+        stack = [0]
+        while stack:
+            u = stack.pop()
+            order.append(u)
+            for v in children[u]:
+                stack.append(v)
+
+        dp = [None] * n  # dp[u] is a list length 1024
+        maxScoreSum = 0
+
+        # Merge function using max-plus subset convolution
+        def merge(a: List[int], b: List[int]) -> List[int]:
+            new = [NEG] * 1024
+            for S in range(1024):
+                best = NEG
+                for t in submasks[S]:
+                    va = a[t]
+                    if va == NEG:
+                        continue
+                    vb = b[S ^ t]
+                    if vb == NEG:
+                        continue
+                    s = va + vb
+                    if s > best:
+                        best = s
+                new[S] = best
+            return new
+
+        for u in reversed(order):
+            cur = [NEG] * 1024
+            cur[0] = 0
+
+            for v in children[u]:
+                cur = merge(cur, dp[v])
+
+            m = node_mask[u]
+            if m != -1:
+                val_u = vals[u]
+                for S in range(1024):
+                    if cur[S] == NEG:
+                        continue
+                    if (S & m) == 0:
+                        ns = S | m
+                        cand = cur[S] + val_u
+                        if cand > cur[ns]:
+                            cur[ns] = cand
+
+            dp[u] = cur
+            max_u = max(cur)
+            maxScoreSum = (maxScoreSum + max_u) % MOD
+
+        return maxScoreSum
 # @lc code=end
