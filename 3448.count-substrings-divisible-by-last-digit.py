@@ -7,28 +7,21 @@
 # @lc code=start
 class Solution:
     def countSubstrings(self, s: str) -> int:
-        # dp[d] is a list of length d: counts of substrings ending at current position with remainder r mod d
-        dp = {d: [0] * d for d in range(1, 10)}
-        ans = 0
-
-        for ch in s:
-            x = ord(ch) - 48
-            for d in range(1, 10):
-                prev = dp[d]
-                new = [0] * d
-
-                # extend all previous substrings by digit x
-                for r, cnt in enumerate(prev):
-                    if cnt:
-                        new[(r * 10 + x) % d] += cnt
-
-                # start a new substring at this position
-                new[x % d] += 1
-
-                dp[d] = new
-
-            if x != 0:
-                ans += dp[x][0]
-
-        return ans
+        n = len(s)
+        count = 0
+        
+        for j in range(n):
+            d = int(s[j])
+            if d == 0:
+                continue
+            
+            num_mod = 0
+            power = 1
+            for i in range(j, -1, -1):
+                num_mod = (int(s[i]) * power + num_mod) % d
+                if num_mod == 0:
+                    count += 1
+                power = (power * 10) % d
+        
+        return count
 # @lc code=end
