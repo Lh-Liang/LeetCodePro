@@ -11,37 +11,42 @@
 #         self.next = next
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
-        if not head or not head.next or not head.next.next:
-            return [-1, -1]
-
         prev = head
-        cur = head.next
-        idx = 1  # 0-based index of cur
-
-        first_cp = -1
-        last_cp = -1
-        prev_cp = -1
-        min_dist = float('inf')
-
-        while cur and cur.next:
-            nxt = cur.next
-            is_max = cur.val > prev.val and cur.val > nxt.val
-            is_min = cur.val < prev.val and cur.val < nxt.val
-
-            if is_max or is_min:
-                if first_cp == -1:
-                    first_cp = idx
-                if prev_cp != -1:
-                    min_dist = min(min_dist, idx - prev_cp)
-                prev_cp = idx
-                last_cp = idx
-
-            prev = cur
-            cur = nxt
-            idx += 1
-
-        if first_cp == -1 or first_cp == last_cp:
+        curr = head.next
+        position = 1
+        
+        first_critical = -1
+        last_critical = -1
+        prev_critical = -1
+        min_distance = float('inf')
+        
+        while curr and curr.next:
+            next_node = curr.next
+            
+            # Check if current node is a critical point (local maxima or minima)
+            is_critical = (curr.val > prev.val and curr.val > next_node.val) or \
+                          (curr.val < prev.val and curr.val < next_node.val)
+            
+            if is_critical:
+                if first_critical == -1:
+                    # First critical point found
+                    first_critical = position
+                else:
+                    # Update minimum distance between consecutive critical points
+                    min_distance = min(min_distance, position - prev_critical)
+                
+                prev_critical = position
+                last_critical = position
+            
+            prev = curr
+            curr = curr.next
+            position += 1
+        
+        # If fewer than 2 critical points
+        if first_critical == -1 or first_critical == last_critical:
             return [-1, -1]
-
-        return [min_dist, last_cp - first_cp]
+        
+        max_distance = last_critical - first_critical
+        
+        return [min_distance, max_distance]
 # @lc code=end
