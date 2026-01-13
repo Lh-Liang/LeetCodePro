@@ -5,30 +5,44 @@
 #
 
 # @lc code=start
+from typing import List
+from array import array
+
 class Solution:
     def maxProduct(self, nums: List[int]) -> int:
-        mask_to_max = {}
-        for n in nums:
-            if n not in mask_to_max or n > mask_to_max[n]:
-                mask_to_max[n] = n
-        
-        unique_masks = list(mask_to_max.keys())
+        mx = max(nums)
+        B = mx.bit_length()
+        size = 1 << B
+        full = size - 1
+
+        # f[mask] = maximum value in nums with exact bitmask == mask
+        f = array('I', [0]) * size
+        for v in nums:
+            if v > f[v]:
+                f[v] = v
+
+        # g[mask] = max f[sub] for all sub ⊆ mask (SOS DP for max)
+        g = array('I', f)
+        for bit in range(B):
+            step = 1 << bit
+            block = step << 1
+            for start in range(0, size, block):
+                # masks in [start+step, start+2*step) have the bit set
+                end = start + block
+                if end > size:
+                    end = size
+                base = start + step
+                for mask in range(base, end):
+                    cand = g[mask - step]
+                    if cand > g[mask]:
+                        g[mask] = cand
+
         ans = 0
-        n_unique = len(unique_masks)
-        
-        # Sort masks by value descending to potentially prune or find larger products faster
-        unique_masks.sort(reverse=True)
-        
-        for i in range(n_unique):
-            m1 = unique_masks[i]
-            v1 = mask_to_max[m1]
-            # Optimization: if v1 * largest possible second value is less than current ans, skip
-            if v1 * unique_masks[0] <= ans:
-                continue
-            for j in range(i + 1, n_unique):
-                m2 = unique_masks[j]
-                if (m1 & m2) == 0:
-                    ans = max(ans, v1 * mask_to_max[m2])
-        
+        for mask, val in enumerate(f):
+            if val:
+                partner = g[full ^ mask]
+                prod = mask * partner
+                if prod > ans:
+                    ans = prod
         return ans
 # @lc code=end
