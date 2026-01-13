@@ -8,63 +8,52 @@
 class Solution:
     def generateString(self, str1: str, str2: str) -> str:
         n, m = len(str1), len(str2)
-        L = n + m - 1
-
-        w = ['?'] * L
-        forced = [False] * L
-
-        # Step 1: apply all 'T' constraints
-        for i, tf in enumerate(str1):
-            if tf == 'T':
-                base = i
-                for j, c in enumerate(str2):
-                    idx = base + j
-                    if w[idx] == '?' or w[idx] == c:
-                        w[idx] = c
-                        forced[idx] = True
-                    else:
-                        return ""
-
-        # Step 2: fill remaining with 'a'
-        for k in range(L):
-            if w[k] == '?':
-                w[k] = 'a'
-
-        # Step 3: enforce 'F' constraints greedily (change rightmost free position to 'b')
-        for i, tf in enumerate(str1):
-            if tf == 'F':
-                base = i
-                equal = True
-                for j, c in enumerate(str2):
-                    if w[base + j] != c:
-                        equal = False
-                        break
-                if equal:
-                    pos = -1
-                    for j in range(m - 1, -1, -1):
-                        idx = base + j
-                        if not forced[idx]:
-                            pos = idx
-                            break
-                    if pos == -1:
-                        return ""
-                    w[pos] = 'b'
-
-        # Step 4: final verification (optional but safe)
-        for i, tf in enumerate(str1):
-            base = i
-            if tf == 'T':
-                for j, c in enumerate(str2):
-                    if w[base + j] != c:
-                        return ""
-            else:  # 'F'
-                eq = True
-                for j, c in enumerate(str2):
-                    if w[base + j] != c:
-                        eq = False
-                        break
-                if eq:
-                    return ""
-
-        return "".join(w)
+        result_len = n + m - 1
+        result = [''] * result_len
+        
+        def get_required_char(pos):
+            required = None
+            for i in range(max(0, pos - m + 1), min(pos + 1, n)):
+                if str1[i] == 'T':
+                    offset = pos - i
+                    char = str2[offset]
+                    if required is None:
+                        required = char
+                    elif required != char:
+                        return False
+            return required
+        
+        def check_f_constraints(pos):
+            for i in range(n):
+                if str1[i] == 'F' and i + m - 1 == pos:
+                    if ''.join(result[i:i+m]) == str2:
+                        return False
+            return True
+        
+        def solve(pos):
+            if pos == result_len:
+                return True
+            
+            req = get_required_char(pos)
+            if req is False:
+                return False
+            
+            if req is not None:
+                result[pos] = req
+                if check_f_constraints(pos) and solve(pos + 1):
+                    return True
+                result[pos] = ''
+                return False
+            
+            for char in 'abcdefghijklmnopqrstuvwxyz':
+                result[pos] = char
+                if check_f_constraints(pos) and solve(pos + 1):
+                    return True
+            
+            result[pos] = ''
+            return False
+        
+        if solve(0):
+            return ''.join(result)
+        return ""
 # @lc code=end
