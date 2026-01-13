@@ -3,24 +3,33 @@
 #
 # [2807] Insert Greatest Common Divisors in Linked List
 #
-
 # @lc code=start
-from math import gcd
-from typing import Optional
-
 # Definition for singly-linked list.
 # class ListNode:
 #     def __init__(self, val=0, next=None):
 #         self.val = val
 #         self.next = next
+import math
 
 class Solution:
-    def insertGreatestCommonDivisors(self, head: Optional['ListNode']) -> Optional['ListNode']:
-        cur = head
-        while cur and cur.next:
-            nxt = cur.next
-            g = gcd(cur.val, nxt.val)
-            cur.next = ListNode(g, nxt)
-            cur = nxt
+    def insertGreatestCommonDivisors(self, head: Optional[ListNode]) -> Optional[ListNode]:
+        if not head or not head.next:
+            return head
+        
+        current = head
+        while current and current.next:
+            # Calculate GCD of current and next node values
+            gcd_val = math.gcd(current.val, current.next.val)
+            
+            # Create new node with GCD value
+            new_node = ListNode(gcd_val)
+            
+            # Insert new node between current and current.next
+            new_node.next = current.next
+            current.next = new_node
+            
+            # Move to the next original node (skip the inserted node)
+            current = new_node.next
+        
         return head
 # @lc code=end
