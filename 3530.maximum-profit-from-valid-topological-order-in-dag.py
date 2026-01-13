@@ -4,38 +4,42 @@
 # [3530] Maximum Profit from Valid Topological Order in DAG
 #
 
-from typing import List
-from array import array
-
 # @lc code=start
 class Solution:
     def maxProfit(self, n: int, edges: List[List[int]], score: List[int]) -> int:
-        pre = [0] * n
+        from functools import lru_cache
+        
+        # Build adjacency list - store predecessors for each node
+        predecessors = [set() for _ in range(n)]
         for u, v in edges:
-            pre[v] |= 1 << u
-
-        N = 1 << n
-        dp = array('q', [-1]) * N
-        dp[0] = 0
-
-        for mask in range(N):
-            base = dp[mask]
-            if base < 0:
-                continue
-            k = mask.bit_count()  # already placed nodes
-            pos = k + 1
-
-            # try placing any available node next
-            for v in range(n):
-                bit = 1 << v
-                if mask & bit:
+            predecessors[v].add(u)
+        
+        # DP with memoization
+        @lru_cache(maxsize=None)
+        def solve(mask):
+            # If all nodes processed
+            if mask == (1 << n) - 1:
+                return 0
+            
+            # Count how many nodes are in the mask
+            position = bin(mask).count('1') + 1  # Next position (1-based)
+            
+            max_profit = 0
+            
+            # Try adding each unprocessed node
+            for node in range(n):
+                if mask & (1 << node):  # Already processed
                     continue
-                if (pre[v] & mask) != pre[v]:
-                    continue
-                nm = mask | bit
-                val = base + score[v] * pos
-                if val > dp[nm]:
-                    dp[nm] = val
-
-        return dp[N - 1]
+                
+                # Check if all predecessors are processed
+                can_add = all((mask & (1 << pred)) for pred in predecessors[node])
+                
+                if can_add:
+                    # Add this node at current position
+                    profit = score[node] * position + solve(mask | (1 << node))
+                    max_profit = max(max_profit, profit)
+            
+            return max_profit
+        
+        return solve(0)
 # @lc code=end
