@@ -11,31 +11,19 @@
 #         self.next = next
 class Solution:
     def doubleIt(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        def reverse(node: Optional[ListNode]) -> Optional[ListNode]:
-            prev = None
-            cur = node
-            while cur:
-                nxt = cur.next
-                cur.next = prev
-                prev = cur
-                cur = nxt
-            return prev
-
-        head = reverse(head)
-
-        carry = 0
-        cur = head
-        prev = None
-        while cur:
-            total = cur.val * 2 + carry
-            cur.val = total % 10
-            carry = total // 10
-            prev = cur
-            cur = cur.next
-
+        def helper(node):
+            if not node:
+                return 0
+            
+            carry = helper(node.next)
+            doubled = node.val * 2 + carry
+            node.val = doubled % 10
+            return doubled // 10
+        
+        carry = helper(head)
         if carry:
-            prev.next = ListNode(carry)
-
-        head = reverse(head)
+            new_head = ListNode(carry)
+            new_head.next = head
+            return new_head
         return head
 # @lc code=end
