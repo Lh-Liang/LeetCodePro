@@ -5,67 +5,63 @@
 #
 
 # @lc code=start
-import collections
 from typing import List
 
 class Solution:
     def findSubtreeSizes(self, parent: List[int], s: str) -> List[int]:
         n = len(parent)
-        if n == 0:
-            return []
-        
-        # 1. Build original adjacency list
-        adj = [[] for _ in range(n)]
+
+        # Build original tree children lists
+        children = [[] for _ in range(n)]
         for i in range(1, n):
-            adj[parent[i]].append(i)
-        
-        # 2. Find new parents based on the closest ancestor with the same character
-        new_parent = list(parent)
-        last_seen = [-1] * 26
-        stack = [(0, False)]  # (node, is_processed_exit)
-        history = []  # To restore last_seen values during iterative DFS backtracking
-        
+            children[parent[i]].append(i)
+
+        # Step 1: compute newParent using DFS on original tree
+        newParent = parent[:]  # default: unchanged
+        char_stacks = [[] for _ in range(26)]  # nodes on current path per character
+
+        # iterative DFS with enter/exit states
+        stack = [(0, 0)]  # (node, state) state: 0=enter, 1=exit
         while stack:
-            u, processed = stack.pop()
-            char_idx = ord(s[u]) - 97
-            if not processed:
-                # Entering node u: find closest ancestor and update last_seen
-                old_val = last_seen[char_idx]
-                if old_val != -1:
-                    new_parent[u] = old_val
-                
-                # Save current state for backtracking and update last_seen
-                history.append(old_val)
-                last_seen[char_idx] = u
-                
-                # Push exit marker and children to stack
-                stack.append((u, True))
-                for v in reversed(adj[u]):
-                    stack.append((v, False))
+            u, state = stack.pop()
+            c = ord(s[u]) - 97
+            if state == 0:
+                if u == 0:
+                    newParent[u] = -1
+                else:
+                    if char_stacks[c]:
+                        newParent[u] = char_stacks[c][-1]
+                    else:
+                        newParent[u] = parent[u]
+
+                stack.append((u, 1))
+                char_stacks[c].append(u)
+
+                # push children in reverse so original order is preserved (not required)
+                for v in reversed(children[u]):
+                    stack.append((v, 0))
             else:
-                # Exiting node u: restore the previous last_seen value
-                last_seen[char_idx] = history.pop()
-        
-        # 3. Build new adjacency list for the modified tree
-        new_adj = [[] for _ in range(n)]
+                char_stacks[c].pop()
+
+        # Step 2: build final tree adjacency
+        newChildren = [[] for _ in range(n)]
         for i in range(1, n):
-            new_adj[new_parent[i]].append(i)
-        
-        # 4. Calculate subtree sizes using iterative post-order traversal
-        ans = [1] * n
-        order = []
-        queue = collections.deque([0])
-        while queue:
-            u = queue.popleft()
-            order.append(u)
-            for v in new_adj[u]:
-                queue.append(v)
-        
-        # Process nodes in reverse discovery order (from leaves to root)
-        for u in reversed(order):
-            p = new_parent[u]
-            if p != -1:
-                ans[p] += ans[u]
-        
-        return ans
+            newChildren[newParent[i]].append(i)
+
+        # Step 3: subtree sizes via postorder DFS
+        size = [1] * n
+        stack = [(0, 0)]  # (node, state) state: 0=enter, 1=exit
+        while stack:
+            u, state = stack.pop()
+            if state == 0:
+                stack.append((u, 1))
+                for v in newChildren[u]:
+                    stack.append((v, 0))
+            else:
+                total = 1
+                for v in newChildren[u]:
+                    total += size[v]
+                size[u] = total
+
+        return size
 # @lc code=end
