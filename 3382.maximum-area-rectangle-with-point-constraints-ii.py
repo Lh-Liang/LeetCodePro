@@ -5,71 +5,103 @@
 #
 
 # @lc code=start
-import collections
-
-class FenwickTree:
-    def __init__(self, n):
-        self.tree = [0] * (n + 1)
-
-    def update(self, i, delta):
-        while i < len(self.tree):
-            self.tree[i] += delta
-            i += i & (-i)
-
-    def query(self, i):
-        s = 0
-        while i > 0:
-            s += self.tree[i]
-            i -= i & (-i)
-        return s
-
-    def query_range(self, l, r):
-        if l > r: return 0
-        return self.query(r) - self.query(l - 1)
+from typing import List
+from collections import defaultdict
+from array import array
+import sys
 
 class Solution:
     def maxRectangleArea(self, xCoord: List[int], yCoord: List[int]) -> int:
-        points_by_x = collections.defaultdict(list)
-        all_y = set()
-        for x, y in zip(xCoord, yCoord):
-            points_by_x[x].append(y)
-            all_y.add(y)
-        
-        unique_ys = sorted(list(all_y))
-        y_map = {y: i + 1 for i, y in enumerate(unique_ys)}
-        
-        sorted_xs = sorted(points_by_x.keys())
-        bit = FenwickTree(len(unique_ys))
-        history = {} # (y_low, y_high) -> (last_x, count_at_last_x)
-        max_area = -1
-        
-        for x in sorted_xs:
-            ys = sorted(points_by_x[x])
-            
-            # Check for rectangles ending at this x
-            for i in range(len(ys) - 1):
-                y_low, y_high = ys[i], ys[i+1]
-                idx_low, idx_high = y_map[y_low], y_map[y_high]
-                
-                # Number of points seen so far in this y-range (before current x's points)
-                current_cnt = bit.query_range(idx_low, idx_high)
-                
-                pair = (y_low, y_high)
-                if pair in history:
-                    prev_x, prev_cnt = history[pair]
-                    # If count matches, no points were added in this range between prev_x and current_x
-                    if current_cnt == prev_cnt:
-                        area = (x - prev_x) * (y_high - y_low)
-                        if area > max_area:
-                            max_area = area
-                
-                # Update history for this segment
-                # prev_cnt is current_cnt + 2 (the two points we will add for current x)
-                history[pair] = (x, current_cnt + 2)
-            
-            # Add all points at this x to the Fenwick tree
-            for y in ys:
-                bit.update(y_map[y], 1)
-        
-        return max_area
+        sys.setrecursionlimit(1_000_000)
+        n = len(xCoord)
+        pts = list(zip(xCoord, yCoord))
+
+        # Group y's by x (columns)
+        cols = defaultdict(list)
+        for x, y in pts:
+            cols[x].append(y)
+        for x in cols:
+            cols[x].sort()
+        xs_cols = sorted(cols.keys())
+
+        # Coordinate compress y
+        yvals = sorted(set(yCoord))
+        m = len(yvals)
+        y_to_idx = {y: i for i, y in enumerate(yvals)}
+
+        # Sort points by x for persistent structure
+        pts_sorted = sorted(((x, y_to_idx[y]) for x, y in pts), key=lambda t: t[0])
+
+        # Persistent segment tree arrays (node 0 is null)
+        L = array('I', [0])
+        R = array('I', [0])
+        S = array('I', [0])
+
+        def update(prev: int, l: int, r: int, pos: int) -> int:
+            new = len(S)
+            L.append(L[prev])
+            R.append(R[prev])
+            S.append(S[prev] + 1)
+            if l != r:
+                mid = (l + r) >> 1
+                if pos <= mid:
+                    left = update(L[prev], l, mid, pos)
+                    L[new] = left
+                else:
+                    right = update(R[prev], mid + 1, r, pos)
+                    R[new] = right
+            return new
+
+        def query(node: int, l: int, r: int, ql: int, qr: int) -> int:
+            if node == 0 or ql > r or qr < l:
+                return 0
+            if ql <= l and r <= qr:
+                return S[node]
+            mid = (l + r) >> 1
+            return query(L[node], l, mid, ql, qr) + query(R[node], mid + 1, r, ql, qr)
+
+        # Build roots and x boundary indices:
+        # x_to_start[x] = number of points with x < this x
+        # x_to_end[x]   = number of points with x <= this x
+        roots = [0] * (n + 1)
+        x_to_start = {}
+        x_to_end = {}
+
+        i = 0
+        while i < n:
+            x = pts_sorted[i][0]
+            start = i
+            while i < n and pts_sorted[i][0] == x:
+                roots[i + 1] = update(roots[i], 0, m - 1, pts_sorted[i][1])
+                i += 1
+            end = i
+            x_to_start[x] = start
+            x_to_end[x] = end
+
+        ans = -1
+        last_x_for_pair = {}
+
+        for x2 in xs_cols:
+            ys = cols[x2]
+            for j in range(len(ys) - 1):
+                y1 = ys[j]
+                y2 = ys[j + 1]
+                key = (y1 << 32) | y2
+
+                if key in last_x_for_pair:
+                    x1 = last_x_for_pair[key]
+                    area = (x2 - x1) * (y2 - y1)
+                    if area > ans:
+                        # Count points in closed rectangle [x1,x2] x [y1,y2]
+                        idxL = x_to_start[x1]   # x < x1
+                        idxR = x_to_end[x2]     # x <= x2
+                        yl = y_to_idx[y1]
+                        yr = y_to_idx[y2]
+                        cnt = query(roots[idxR], 0, m - 1, yl, yr) - query(roots[idxL], 0, m - 1, yl, yr)
+                        if cnt == 4:
+                            ans = area
+
+                last_x_for_pair[key] = x2
+
+        return ans
 # @lc code=end
