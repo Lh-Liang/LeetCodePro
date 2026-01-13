@@ -4,47 +4,64 @@
 # [3748] Count Stable Subarrays
 #
 
-# @lc code=start
 from typing import List
-from bisect import bisect_right
 
+# @lc code=start
 class Solution:
     def countStableSubarrays(self, nums: List[int], queries: List[List[int]]) -> List[int]:
         n = len(nums)
-        # P[k] is the start index of the longest non-decreasing subarray ending at k
-        P = [0] * n
-        for k in range(1, n):
-            if nums[k] >= nums[k-1]:
-                P[k] = P[k-1]
-            else:
-                P[k] = k
-        
-        # Prefix sums of P to calculate range sums of P[k] in O(1)
-        SP = [0] * (n + 1)
-        for k in range(n):
-            SP[k+1] = SP[k] + P[k]
-            
-        ans = []
+
+        def tri(x: int) -> int:
+            return x * (x + 1) // 2
+
+        # Build maximal non-decreasing runs
+        starts: List[int] = []
+        ends: List[int] = []
+        contrib: List[int] = []
+        runId = [-1] * n
+
+        s = 0
+        rid = 0
+        for i in range(n - 1):
+            if nums[i] <= nums[i + 1]:
+                continue
+            # close run [s, i]
+            starts.append(s)
+            ends.append(i)
+            L = i - s + 1
+            contrib.append(tri(L))
+            for k in range(s, i + 1):
+                runId[k] = rid
+            rid += 1
+            s = i + 1
+
+        # close last run [s, n-1]
+        starts.append(s)
+        ends.append(n - 1)
+        L = (n - 1) - s + 1
+        contrib.append(tri(L))
+        for k in range(s, n):
+            runId[k] = rid
+        rid += 1
+
+        m = rid  # number of runs
+
+        # Prefix sums of full run contributions
+        pref = [0] * (m + 1)
+        for i in range(m):
+            pref[i + 1] = pref[i] + contrib[i]
+
+        ans: List[int] = []
         for l, r in queries:
-            # Total stable subarrays = sum_{k=l}^r (k - max(P[k], l) + 1)
-            # = sum_{k=l}^r (k + 1) - sum_{k=l}^r max(P[k], l)
-            
-            # Part 1: sum_{k=l}^r (k + 1)
-            total_k_plus_1 = (r + 1) * (r + 2) // 2 - l * (l + 1) // 2
-            
-            # Part 2: sum_{k=l}^r max(P[k], l)
-            # Find the largest index m in [l, r] such that P[m] <= l
-            # Since P is non-decreasing, we use binary search.
-            idx = bisect_right(P, l)
-            # idx is the first index where P[idx] > l.
-            # Since P[l] <= l always, idx > l.
-            m = min(idx - 1, r)
-            
-            # For k in [l, m], max(P[k], l) = l
-            # For k in [m+1, r], max(P[k], l) = P[k]
-            sum_max_P_l = (m - l + 1) * l + (SP[r+1] - SP[m+1])
-            
-            ans.append(total_k_plus_1 - sum_max_P_l)
-            
+            i = runId[l]
+            j = runId[r]
+            if i == j:
+                ans.append(tri(r - l + 1))
+            else:
+                left_len = ends[i] - l + 1
+                right_len = r - starts[j] + 1
+                mid = pref[j] - pref[i + 1]  # full runs between i and j
+                ans.append(tri(left_len) + tri(right_len) + mid)
+
         return ans
 # @lc code=end
