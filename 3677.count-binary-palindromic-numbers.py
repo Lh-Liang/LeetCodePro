@@ -3,44 +3,51 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
-
 # @lc code=start
 class Solution:
     def countBinaryPalindromes(self, n: int) -> int:
         if n == 0:
-            return 1
-        
-        s_n = bin(n)[2:]
-        L = len(s_n)
-        
-        # Count for length 1: "0" and "1"
-        total_count = 2
-        
-        # Count for lengths i such that 1 < i < L
-        for i in range(2, L):
-            half_len = (i + 1) // 2
-            total_count += 1 << (half_len - 1)
-            
-        # Count for length L (if L > 1)
-        if L > 1:
-            half_len = (L + 1) // 2
-            prefix_s = s_n[:half_len]
-            H = int(prefix_s, 2)
-            P = 1 << (half_len - 1)
-            
-            # Number of palindromes of length L with prefix < H
-            total_count += (H - P)
-            
-            # Check if palindrome with prefix H is <= n
+            return 1  # only "0"
+
+        def rev_bits(x: int, bits: int) -> int:
+            r = 0
+            for _ in range(bits):
+                r = (r << 1) | (x & 1)
+                x >>= 1
+            return r
+
+        def make_pal(x: int, L: int) -> int:
+            # x encodes the first half (including the leading 1)
             if L % 2 == 0:
-                # Even length: mirror the whole prefix
-                palindrome_s = prefix_s + prefix_s[::-1]
+                half = L // 2
+                return (x << half) | rev_bits(x, half)
             else:
-                # Odd length: mirror the prefix except the last bit
-                palindrome_s = prefix_s + prefix_s[:-1][::-1]
-            
-            if int(palindrome_s, 2) <= n:
-                total_count += 1
-                
-        return total_count
+                half = (L + 1) // 2
+                return (x << (half - 1)) | rev_bits(x >> 1, half - 1)
+
+        ans = 1  # count k=0
+        bl = n.bit_length()
+
+        # Count all palindromes with length < bl
+        for L in range(1, bl):
+            half = (L + 1) // 2
+            ans += 1 << (half - 1)
+
+        # Count palindromes with length == bl
+        L = bl
+        half = (L + 1) // 2
+        start = 1 << (half - 1)
+        prefix = n >> (L - half)  # top 'half' bits
+
+        cnt = prefix - start
+        if cnt < 0:
+            cnt = 0
+
+        if prefix >= start:
+            pal = make_pal(prefix, L)
+            if pal <= n:
+                cnt += 1
+
+        ans += cnt
+        return ans
 # @lc code=end
