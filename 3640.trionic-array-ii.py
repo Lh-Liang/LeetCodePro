@@ -4,72 +4,37 @@
 # [3640] Trionic Array II
 #
 
-# @lc code=start
 from typing import List
 
+# @lc code=start
 class Solution:
     def maxSumTrionic(self, nums: List[int]) -> int:
         n = len(nums)
-        pref = [0] * (n + 1)
-        for i in range(n):
-            pref[i + 1] = pref[i] + nums[i]
+        NEG = -10**30  # safely below minimal possible sum (~ -1e14)
 
-        def get_sum(l, r):
-            return pref[r + 1] - pref[l]
+        dp1 = NEG  # inc, len>=2
+        dp2 = NEG  # inc->dec, in dec phase, both parts len>=2
+        dp3 = NEG  # inc->dec->inc, in final inc phase, all parts len>=2
+        ans = NEG
 
-        # left_inc[i]: max sum of strictly increasing subarray ending at i
-        left_inc = [0] * n
-        curr_sum = 0
-        for i in range(n):
-            if i > 0 and nums[i] > nums[i - 1]:
-                curr_sum += nums[i]
-            else:
-                curr_sum = nums[i]
-            left_inc[i] = curr_sum
+        for i in range(1, n):
+            a, b = nums[i - 1], nums[i]
 
-        # right_inc[i]: max sum of strictly increasing subarray starting at i
-        right_inc = [0] * n
-        curr_sum = 0
-        for i in range(n - 1, -1, -1):
-            if i < n - 1 and nums[i] < nums[i + 1]:
-                curr_sum += nums[i]
-            else:
-                curr_sum = nums[i]
-            right_inc[i] = curr_sum
+            new_dp1 = NEG
+            new_dp2 = NEG
+            new_dp3 = NEG
 
-        # dec_from_left[i]: max sum of strictly decreasing subarray ending at i
-        # We need to find pairs (p, q) such that p < q, nums[p...q] is strictly decreasing
-        # and nums[l...p] is strictly increasing, nums[q...r] is strictly increasing.
-        # Requirement: l < p < q < r.
-        # This means p must be a peak (nums[p-1] < nums[p] and nums[p] > nums[p+1])
-        # and q must be a valley (nums[q-1] > nums[q] and nums[q] < nums[q+1]).
+            if a < b:
+                # increasing edge
+                new_dp1 = max(dp1 + b, a + b)
+                new_dp3 = max(dp3 + b, dp2 + b)
+            elif a > b:
+                # decreasing edge
+                new_dp2 = max(dp2 + b, dp1 + b)
 
-        max_total = -float('inf')
-        
-        # Identify potential peaks p where nums[p-1] < nums[p] and nums[p] > nums[p+1]
-        # Identify potential valleys q where nums[q-1] > nums[q] and nums[q] < nums[q+1]
-        
-        # We can iterate through the array and maintain the 'best' peak sum ending at current decreasing sequence
-        # dp_peak[i] will store the max sum of a trionic prefix ending at index i, 
-        # where i is part of the strictly decreasing nums[p...q] section.
-        dp_peak = [-float('inf')] * n
-        
-        for i in range(1, n - 1):
-            # If i can be a peak p:
-            if nums[i-1] < nums[i] and nums[i] > nums[i+1]:
-                # Sum of nums[l...p] is left_inc[i]
-                dp_peak[i] = max(dp_peak[i], left_inc[i])
-            
-            # If i is part of a decreasing sequence starting from a peak p:
-            if nums[i] < nums[i-1] and dp_peak[i-1] != -float('inf'):
-                dp_peak[i] = max(dp_peak[i], dp_peak[i-1] + nums[i])
-            
-            # If i can be a valley q:
-            if nums[i-1] > nums[i] and nums[i] < nums[i+1]:
-                if dp_peak[i] != -float('inf'):
-                    # Sum is prefix (up to q) + right_inc[q] - nums[q] (to avoid double counting q)
-                    total = dp_peak[i] + right_inc[i] - nums[i]
-                    max_total = max(max_total, total)
-                    
-        return max_total
+            dp1, dp2, dp3 = new_dp1, new_dp2, new_dp3
+            if dp3 > ans:
+                ans = dp3
+
+        return ans
 # @lc code=end
