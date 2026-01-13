@@ -10,55 +10,62 @@ from typing import List
 class Solution:
     def countEffective(self, nums: List[int]) -> int:
         MOD = 10**9 + 7
+        n = len(nums)
+
+        # Total OR
         T = 0
         for x in nums:
             T |= x
-        
-        if T == 0:
-            return 0
-            
-        # Map the set bits of T to a continuous range [0, m-1]
-        bits = [i for i in range(21) if (T >> i) & 1]
-        m = len(bits)
-        mapping = {bit: i for i, bit in enumerate(bits)}
-        
-        # Count frequencies of mapped numbers
-        cnt = [0] * (1 << m)
+
+        # Collect bit positions used in T (k <= 20)
+        bit_positions = []
+        for b in range(20):
+            if (T >> b) & 1:
+                bit_positions.append(b)
+        k = len(bit_positions)
+        allMask = (1 << k) - 1
+
+        # Map actual bit value -> compressed index
+        bit_to_idx = {}
+        for i, b in enumerate(bit_positions):
+            bit_to_idx[1 << b] = i
+
+        # freq over compressed masks
+        size = 1 << k
+        freq = [0] * size
         for x in nums:
-            nx = 0
-            for i in range(m):
-                if (x >> bits[i]) & 1:
-                    nx |= (1 << i)
-            cnt[nx] += 1
-            
-        # SOS DP (Zeta Transform) to calculate f(mask)
-        # f(mask) = number of elements whose mapped value is a subset of mask
-        for i in range(m):
-            bit = 1 << i
-            for mask in range(1 << m):
-                if mask & bit:
-                    cnt[mask] += cnt[mask ^ bit]
-        
-        # Precompute powers of 2
-        pow2 = [1] * (len(nums) + 1)
-        for i in range(1, len(nums) + 1):
-            pow2[i] = (pow2[i-1] * 2) % MOD
-            
-        # Number of subsets B such that OR(B) = T
-        # Using PIE: Count(OR(B) = T) = sum_{mask subseteq T} (-1)^(m - popcount(mask)) * 2^f(mask)
-        subset_count_T = 0
-        for mask in range(1 << m):
-            popcount = bin(mask).count('1')
-            term = pow2[cnt[mask]]
-            if (m - popcount) % 2 == 1:
-                subset_count_T = (subset_count_T - term) % MOD
+            y = x & T
+            m = 0
+            while y:
+                lsb = y & -y
+                m |= 1 << bit_to_idx[lsb]
+                y -= lsb
+            freq[m] += 1
+
+        # SOS DP: g[mask] = sum_{p subset of mask} freq[p]
+        g = freq[:]  # counts, not modulo
+        for i in range(k):
+            step = 1 << i
+            for mask in range(size):
+                if mask & step:
+                    g[mask] += g[mask ^ step]
+
+        # Precompute powers of 2 mod MOD
+        pow2 = [1] * (n + 1)
+        for i in range(1, n + 1):
+            pow2[i] = (pow2[i - 1] << 1) % MOD
+
+        # Inclusion-exclusion over non-empty bit-subsets
+        ans = 0
+        for m in range(1, size):
+            count0 = g[allMask ^ m]          # elements whose compressed mask has no bit in m
+            c = n - count0                    # elements with (p & m) != 0
+            term = pow2[n - c]                # 2^(n - c)
+            if m.bit_count() & 1:
+                ans += term
             else:
-                subset_count_T = (subset_count_T + term) % MOD
-        
-        # Total subsets is 2^n. Effective are those where OR(B) < T.
-        # ans = 2^n - subset_count_T
-        total_subsets = pow2[len(nums)]
-        ans = (total_subsets - subset_count_T) % MOD
-        
-        return ans
+                ans -= term
+
+        return ans % MOD
+
 # @lc code=end
