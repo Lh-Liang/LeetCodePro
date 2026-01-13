@@ -4,104 +4,95 @@
 # [3615] Longest Palindromic Path in Graph
 #
 
-# @lc code=start
 from typing import List
+from collections import deque
 
+# @lc code=start
 class Solution:
     def maxLen(self, n: int, edges: List[List[int]], label: str) -> int:
-        adj = [[] for _ in range(n)]
-        dist = [[float('inf')] * n for _ in range(n)]
-        for i in range(n): dist[i][i] = 0
-        
+        allMask = (1 << n) - 1
+
+        # adjacency as bitmask
+        adj = [0] * n
         for u, v in edges:
-            adj[u].append(v)
-            adj[v].append(u)
-            dist[u][v] = dist[v][u] = 1
-            
-        # Floyd-Warshall to find connectivity (needed for path existence)
-        for k in range(n):
-            for i in range(n):
-                for j in range(n):
-                    if dist[i][j] > dist[i][k] + dist[k][j]:
-                        dist[i][j] = dist[i][k] + dist[k][j]
+            adj[u] |= 1 << v
+            adj[v] |= 1 << u
 
-        # dp[mask][u][v] = True if there exists a palindromic path using nodes in mask with ends u, v
-        # Given n is very small, we can use a recursive approach with memoization
-        memo = {}
+        # neighbors grouped by character:
+        # neighDict[i][c] = bitmask of neighbors of i whose label is c
+        neighDict = [dict() for _ in range(n)]
+        neighItems = [[] for _ in range(n)]
+        for i in range(n):
+            d = {}
+            m = adj[i]
+            while m:
+                lsb = m & -m
+                j = lsb.bit_length() - 1
+                m -= lsb
+                c = ord(label[j]) - 97
+                d[c] = d.get(c, 0) | lsb
+            neighDict[i] = d
+            neighItems[i] = list(d.items())  # iterate only existing chars
 
-        def solve(mask, u, v):
-            state = (mask, u, v)
-            if state in memo: return memo[state]
-            
-            # Base case: single node
-            if u == v:
-                return 1
-            
-            # Base case: length 2 (u and v are adjacent and labels match)
-            if dist[u][v] == 1 and label[u] == label[v]:
-                if (mask >> u & 1) and (mask >> v & 1):
-                    return 2
-            
-            res = -float('inf')
+        # popcount precompute
+        pc = [0] * (1 << n)
+        for m in range(1, 1 << n):
+            pc[m] = pc[m >> 1] + (m & 1)
+
+        # dp[(mask, l)] is a bitset over r (stored in a flattened array)
+        dp = [0] * ((1 << n) * n)
+        q = deque()
+
+        def add_state(mask: int, l: int, r: int) -> None:
+            idx = mask * n + l
+            bit = 1 << r
+            if dp[idx] & bit:
+                return
+            dp[idx] |= bit
+            q.append((mask, l, r))
+
+        # base: length 1
+        for i in range(n):
+            add_state(1 << i, i, i)
+
+        # base: length 2 (only one orientation per undirected edge)
+        for u, v in edges:
             if label[u] == label[v]:
-                # Try to find a smaller palindrome inside
-                new_mask = mask ^ (1 << u) ^ (1 << v)
-                for i in range(n):
-                    if not (new_mask >> i & 1): continue
-                    for j in range(n):
-                        if not (new_mask >> j & 1): continue
-                        # i must be neighbor of u, j must be neighbor of v
-                        if dist[u][i] == 1 and dist[v][j] == 1:
-                            inner = solve(new_mask, i, j)
-                            if inner > 0:
-                                res = max(res, inner + 2)
-            
-            memo[state] = res
-            return res
+                l, r = (u, v) if u < v else (v, u)
+                add_state((1 << u) | (1 << v), l, r)
 
         ans = 1
-        # Iterate through all possible masks and endpoints
-        # Since n is small, we can use a simpler approach: BFS/Iterative DP on length
-        dp = {}
-        # Length 1
-        for i in range(n):
-            dp[(1 << i, i, i)] = 1
-        # Length 2
-        for u, v in edges:
-            if label[u] == label[v]:
-                dp[(1 << u | 1 << v, u, v)] = 2
-                ans = 2
+        while q:
+            mask, l, r = q.popleft()
+            ans = max(ans, pc[mask])
 
-        # Iterate by length
-        for length in range(1, n + 1):
-            current_states = [s for s, l in dp.items() if l == length]
-            if not current_states: continue
-            
-            for mask, u, v in current_states:
-                ans = max(ans, length)
-                # Try to expand
-                for ni in range(n):
-                    if (mask >> ni) & 1: continue
-                    if dist[ni][u] != 1: continue
-                    for nj in range(n):
-                        if (mask >> nj) & 1: continue
-                        if ni == nj: continue
-                        if dist[nj][v] != 1: continue
-                        if label[ni] == label[nj]:
-                            new_mask = mask | (1 << ni) | (1 << nj)
-                            if (new_mask, ni, nj) not in dp or dp[(new_mask, ni, nj)] < length + 2:
-                                dp[(new_mask, ni, nj)] = length + 2
-                                
-            # Odd extension: length + 1 if we can add just one node to make it even?
-            # Actually, the palindrome logic handles even/odd separately.
-            # Check if we can add one more node to the middle of a path for odd lengths
-            for mask, u, v in current_states:
-                for mid in range(n):
-                    if (mask >> mid) & 1: continue
-                    if dist[u][mid] == 1 and u == v:
-                        # This is just length 1 -> 2, handled above
-                        pass
-        
-        return max(dp.values()) if dp else 1
+            free = allMask ^ mask
 
+            # try extending by matching characters on both ends
+            for c, leftMaskAll in neighItems[l]:
+                leftAvail = leftMaskAll & free
+                if not leftAvail:
+                    continue
+
+                rightMaskAll = neighDict[r].get(c, 0)
+                rightAvail = rightMaskAll & free
+                if not rightAvail:
+                    continue
+
+                aBits = leftAvail
+                while aBits:
+                    aBit = aBits & -aBits
+                    a = aBit.bit_length() - 1
+                    aBits -= aBit
+
+                    bBits = rightAvail & ~aBit  # ensure a != b
+                    while bBits:
+                        bBit = bBits & -bBits
+                        b = bBit.bit_length() - 1
+                        bBits -= bBit
+
+                        newMask = mask | aBit | bBit
+                        add_state(newMask, a, b)
+
+        return ans
 # @lc code=end
