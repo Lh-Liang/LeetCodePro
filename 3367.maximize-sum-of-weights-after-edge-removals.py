@@ -4,61 +4,43 @@
 # [3367] Maximize Sum of Weights after Edge Removals
 #
 
-from typing import List
-
 # @lc code=start
 class Solution:
     def maximizeSumOfWeights(self, edges: List[List[int]], k: int) -> int:
         n = len(edges) + 1
-        adj = [[] for _ in range(n)]
+        graph = [[] for _ in range(n)]
+        
         for u, v, w in edges:
-            adj[u].append((v, w))
-            adj[v].append((u, w))
-
-        parent = [-1] * n
-        order = []
-        st = [0]
-        parent[0] = -2  # mark root visited
-
-        # Build parent array and traversal order
-        while st:
-            u = st.pop()
-            order.append(u)
-            for v, w in adj[u]:
-                if v == parent[u]:
-                    continue
-                if parent[v] != -1:
-                    continue
-                parent[v] = u
-                st.append(v)
-
-        parent[0] = -1
-
-        dp0 = [0] * n  # parent edge not kept
-        dp1 = [0] * n  # parent edge kept
-
-        for u in reversed(order):
-            base = 0
+            graph[u].append((v, w))
+            graph[v].append((u, w))
+        
+        def dfs(u, parent):
             gains = []
-            for v, w in adj[u]:
-                if v == parent[u]:
+            base_sum = 0
+            
+            for v, w in graph[u]:
+                if v == parent:
                     continue
-                base += dp0[v]
-                gain = dp1[v] + w - dp0[v]
-                if gain > 0:
-                    gains.append(gain)
-
+                val0, val1 = dfs(v, u)
+                base_sum += val0
+                gain = w + val1 - val0
+                gains.append(gain)
+            
             gains.sort(reverse=True)
-            m = len(gains)
-            pref = [0] * (m + 1)
-            for i, g in enumerate(gains, 1):
-                pref[i] = pref[i - 1] + g
-
-            take0 = min(k, m)
-            dp0[u] = base + pref[take0]
-
-            take1 = min(k - 1, m) if k > 0 else 0
-            dp1[u] = base + pref[take1]
-
-        return dp0[0]
+            
+            # dp[u][0]: can use at most k edges
+            dp0 = base_sum
+            for i in range(min(k, len(gains))):
+                if gains[i] > 0:
+                    dp0 += gains[i]
+            
+            # dp[u][1]: can use at most k-1 edges
+            dp1 = base_sum
+            for i in range(min(k-1, len(gains))):
+                if gains[i] > 0:
+                    dp1 += gains[i]
+            
+            return dp0, dp1
+        
+        return dfs(0, -1)[0]
 # @lc code=end
