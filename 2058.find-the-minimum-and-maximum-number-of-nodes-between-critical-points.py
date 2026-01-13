@@ -3,7 +3,6 @@
 #
 # [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
 #
-
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -14,39 +13,35 @@ class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
         if not head or not head.next or not head.next.next:
             return [-1, -1]
-        
-        first_idx = -1
-        last_idx = -1
-        min_dist = float('inf')
-        
-        prev_val = head.val
-        curr = head.next
-        i = 1 # Index of curr node
-        
-        while curr.next:
-            next_val = curr.next.val
-            
-            # Check if current node is a critical point
-            is_maxima = curr.val > prev_val and curr.val > next_val
-            is_minima = curr.val < prev_val and curr.val < next_val
-            
-            if is_maxima or is_minima:
-                if first_idx == -1:
-                    first_idx = i
-                else:
-                    min_dist = min(min_dist, i - last_idx)
-                
-                last_idx = i
-            
-            # Move to next node
-            prev_val = curr.val
-            curr = curr.next
-            i += 1
-            
-        if first_idx == last_idx:
-            # Only one critical point found
-            return [-1, -1]
-            
-        return [int(min_dist), last_idx - first_idx]
 
+        prev = head
+        cur = head.next
+        idx = 1  # 0-based index of cur
+
+        first_cp = -1
+        last_cp = -1
+        prev_cp = -1
+        min_dist = float('inf')
+
+        while cur and cur.next:
+            nxt = cur.next
+            is_max = cur.val > prev.val and cur.val > nxt.val
+            is_min = cur.val < prev.val and cur.val < nxt.val
+
+            if is_max or is_min:
+                if first_cp == -1:
+                    first_cp = idx
+                if prev_cp != -1:
+                    min_dist = min(min_dist, idx - prev_cp)
+                prev_cp = idx
+                last_cp = idx
+
+            prev = cur
+            cur = nxt
+            idx += 1
+
+        if first_cp == -1 or first_cp == last_cp:
+            return [-1, -1]
+
+        return [min_dist, last_cp - first_cp]
 # @lc code=end
