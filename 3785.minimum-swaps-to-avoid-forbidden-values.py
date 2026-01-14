@@ -5,33 +5,57 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import Counter
-
 class Solution:
     def minSwaps(self, nums: List[int], forbidden: List[int]) -> int:
         n = len(nums)
-
-        # Count occurrences in nums and forbidden
-        occ = Counter(nums)
-        fcnt = Counter(forbidden)
-
-        # Feasibility check: for every value v, occ[v] <= n - fcnt[v]
-        for v, c in occ.items():
-            if c + fcnt.get(v, 0) > n:
-                return -1
-
-        # Count bad indices (nums[i] == forbidden[i]) per value
-        badCnt = Counter()
-        k = 0
-        for a, b in zip(nums, forbidden):
-            if a == b:
-                badCnt[a] += 1
-                k += 1
-
-        if k == 0:
-            return 0
-
-        mx = max(badCnt.values())
-        return max((k + 1) // 2, mx)
+        
+        # Build bipartite graph: position i can use value from source j if nums[j] != forbidden[i]
+        graph = [[] for _ in range(n)]
+        for i in range(n):
+            for j in range(n):
+                if nums[j] != forbidden[i]:
+                    graph[i].append(j)
+        
+        # Initialize matching arrays
+        match_pos = [-1] * n  # match_pos[i] = j means position i gets value from source j
+        match_val = [-1] * n  # match_val[j] = i means source j is assigned to position i
+        
+        # Augmenting path algorithm for bipartite matching
+        def augment(u, visited):
+            for v in graph[u]:
+                if visited[v]:
+                    continue
+                visited[v] = True
+                if match_val[v] == -1 or augment(match_val[v], visited):
+                    match_pos[u] = v
+                    match_val[v] = u
+                    return True
+            return False
+        
+        # First pass: match positions to themselves if possible (minimize swaps)
+        for i in range(n):
+            if nums[i] != forbidden[i]:
+                match_pos[i] = i
+                match_val[i] = i
+        
+        # Second pass: match remaining positions using augmenting paths
+        for i in range(n):
+            if match_pos[i] == -1:
+                visited = [False] * n
+                if not augment(i, visited):
+                    return -1  # No perfect matching exists
+        
+        # Count cycles in the permutation
+        visited = [False] * n
+        cycles = 0
+        for i in range(n):
+            if not visited[i]:
+                j = i
+                while not visited[j]:
+                    visited[j] = True
+                    j = match_pos[j]
+                cycles += 1
+        
+        # Minimum swaps = n - number of cycles
+        return n - cycles
 # @lc code=end
