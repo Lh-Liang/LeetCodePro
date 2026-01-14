@@ -5,34 +5,73 @@
 #
 
 # @lc code=start
+from sortedcontainers import SortedList
+
 class Solution:
     def minimumPairRemoval(self, nums: List[int]) -> int:
-        def is_non_decreasing(arr):
-            for i in range(1, len(arr)):
-                if arr[i] < arr[i-1]:
-                    return False
-            return True
-        
-        if len(nums) == 1 or is_non_decreasing(nums):
+        n = len(nums)
+        if n == 1:
             return 0
         
-        operations = 0
-        arr = nums[:]
+        values = list(nums)
+        deleted = [False] * n
+        prev_node = [i - 1 for i in range(n)]
+        next_node = [i + 1 for i in range(n)]
         
-        while not is_non_decreasing(arr):
-            # Find leftmost pair with minimum sum
-            min_sum = float('inf')
-            min_idx = -1
+        bad_count = sum(1 for i in range(n - 1) if values[i] > values[i + 1])
+        
+        if bad_count == 0:
+            return 0
+        
+        pairs = SortedList()
+        for i in range(n - 1):
+            pairs.add((values[i] + values[i + 1], i))
+        
+        operations = 0
+        
+        while bad_count > 0:
+            min_sum, left = pairs.pop(0)
             
-            for i in range(len(arr) - 1):
-                pair_sum = arr[i] + arr[i+1]
-                if pair_sum < min_sum:
-                    min_sum = pair_sum
-                    min_idx = i
+            if deleted[left]:
+                continue
             
-            # Merge the pair at min_idx and min_idx+1
-            arr[min_idx] += arr[min_idx + 1]
-            del arr[min_idx + 1]
+            right = next_node[left]
+            if right >= n or deleted[right]:
+                continue
+            
+            if values[left] + values[right] != min_sum:
+                continue
+            
+            prev_n = prev_node[left]
+            next_n = next_node[right]
+            
+            # Remove old bad pairs
+            if prev_n >= 0 and values[prev_n] > values[left]:
+                bad_count -= 1
+            if values[left] > values[right]:
+                bad_count -= 1
+            if next_n < n and values[right] > values[next_n]:
+                bad_count -= 1
+            
+            # Merge
+            deleted[right] = True
+            values[left] = min_sum
+            next_node[left] = next_n
+            if next_n < n:
+                prev_node[next_n] = left
+            
+            # Add new bad pairs
+            if prev_n >= 0 and values[prev_n] > values[left]:
+                bad_count += 1
+            if next_n < n and values[left] > values[next_n]:
+                bad_count += 1
+            
+            # Add new pairs
+            if prev_n >= 0:
+                pairs.add((values[prev_n] + values[left], prev_n))
+            if next_n < n:
+                pairs.add((values[left] + values[next_n], left))
+            
             operations += 1
         
         return operations
