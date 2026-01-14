@@ -3,52 +3,65 @@
 #
 # [3464] Maximize the Distance Between Points on a Square
 #
+
 # @lc code=start
 class Solution:
     def maxDistance(self, side: int, points: List[List[int]], k: int) -> int:
-        n = len(points)
+        perimeter = 4 * side
         
-        # Precompute distances
-        dist = [[0] * n for _ in range(n)]
-        all_distances = set()
-        for i in range(n):
-            for j in range(i+1, n):
-                d = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
-                dist[i][j] = dist[j][i] = d
-                all_distances.add(d)
+        def point_to_pos(x, y):
+            if y == 0:
+                return x
+            elif x == side:
+                return side + y
+            elif y == side:
+                return 3 * side - x
+            else:
+                return 4 * side - y
         
-        all_distances = sorted(all_distances, reverse=True)
+        # Store (perimeter_position, x, y)
+        coords = []
+        for x, y in points:
+            p = point_to_pos(x, y)
+            coords.append((p, x, y))
+        coords.sort()
         
-        def can_select(min_dist):
-            def backtrack(index, selected):
+        n = len(coords)
+        
+        # Double the array to handle cyclic nature
+        doubled = coords + [(c[0] + perimeter, c[1], c[2]) for c in coords]
+        
+        def dist(i, j):
+            return abs(doubled[i][1] - doubled[j][1]) + abs(doubled[i][2] - doubled[j][2])
+        
+        def check(d):
+            for start in range(n):
+                selected = [start]
+                for _ in range(k - 1):
+                    found = False
+                    for idx in range(selected[-1] + 1, start + n):
+                        ok = True
+                        for s in selected:
+                            if dist(idx, s) < d:
+                                ok = False
+                                break
+                        if ok:
+                            selected.append(idx)
+                            found = True
+                            break
+                    if not found:
+                        break
                 if len(selected) == k:
                     return True
-                if index == n:
-                    return False
-                if n - index + len(selected) < k:
-                    return False
-                
-                # Try selecting current point
-                can_select_current = all(
-                    dist[index][sel_idx] >= min_dist
-                    for sel_idx in selected
-                )
-                
-                if can_select_current:
-                    selected.append(index)
-                    if backtrack(index + 1, selected):
-                        return True
-                    selected.pop()
-                
-                # Try not selecting current point
-                return backtrack(index + 1, selected)
-            
-            return backtrack(0, [])
+            return False
         
-        # Try all distances from largest to smallest
-        for d in all_distances:
-            if can_select(d):
-                return d
+        lo, hi = 1, 2 * side
+        while lo < hi:
+            mid = (lo + hi + 1) // 2
+            if check(mid):
+                lo = mid
+            else:
+                hi = mid - 1
         
-        return 0
+        return lo
 # @lc code=end
