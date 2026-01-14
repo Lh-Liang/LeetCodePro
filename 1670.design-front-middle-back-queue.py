@@ -3,62 +3,44 @@
 #
 # [1670] Design Front Middle Back Queue
 #
-
 # @lc code=start
-from collections import deque
-
 class FrontMiddleBackQueue:
 
     def __init__(self):
-        self.front = deque()
-        self.back = deque()
-    
-    def _balance(self):
-        # Maintain invariant: len(front) == len(back) or len(front) == len(back) + 1
-        if len(self.front) > len(self.back) + 1:
-            self.back.appendleft(self.front.pop())
-        elif len(self.front) < len(self.back):
-            self.front.append(self.back.popleft())
+        self.queue = []
+        
 
     def pushFront(self, val: int) -> None:
-        self.front.appendleft(val)
-        self._balance()
+        self.queue.insert(0, val)
+        
 
     def pushMiddle(self, val: int) -> None:
-        if len(self.front) > len(self.back):
-            self.back.appendleft(self.front.pop())
-        self.front.append(val)
+        mid = len(self.queue) // 2
+        self.queue.insert(mid, val)
+        
 
     def pushBack(self, val: int) -> None:
-        self.back.append(val)
-        self._balance()
+        self.queue.append(val)
+        
 
     def popFront(self) -> int:
-        if not self.front and not self.back:
+        if not self.queue:
             return -1
-        if self.front:
-            val = self.front.popleft()
-        else:
-            val = self.back.popleft()
-        self._balance()
-        return val
+        return self.queue.pop(0)
+        
 
     def popMiddle(self) -> int:
-        if not self.front and not self.back:
+        if not self.queue:
             return -1
-        val = self.front.pop()
-        self._balance()
-        return val
+        mid = (len(self.queue) - 1) // 2
+        return self.queue.pop(mid)
+        
 
     def popBack(self) -> int:
-        if not self.front and not self.back:
+        if not self.queue:
             return -1
-        if self.back:
-            val = self.back.pop()
-        else:
-            val = self.front.pop()
-        self._balance()
-        return val
+        return self.queue.pop()
+        
 
 
 # Your FrontMiddleBackQueue object will be instantiated and called as such:
