@@ -5,52 +5,52 @@
 #
 
 # @lc code=start
+from collections import defaultdict, deque
+from typing import List
+
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        from collections import defaultdict, deque
+        # Get all unique weights for binary search
+        weights = sorted(set(e[2] for e in edges))
         
-        # Get all unique weights and sort them
-        weights = sorted(set(w for _, _, w in edges))
+        if not weights:
+            return -1
         
         def canReachAll(maxWeight):
-            # Filter edges by maxWeight
-            filtered = [(a, b, w) for a, b, w in edges if w <= maxWeight]
-            
-            # Group by source node
-            outgoing = defaultdict(list)
-            for a, b, w in filtered:
-                outgoing[a].append((b, w))
-            
-            # For each node, keep at most threshold edges (prioritize smaller weights)
-            graph = defaultdict(list)
-            for node in outgoing:
-                outgoing[node].sort(key=lambda x: x[1])
-                for i in range(min(threshold, len(outgoing[node]))):
-                    graph[node].append(outgoing[node][i][0])
-            
-            # Reverse the graph to check reachability
+            # Build reversed graph with edges <= maxWeight
             reversed_graph = defaultdict(list)
-            for a in graph:
-                for b in graph[a]:
+            for a, b, w in edges:
+                if w <= maxWeight:
+                    # Original: a -> b, Reversed: b -> a
                     reversed_graph[b].append(a)
             
             # BFS from node 0 in reversed graph
-            visited = set([0])
+            visited = [False] * n
+            visited[0] = True
             queue = deque([0])
+            count = 1
+            
             while queue:
                 node = queue.popleft()
                 for neighbor in reversed_graph[node]:
-                    if neighbor not in visited:
-                        visited.add(neighbor)
+                    if not visited[neighbor]:
+                        visited[neighbor] = True
+                        count += 1
                         queue.append(neighbor)
             
-            # Check if all nodes can reach node 0
-            return len(visited) == n
+            return count == n
         
-        # Try each weight in ascending order
-        for w in weights:
-            if canReachAll(w):
-                return w
+        # Binary search on weights
+        left, right = 0, len(weights) - 1
+        result = -1
         
-        return -1
+        while left <= right:
+            mid = (left + right) // 2
+            if canReachAll(weights[mid]):
+                result = weights[mid]
+                right = mid - 1
+            else:
+                left = mid + 1
+        
+        return result
 # @lc code=end
