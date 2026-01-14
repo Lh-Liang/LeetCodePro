@@ -3,40 +3,44 @@
 #
 # [3341] Find Minimum Time to Reach Last Room I
 #
-
 # @lc code=start
 import heapq
 
 class Solution:
     def minTimeToReach(self, moveTime: List[List[int]]) -> int:
-        n = len(moveTime)
-        m = len(moveTime[0])
+        n, m = len(moveTime), len(moveTime[0])
         
-        # Priority queue: (time, row, col)
-        pq = [(0, 0, 0)]
+        # dist[i][j] = minimum time to reach room (i, j)
+        dist = [[float('inf')] * m for _ in range(n)]
+        dist[0][0] = 0
         
-        # visited set
-        visited = set()
+        # Min heap: (time, row, col)
+        heap = [(0, 0, 0)]
         
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         
-        while pq:
-            time, r, c = heapq.heappop(pq)
+        while heap:
+            time, r, c = heapq.heappop(heap)
             
-            if (r, c) in visited:
+            # If we've already found a better path, skip
+            if time > dist[r][c]:
                 continue
             
-            visited.add((r, c))
-            
+            # If we've reached the destination
             if r == n - 1 and c == m - 1:
                 return time
             
             for dr, dc in directions:
                 nr, nc = r + dr, c + dc
                 
-                if 0 <= nr < n and 0 <= nc < m and (nr, nc) not in visited:
-                    new_time = max(time, moveTime[nr][nc]) + 1
-                    heapq.heappush(pq, (new_time, nr, nc))
+                if 0 <= nr < n and 0 <= nc < m:
+                    # Calculate arrival time at (nr, nc)
+                    # We can start moving when time >= moveTime[nr][nc]
+                    arrival = max(time, moveTime[nr][nc]) + 1
+                    
+                    if arrival < dist[nr][nc]:
+                        dist[nr][nc] = arrival
+                        heapq.heappush(heap, (arrival, nr, nc))
         
-        return -1
+        return dist[n-1][m-1]
 # @lc code=end
