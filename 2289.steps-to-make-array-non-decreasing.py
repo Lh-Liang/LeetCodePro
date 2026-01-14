@@ -7,22 +7,22 @@
 # @lc code=start
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        stack = []  # stack of (value, steps_to_remove)
-        max_steps = 0
+        stack = []  # (value, step)
+        result = 0
         
         for num in nums:
-            steps = 0
-            # Pop all elements that are <= current element
+            max_step = 0
             while stack and stack[-1][0] <= num:
-                steps = max(steps, stack[-1][1])
-                stack.pop()
+                _, step = stack.pop()
+                max_step = max(max_step, step)
             
-            # If stack is not empty, current element will be removed
-            if stack:
-                steps += 1
+            if stack:  # there's a larger element to the left that will eat this one
+                step = max_step + 1
+            else:
+                step = 0  # no larger element to the left, this element survives
             
-            stack.append((num, steps))
-            max_steps = max(max_steps, steps)
+            result = max(result, step)
+            stack.append((num, step))
         
-        return max_steps
+        return result
 # @lc code=end
