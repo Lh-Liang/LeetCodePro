@@ -9,10 +9,10 @@ class Solution:
     def numberOfComponents(self, properties: List[List[int]], k: int) -> int:
         n = len(properties)
         
-        # Convert each property array to a set of distinct elements
-        prop_sets = [set(p) for p in properties]
+        # Convert each property to a set of distinct elements
+        property_sets = [set(prop) for prop in properties]
         
-        # Union-Find with path compression
+        # Union-Find
         parent = list(range(n))
         
         def find(x):
@@ -25,13 +25,13 @@ class Solution:
             if px != py:
                 parent[px] = py
         
-        # Check all pairs
         for i in range(n):
             for j in range(i + 1, n):
-                # Count distinct integers common to both
-                if len(prop_sets[i] & prop_sets[j]) >= k:
+                # Calculate intersection size
+                common = len(property_sets[i] & property_sets[j])
+                if common >= k:
                     union(i, j)
         
-        # Count connected components
+        # Count unique components
         return len(set(find(i) for i in range(n)))
 # @lc code=end
