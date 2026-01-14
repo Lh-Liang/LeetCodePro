@@ -3,83 +3,78 @@
 #
 # [3594] Minimum Time to Transport All Individuals
 #
-
 # @lc code=start
 from typing import List
-import math
+from itertools import combinations
 import heapq
 
 class Solution:
     def minTime(self, n: int, k: int, m: int, time: List[int], mul: List[float]) -> float:
-        if n == 1:
-            return time[0] * mul[0]
-        if k == 1:
+        # Edge case: impossible if boat capacity is 1 and multiple people
+        if k == 1 and n > 1:
             return -1.0
-
-        allmask = (1 << n) - 1
-
-        # Precompute maxTime[mask] = max time[i] among bits in mask
-        maxTime = [0] * (1 << n)
-        for mask in range(1, 1 << n):
-            lsb = mask & -mask
-            i = (lsb.bit_length() - 1)
-            prev = mask ^ lsb
-            mt = maxTime[prev]
-            ti = time[i]
-            maxTime[mask] = ti if ti > mt else mt
-
-        # All non-empty subsets with size <= k (independent of current mask)
-        subsets = []
-        for s in range(1, 1 << n):
-            if s.bit_count() <= k:
-                subsets.append(s)
-
-        def adv_stage(t: float) -> int:
-            # Small epsilon to stabilize floor near integers
-            return int(math.floor(t + 1e-9)) % m
-
-        INF = 1e100
-        dist = [[[INF] * m for _ in range(2)] for __ in range(1 << n)]
-        dist[0][0][0] = 0.0
-        pq = [(0.0, 0, 0, 0)]  # (total_time, mask, side, stage)
-
-        eps_relax = 1e-12
-
-        while pq:
-            d, mask, side, stage = heapq.heappop(pq)
-            if d != dist[mask][side][stage]:
+        
+        # If everyone can go in one trip
+        if k >= n:
+            return max(time) * mul[0]
+        
+        target_mask = (1 << n) - 1
+        
+        # Dijkstra's algorithm
+        heap = [(0.0, 0, 0)]  # (time, mask, stage)
+        visited = set()
+        
+        while heap:
+            total_time, mask, stage = heapq.heappop(heap)
+            
+            # Skip if already visited
+            if (mask, stage) in visited:
                 continue
-
-            if mask == allmask and side == 1:
-                return d
-
-            if side == 0:
-                # Send group from base to destination
-                for s in subsets:
-                    if s & mask:
-                        continue  # must pick only people still at base
-                    t = maxTime[s] * mul[stage]
-                    ns = (stage + adv_stage(t)) % m
-                    nmask = mask | s
-                    nd = d + t
-                    if nd + eps_relax < dist[nmask][1][ns]:
-                        dist[nmask][1][ns] = nd
-                        heapq.heappush(pq, (nd, nmask, 1, ns))
-            else:
-                # Return exactly one person if not finished
-                if mask != allmask:
-                    mm = mask
-                    while mm:
-                        lsb = mm & -mm
-                        r = lsb.bit_length() - 1
-                        mm ^= lsb
-                        t = time[r] * mul[stage]
-                        ns = (stage + adv_stage(t)) % m
-                        nmask = mask ^ (1 << r)
-                        nd = d + t
-                        if nd + eps_relax < dist[nmask][0][ns]:
-                            dist[nmask][0][ns] = nd
-                            heapq.heappush(pq, (nd, nmask, 0, ns))
-
+            visited.add((mask, stage))
+            
+            # Check if all transported
+            if mask == target_mask:
+                return total_time
+            
+            # Identify people at base and destination
+            at_base = [i for i in range(n) if not (mask & (1 << i))]
+            at_dest = [i for i in range(n) if mask & (1 << i)]
+            
+            # Try sending different groups
+            for group_size in range(1, min(k, len(at_base)) + 1):
+                for group in combinations(at_base, group_size):
+                    # Crossing phase
+                    max_time_in_group = max(time[i] for i in group)
+                    crossing_time = max_time_in_group * mul[stage]
+                    
+                    # New mask after crossing
+                    new_mask = mask
+                    for i in group:
+                        new_mask |= (1 << i)
+                    
+                    # Stage update after crossing
+                    stage_advance = int(crossing_time) % m
+                    new_stage = (stage + stage_advance) % m
+                    new_total_time = total_time + crossing_time
+                    
+                    if new_mask == target_mask:
+                        # All people now at destination
+                        if (new_mask, new_stage) not in visited:
+                            heapq.heappush(heap, (new_total_time, new_mask, new_stage))
+                    else:
+                        # Return phase needed
+                        new_at_dest = at_dest + list(group)
+                        
+                        # Try each person returning
+                        for returner in new_at_dest:
+                            return_time = time[returner] * mul[new_stage]
+                            return_stage_advance = int(return_time) % m
+                            final_stage = (new_stage + return_stage_advance) % m
+                            return_mask = new_mask & ~(1 << returner)
+                            final_time = new_total_time + return_time
+                            
+                            if (return_mask, final_stage) not in visited:
+                                heapq.heappush(heap, (final_time, return_mask, final_stage))
+        
         return -1.0
 # @lc code=end
