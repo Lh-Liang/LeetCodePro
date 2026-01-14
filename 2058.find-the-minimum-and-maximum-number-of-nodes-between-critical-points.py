@@ -11,42 +11,33 @@
 #         self.next = next
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
+        critical_points = []
+        
         prev = head
         curr = head.next
-        position = 1
-        
-        first_critical = -1
-        last_critical = -1
-        prev_critical = -1
-        min_distance = float('inf')
+        index = 1
         
         while curr and curr.next:
             next_node = curr.next
-            
-            # Check if current node is a critical point (local maxima or minima)
-            is_critical = (curr.val > prev.val and curr.val > next_node.val) or \
-                          (curr.val < prev.val and curr.val < next_node.val)
-            
-            if is_critical:
-                if first_critical == -1:
-                    # First critical point found
-                    first_critical = position
-                else:
-                    # Update minimum distance between consecutive critical points
-                    min_distance = min(min_distance, position - prev_critical)
-                
-                prev_critical = position
-                last_critical = position
+            # Check if current is a local maxima or minima
+            if (curr.val > prev.val and curr.val > next_node.val) or \
+               (curr.val < prev.val and curr.val < next_node.val):
+                critical_points.append(index)
             
             prev = curr
-            curr = curr.next
-            position += 1
+            curr = next_node
+            index += 1
         
-        # If fewer than 2 critical points
-        if first_critical == -1 or first_critical == last_critical:
+        if len(critical_points) < 2:
             return [-1, -1]
         
-        max_distance = last_critical - first_critical
+        # Max distance is between first and last critical point
+        max_distance = critical_points[-1] - critical_points[0]
+        
+        # Min distance is minimum of differences between consecutive critical points
+        min_distance = float('inf')
+        for i in range(1, len(critical_points)):
+            min_distance = min(min_distance, critical_points[i] - critical_points[i-1])
         
         return [min_distance, max_distance]
 # @lc code=end
