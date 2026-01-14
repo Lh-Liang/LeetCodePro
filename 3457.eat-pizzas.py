@@ -3,24 +3,23 @@
 #
 # [3457] Eat Pizzas!
 #
+
 # @lc code=start
 class Solution:
     def maxWeight(self, pizzas: List[int]) -> int:
         pizzas.sort(reverse=True)
         n = len(pizzas)
-        total_days = n // 4
-        odd_days = (total_days + 1) // 2
-        even_days = total_days // 2
+        d = n // 4
+        odd = (d + 1) // 2  # number of odd days
+        even = d // 2        # number of even days
         
-        total_weight = 0
+        # Odd day contributions: top 'odd' pizzas (we gain the max Z)
+        result = sum(pizzas[:odd])
         
-        # Gain the top odd_days pizzas (Z on odd days)
-        for i in range(odd_days):
-            total_weight += pizzas[i]
+        # Even day contributions: from the remaining pizzas for even days,
+        # we pair them (Z, Y) and gain Y (every other starting from odd+1)
+        # Indices: odd+1, odd+3, ..., odd+2*even-1
+        result += sum(pizzas[odd + 1: odd + 2 * even: 2])
         
-        # Gain every other pizza in the next 2*even_days pizzas (Y on even days)
-        for i in range(even_days):
-            total_weight += pizzas[odd_days + 2 * i + 1]
-        
-        return total_weight
+        return result
 # @lc code=end
