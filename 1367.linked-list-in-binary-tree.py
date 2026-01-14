@@ -3,6 +3,7 @@
 #
 # [1367] Linked List in Binary Tree
 #
+
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -17,24 +18,19 @@
 #         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        # Helper function to check if linked list matches from current tree node going downward
-        def matches(list_node, tree_node):
+        def dfs(head, root):
             # If we've matched the entire linked list
-            if not list_node:
+            if not head:
                 return True
-            # If tree ended but list hasn't
-            if not tree_node:
+            # If tree is exhausted but list isn't
+            if not root:
                 return False
-            # If values don't match
-            if list_node.val != tree_node.val:
-                return False
-            # Try matching in left or right subtree (continuing downward)
-            return matches(list_node.next, tree_node.left) or matches(list_node.next, tree_node.right)
+            # Values must match, then continue down either left or right child
+            return head.val == root.val and (dfs(head.next, root.left) or dfs(head.next, root.right))
         
-        # Base case: empty tree
         if not root:
             return False
         
-        # Try starting from current node, or try starting from left/right subtrees
-        return matches(head, root) or self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
+        # Try matching from current root, or try starting from left/right subtrees
+        return dfs(head, root) or self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
 # @lc code=end
