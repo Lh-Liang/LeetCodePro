@@ -12,38 +12,36 @@
 class Solution:
     def reverseEvenLengthGroups(self, head: Optional[ListNode]) -> Optional[ListNode]:
         dummy = ListNode(0, head)
-        prev_group_end = dummy
+        prev_group_tail = dummy
         group_size = 1
         
-        while prev_group_end.next:
-            # Count actual nodes in current group
-            group_start = prev_group_end.next
-            count = 0
-            current = group_start
-            
-            # Count up to group_size nodes or until end
-            while current and count < group_size:
+        while prev_group_tail.next:
+            # Count the actual number of nodes in this group
+            actual_count = 0
+            current = prev_group_tail.next
+            while actual_count < group_size and current:
+                actual_count += 1
                 current = current.next
-                count += 1
             
-            # If count is even, reverse this group
-            if count % 2 == 0:
-                # Reverse the group
-                prev = current  # This is the node after the group
-                curr = group_start
-                for _ in range(count):
+            if actual_count % 2 == 0:  # Even length group, need to reverse
+                # Reverse 'actual_count' nodes starting from prev_group_tail.next
+                curr = prev_group_tail.next
+                first_node = curr  # Will become the tail after reversal
+                prev_node = None
+                
+                for _ in range(actual_count):
                     next_node = curr.next
-                    curr.next = prev
-                    prev = curr
+                    curr.next = prev_node
+                    prev_node = curr
                     curr = next_node
                 
-                # Connect the reversed group
-                prev_group_end.next = prev
-                prev_group_end = group_start
-            else:
-                # Move prev_group_end to the end of this group
-                for _ in range(count):
-                    prev_group_end = prev_group_end.next
+                # Reconnect: prev_node is now the new head, curr is the next group's head
+                prev_group_tail.next = prev_node
+                first_node.next = curr
+                prev_group_tail = first_node
+            else:  # Odd length group, no reversal needed
+                for _ in range(actual_count):
+                    prev_group_tail = prev_group_tail.next
             
             group_size += 1
         
