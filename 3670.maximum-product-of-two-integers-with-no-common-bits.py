@@ -3,46 +3,22 @@
 #
 # [3670] Maximum Product of Two Integers With No Common Bits
 #
-
 # @lc code=start
-from typing import List
-from array import array
-
 class Solution:
     def maxProduct(self, nums: List[int]) -> int:
-        mx = max(nums)
-        B = mx.bit_length()
-        size = 1 << B
-        full = size - 1
-
-        # f[mask] = maximum value in nums with exact bitmask == mask
-        f = array('I', [0]) * size
-        for v in nums:
-            if v > f[v]:
-                f[v] = v
-
-        # g[mask] = max f[sub] for all sub ⊆ mask (SOS DP for max)
-        g = array('I', f)
-        for bit in range(B):
-            step = 1 << bit
-            block = step << 1
-            for start in range(0, size, block):
-                # masks in [start+step, start+2*step) have the bit set
-                end = start + block
-                if end > size:
-                    end = size
-                base = start + step
-                for mask in range(base, end):
-                    cand = g[mask - step]
-                    if cand > g[mask]:
-                        g[mask] = cand
-
-        ans = 0
-        for mask, val in enumerate(f):
-            if val:
-                partner = g[full ^ mask]
-                prod = mask * partner
-                if prod > ans:
-                    ans = prod
-        return ans
+        nums.sort(reverse=True)
+        max_prod = 0
+        n = len(nums)
+        
+        for i in range(n - 1):
+            # Early termination: if best possible product from this point <= max_prod
+            if nums[i] * nums[i + 1] <= max_prod:
+                break
+            
+            for j in range(i + 1, n):
+                if nums[i] & nums[j] == 0:
+                    max_prod = max(max_prod, nums[i] * nums[j])
+                    break  # Found the best match for nums[i] since array is sorted
+        
+        return max_prod
 # @lc code=end
