@@ -5,31 +5,51 @@
 #
 
 # @lc code=start
+from bisect import bisect_right, bisect_left
+
 class Solution:
     def maximumCoins(self, coins: List[List[int]], k: int) -> int:
         coins.sort()
+        n = len(coins)
         
-        max_coins = 0
-        starts = set()
+        # Prefix sum of total coins in segments
+        prefix = [0] * (n + 1)
+        for i in range(n):
+            l, r, c = coins[i]
+            prefix[i + 1] = prefix[i] + (r - l + 1) * c
         
-        # Collect critical starting positions
-        for l, r, c in coins:
-            starts.add(l)  # Window starts at segment boundary
-            starts.add(max(1, r - k + 1))  # Window ends at segment boundary
+        result = 0
         
-        # For each starting position, calculate total coins
-        for start in starts:
-            end = start + k - 1
-            total = 0
+        lefts = [coins[i][0] for i in range(n)]
+        rights = [coins[i][1] for i in range(n)]
+        
+        # Try window starting at each segment's left boundary
+        for i in range(n):
+            window_end = coins[i][0] + k - 1
+            j = bisect_right(lefts, window_end) - 1
             
-            # Calculate coins by checking overlap with each segment
-            for l, r, c in coins:
-                overlap_start = max(start, l)
-                overlap_end = min(end, r)
-                if overlap_start <= overlap_end:
-                    total += (overlap_end - overlap_start + 1) * c
-            
-            max_coins = max(max_coins, total)
+            if coins[j][1] <= window_end:
+                # Segment j is fully included
+                total = prefix[j + 1] - prefix[i]
+            else:
+                # Segment j is partially included
+                total = prefix[j] - prefix[i]
+                total += (window_end - coins[j][0] + 1) * coins[j][2]
+            result = max(result, total)
         
-        return max_coins
+        # Try window ending at each segment's right boundary
+        for i in range(n):
+            window_start = coins[i][1] - k + 1
+            j = bisect_left(rights, window_start)
+            
+            if coins[j][0] >= window_start:
+                # Segment j is fully included
+                total = prefix[i + 1] - prefix[j]
+            else:
+                # Segment j is partially included
+                total = prefix[i + 1] - prefix[j + 1]
+                total += (coins[j][1] - window_start + 1) * coins[j][2]
+            result = max(result, total)
+        
+        return result
 # @lc code=end
