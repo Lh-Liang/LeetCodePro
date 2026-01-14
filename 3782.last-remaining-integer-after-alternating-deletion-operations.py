@@ -3,27 +3,22 @@
 #
 # [3782] Last Remaining Integer After Alternating Deletion Operations
 #
-
 # @lc code=start
 class Solution:
     def lastInteger(self, n: int) -> int:
-        a = 1          # first element of current arithmetic progression
-        step = 1       # difference between consecutive elements
-        m = n          # how many elements remain
-        left = True    # True => operation 1 (from left), False => operation 2 (from right)
-
-        while m > 1:
-            if left:
-                # Operation 1: keep first, remove every 2nd from left
-                m = (m + 1) // 2
-                step *= 2
-            else:
-                # Operation 2: keep last, remove every 2nd from right
-                if m % 2 == 0:
-                    a += step
-                m = (m + 1) // 2
-                step *= 2
-            left = not left
-
-        return a
+        head = 1
+        step = 1
+        remaining = n
+        left_to_right = True
+        
+        while remaining > 1:
+            # When going right to left with even count, head moves forward
+            if not left_to_right and remaining % 2 == 0:
+                head += step
+            
+            step *= 2
+            remaining = (remaining + 1) // 2
+            left_to_right = not left_to_right
+        
+        return head
 # @lc code=end
