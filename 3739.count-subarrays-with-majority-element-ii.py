@@ -3,48 +3,52 @@
 #
 # [3739] Count Subarrays With Majority Element II
 #
-
 # @lc code=start
-from typing import List
-
-class Fenwick:
-    def __init__(self, n: int):
+class FenwickTree:
+    def __init__(self, n):
         self.n = n
-        self.bit = [0] * (n + 1)
-
-    def add(self, i: int, delta: int) -> None:
+        self.tree = [0] * (n + 1)
+    
+    def update(self, i, delta=1):
+        i += 1  # 1-indexed
         while i <= self.n:
-            self.bit[i] += delta
-            i += i & -i
-
-    def sum(self, i: int) -> int:
+            self.tree[i] += delta
+            i += i & (-i)
+    
+    def query(self, i):
+        i += 1  # 1-indexed
         res = 0
         while i > 0:
-            res += self.bit[i]
-            i -= i & -i
+            res += self.tree[i]
+            i -= i & (-i)
         return res
 
 class Solution:
     def countMajoritySubarrays(self, nums: List[int], target: int) -> int:
+        # Transform array: +1 for target, -1 for others
+        transformed = [1 if x == target else -1 for x in nums]
+        
+        # Compute prefix sums
         n = len(nums)
-
-        # Build prefix sums of mapped array: +1 if == target else -1
-        pref = [0] * (n + 1)
-        for i, x in enumerate(nums, 1):
-            pref[i] = pref[i - 1] + (1 if x == target else -1)
-
-        # Coordinate compression of prefix sums
-        vals = sorted(set(pref))
-        rank = {v: i + 1 for i, v in enumerate(vals)}  # 1-indexed for Fenwick
-
-        bit = Fenwick(len(vals))
-        ans = 0
-
-        for s in pref:
-            r = rank[s]
-            # count of previous prefix sums strictly smaller than s
-            ans += bit.sum(r - 1)
-            bit.add(r, 1)
-
-        return ans
+        prefix = [0]
+        for val in transformed:
+            prefix.append(prefix[-1] + val)
+        
+        # Coordinate compression
+        sorted_vals = sorted(set(prefix))
+        val_to_idx = {v: i for i, v in enumerate(sorted_vals)}
+        
+        # Count subarrays with sum > 0
+        count = 0
+        fenwick = FenwickTree(len(sorted_vals))
+        
+        for p in prefix:
+            idx = val_to_idx[p]
+            # Count how many elements are < p (i.e., indices < idx)
+            if idx > 0:
+                count += fenwick.query(idx - 1)
+            # Add current prefix to the tree
+            fenwick.update(idx)
+        
+        return count
 # @lc code=end
