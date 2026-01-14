@@ -7,64 +7,45 @@
 # @lc code=start
 class Solution:
     def maximumWeight(self, intervals: List[List[int]]) -> List[int]:
+        import bisect
+        
         n = len(intervals)
-        # Create list of (start, end, weight, original_index)
-        indexed_intervals = [(intervals[i][0], intervals[i][1], intervals[i][2], i) for i in range(n)]
         
-        # Sort by end time for efficient processing
-        indexed_intervals.sort(key=lambda x: x[1])
+        # indexed[i] = (end, start, weight, original_index)
+        indexed = sorted([(intervals[i][1], intervals[i][0], intervals[i][2], i) for i in range(n)])
         
-        # dp[i][k] = (max_weight, indices_list) 
-        # considering first i intervals (in sorted order), selecting exactly k
-        dp = [[None for _ in range(5)] for _ in range(n + 1)]
-        dp[0][0] = (0, [])
+        ends = [x[0] for x in indexed]
         
-        for i in range(n):
-            start, end, weight, orig_idx = indexed_intervals[i]
+        INF = float('inf')
+        
+        # dp[i][k] = (neg_weight, sorted_indices_tuple)
+        # Using negative weight so min() picks higher weights
+        # For equal weights, smaller indices tuple is preferred
+        dp = [[(0, ())] + [(INF, ())] * 4 for _ in range(n + 1)]
+        
+        for i in range(1, n + 1):
+            end_i, start_i, weight_i, orig_idx_i = indexed[i - 1]
+            # Find largest j such that ends[j] < start_i
+            prev_j = bisect.bisect_left(ends, start_i) - 1
             
-            # Option 1: Don't take current interval
             for k in range(5):
-                if dp[i][k] is not None:
-                    curr_weight, curr_indices = dp[i][k]
-                    if dp[i+1][k] is None or dp[i+1][k][0] < curr_weight:
-                        dp[i+1][k] = (curr_weight, curr_indices[:])
-                    elif dp[i+1][k][0] == curr_weight and curr_indices < dp[i+1][k][1]:
-                        dp[i+1][k] = (curr_weight, curr_indices[:])
-            
-            # Option 2: Take current interval (if we haven't selected 4 yet)
-            for k in range(4):
-                if dp[i][k] is not None:
-                    curr_weight, curr_indices = dp[i][k]
-                    
-                    # Check if current interval doesn't overlap with already selected ones
-                    can_take = True
-                    for prev_orig_idx in curr_indices:
-                        prev_start, prev_end, prev_weight = intervals[prev_orig_idx]
-                        # Two intervals are non-overlapping if one ends before the other starts
-                        if not (prev_end < start or end < prev_start):
-                            can_take = False
-                            break
-                    
-                    if can_take:
-                        new_weight = curr_weight + weight
-                        new_indices = sorted(curr_indices + [orig_idx])
-                        
-                        if dp[i+1][k+1] is None or dp[i+1][k+1][0] < new_weight:
-                            dp[i+1][k+1] = (new_weight, new_indices)
-                        elif dp[i+1][k+1][0] == new_weight and new_indices < dp[i+1][k+1][1]:
-                            dp[i+1][k+1] = (new_weight, new_indices)
+                # Option 1: Don't include interval i-1
+                opt1 = dp[i - 1][k]
+                
+                # Option 2: Include interval i-1
+                if k > 0 and dp[prev_j + 1][k - 1][0] != INF:
+                    prev_neg_w, prev_idx = dp[prev_j + 1][k - 1]
+                    new_neg_w = prev_neg_w - weight_i
+                    new_idx = tuple(sorted(prev_idx + (orig_idx_i,)))
+                    opt2 = (new_neg_w, new_idx)
+                else:
+                    opt2 = (INF, ())
+                
+                dp[i][k] = min(opt1, opt2)
         
-        # Find the result: maximum weight with lexicographically smallest indices
-        max_weight = 0
-        result = []
-        for k in range(5):
-            if dp[n][k] is not None:
-                weight, indices = dp[n][k]
-                if weight > max_weight:
-                    max_weight = weight
-                    result = indices
-                elif weight == max_weight and indices < result:
-                    result = indices
+        best = (INF, ())
+        for k in range(1, 5):
+            best = min(best, dp[n][k])
         
-        return result
+        return list(best[1])
 # @lc code=end
