@@ -3,37 +3,52 @@
 #
 # [2296] Design a Text Editor
 #
+
 # @lc code=start
 class TextEditor:
 
     def __init__(self):
-        self.left = []  # Characters to the left of cursor
-        self.right = []  # Characters to the right of cursor (reversed)
+        # Left holds characters to the left of cursor
+        # Right holds characters to the right of cursor
+        # Both are lists used as stacks
+        self.left = []
+        self.right = []
 
     def addText(self, text: str) -> None:
-        for c in text:
-            self.left.append(c)
+        # Add each character to the end of left
+        for ch in text:
+            self.left.append(ch)
 
     def deleteText(self, k: int) -> int:
-        deleted = 0
-        while self.left and k > 0:
+        # Delete up to k characters from the end of left
+        cnt = min(k, len(self.left))
+        for _ in range(cnt):
             self.left.pop()
-            k -= 1
-            deleted += 1
-        return deleted
+        return cnt
+
+    def _last_chars(self) -> str:
+        # Return up to last ten characters currently in left
+        n = len(self.left)
+        start = max(0, n - 10)
+        return ''.join(self.left[start:])
 
     def cursorLeft(self, k: int) -> str:
-        while self.left and k > 0:
-            self.right.append(self.left.pop())
-            k -= 1
-        return ''.join(self.left[-10:])
+        # Move k steps to the left
+        steps = min(k, len(self.left))
+        for _ in range(steps):
+            ch = self.left.pop()
+            self.right.append(ch)
+        # Return last up to ten characters
+        return self._last_chars()
 
     def cursorRight(self, k: int) -> str:
-        while self.right and k > 0:
-            self.left.append(self.right.pop())
-            k -= 1
-        return ''.join(self.left[-10:])
-
+        # Move k steps to the right
+        steps = min(k, len(self.right))
+        for _ in range(steps):
+            ch = self.right.pop()
+            self.left.append(ch)
+        # Return last up to ten characters
+        return self._last_chars()
 
 # Your TextEditor object will be instantiated and called as such:
 # obj = TextEditor()
