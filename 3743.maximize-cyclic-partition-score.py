@@ -5,34 +5,43 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def maximumScore(self, nums: List[int], k: int) -> int:
         n = len(nums)
+        if n == 1:
+            return 0
         
-        def max_score_linear(arr, k):
-            m = len(arr)
-            dp = [[float('-inf')] * (k + 1) for _ in range(m + 1)]
-            dp[0][0] = 0
+        doubled = nums + nums
+        effective_k = min(k, n)
+        ans = 0
+        
+        for s in range(n):
+            arr = doubled[s:s+n]
             
-            for i in range(1, m + 1):
-                for j in range(1, min(i, k) + 1):
-                    for l in range(j - 1, i):
-                        if dp[l][j-1] != float('-inf'):
-                            subarr = arr[l:i]
-                            range_val = max(subarr) - min(subarr)
-                            dp[i][j] = max(dp[i][j], dp[l][j-1] + range_val)
+            # Precompute ranges for all subarrays
+            ranges = [[0] * (n + 1) for _ in range(n)]
+            for i in range(n):
+                mx = mn = arr[i]
+                for j in range(i, n):
+                    mx = max(mx, arr[j])
+                    mn = min(mn, arr[j])
+                    ranges[i][j + 1] = mx - mn
             
-            result = 0
-            for j in range(1, k + 1):
-                if dp[m][j] != float('-inf'):
-                    result = max(result, dp[m][j])
-            return result
+            # DP: dp[i] = max score for first i elements
+            dp = [float('-inf')] * (n + 1)
+            dp[0] = 0
+            
+            for _ in range(effective_k):
+                ndp = [float('-inf')] * (n + 1)
+                for i in range(1, n + 1):
+                    for p in range(i):
+                        if dp[p] > float('-inf'):
+                            ndp[i] = max(ndp[i], dp[p] + ranges[p][i])
+                dp = ndp
+                if dp[n] > float('-inf'):
+                    ans = max(ans, dp[n])
         
-        max_score = 0
-        for start in range(n):
-            arr = nums[start:] + nums[:start]
-            score = max_score_linear(arr, k)
-            max_score = max(max_score, score)
-        
-        return max_score
+        return ans
 # @lc code=end
