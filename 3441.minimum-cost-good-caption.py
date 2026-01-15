@@ -4,110 +4,90 @@
 # [3441] Minimum Cost Good Caption
 #
 
+from typing import List
+
 # @lc code=start
 class Solution:
     def minCostGoodCaption(self, caption: str) -> str:
         n = len(caption)
+        # Impossible because shortest good caption needs at least 3 characters.
         if n < 3:
             return ""
         
-        # Precompute prefix counts
-        caption_indices = [ord(ch) - ord('a') for ch in caption]
-        prefix_cnt = [[0] * (n + 1) for _ in range(26)]
-        for i, c_idx in enumerate(caption_indices):
+        # Convert characters to numbers 0..25
+        x = [ord(ch) - ord('a') for ch in caption]
+        
+        # Prefix sums of x
+        pref_sum = [0] * (n + 1)
+        for i in range(n):
+            pref_sum[i + 1] = pref_sum[i] + x[i]
+        
+        # Gc[t]: count positions < t where x[pos] <= c
+        # Hc[t]: sum   positions < t where x[pos] <= c
+        Gc = [[0] * (n + 1) for _ in range(26)]
+        Hc = [[0] * (n + 1) for _ in range(26)]
+        
+        for i in range(n):
+            xi = x[i]
             for c in range(26):
-                prefix_cnt[c][i + 1] = prefix_cnt[c][i]
-            prefix_cnt[c_idx][i + 1] += 1
+                inc_g = int(xi <= c)
+                inc_h = xi if xi <= c else 0
+                Gc[c][i + 1] = Gc[c][i] + inc_g
+                Hc[c][i + 1] = Hc[c][i] + inc_h
         
-        def cost(start, end, c):
-            total = 0
-            for c_prime in range(26):
-                cnt = prefix_cnt[c_prime][end + 1] - prefix_cnt[c_prime][start]
-                total += abs(c - c_prime) * cnt
-            return total
+        # U(c,k) as defined
+        U = [[0] * (n + 1) for _ in range(26)]
+        for c in range(26):
+            for k in range(n + 1):
+                U[c][k] = c * (2 * Gc[c][k] - k) + pref_sum[k] - 2 * Hc[c][k]
         
-        INF = float('inf')
-        
+        INF = 10**18
         dp = [INF] * (n + 1)
-        dp[n] = 0
+        dp[0] = 0
+        best_prev = [-1] * (n + 1)
+        best_char = [-1] * (n + 1)
         
-        choice = [None] * (n + 1)
-        run_length = [0] * (n + 1)
+        # For each character maintain the minimum value of dp[j] - U(c,j)
+        min_vals = [(INF, -1)] * 26   # (value, argmin_index)
         
-        def eff_c_length(L, c, i):
-            next_pos = i + L
-            if next_pos >= n or choice[next_pos] is None or choice[next_pos][1] != c:
-                return L
-            return L + run_length[next_pos]
+        # Initialize with j = 0
+        for c in range(26):
+            val = dp[0] - U[c][0]
+            min_vals[c] = (val, 0)
         
-        def compare_choices_fast(L1, L2, c, i):
-            eff1 = eff_c_length(L1, c, i)
-            eff2 = eff_c_length(L2, c, i)
-            
-            if eff1 == eff2:
-                return 0
-            
-            if eff1 < eff2:
-                after1 = i + eff1
-                if after1 >= n or choice[after1] is None:
-                    return -1
-                next_char = choice[after1][1]
-                return -1 if next_char < c else 1
-            else:
-                after2 = i + eff2
-                if after2 >= n or choice[after2] is None:
-                    return 1
-                next_char = choice[after2][1]
-                return 1 if next_char < c else -1
-        
-        for i in range(n - 1, -1, -1):
-            best_cost = INF
-            candidates = {}
-            
-            for L in [3, 4, 5]:
-                if i + L > n or dp[i + L] == INF:
-                    continue
+        # Main DP loop
+        for i in range(1, n + 1):
+            # Consider transitions ending at i (prefix length i)
+            # Segment must have length at least 3 -> start index j <= i - 3
+            if i >= 3:
                 for c in range(26):
-                    curr_cost = cost(i, i + L - 1, c) + dp[i + L]
-                    if curr_cost < best_cost:
-                        best_cost = curr_cost
-                        candidates = {c: [L]}
-                    elif curr_cost == best_cost:
-                        if c in candidates:
-                            candidates[c].append(L)
-                        else:
-                            candidates[c] = [L]
+                    val_min, argmin_j = min_vals[c]
+                    cand_cost = U[c][i] + val_min
+                    if cand_cost < dp[i]:
+                        dp[i] = cand_cost
+                        best_prev[i] = argmin_j
+                        best_char[i] = c
             
-            dp[i] = best_cost
-            
-            if not candidates:
-                continue
-            
-            best_c = min(candidates.keys())
-            best_lengths = candidates[best_c]
-            
-            best_L = best_lengths[0]
-            for L in best_lengths[1:]:
-                if compare_choices_fast(best_L, L, best_c, i) > 0:
-                    best_L = L
-            
-            choice[i] = (best_L, best_c)
-            
-            next_pos = i + best_L
-            if next_pos < n and choice[next_pos] is not None and choice[next_pos][1] == best_c:
-                run_length[i] = best_L + run_length[next_pos]
-            else:
-                run_length[i] = best_L
+            # Update min_vals using current state i
+            if dp[i] != INF:
+                for c in range(26):
+                    val_update = dp[i] - U[c][i]
+                    if val_update < min_vals[c][0]:
+                        min_vals[c] = (val_update, i)
         
-        if dp[0] == INF:
+        # Impossible
+        if dp[n] == INF:
             return ""
         
-        result = []
-        i = 0
-        while i < n:
-            L, c = choice[i]
-            result.append(chr(ord('a') + c) * L)
-            i += L
-        
-        return ''.join(result)
+        # Reconstruct answer
+        parts = []
+        idx = n
+        while idx > 0:
+            prev_idx = best_prev[idx]
+            ch_num = best_char[idx]
+            seg_len = idx - prev_idx
+            parts.append(chr(ch_num + ord('a')) * seg_len)
+            idx = prev_idx
+        parts.reverse()
+        return "".join(parts)
 # @lc code=end
