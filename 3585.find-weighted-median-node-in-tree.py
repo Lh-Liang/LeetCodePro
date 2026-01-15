@@ -3,57 +3,91 @@
 #
 # [3585] Find Weighted Median Node in Tree
 #
-
 # @lc code=start
 class Solution:
     def findMedian(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        from collections import defaultdict
+        from collections import defaultdict, deque
         
-        # Build adjacency list
-        graph = defaultdict(list)
+        adj = defaultdict(list)
         for u, v, w in edges:
-            graph[u].append((v, w))
-            graph[v].append((u, w))
+            adj[u].append((v, w))
+            adj[v].append((u, w))
         
-        def find_path(start, end):
-            # DFS to find path from start to end
-            def dfs(node, parent):
-                if node == end:
-                    return [node]
-                
-                for neighbor, weight in graph[node]:
-                    if neighbor != parent:
-                        path = dfs(neighbor, node)
-                        if path:
-                            return [node] + path
-                
-                return None
-            
-            return dfs(start, -1) or []
+        LOG = 18
+        parent = [[-1] * n for _ in range(LOG)]
+        dist_to_root = [0] * n
+        depth = [0] * n
+        dist_up = [[0] * n for _ in range(LOG)]
         
-        answer = []
+        visited = [False] * n
+        queue = deque([0])
+        visited[0] = True
+        while queue:
+            node = queue.popleft()
+            for neighbor, weight in adj[node]:
+                if not visited[neighbor]:
+                    visited[neighbor] = True
+                    parent[0][neighbor] = node
+                    depth[neighbor] = depth[node] + 1
+                    dist_to_root[neighbor] = dist_to_root[node] + weight
+                    dist_up[0][neighbor] = weight
+                    queue.append(neighbor)
+        
+        for k in range(1, LOG):
+            for v in range(n):
+                if parent[k-1][v] != -1:
+                    mid = parent[k-1][v]
+                    parent[k][v] = parent[k-1][mid]
+                    dist_up[k][v] = dist_up[k-1][v] + dist_up[k-1][mid]
+        
+        def lca(u, v):
+            if depth[u] < depth[v]:
+                u, v = v, u
+            diff = depth[u] - depth[v]
+            for k in range(LOG):
+                if (diff >> k) & 1:
+                    u = parent[k][u]
+            if u == v:
+                return u
+            for k in range(LOG - 1, -1, -1):
+                if parent[k][u] != -1 and parent[k][u] != parent[k][v]:
+                    u = parent[k][u]
+                    v = parent[k][v]
+            return parent[0][u]
+        
+        results = []
         for u, v in queries:
-            path_nodes = find_path(u, v)
+            if u == v:
+                results.append(u)
+                continue
             
-            # Calculate cumulative weights for each node
-            cumulative_weights = [0]
-            for i in range(1, len(path_nodes)):
-                prev_node = path_nodes[i - 1]
-                curr_node = path_nodes[i]
-                # Find edge weight between prev_node and curr_node
-                for neighbor, weight in graph[prev_node]:
-                    if neighbor == curr_node:
-                        cumulative_weights.append(cumulative_weights[-1] + weight)
-                        break
+            l = lca(u, v)
+            total_weight = dist_to_root[u] + dist_to_root[v] - 2 * dist_to_root[l]
+            cumulative_at_lca = dist_to_root[u] - dist_to_root[l]
             
-            # Find the first node where cumulative weight >= half of total
-            total_weight = cumulative_weights[-1]
-            half_weight = total_weight / 2
-            
-            for i, node in enumerate(path_nodes):
-                if cumulative_weights[i] >= half_weight:
-                    answer.append(node)
-                    break
+            if 2 * cumulative_at_lca >= total_weight:
+                curr = u
+                cumulative = 0
+                for k in range(LOG - 1, -1, -1):
+                    anc = parent[k][curr]
+                    if anc != -1 and depth[anc] >= depth[l]:
+                        new_cumulative = cumulative + dist_up[k][curr]
+                        if 2 * new_cumulative < total_weight:
+                            curr = anc
+                            cumulative = new_cumulative
+                results.append(parent[0][curr])
+            else:
+                curr = v
+                dist_from_v = 0
+                for k in range(LOG - 1, -1, -1):
+                    anc = parent[k][curr]
+                    if anc != -1 and depth[anc] > depth[l]:
+                        new_dist = dist_from_v + dist_up[k][curr]
+                        cumulative_at_anc = cumulative_at_lca + (dist_to_root[v] - dist_to_root[l]) - new_dist
+                        if 2 * cumulative_at_anc >= total_weight:
+                            curr = anc
+                            dist_from_v = new_dist
+                results.append(curr)
         
-        return answer
+        return results
 # @lc code=end
