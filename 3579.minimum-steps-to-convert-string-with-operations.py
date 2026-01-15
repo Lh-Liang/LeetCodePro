@@ -7,71 +7,53 @@
 # @lc code=start
 class Solution:
     def minOperations(self, word1: str, word2: str) -> int:
+        from collections import defaultdict
+        
         n = len(word1)
         
-        def calculate_ops(s1, s2):
-            # Calculate minimum operations to transform s1 to s2
-            # using only swaps and replacements (no reverse)
-            length = len(s1)
-            mismatches = []
-            for i in range(length):
-                if s1[i] != s2[i]:
-                    mismatches.append(i)
+        def compute_cost(t, s):
+            mismatch_counts = defaultdict(int)
+            mismatches = 0
             
-            if not mismatches:
-                return 0
+            for i in range(len(t)):
+                if t[i] != s[i]:
+                    mismatches += 1
+                    mismatch_counts[(t[i], s[i])] += 1
             
-            ops = 0
-            used = [False] * len(mismatches)
+            # Count max matching - pairs that can be swapped
+            max_matching = 0
+            for a in range(26):
+                for b in range(a + 1, 26):
+                    ac = chr(ord('a') + a)
+                    bc = chr(ord('a') + b)
+                    cnt1 = mismatch_counts[(ac, bc)]
+                    cnt2 = mismatch_counts[(bc, ac)]
+                    max_matching += min(cnt1, cnt2)
             
-            # Greedily find swaps to fix pairs of mismatches
-            for i in range(len(mismatches)):
-                if used[i]:
-                    continue
-                pos_i = mismatches[i]
-                for j in range(i + 1, len(mismatches)):
-                    if used[j]:
-                        continue
-                    pos_j = mismatches[j]
-                    # Check if swapping pos_i and pos_j fixes both
-                    if s1[pos_i] == s2[pos_j] and s1[pos_j] == s2[pos_i]:
-                        ops += 1
-                        used[i] = True
-                        used[j] = True
-                        break
-            
-            # Remaining mismatches need replacements
-            for i in range(len(mismatches)):
-                if not used[i]:
-                    ops += 1
-            
-            return ops
+            return mismatches - max_matching
         
-        def calculate_cost(i, j):
-            # Cost to transform word1[i:j] to word2[i:j]
-            s1 = word1[i:j]
-            s2 = word2[i:j]
-            
-            # Option 1: without reverse
-            cost1 = calculate_ops(s1, s2)
-            
-            # Option 2: with reverse (only if length > 1)
-            if len(s1) > 1:
-                cost2 = 1 + calculate_ops(s1[::-1], s2)
-                return min(cost1, cost2)
-            else:
-                return cost1
+        # Precompute segment costs
+        cost = [[0] * n for _ in range(n)]
+        for l in range(n):
+            for r in range(l, n):
+                t1 = word1[l:r+1]
+                s = word2[l:r+1]
+                
+                # Without reversal
+                cost1 = compute_cost(t1, s)
+                
+                # With reversal
+                cost2 = 1 + compute_cost(t1[::-1], s)
+                
+                cost[l][r] = min(cost1, cost2)
         
-        # Dynamic Programming
-        # dp[i] = minimum operations to transform word1[0:i] to word2[0:i]
+        # DP
         dp = [float('inf')] * (n + 1)
         dp[0] = 0
         
         for i in range(1, n + 1):
-            # Try all possible last substrings ending at position i
             for j in range(i):
-                cost = calculate_cost(j, i)
-                dp[i] = min(dp[i], dp[j] + cost)
+                dp[i] = min(dp[i], dp[j] + cost[j][i - 1])
         
         return dp[n]
 # @lc code=end
