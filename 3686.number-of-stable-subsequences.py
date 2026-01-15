@@ -3,36 +3,22 @@
 #
 # [3686] Number of Stable Subsequences
 #
+
 # @lc code=start
 class Solution:
     def countStableSubsequences(self, nums: List[int]) -> int:
         MOD = 10**9 + 7
-        
-        # States: [EMPTY, E1, E2, O1, O2]
-        # EMPTY: empty subsequence
-        # E1: ends with 1 even number
-        # E2: ends with 2 consecutive even numbers
-        # O1: ends with 1 odd number
-        # O2: ends with 2 consecutive odd numbers
-        dp = [1, 0, 0, 0, 0]
+        e1 = e2 = o1 = o2 = 0
         
         for num in nums:
-            new_dp = dp[:]  # All subsequences that skip current element
-            parity = num % 2
-            
-            if parity == 0:  # even number
-                # Can transition from EMPTY, O1, O2 to E1
-                new_dp[1] = (new_dp[1] + dp[0] + dp[3] + dp[4]) % MOD
-                # Can transition from E1 to E2
-                new_dp[2] = (new_dp[2] + dp[1]) % MOD
-            else:  # odd number
-                # Can transition from EMPTY, E1, E2 to O1
-                new_dp[3] = (new_dp[3] + dp[0] + dp[1] + dp[2]) % MOD
-                # Can transition from O1 to O2
-                new_dp[4] = (new_dp[4] + dp[3]) % MOD
-            
-            dp = new_dp
+            if num % 2 == 0:  # even
+                new_e1 = (e1 + 1 + o1 + o2) % MOD
+                new_e2 = (e2 + e1) % MOD
+                e1, e2 = new_e1, new_e2
+            else:  # odd
+                new_o1 = (o1 + 1 + e1 + e2) % MOD
+                new_o2 = (o2 + o1) % MOD
+                o1, o2 = new_o1, new_o2
         
-        # Sum all non-empty stable subsequences
-        return sum(dp[1:]) % MOD
+        return (e1 + e2 + o1 + o2) % MOD
 # @lc code=end
