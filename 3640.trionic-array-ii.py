@@ -3,53 +3,36 @@
 #
 # [3640] Trionic Array II
 #
+
 # @lc code=start
 class Solution:
     def maxSumTrionic(self, nums: List[int]) -> int:
         n = len(nums)
         
-        inc1_sum = [0] * n
-        inc1_len = [0] * n
-        dec_sum = [float('-inf')] * n
-        dec_len = [0] * n
-        inc2_sum = [float('-inf')] * n
+        inc1 = float('-inf')  # max sum of strictly increasing subarray (>= 2 elements)
+        dec = float('-inf')   # max sum of inc-dec pattern
+        inc2 = float('-inf')  # max sum of trionic pattern (inc-dec-inc)
         
-        inc1_sum[0] = nums[0]
-        inc1_len[0] = 1
+        result = float('-inf')
         
         for i in range(1, n):
-            # Update inc1: strictly increasing phase
-            if nums[i] > nums[i-1]:
-                inc1_sum[i] = inc1_sum[i-1] + nums[i]
-                inc1_len[i] = inc1_len[i-1] + 1
-            else:
-                inc1_sum[i] = nums[i]
-                inc1_len[i] = 1
+            new_inc1 = float('-inf')
+            new_dec = float('-inf')
+            new_inc2 = float('-inf')
             
-            # Update dec: inc + dec phases
-            dec_sum[i] = float('-inf')
-            dec_len[i] = 0
-            if nums[i] < nums[i-1]:
-                # Transition from inc1[i-1] if it has at least 2 elements
-                if inc1_len[i-1] >= 2:
-                    dec_sum[i] = inc1_sum[i-1] + nums[i]
-                    dec_len[i] = 2
-                # Extend from dec[i-1]
-                if dec_sum[i-1] != float('-inf'):
-                    new_sum = dec_sum[i-1] + nums[i]
-                    if new_sum > dec_sum[i]:
-                        dec_sum[i] = new_sum
-                        dec_len[i] = dec_len[i-1] + 1
-            
-            # Update inc2: inc + dec + inc phases
-            inc2_sum[i] = float('-inf')
             if nums[i] > nums[i-1]:
-                # Transition from dec[i-1] if dec phase has at least 2 elements
-                if dec_sum[i-1] != float('-inf') and dec_len[i-1] >= 2:
-                    inc2_sum[i] = dec_sum[i-1] + nums[i]
-                # Extend from inc2[i-1]
-                if inc2_sum[i-1] != float('-inf'):
-                    inc2_sum[i] = max(inc2_sum[i], inc2_sum[i-1] + nums[i])
+                # Continuing or starting first increase
+                new_inc1 = max(nums[i-1] + nums[i], inc1 + nums[i])
+                # Continuing second increase
+                new_inc2 = max(dec + nums[i], inc2 + nums[i])
+            elif nums[i] < nums[i-1]:
+                # Continuing or starting decrease
+                new_dec = max(inc1 + nums[i], dec + nums[i])
+            
+            inc1 = new_inc1
+            dec = new_dec
+            inc2 = new_inc2
+            result = max(result, inc2)
         
-        return max(inc2_sum)
+        return result
 # @lc code=end
