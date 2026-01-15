@@ -2,7 +2,6 @@
 # @lc app=leetcode id=3457 lang=python3
 #
 # [3457] Eat Pizzas!
-#
 
 # @lc code=start
 class Solution:
@@ -10,16 +9,14 @@ class Solution:
         pizzas.sort(reverse=True)
         n = len(pizzas)
         d = n // 4
-        odd = (d + 1) // 2  # number of odd days
-        even = d // 2        # number of even days
+        odd_days = (d + 1) // 2
+        even_days = d // 2
         
-        # Odd day contributions: top 'odd' pizzas (we gain the max Z)
-        result = sum(pizzas[:odd])
+        # Gain from odd days: top odd_days pizzas
+        total = sum(pizzas[:odd_days])
         
-        # Even day contributions: from the remaining pizzas for even days,
-        # we pair them (Z, Y) and gain Y (every other starting from odd+1)
-        # Indices: odd+1, odd+3, ..., odd+2*even-1
-        result += sum(pizzas[odd + 1: odd + 2 * even: 2])
+        # Gain from even days: indices odd_days+1, odd_days+3, ...
+        total += sum(pizzas[odd_days + 1 : odd_days + 2 * even_days : 2])
         
-        return result
+        return total
 # @lc code=end
