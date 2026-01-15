@@ -3,6 +3,7 @@
 #
 # [3765] Complete Prime Number
 #
+
 # @lc code=start
 class Solution:
     def completePrime(self, num: int) -> bool:
@@ -18,18 +19,18 @@ class Solution:
                     return False
             return True
         
-        # Convert to string to get prefixes and suffixes
-        num_str = str(num)
+        s = str(num)
+        n = len(s)
         
         # Check all prefixes
-        for i in range(1, len(num_str) + 1):
-            prefix = int(num_str[:i])
+        for i in range(1, n + 1):
+            prefix = int(s[:i])
             if not is_prime(prefix):
                 return False
         
         # Check all suffixes
-        for i in range(len(num_str)):
-            suffix = int(num_str[i:])
+        for i in range(n):
+            suffix = int(s[i:])
             if not is_prime(suffix):
                 return False
         
