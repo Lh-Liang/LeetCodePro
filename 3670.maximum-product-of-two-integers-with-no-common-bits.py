@@ -3,22 +3,31 @@
 #
 # [3670] Maximum Product of Two Integers With No Common Bits
 #
+
 # @lc code=start
 class Solution:
     def maxProduct(self, nums: List[int]) -> int:
-        nums.sort(reverse=True)
-        max_prod = 0
-        n = len(nums)
+        MAX_BITS = 20
+        SIZE = 1 << MAX_BITS
+        FULL_MASK = SIZE - 1
         
-        for i in range(n - 1):
-            # Early termination: if best possible product from this point <= max_prod
-            if nums[i] * nums[i + 1] <= max_prod:
-                break
-            
-            for j in range(i + 1, n):
-                if nums[i] & nums[j] == 0:
-                    max_prod = max(max_prod, nums[i] * nums[j])
-                    break  # Found the best match for nums[i] since array is sorted
+        # Initialize the DP array with the values present in nums
+        dp = [0] * SIZE
+        for num in nums:
+            dp[num] = num
         
-        return max_prod
+        # SOS DP to compute max value among all submasks for each mask
+        for bit in range(MAX_BITS):
+            for mask in range(SIZE):
+                if mask & (1 << bit):
+                    dp[mask] = max(dp[mask], dp[mask ^ (1 << bit)])
+        
+        # Find the answer
+        result = 0
+        for num in nums:
+            complement = FULL_MASK ^ num
+            max_partner = dp[complement]
+            result = max(result, num * max_partner)
+        
+        return result
 # @lc code=end
