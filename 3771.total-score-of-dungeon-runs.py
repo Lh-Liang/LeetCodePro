@@ -5,28 +5,50 @@
 #
 
 # @lc code=start
-from bisect import bisect_left
-
 class Solution:
     def totalScore(self, hp: int, damage: List[int], requirement: List[int]) -> int:
+        import bisect
+        
         n = len(damage)
         
-        # Build prefix sum array
-        prefix = [0]
-        for d in damage:
-            prefix.append(prefix[-1] + d)
+        # Compute prefix sums
+        prefix = [0] * (n + 1)
+        for i in range(n):
+            prefix[i + 1] = prefix[i] + damage[i]
+        
+        # V[j] = hp + prefix[j] (value for starting position j)
+        # T[i] = requirement[i] + prefix[i + 1] (threshold for room i)
+        V = [hp + prefix[j] for j in range(n)]
+        T = [requirement[i] + prefix[i + 1] for i in range(n)]
+        
+        # Coordinate compression
+        all_values = sorted(set(V + T))
+        val_to_idx = {v: i + 1 for i, v in enumerate(all_values)}
+        
+        # Fenwick tree
+        m = len(all_values)
+        tree = [0] * (m + 1)
+        
+        def update(idx):
+            while idx <= m:
+                tree[idx] += 1
+                idx += idx & (-idx)
+        
+        def query(idx):
+            result = 0
+            while idx > 0:
+                result += tree[idx]
+                idx -= idx & (-idx)
+            return result
         
         total = 0
-        
-        # For each room i
-        for i in range(n):
-            # Calculate threshold: minimum prefix[j] needed to get a point at room i
-            threshold = prefix[i+1] - hp + requirement[i]
-            
-            # Use binary search to find count of elements >= threshold in prefix[0..i]
-            idx = bisect_left(prefix, threshold, 0, i+1)
-            count = (i + 1) - idx
-            total += count
+        for j in range(n - 1, -1, -1):
+            # Insert T[j] first
+            update(val_to_idx[T[j]])
+            # Count T[i] values (for i >= j) that are <= V[j]
+            pos = bisect.bisect_right(all_values, V[j])
+            if pos > 0:
+                total += query(pos)
         
         return total
 # @lc code=end
