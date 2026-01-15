@@ -7,60 +7,90 @@
 # @lc code=start
 class Solution:
     def maxDifference(self, s: str, k: int) -> int:
+        import math
+
+        class SegTree:
+            def __init__(self, n):
+                self.N = 1
+                while self.N < n:
+                    self.N <<= 1
+                self.tree = [math.inf] * (self.N * 2)
+
+            def update(self, pos, val):
+                idx = pos + self.N
+                self.tree[idx] = min(self.tree[idx], val)
+                idx >>= 1
+                while idx:
+                    self.tree[idx] = min(self.tree[idx * 2], self.tree[idx * 2 + 1])
+                    idx >>= 1
+
+            def query(self, l, r):
+                l += self.N
+                r += self.N
+                res = math.inf
+                while l <= r:
+                    if l & 1:
+                        res = min(res, self.tree[l])
+                        l += 1
+                    if not r & 1:
+                        res = min(res, self.tree[r])
+                        r -= 1
+                    l >>= 1
+                    r >>= 1
+                return res
+
         n = len(s)
-        ans = float('-inf')
-        
-        for a in '01234':
-            for b in '01234':
+        ans = -math.inf
+
+        # All possible digits are '0'-'4'
+        digits = [chr(ord('0') + d) for d in range(5)]
+
+        for a in digits:
+            for b in digits:
                 if a == b:
                     continue
-                
-                # Precompute prefix sums
-                prefix_a = [0] * (n + 1)
-                prefix_b = [0] * (n + 1)
-                for i in range(n):
-                    prefix_a[i+1] = prefix_a[i] + (1 if s[i] == a else 0)
-                    prefix_b[i+1] = prefix_b[i] + (1 if s[i] == b else 0)
-                
-                INF = float('inf')
-                # min_data[(pa, pb)] = [min1, pb1, min2]
-                # min1: minimum diff, pb1: prefix_b value achieving min1
-                # min2: minimum diff among positions with prefix_b != pb1
-                min_data = {(pa, pb): [INF, -1, INF] for pa in range(2) for pb in range(2)}
-                
-                for r in range(k, n + 1):
-                    # Make position l = r - k eligible
-                    l = r - k
-                    pa_l = prefix_a[l] % 2
-                    pb_l = prefix_b[l] % 2
-                    diff_l = prefix_a[l] - prefix_b[l]
-                    pb_val_l = prefix_b[l]
-                    state = (pa_l, pb_l)
+
+                # Prefix sums for characters a and b
+                A = [0] * (n + 1)
+                B = [0] * (n + 1)
+                cntA = cntB = 0
+                for idx, ch in enumerate(s):
+                    cntA += ch == a
+                    cntB += ch == b
+                    A[idx + 1] = cntA
+                    B[idx + 1] = cntB
+
+                diff_arr = [A[i] - B[i] for i in range(n + 1)]
+
+                # Four segment trees indexed by parity of A[i], B[i]
+                segs = [[SegTree(n + 5) for _ in range(2)] for _ in range(2)]
+
+                # Iterate over ending prefix index
+                for end in range(k, n + 1):
+                    start_idx = end - k          # smallest allowed starting prefix index
                     
-                    # Update min_data[state]
-                    data = min_data[state]
-                    if diff_l < data[0]:
-                        if pb_val_l != data[1]:
-                            data[2] = data[0]
-                        data[0], data[1] = diff_l, pb_val_l
-                    elif pb_val_l != data[1]:
-                        data[2] = min(data[2], diff_l)
-                    
-                    # Query at r
-                    pa_r = prefix_a[r] % 2
-                    pb_r = prefix_b[r] % 2
-                    target_state = (1 - pa_r, pb_r)
-                    target_data = min_data[target_state]
-                    
-                    diff_r = prefix_a[r] - prefix_b[r]
-                    pb_val_r = prefix_b[r]
-                    
-                    if pb_val_r != target_data[1]:
-                        if target_data[0] != INF:
-                            ans = max(ans, diff_r - target_data[0])
-                    else:
-                        if target_data[2] != INF:
-                            ans = max(ans, diff_r - target_data[2])
-        
-        return ans
+                    # Add start_idx into data structures
+                    Ai_start = A[start_idx]
+                    Bi_start = B[start_idx]
+                    parA_start = Ai_start & 1
+                    parB_start = Bi_start & 1
+                    d_start = diff_arr[start_idx]
+                    segs[parA_start][parB_start].update(Bi_start, d_start)
+
+                    Aj_end = A[end]
+                    Bj_end = B[end]
+                    parA_end = Aj_end & 1
+                    parB_end = Bj_end & 1
+
+                    req_parA = parA_end ^ 1      # opposite parity
+                    req_parB = parB_end          # same parity
+
+                    Pmax = Bj_end - 2             # need B[end]-B[start] >= 2
+                    if Pmax >= 0:
+                        mmin = segs[req_parA][req_parB].query(0, Pmax)
+                        if mmin != math.inf:
+                            cand = diff_arr[end] - mmin
+                            ans = max(ans, cand)
+
+        return int(ans)
 # @lc code=end
