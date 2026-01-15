@@ -3,7 +3,6 @@
 #
 # [2816] Double a Number Represented as a Linked List
 #
-
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -12,19 +11,36 @@
 #         self.next = next
 class Solution:
     def doubleIt(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # Create a dummy node to handle potential overflow at the head
-        dummy = ListNode(0, head)
+        # Helper function to reverse linked list
+        def reverse(head):
+            prev = None
+            cur = head
+            while cur:
+                nxt = cur.next
+                cur.next = prev
+                prev = cur
+                cur = nxt
+            return prev
         
-        curr = dummy
-        while curr:
-            # Double the current value
-            doubled = curr.val * 2
-            # Add 1 if the next node will produce a carry (next.val >= 5)
-            if curr.next and curr.next.val >= 5:
-                doubled += 1
-            curr.val = doubled % 10
-            curr = curr.next
+        # Step 1: Reverse list so least significant digit is head
+        rev_head = reverse(head)
         
-        # Return dummy if it has a non-zero value, otherwise skip it
-        return dummy if dummy.val != 0 else dummy.next
+        # Step 2: Double each digit with carry
+        carry = 0
+        cur = rev_head
+        tail = None
+        while cur:
+            total = cur.val * 2 + carry
+            cur.val = total % 10
+            carry = total // 10
+            if not cur.next:
+                tail = cur
+            cur = cur.next
+        
+        # Step 3: Add new node if carry remains
+        if carry:
+            tail.next = ListNode(carry)
+        
+        # Step 4: Reverse back and return
+        return reverse(rev_head)
 # @lc code=end
