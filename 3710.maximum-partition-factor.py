@@ -8,63 +8,55 @@
 class Solution:
     def maxPartitionFactor(self, points: List[List[int]]) -> int:
         n = len(points)
-        
         if n == 2:
             return 0
         
-        # Calculate all pairwise distances
-        distances = []
+        # Compute all pairwise distances
+        dists = []
         for i in range(n):
-            for j in range(i+1, n):
-                dist = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
-                distances.append((dist, i, j))
+            for j in range(i + 1, n):
+                d = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
+                dists.append((d, i, j))
         
-        distances.sort()
-        unique_distances = sorted(set([d[0] for d in distances] + [0]))
+        dists.sort()
+        unique_dists = sorted(set(d for d, i, j in dists))
         
-        def can_partition(threshold):
-            # Build adjacency list for graph where edges connect points with distance < threshold
+        def is_bipartite(threshold):
+            # Build graph with edges for dist < threshold
             adj = [[] for _ in range(n)]
-            for dist, i, j in distances:
-                if dist < threshold:
+            for d, i, j in dists:
+                if d < threshold:
                     adj[i].append(j)
                     adj[j].append(i)
                 else:
-                    break
+                    break  # Since dists is sorted
             
-            # Check if graph is bipartite using BFS
             color = [-1] * n
-            
             for start in range(n):
-                if color[start] != -1:
-                    continue
-                
-                queue = [start]
-                color[start] = 0
-                
-                while queue:
-                    u = queue.pop(0)
-                    for v in adj[u]:
-                        if color[v] == -1:
-                            color[v] = 1 - color[u]
-                            queue.append(v)
-                        elif color[v] == color[u]:
-                            return False
-            
+                if color[start] == -1:
+                    stack = [start]
+                    color[start] = 0
+                    while stack:
+                        u = stack.pop()
+                        for v in adj[u]:
+                            if color[v] == -1:
+                                color[v] = 1 - color[u]
+                                stack.append(v)
+                            elif color[v] == color[u]:
+                                return False
             return True
         
-        # Binary search on the distance values
-        left, right = 0, len(unique_distances) - 1
-        result = 0
-        
-        while left <= right:
-            mid_idx = (left + right) // 2
-            threshold = unique_distances[mid_idx]
-            if can_partition(threshold):
-                result = threshold
-                left = mid_idx + 1
+        # Binary search to find the largest d such that is_bipartite(d) is True
+        lo, hi = 0, len(unique_dists) - 1
+        ans = 0
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            d = unique_dists[mid]
+            if is_bipartite(d):
+                ans = d
+                lo = mid + 1
             else:
-                right = mid_idx - 1
+                hi = mid - 1
         
-        return result
+        return ans
 # @lc code=end
