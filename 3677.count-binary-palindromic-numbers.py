@@ -3,49 +3,46 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
-
 # @lc code=start
 class Solution:
     def countBinaryPalindromes(self, n: int) -> int:
         if n == 0:
             return 1
         
-        bin_n = bin(n)[2:]
-        L = len(bin_n)
-        
-        count = 1  # Count for "0"
-        
-        # Count all palindromes with length < L
-        for length in range(1, L):
-            if length == 1:
-                count += 1  # Only "1"
+        def construct_palindrome(first_half, L):
+            s = bin(first_half)[2:]
+            if L % 2 == 0:
+                return int(s + s[::-1], 2)
             else:
-                num_free_bits = (length + 1) // 2 - 1
-                count += 2 ** num_free_bits
+                return int(s + s[-2::-1], 2)
         
-        # Count palindromes with length == L
-        num_free_bits = (L + 1) // 2 - 1
+        count = 1  # Count "0"
+        L = n.bit_length()
         
-        for i in range(2 ** num_free_bits):
-            # Construct the palindrome
-            if num_free_bits > 0:
-                free_bits = bin(i)[2:].zfill(num_free_bits)
-            else:
-                free_bits = ""
-            first_half = '1' + free_bits
-            
-            if L % 2 == 1:
-                # Odd length
-                palindrome = first_half + first_half[:-1][::-1]
-            else:
-                # Even length
-                palindrome = first_half + first_half[::-1]
-            
-            palindrome_val = int(palindrome, 2)
-            if palindrome_val <= n:
+        # Count palindromes of length 1 to L-1
+        for l in range(1, L):
+            if l == 1:
                 count += 1
             else:
-                break  # All subsequent palindromes will be > n
+                m = (l + 1) // 2
+                count += 1 << (m - 1)
+        
+        # Count palindromes of length L that are <= n using binary search
+        m = (L + 1) // 2
+        lo, hi = 1 << (m - 1), (1 << m) - 1
+        result = lo - 1
+        
+        while lo <= hi:
+            mid = (lo + hi) // 2
+            palindrome = construct_palindrome(mid, L)
+            if palindrome <= n:
+                result = mid
+                lo = mid + 1
+            else:
+                hi = mid - 1
+        
+        if result >= 1 << (m - 1):
+            count += result - (1 << (m - 1)) + 1
         
         return count
 # @lc code=end
