@@ -3,52 +3,37 @@
 #
 # [3739] Count Subarrays With Majority Element II
 #
-# @lc code=start
-class FenwickTree:
-    def __init__(self, n):
-        self.n = n
-        self.tree = [0] * (n + 1)
-    
-    def update(self, i, delta=1):
-        i += 1  # 1-indexed
-        while i <= self.n:
-            self.tree[i] += delta
-            i += i & (-i)
-    
-    def query(self, i):
-        i += 1  # 1-indexed
-        res = 0
-        while i > 0:
-            res += self.tree[i]
-            i -= i & (-i)
-        return res
 
+# @lc code=start
 class Solution:
     def countMajoritySubarrays(self, nums: List[int], target: int) -> int:
-        # Transform array: +1 for target, -1 for others
-        transformed = [1 if x == target else -1 for x in nums]
-        
-        # Compute prefix sums
         n = len(nums)
-        prefix = [0]
-        for val in transformed:
-            prefix.append(prefix[-1] + val)
+        offset = n + 1  # Shift values from [-n, n] to [1, 2n+1]
+        size = 2 * n + 3
+        bit = [0] * size
         
-        # Coordinate compression
-        sorted_vals = sorted(set(prefix))
-        val_to_idx = {v: i for i, v in enumerate(sorted_vals)}
+        def update(i):
+            while i < size:
+                bit[i] += 1
+                i += i & (-i)
         
-        # Count subarrays with sum > 0
-        count = 0
-        fenwick = FenwickTree(len(sorted_vals))
+        def query(i):
+            total = 0
+            while i > 0:
+                total += bit[i]
+                i -= i & (-i)
+            return total
         
-        for p in prefix:
-            idx = val_to_idx[p]
-            # Count how many elements are < p (i.e., indices < idx)
-            if idx > 0:
-                count += fenwick.query(idx - 1)
-            # Add current prefix to the tree
-            fenwick.update(idx)
+        result = 0
+        prefix_sum = 0
+        update(offset)  # Add initial prefix_sum = 0
         
-        return count
+        for num in nums:
+            prefix_sum += 1 if num == target else -1
+            val = prefix_sum + offset
+            # Count how many previous prefix sums are < current
+            result += query(val - 1)
+            update(val)
+        
+        return result
 # @lc code=end
