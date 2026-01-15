@@ -6,57 +6,61 @@
 
 # @lc code=start
 from typing import List
+from collections import deque
 
 class Solution:
     def subtreeInversionSum(self, edges: List[List[int]], nums: List[int], k: int) -> int:
         n = len(nums)
-        graph = [[] for _ in range(n)]
         
+        # Build adjacency list
+        adj = [[] for _ in range(n)]
         for u, v in edges:
-            graph[u].append(v)
-            graph[v].append(u)
+            adj[u].append(v)
+            adj[v].append(u)
         
-        # Build tree structure from root
-        root = 0
+        # Build tree structure using BFS from root
         children = [[] for _ in range(n)]
         visited = [False] * n
+        queue = deque([0])
+        visited[0] = True
+        bfs_order = []
         
-        def build_tree(node):
-            visited[node] = True
-            for neighbor in graph[node]:
+        while queue:
+            node = queue.popleft()
+            bfs_order.append(node)
+            for neighbor in adj[node]:
                 if not visited[neighbor]:
+                    visited[neighbor] = True
                     children[node].append(neighbor)
-                    build_tree(neighbor)
+                    queue.append(neighbor)
         
-        build_tree(root)
+        # Process in reverse BFS order (leaves first)
+        process_order = bfs_order[::-1]
         
-        memo = {}
+        # DP table: dp[node][d][flip]
+        # d: distance to closest inverted ancestor (0 to k, k means can invert)
+        # flip: 0 or 1 (parity of inversions from ancestors)
+        dp = [[[0, 0] for _ in range(k + 1)] for _ in range(n)]
         
-        def dfs(node, last_inv_dist, is_inverted):
-            state = (node, last_inv_dist, is_inverted)
-            if state in memo:
-                return memo[state]
-            
-            # Current node's value based on inversion state from ancestors
-            current_val = -nums[node] if is_inverted else nums[node]
-            
-            # Option 1: Don't invert this node
-            option1 = current_val
-            new_dist = min(last_inv_dist + 1, k + 1)
-            for child in children[node]:
-                option1 += dfs(child, new_dist, is_inverted)
-            
-            # Option 2: Invert this node (if allowed by distance constraint)
-            option2 = float('-inf')
-            if last_inv_dist >= k:
-                inverted_val = nums[node] if is_inverted else -nums[node]
-                option2 = inverted_val
-                for child in children[node]:
-                    option2 += dfs(child, 1, not is_inverted)
-            
-            result = max(option1, option2)
-            memo[state] = result
-            return result
+        for node in process_order:
+            for d in range(k + 1):
+                for flip in range(2):
+                    sign = -1 if flip else 1
+                    new_d = min(d + 1, k)
+                    
+                    # Option 1: Don't invert this node
+                    result1 = sign * nums[node]
+                    for child in children[node]:
+                        result1 += dp[child][new_d][flip]
+                    
+                    # Option 2: Invert this node (only if d >= k)
+                    if d >= k:
+                        result2 = -sign * nums[node]
+                        for child in children[node]:
+                            result2 += dp[child][1][1 - flip]
+                        dp[node][d][flip] = max(result1, result2)
+                    else:
+                        dp[node][d][flip] = result1
         
-        return dfs(0, k, False)
+        return dp[0][k][0]
 # @lc code=end
