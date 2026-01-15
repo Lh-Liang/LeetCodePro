@@ -5,66 +5,75 @@
 #
 
 # @lc code=start
+from itertools import combinations
+import bisect
+
 class Solution:
     def specialPalindrome(self, n: int) -> int:
-        special = []
+        def next_permutation(arr):
+            i = len(arr) - 2
+            while i >= 0 and arr[i] >= arr[i + 1]:
+                i -= 1
+            if i < 0:
+                return False
+            j = len(arr) - 1
+            while arr[i] >= arr[j]:
+                j -= 1
+            arr[i], arr[j] = arr[j], arr[i]
+            arr[i+1:] = arr[i+1:][::-1]
+            return True
         
-        # Generate all subsets of digits 1-9
-        for mask in range(1, 1 << 9):
-            digits = []
-            for d in range(1, 10):
-                if mask & (1 << (d - 1)):
-                    digits.append(d)
-            
-            # Check if valid (at most one odd digit)
-            odd_count = sum(1 for d in digits if d % 2 == 1)
-            if odd_count > 1:
-                continue
-            
-            total_len = sum(digits)
-            
-            # Skip if too long
-            if total_len > 18:
-                continue
-            
-            # Generate the smallest palindrome
-            counts = {d: d for d in digits}
-            
-            # Determine middle element
-            middle = None
-            for d in digits:
-                if d % 2 == 1:
-                    middle = d
-                    counts[d] -= 1
-                    break
-            
-            # Build the first half
-            half_len = total_len // 2
-            first_half = []
-            
-            for _ in range(half_len):
-                for d in sorted(digits):
-                    if counts[d] >= 2:
-                        first_half.append(d)
-                        counts[d] -= 2
-                        break
-            
-            # Construct the palindrome
-            if middle is not None:
-                palin = first_half + [middle] + first_half[::-1]
-            else:
-                palin = first_half + first_half[::-1]
-            
-            num = int(''.join(map(str, palin)))
-            if num <= 10**18:
-                special.append(num)
+        def all_unique_perms(elements):
+            if not elements:
+                return [()]
+            arr = sorted(elements)
+            result = [tuple(arr)]
+            while next_permutation(arr):
+                result.append(tuple(arr))
+            return result
         
-        special.sort()
+        even_digits = [2, 4, 6, 8]
+        odd_digits = [1, 3, 5, 7, 9]
         
-        # Find the next special number after n
-        for num in special:
-            if num > n:
-                return num
+        all_palindromes = []
+        max_length = 25
         
+        # Generate even length palindromes
+        for r in range(1, 5):
+            for combo in combinations(even_digits, r):
+                length = sum(combo)
+                if length <= max_length:
+                    half = []
+                    for d in combo:
+                        half.extend([d] * (d // 2))
+                    for perm in all_unique_perms(half):
+                        perm_str = ''.join(map(str, perm))
+                        palindrome = int(perm_str + perm_str[::-1])
+                        all_palindromes.append(palindrome)
+        
+        # Generate odd length palindromes
+        for odd_d in odd_digits:
+            for r in range(0, 5):
+                for even_combo in combinations(even_digits, r):
+                    length = odd_d + sum(even_combo)
+                    if length <= max_length:
+                        half = []
+                        for d in even_combo:
+                            half.extend([d] * (d // 2))
+                        half.extend([odd_d] * ((odd_d - 1) // 2))
+                        
+                        if not half:
+                            all_palindromes.append(odd_d)
+                        else:
+                            for perm in all_unique_perms(half):
+                                perm_str = ''.join(map(str, perm))
+                                palindrome = int(perm_str + str(odd_d) + perm_str[::-1])
+                                all_palindromes.append(palindrome)
+        
+        all_palindromes.sort()
+        
+        idx = bisect.bisect_right(all_palindromes, n)
+        if idx < len(all_palindromes):
+            return all_palindromes[idx]
         return -1
 # @lc code=end
