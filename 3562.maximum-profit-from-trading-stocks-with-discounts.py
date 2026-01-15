@@ -7,54 +7,78 @@
 # @lc code=start
 class Solution:
     def maxProfit(self, n: int, present: List[int], future: List[int], hierarchy: List[List[int]], budget: int) -> int:
-        # Build adjacency list
-        children = [[] for _ in range(n + 1)]
+        from collections import defaultdict
+        from math import inf
+        
+        children = defaultdict(list)
         for u, v in hierarchy:
             children[u].append(v)
         
+        NEG_INF = -inf
         memo = {}
         
-        def merge_dp(dp1, dp2):
-            merged = [0] * (budget + 1)
-            for b in range(budget + 1):
-                for b1 in range(b + 1):
-                    merged[b] = max(merged[b], dp1[b1] + dp2[b - b1])
-            return merged
+        def combine_children(child_dps):
+            result = [NEG_INF] * (budget + 1)
+            result[0] = 0
+            
+            for dp0_c, dp1_c in child_dps:
+                new_result = [NEG_INF] * (budget + 1)
+                for prev_cost in range(budget + 1):
+                    if result[prev_cost] == NEG_INF:
+                        continue
+                    for child_cost in range(budget + 1 - prev_cost):
+                        total_cost = prev_cost + child_cost
+                        if dp0_c[child_cost] != NEG_INF:
+                            new_result[total_cost] = max(new_result[total_cost], result[prev_cost] + dp0_c[child_cost])
+                        if dp1_c[child_cost] != NEG_INF:
+                            new_result[total_cost] = max(new_result[total_cost], result[prev_cost] + dp1_c[child_cost])
+                result = new_result
+            
+            return result
         
-        def dfs(u, parent_bought):
-            if (u, parent_bought) in memo:
-                return memo[(u, parent_bought)]
+        def dfs(node, parent_bought):
+            if (node, parent_bought) in memo:
+                return memo[(node, parent_bought)]
             
-            cost_u = present[u - 1]
-            if parent_bought:
-                cost_u //= 2
-            profit_u = future[u - 1] - cost_u
+            my_price = present[node - 1] // 2 if parent_bought else present[node - 1]
+            my_profit = future[node - 1] - my_price
             
-            # Get children's DP assuming u doesn't buy
-            children_no_buy = [0] * (budget + 1)
-            for child in children[u]:
-                child_dp = dfs(child, False)
-                children_no_buy = merge_dp(children_no_buy, child_dp)
+            kids = children[node]
             
-            # Get children's DP assuming u buys
-            children_buy = [0] * (budget + 1)
-            for child in children[u]:
-                child_dp = dfs(child, True)
-                children_buy = merge_dp(children_buy, child_dp)
-            
-            # Compute final DP
-            dp = [0] * (budget + 1)
-            for b in range(budget + 1):
-                # Option 1: Don't buy u
-                dp[b] = children_no_buy[b]
+            if not kids:
+                dp0 = [NEG_INF] * (budget + 1)
+                dp0[0] = 0
                 
-                # Option 2: Buy u
-                if b >= cost_u:
-                    dp[b] = max(dp[b], profit_u + children_buy[b - cost_u])
+                dp1 = [NEG_INF] * (budget + 1)
+                if my_price <= budget:
+                    dp1[my_price] = my_profit
+                
+                memo[(node, parent_bought)] = (dp0, dp1)
+                return (dp0, dp1)
             
-            memo[(u, parent_bought)] = dp
-            return dp
+            child_dp_no_disc = [dfs(child, False) for child in kids]
+            child_dp_with_disc = [dfs(child, True) for child in kids]
+            
+            combined_0 = combine_children(child_dp_no_disc)
+            dp0 = combined_0
+            
+            combined_1 = combine_children(child_dp_with_disc)
+            dp1 = [NEG_INF] * (budget + 1)
+            for cost in range(budget + 1):
+                if cost >= my_price and combined_1[cost - my_price] != NEG_INF:
+                    dp1[cost] = combined_1[cost - my_price] + my_profit
+            
+            memo[(node, parent_bought)] = (dp0, dp1)
+            return (dp0, dp1)
         
-        result_dp = dfs(1, False)
-        return result_dp[budget]
+        dp0, dp1 = dfs(1, False)
+        
+        result = 0
+        for cost in range(budget + 1):
+            if dp0[cost] != NEG_INF:
+                result = max(result, dp0[cost])
+            if dp1[cost] != NEG_INF:
+                result = max(result, dp1[cost])
+        
+        return result
 # @lc code=end
