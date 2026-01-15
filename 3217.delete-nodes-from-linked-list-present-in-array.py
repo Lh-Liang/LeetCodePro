@@ -3,6 +3,7 @@
 #
 # [3217] Delete Nodes From Linked List Present in Array
 #
+
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -11,25 +12,23 @@
 #         self.next = next
 class Solution:
     def modifiedList(self, nums: List[int], head: Optional[ListNode]) -> Optional[ListNode]:
-        # Convert nums to a set for O(1) lookup
+        # Convert nums to a set for O(1) lookups
         nums_set = set(nums)
-        
-        # Create a dummy node to handle edge cases
-        dummy = ListNode(0)
-        dummy.next = head
-        
-        # Use prev to track the previous node
+        # Create a dummy node to simplify removal of head if needed
+        dummy = ListNode(0, head)
         prev = dummy
-        current = head
+        curr = head
         
-        while current:
-            if current.val in nums_set:
-                # Remove this node by skipping it
-                prev.next = current.next
+        while curr:
+            if curr.val in nums_set:
+                # Skip current node
+                prev.next = curr.next
+                # Move current to next node, prev stays the same
+                curr = curr.next
             else:
-                # Keep this node, move prev forward
-                prev = current
-            current = current.next
+                # Keep current node, move both pointers
+                prev = curr
+                curr = curr.next
         
         return dummy.next
 # @lc code=end
