@@ -5,59 +5,60 @@
 #
 
 # @lc code=start
+from functools import lru_cache
+from typing import List
+
 class Solution:
     def lenOfVDiagonal(self, grid: List[List[int]]) -> int:
-        import sys
-        sys.setrecursionlimit(10000)
+        n, m = len(grid), len(grid[0])
+        directions = [(1, 1), (1, -1), (-1, -1), (-1, 1)]  # DR, DL, UL, UR
         
-        n = len(grid)
-        m = len(grid[0])
-        
-        # Directions: down-right, down-left, up-left, up-right
-        directions = [(1, 1), (1, -1), (-1, -1), (-1, 1)]
-        
-        memo = {}
-        
-        def dfs(i, j, d, expected_val, turned):
-            if not (0 <= i < n and 0 <= j < m):
+        @lru_cache(maxsize=None)
+        def straight(r, c, d, parity):
+            if r < 0 or r >= n or c < 0 or c >= m:
                 return 0
-            if grid[i][j] != expected_val:
+            expected = 2 if parity == 0 else 0
+            if grid[r][c] != expected:
                 return 0
-            
-            key = (i, j, d, expected_val, turned)
-            if key in memo:
-                return memo[key]
-            
             dr, dc = directions[d]
-            ni, nj = i + dr, j + dc
-            
-            # Next expected value in the sequence
-            if expected_val == 1:
-                nv = 2
-            elif expected_val == 2:
-                nv = 0
-            else:  # expected_val == 0
-                nv = 2
-            
-            # Option 1: Continue without turning
-            result = 1 + dfs(ni, nj, d, nv, turned)
-            
-            # Option 2: Turn (if we haven't turned yet)
-            if not turned:
-                new_d = (d + 1) % 4
-                dr2, dc2 = directions[new_d]
-                ni2, nj2 = i + dr2, j + dc2
-                result = max(result, 1 + dfs(ni2, nj2, new_d, nv, True))
-            
-            memo[key] = result
-            return result
+            return 1 + straight(r + dr, c + dc, d, 1 - parity)
         
         ans = 0
-        for i in range(n):
-            for j in range(m):
-                if grid[i][j] == 1:
+        
+        for r in range(n):
+            for c in range(m):
+                if grid[r][c] == 1:
                     for d in range(4):
-                        ans = max(ans, dfs(i, j, d, 1, False))
+                        dr, dc = directions[d]
+                        d_turn = (d + 1) % 4
+                        dr_turn, dc_turn = directions[d_turn]
+                        
+                        # No turn: straight path
+                        length = 1 + straight(r + dr, c + dc, d, 0)
+                        ans = max(ans, length)
+                        
+                        # Turn at position 1, 2, 3, ...
+                        cr, cc = r, c
+                        pos = 0
+                        while True:
+                            nr, nc = cr + dr, cc + dc
+                            pos += 1
+                            
+                            if nr < 0 or nr >= n or nc < 0 or nc >= m:
+                                break
+                            expected = 2 if pos % 2 == 1 else 0
+                            if grid[nr][nc] != expected:
+                                break
+                            
+                            cr, cc = nr, nc
+                            
+                            # Turn at position pos
+                            next_r, next_c = cr + dr_turn, cc + dc_turn
+                            next_parity = pos % 2
+                            
+                            suffix = straight(next_r, next_c, d_turn, next_parity)
+                            length = (pos + 1) + suffix
+                            ans = max(ans, length)
         
         return ans
 # @lc code=end
