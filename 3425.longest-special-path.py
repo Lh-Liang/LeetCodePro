@@ -4,68 +4,82 @@
 # [3425] Longest Special Path
 #
 
-# @lc code=start
 from typing import List
 import sys
 
+# @lc code=start
 class Solution:
     def longestSpecialPath(self, edges: List[List[int]], nums: List[int]) -> List[int]:
-        sys.setrecursionlimit(60000)
         n = len(nums)
-        
-        # Build adjacency list
         adj = [[] for _ in range(n)]
-        for u, v, length in edges:
-            adj[u].append((v, length))
-            adj[v].append((u, length))
+        for u,v,l in edges:
+            adj[u].append((v,l))
+            adj[v].append((u,l))
         
-        max_length = 0
-        min_nodes = 1
+        sys.setrecursionlimit(100000)
         
-        # path_dist[i] = cumulative distance from root to i-th node in current path
-        path_dist = [0]
-        # last_occurrence[val] = index in path where value was last seen
-        last_occurrence = {}
+        best_len = -float('inf')
+        min_nodes = float('inf')
         
-        def dfs(node, parent, left):
-            nonlocal max_length, min_nodes
+        # Stacks
+        path_nodes = []          # stores nodes along current DFS branch
+        path_cum = []           # cumulative lengths
+        last_seen = {}          # value -> index in stack
+        
+        def dfs(u:int, parent:int, cum:int, lb_parent:int):
+            nonlocal best_len, min_nodes
             
-            val = nums[node]
-            cur_idx = len(path_dist) - 1
+            idx_before_push = len(path_nodes)
+            val = nums[u]
             
-            # Save old occurrence for backtracking
-            old_occurrence = last_occurrence.get(val, -1)
+            # compute local lower bound
+            local_lb = lb_parent
+            prev_idx = last_seen.get(val)
+            if prev_idx is not None:
+                local_lb = max(local_lb, prev_idx + 1)
             
-            # Update left pointer if duplicate found
-            if val in last_occurrence:
-                left = max(left, last_occurrence[val] + 1)
+            # save previous state
+            saved_exist = False
+            saved_idx = None
+            if val in last_seen:
+                saved_exist = True
+                saved_idx = last_seen[val]
             
-            # Update last occurrence
-            last_occurrence[val] = cur_idx
+            # update last_seen BEFORE pushing
+            last_seen[val] = idx_before_push
             
-            # Calculate path length and nodes for path ending at current node
-            path_length = path_dist[cur_idx] - path_dist[left]
-            num_nodes = cur_idx - left + 1
+            # push onto stacks
+            path_nodes.append(u)
+            path_cum.append(cum)
             
-            # Update answer
-            if path_length > max_length or (path_length == max_length and num_nodes < min_nodes):
-                max_length = path_length
-                min_nodes = num_nodes
+            # compute candidate special path ending here
+            req_idx = local_lb          # earliest allowed starting index
+            cand_len = cum - path_cum[req_idx]
+            cand_nodes = idx_before_push - req_idx + 1
             
-            # DFS to children
-            for neighbor, weight in adj[node]:
-                if neighbor != parent:
-                    path_dist.append(path_dist[-1] + weight)
-                    dfs(neighbor, node, left)
-                    path_dist.pop()
+            # update global answer
+            if cand_len > best_len:
+                best_len = cand_len
+                min_nodes = cand_nodes
+            elif cand_len == best_len:
+                min_nodes = min(min_nodes, cand_nodes)
             
-            # Backtrack: restore last_occurrence
-            if old_occurrence == -1:
-                del last_occurrence[val]
+            # recurse children
+            for neigh,w in adj[u]:
+                if neigh == parent:
+                    continue
+                next_cum = cum + w
+                dfs(neigh,u,next_cum,local_lb)
+                
+            # backtrack
+            path_nodes.pop()
+            path_cum.pop()
+            if saved_exist:
+                last_seen[val] = saved_idx
             else:
-                last_occurrence[val] = old_occurrence
+                del last_seen[val]
         
-        dfs(0, -1, 0)
+        dfs(0,-1,0,0)
         
-        return [max_length, min_nodes]
+        return [best_len,int(min_nodes)]
 # @lc code=end
