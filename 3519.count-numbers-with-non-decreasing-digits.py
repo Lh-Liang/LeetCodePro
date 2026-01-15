@@ -9,49 +9,64 @@ class Solution:
     def countNumbers(self, l: str, r: str, b: int) -> int:
         MOD = 10**9 + 7
         
-        def to_base_b(num_str):
-            num = int(num_str)
-            if num == 0:
+        def to_base(s, base):
+            if s == "0":
                 return [0]
             digits = []
-            while num > 0:
-                digits.append(num % b)
-                num //= b
+            while s != "0":
+                remainder = 0
+                new_s = ""
+                for c in s:
+                    val = remainder * 10 + int(c)
+                    new_s += str(val // base)
+                    remainder = val % base
+                digits.append(remainder)
+                s = new_s.lstrip("0") or "0"
             return digits[::-1]
         
-        def count_non_decreasing_up_to(num_str):
-            digits = to_base_b(num_str)
+        def subtract_one(s):
+            if s == "0":
+                return "-1"
+            digits = list(s)
+            i = len(digits) - 1
+            while digits[i] == '0':
+                digits[i] = '9'
+                i -= 1
+            digits[i] = str(int(digits[i]) - 1)
+            return ''.join(digits).lstrip('0') or '0'
+        
+        def count_up_to(s, base):
+            if s == "0":
+                return 0
+            digits = to_base(s, base)
             n = len(digits)
+            memo = {}
             
-            from functools import lru_cache
-            
-            @lru_cache(maxsize=None)
-            def dp(pos, last_digit, is_tight, has_started):
+            def dp(pos, last_digit, tight, started):
                 if pos == n:
-                    return 1 if has_started else 0
-                
-                max_digit = digits[pos] if is_tight else b - 1
+                    return 1 if started else 0
+                key = (pos, last_digit, tight, started)
+                if key in memo:
+                    return memo[key]
+                upper = digits[pos] if tight else base - 1
                 result = 0
-                
-                for digit in range(0, max_digit + 1):
-                    new_is_tight = is_tight and (digit == digits[pos])
-                    
-                    if not has_started:
-                        if digit == 0:
-                            result = (result + dp(pos + 1, 0, new_is_tight, False)) % MOD
+                for d in range(upper + 1):
+                    if not started:
+                        if d == 0:
+                            result += dp(pos + 1, 0, tight and d == digits[pos], False)
                         else:
-                            result = (result + dp(pos + 1, digit, new_is_tight, True)) % MOD
+                            result += dp(pos + 1, d, tight and d == digits[pos], True)
                     else:
-                        if digit >= last_digit:
-                            result = (result + dp(pos + 1, digit, new_is_tight, True)) % MOD
-                
+                        if d >= last_digit:
+                            result += dp(pos + 1, d, tight and d == digits[pos], True)
+                    result %= MOD
+                memo[key] = result
                 return result
             
             return dp(0, 0, True, False)
         
-        count_r = count_non_decreasing_up_to(r)
-        l_value = int(l)
-        count_l_minus_1 = count_non_decreasing_up_to(str(l_value - 1)) if l_value > 0 else 0
-        
+        count_r = count_up_to(r, b)
+        l_minus_1 = subtract_one(l)
+        count_l_minus_1 = count_up_to(l_minus_1, b)
         return (count_r - count_l_minus_1 + MOD) % MOD
 # @lc code=end
