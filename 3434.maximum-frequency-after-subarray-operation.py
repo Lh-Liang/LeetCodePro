@@ -5,30 +5,32 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def maxFrequency(self, nums: List[int], k: int) -> int:
-        base_count = nums.count(k)
-        max_gain = 0
+        # Count original occurrences of k
+        freq_k = sum(1 for num in nums if num == k)
+        ans = freq_k
         
-        for v in set(nums):
-            if v == k:
-                continue
-            
-            # Kadane's algorithm to find max subarray sum
-            # +1 for v (becomes k), -1 for k (stops being k), 0 otherwise
-            current_sum = 0
-            max_sum = 0  # Floor at 0 (we can always choose x=0 for no change)
-            for num in nums:
-                if num == v:
-                    delta = 1
-                elif num == k:
-                    delta = -1
-                else:
-                    delta = 0
-                current_sum = max(0, current_sum + delta)
-                max_sum = max(max_sum, current_sum)
-            
-            max_gain = max(max_gain, max_sum)
+        # Values are constrained between 1 and 50
+        min_val, max_val = 1, 50
         
-        return base_count + max_gain
+        # Try each possible target value v
+        for v in range(min_val, max_val + 1):
+            # Compute contribution of first element
+            first_contrib = (1 if nums[0] == v else 0) - (1 if nums[0] == k else 0)
+            best_sum = first_contrib
+            current_sum = first_contrib
+            
+            # Kadane's algorithm on contributions
+            for i in range(1, len(nums)):
+                contrib_i = (1 if nums[i] == v else 0) - (1 if nums[i] == k else 0)
+                current_sum = max(contrib_i, current_sum + contrib_i)
+                best_sum = max(best_sum, current_sum)
+            
+            candidate_total = freq_k + best_sum
+            ans = max(ans, candidate_total)
+        
+        return ans
 # @lc code=end
