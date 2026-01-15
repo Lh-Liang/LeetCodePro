@@ -7,39 +7,36 @@
 # @lc code=start
 class Solution:
     def maxProfit(self, n: int, edges: List[List[int]], score: List[int]) -> int:
-        from functools import lru_cache
-        
-        # Build adjacency list - store predecessors for each node
-        predecessors = [set() for _ in range(n)]
+        # For each node, compute the bitmask of its direct predecessors
+        prereq = [0] * n
         for u, v in edges:
-            predecessors[v].add(u)
+            prereq[v] |= (1 << u)
         
-        # DP with memoization
-        @lru_cache(maxsize=None)
-        def solve(mask):
-            # If all nodes processed
-            if mask == (1 << n) - 1:
-                return 0
-            
-            # Count how many nodes are in the mask
-            position = bin(mask).count('1') + 1  # Next position (1-based)
-            
-            max_profit = 0
-            
-            # Try adding each unprocessed node
-            for node in range(n):
-                if mask & (1 << node):  # Already processed
-                    continue
-                
-                # Check if all predecessors are processed
-                can_add = all((mask & (1 << pred)) for pred in predecessors[node])
-                
-                if can_add:
-                    # Add this node at current position
-                    profit = score[node] * position + solve(mask | (1 << node))
-                    max_profit = max(max_profit, profit)
-            
-            return max_profit
+        size = 1 << n
         
-        return solve(0)
+        # Precompute popcount for all masks
+        popcount = [0] * size
+        for i in range(1, size):
+            popcount[i] = popcount[i >> 1] + (i & 1)
+        
+        # dp[mask] = maximum profit when nodes in mask are processed
+        dp = [-1] * size
+        dp[0] = 0
+        
+        for mask in range(size):
+            cur = dp[mask]
+            if cur < 0:
+                continue
+            
+            pos = popcount[mask] + 1
+            
+            for i in range(n):
+                bit_i = 1 << i
+                if not (mask & bit_i) and (mask & prereq[i]) == prereq[i]:
+                    new_mask = mask | bit_i
+                    new_profit = cur + score[i] * pos
+                    if dp[new_mask] < new_profit:
+                        dp[new_mask] = new_profit
+        
+        return dp[size - 1]
 # @lc code=end
