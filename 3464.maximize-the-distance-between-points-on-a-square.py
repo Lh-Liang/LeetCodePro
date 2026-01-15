@@ -5,11 +5,14 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def maxDistance(self, side: int, points: List[List[int]], k: int) -> int:
-        perimeter = 4 * side
+        n = len(points)
         
-        def point_to_pos(x, y):
+        def boundary_pos(p):
+            x, y = p
             if y == 0:
                 return x
             elif x == side:
@@ -19,39 +22,22 @@ class Solution:
             else:
                 return 4 * side - y
         
-        # Store (perimeter_position, x, y)
-        coords = []
-        for x, y in points:
-            p = point_to_pos(x, y)
-            coords.append((p, x, y))
-        coords.sort()
-        
-        n = len(coords)
-        
-        # Double the array to handle cyclic nature
-        doubled = coords + [(c[0] + perimeter, c[1], c[2]) for c in coords]
+        pts = sorted(points, key=boundary_pos)
         
         def dist(i, j):
-            return abs(doubled[i][1] - doubled[j][1]) + abs(doubled[i][2] - doubled[j][2])
+            return abs(pts[i % n][0] - pts[j % n][0]) + abs(pts[i % n][1] - pts[j % n][1])
         
         def check(d):
-            for start in range(n):
-                selected = [start]
-                for _ in range(k - 1):
-                    found = False
-                    for idx in range(selected[-1] + 1, start + n):
-                        ok = True
-                        for s in selected:
-                            if dist(idx, s) < d:
-                                ok = False
-                                break
-                        if ok:
-                            selected.append(idx)
-                            found = True
+            for s in range(n):
+                cur = s
+                cnt = 1
+                for nxt in range(s + 1, s + n):
+                    if dist(cur, nxt) >= d:
+                        cur = nxt
+                        cnt += 1
+                        if cnt == k:
                             break
-                    if not found:
-                        break
-                if len(selected) == k:
+                if cnt == k and dist(cur, s) >= d:
                     return True
             return False
         
@@ -62,6 +48,5 @@ class Solution:
                 lo = mid
             else:
                 hi = mid - 1
-        
         return lo
 # @lc code=end
