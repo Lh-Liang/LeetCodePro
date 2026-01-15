@@ -5,55 +5,47 @@
 #
 
 # @lc code=start
+from collections import Counter
+
 class Solution:
     def minOperations(self, word1: str, word2: str) -> int:
-        from collections import defaultdict
-        
         n = len(word1)
         
-        def compute_cost(t, s):
-            mismatch_counts = defaultdict(int)
-            mismatches = 0
+        def compute_cost(s, t):
+            # Count mismatches by (source_char, target_char)
+            cnt = Counter()
+            for a, b in zip(s, t):
+                if a != b:
+                    cnt[(a, b)] += 1
             
-            for i in range(len(t)):
-                if t[i] != s[i]:
-                    mismatches += 1
-                    mismatch_counts[(t[i], s[i])] += 1
+            # Find maximum swap pairs
+            # Mismatches of type (a,b) can pair with type (b,a)
+            P = 0
+            seen = set()
+            for (a, b) in cnt:
+                if (a, b) not in seen:
+                    seen.add((a, b))
+                    seen.add((b, a))
+                    P += min(cnt[(a, b)], cnt[(b, a)])
             
-            # Count max matching - pairs that can be swapped
-            max_matching = 0
-            for a in range(26):
-                for b in range(a + 1, 26):
-                    ac = chr(ord('a') + a)
-                    bc = chr(ord('a') + b)
-                    cnt1 = mismatch_counts[(ac, bc)]
-                    cnt2 = mismatch_counts[(bc, ac)]
-                    max_matching += min(cnt1, cnt2)
-            
-            return mismatches - max_matching
+            M = sum(cnt.values())
+            return M - P
         
-        # Precompute segment costs
-        cost = [[0] * n for _ in range(n)]
-        for l in range(n):
-            for r in range(l, n):
-                t1 = word1[l:r+1]
-                s = word2[l:r+1]
-                
-                # Without reversal
-                cost1 = compute_cost(t1, s)
-                
-                # With reversal
-                cost2 = 1 + compute_cost(t1[::-1], s)
-                
-                cost[l][r] = min(cost1, cost2)
+        def cost(l, r):
+            s = word1[l:r+1]
+            t = word2[l:r+1]
+            # Option 1: no reverse
+            cost1 = compute_cost(s, t)
+            # Option 2: reverse first (costs 1)
+            cost2 = 1 + compute_cost(s[::-1], t)
+            return min(cost1, cost2)
         
-        # DP
+        # DP: dp[j] = minimum cost to transform word1[0:j] to word2[0:j]
         dp = [float('inf')] * (n + 1)
         dp[0] = 0
-        
-        for i in range(1, n + 1):
-            for j in range(i):
-                dp[i] = min(dp[i], dp[j] + cost[j][i - 1])
+        for j in range(1, n + 1):
+            for i in range(j):
+                dp[j] = min(dp[j], dp[i] + cost(i, j - 1))
         
         return dp[n]
 # @lc code=end
