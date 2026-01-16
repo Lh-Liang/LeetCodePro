@@ -11,36 +11,34 @@
 #         self.next = next
 class Solution:
     def doubleIt(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # Helper function to reverse linked list
-        def reverse(head):
+        def reverse_list(node):
             prev = None
-            cur = head
-            while cur:
-                nxt = cur.next
-                cur.next = prev
-                prev = cur
-                cur = nxt
+            current = node
+            while current:
+                next_temp = current.next
+                current.next = prev
+                prev = current
+                current = next_temp
             return prev
         
-        # Step 1: Reverse list so least significant digit is head
-        rev_head = reverse(head)
+        # Reverse the list to process from least significant digit
+        reversed_head = reverse_list(head)
         
-        # Step 2: Double each digit with carry
+        # Process each digit, doubling and handling carry
+        current = reversed_head
         carry = 0
-        cur = rev_head
-        tail = None
-        while cur:
-            total = cur.val * 2 + carry
-            cur.val = total % 10
-            carry = total // 10
-            if not cur.next:
-                tail = cur
-            cur = cur.next
         
-        # Step 3: Add new node if carry remains
-        if carry:
-            tail.next = ListNode(carry)
+        while current:
+            doubled = current.val * 2 + carry
+            current.val = doubled % 10
+            carry = doubled // 10
+            
+            # If we're at the last node and there's still carry, we need a new node
+            if not current.next and carry > 0:
+                current.next = ListNode(0)
+            
+            current = current.next
         
-        # Step 4: Reverse back and return
-        return reverse(rev_head)
+        # Reverse back to get the final result
+        return reverse_list(reversed_head)
 # @lc code=end
