@@ -7,40 +7,59 @@
 # @lc code=start
 class Solution:
     def longestPalindrome(self, s: str, t: str) -> int:
-        # We need to consider all possible substrings from s and t, concatenated.
-        # Since lengths are <=30, total possible substrings O(n^2) each => ~900 each.
-        # We can generate all substrings for s and t, store them in sets or list.
-        # Then we need to find the longest palindrome formed by concatenating one substring from s and one from t (in order).
-        # However, checking palindrome for each concatenated string would be O(L) where L up to 60, and combinations up to ~900*900 = 810k. That's acceptable (810k * 60 = 48.6M operations). But we can optimize.
-        # Alternatively, we can think of the palindrome as having a center. But given constraints, brute force is fine.
-        # Steps:
-        # 1. Generate all substrings of s and t (including empty substring?). The problem says possibly empty substrings. So we need to consider empty substring as well.
-        # 2. For each substring a from s (including empty), each substring b from t (including empty), form concat = a + b.
-        # 3. Check if concat is palindrome, record max length.
-        # However, there are many combinations: (len(s)+1)*len(s)/2 +1 for s? Actually number of non-empty substrings is n*(n+1)/2. Including empty adds 1. So total substrings per string: n*(n+1)/2 + 1. For n=30, that's 465+1=466. So combinations: 466*466 = ~217k. That's even less.
-        # Checking palindrome for each concat of length up to 60: O(L). So total operations ~217k * 60 = 13M, which is fine.
-        # Implementation:
-        def is_pal(x):
-            return x == x[::-1]
+        def expand_around_center(string, left, right):
+            while left >= 0 and right < len(string) and string[left] == string[right]:
+                left -= 1
+                right += 1
+            return right - left - 1
         
-        # Generate all substrings including empty
-        def all_substrings(string):
-            n = len(string)
-            subs = [""]  # include empty
-            for i in range(n):
-                for j in range(i+1, n+1):
-                    subs.append(string[i:j])
-            return subs
+        # Try all possible ways to split s and t
+        max_len = 0
         
-        subs_s = all_substrings(s)
-        subs_t = all_substrings(t)
+        # Case 1: Take substring only from s
+        for i in range(len(s)):
+            # Odd length palindrome
+            length = expand_around_center(s, i, i)
+            max_len = max(max_len, length)
+            # Even length palindrome
+            length = expand_around_center(s, i, i + 1)
+            max_len = max(max_len, length)
         
-        best = 0
-        for a in subs_s:
-            for b in subs_t:
-                cand = a + b
-                if is_pal(cand):
-                    best = max(best, len(cand))
-        return best
-
+        # Case 2: Take substring only from t
+        for i in range(len(t)):
+            # Odd length palindrome
+            length = expand_around_center(t, i, i)
+            max_len = max(max_len, length)
+            # Even length palindrome
+            length = expand_around_center(t, i, i + 1)
+            max_len = max(max_len, length)
+        
+        # Case 3: Take prefix from s and suffix from t
+        # For each character in s and each character in t
+        for i in range(len(s)):
+            for j in range(len(t)):
+                if s[i] == t[j]:
+                    # Try to expand around this matching pair
+                    left, right = i, j
+                    length = 0
+                    while left >= 0 and right < len(t) and s[left] == t[right]:
+                        left -= 1
+                        right += 1
+                        length += 2
+                    max_len = max(max_len, length)
+        
+        # Case 4: Take suffix from s and prefix from t
+        for i in range(len(s)):
+            for j in range(len(t)):
+                if s[i] == t[j]:
+                    # Try to expand around this matching pair
+                    left, right = i, j
+                    length = 0
+                    while left < len(s) and right >= 0 and s[left] == t[right]:
+                        left += 1
+                        right -= 1
+                        length += 2
+                    max_len = max(max_len, length)
+        
+        return max_len
 # @lc code=end
