@@ -3,52 +3,51 @@
 #
 # [2296] Design a Text Editor
 #
-
 # @lc code=start
 class TextEditor:
 
     def __init__(self):
-        # Left holds characters to the left of cursor
-        # Right holds characters to the right of cursor
-        # Both are lists used as stacks
-        self.left = []
-        self.right = []
+        # Use two stacks to represent left and right parts of cursor
+        # left stack: characters to the left of cursor
+        # right stack: characters to the right of cursor (in reverse order)
+        self.left = []   # Stack for characters to the left of cursor
+        self.right = []  # Stack for characters to the right of cursor
 
     def addText(self, text: str) -> None:
-        # Add each character to the end of left
-        for ch in text:
-            self.left.append(ch)
+        # Add all characters to the left stack
+        for char in text:
+            self.left.append(char)
 
     def deleteText(self, k: int) -> int:
-        # Delete up to k characters from the end of left
-        cnt = min(k, len(self.left))
-        for _ in range(cnt):
+        # Delete at most k characters from left stack
+        deleted = 0
+        while deleted < k and self.left:
             self.left.pop()
-        return cnt
-
-    def _last_chars(self) -> str:
-        # Return up to last ten characters currently in left
-        n = len(self.left)
-        start = max(0, n - 10)
-        return ''.join(self.left[start:])
+            deleted += 1
+        return deleted
 
     def cursorLeft(self, k: int) -> str:
-        # Move k steps to the left
-        steps = min(k, len(self.left))
-        for _ in range(steps):
-            ch = self.left.pop()
-            self.right.append(ch)
-        # Return last up to ten characters
-        return self._last_chars()
+        # Move cursor left by moving characters from left to right stack
+        moves = 0
+        while moves < k and self.left:
+            char = self.left.pop()
+            self.right.append(char)
+            moves += 1
+        
+        # Return last min(10, len) characters to the left of cursor
+        return ''.join(self.left[-10:])
 
     def cursorRight(self, k: int) -> str:
-        # Move k steps to the right
-        steps = min(k, len(self.right))
-        for _ in range(steps):
-            ch = self.right.pop()
-            self.left.append(ch)
-        # Return last up to ten characters
-        return self._last_chars()
+        # Move cursor right by moving characters from right to left stack
+        moves = 0
+        while moves < k and self.right:
+            char = self.right.pop()
+            self.left.append(char)
+            moves += 1
+        
+        # Return last min(10, len) characters to the left of cursor
+        return ''.join(self.left[-10:])
+
 
 # Your TextEditor object will be instantiated and called as such:
 # obj = TextEditor()
