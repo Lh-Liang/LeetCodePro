@@ -5,48 +5,35 @@
 #
 
 # @lc code=start
+from typing import List
+import heapq
+
 class Solution:
     def minTimeToReach(self, moveTime: List[List[int]]) -> int:
-        import heapq
-        
         n = len(moveTime)
         m = len(moveTime[0])
-        
-        # Priority queue: (time, row, col)
-        pq = [(0, 0, 0)]
-        # Visited array to store minimum time to reach each cell
-        dist = [[float('inf')] * m for _ in range(n)]
-        dist[0][0] = 0
-        
-        # Directions: up, down, left, right
-        directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
-        
-        while pq:
-            time, x, y = heapq.heappop(pq)
-            
-            # If we reached the destination
-            if x == n - 1 and y == m - 1:
-                return time
-            
-            # If we have already found a better path to this cell
-            if time > dist[x][y]:
+        # Dijkstra's algorithm: (time, row, col)
+        # time is the current time we reach (row, col)
+        # We start at (0,0) at time 0
+        heap = [(0, 0, 0)]
+        # visited matrix with minimum time to reach each cell
+        visited = [[float('inf')] * m for _ in range(n)]
+        visited[0][0] = 0
+        directions = [(0,1), (0,-1), (1,0), (-1,0)]
+        while heap:
+            t, i, j = heapq.heappop(heap)
+            if i == n-1 and j == m-1:
+                return t
+            if t > visited[i][j]:
                 continue
-            
-            # Explore neighbors
-            for dx, dy in directions:
-                nx, ny = x + dx, y + dy
-                
-                # Check bounds
-                if 0 <= nx < n and 0 <= ny < m:
-                    # Time to move to the neighbor cell
-                    # We need to wait until moveTime[nx][ny] to enter the room
-                    # And it takes 1 second to move
-                    new_time = max(time + 1, moveTime[nx][ny])
-                    
-                    # If we found a better path
-                    if new_time < dist[nx][ny]:
-                        dist[nx][ny] = new_time
-                        heapq.heappush(pq, (new_time, nx, ny))
-        
-        return -1  # Should never reach here for valid inputs
+            for di, dj in directions:
+                ni, nj = i + di, j + dj
+                if 0 <= ni < n and 0 <= nj < m:
+                    # The earliest time we can enter (ni,nj) is max(t+1, moveTime[ni][nj])
+                    # because moving takes 1 second and the room opens at moveTime[ni][nj]
+                    nt = max(t + 1, moveTime[ni][nj])
+                    if nt < visited[ni][nj]:
+                        visited[ni][nj] = nt
+                        heapq.heappush(heap, (nt, ni, nj))
+        return visited[n-1][m-1]
 # @lc code=end
