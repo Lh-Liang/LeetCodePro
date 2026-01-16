@@ -3,53 +3,49 @@
 #
 # [3413] Maximum Coins From K Consecutive Bags
 #
-
 # @lc code=start
-from bisect import bisect_right, bisect_left
-
 class Solution:
     def maximumCoins(self, coins: List[List[int]], k: int) -> int:
+        # Sort coins by their starting position
         coins.sort()
         n = len(coins)
         
-        # Prefix sum of total coins in segments
-        prefix = [0] * (n + 1)
+        # Precompute prefix sums for efficient range sum queries
+        prefix_sum = [0] * (n + 1)
         for i in range(n):
-            l, r, c = coins[i]
-            prefix[i + 1] = prefix[i] + (r - l + 1) * c
+            prefix_sum[i + 1] = prefix_sum[i] + (coins[i][1] - coins[i][0] + 1) * coins[i][2]
         
-        result = 0
+        max_coins = 0
         
-        lefts = [coins[i][0] for i in range(n)]
-        rights = [coins[i][1] for i in range(n)]
-        
-        # Try window starting at each segment's left boundary
+        # Try each coin segment as the starting point of our k consecutive bags
         for i in range(n):
-            window_end = coins[i][0] + k - 1
-            j = bisect_right(lefts, window_end) - 1
+            # Binary search to find the rightmost segment that could be part of our k consecutive bags
+            left, right = i, n - 1
+            result = -1
             
-            if coins[j][1] <= window_end:
-                # Segment j is fully included
-                total = prefix[j + 1] - prefix[i]
-            else:
-                # Segment j is partially included
-                total = prefix[j] - prefix[i]
-                total += (window_end - coins[j][0] + 1) * coins[j][2]
-            result = max(result, total)
-        
-        # Try window ending at each segment's right boundary
-        for i in range(n):
-            window_start = coins[i][1] - k + 1
-            j = bisect_left(rights, window_start)
+            while left <= right:
+                mid = (left + right) // 2
+                # Check if we can take all segments from i to mid
+                if coins[mid][0] - coins[i][0] + 1 <= k:
+                    result = mid
+                    left = mid + 1
+                else:
+                    right = mid - 1
             
-            if coins[j][0] >= window_start:
-                # Segment j is fully included
-                total = prefix[i + 1] - prefix[j]
-            else:
-                # Segment j is partially included
-                total = prefix[i + 1] - prefix[j + 1]
-                total += (coins[j][1] - window_start + 1) * coins[j][2]
-            result = max(result, total)
+            if result == -1:
+                continue
+                
+            # Calculate coins for segments from i to result
+            total_coins = prefix_sum[result + 1] - prefix_sum[i]
+            
+            # Adjust for the case where we don't need all bags in the last segment
+            if coins[result][1] - coins[i][0] + 1 > k:
+                # We need to subtract the excess bags from the last segment
+                excess_length = (coins[result][1] - coins[i][0] + 1) - k
+                excess_coins = excess_length * coins[result][2]
+                total_coins -= excess_coins
+            
+            max_coins = max(max_coins, total_coins)
         
-        return result
+        return max_coins
 # @lc code=end
