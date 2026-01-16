@@ -1,3 +1,4 @@
+
 #
 # @lc app=leetcode id=3445 lang=python3
 #
@@ -7,90 +8,43 @@
 # @lc code=start
 class Solution:
     def maxDifference(self, s: str, k: int) -> int:
-        import math
-
-        class SegTree:
-            def __init__(self, n):
-                self.N = 1
-                while self.N < n:
-                    self.N <<= 1
-                self.tree = [math.inf] * (self.N * 2)
-
-            def update(self, pos, val):
-                idx = pos + self.N
-                self.tree[idx] = min(self.tree[idx], val)
-                idx >>= 1
-                while idx:
-                    self.tree[idx] = min(self.tree[idx * 2], self.tree[idx * 2 + 1])
-                    idx >>= 1
-
-            def query(self, l, r):
-                l += self.N
-                r += self.N
-                res = math.inf
-                while l <= r:
-                    if l & 1:
-                        res = min(res, self.tree[l])
-                        l += 1
-                    if not r & 1:
-                        res = min(res, self.tree[r])
-                        r -= 1
-                    l >>= 1
-                    r >>= 1
-                return res
-
         n = len(s)
-        ans = -math.inf
-
-        # All possible digits are '0'-'4'
-        digits = [chr(ord('0') + d) for d in range(5)]
-
-        for a in digits:
-            for b in digits:
-                if a == b:
-                    continue
-
-                # Prefix sums for characters a and b
-                A = [0] * (n + 1)
-                B = [0] * (n + 1)
-                cntA = cntB = 0
-                for idx, ch in enumerate(s):
-                    cntA += ch == a
-                    cntB += ch == b
-                    A[idx + 1] = cntA
-                    B[idx + 1] = cntB
-
-                diff_arr = [A[i] - B[i] for i in range(n + 1)]
-
-                # Four segment trees indexed by parity of A[i], B[i]
-                segs = [[SegTree(n + 5) for _ in range(2)] for _ in range(2)]
-
-                # Iterate over ending prefix index
-                for end in range(k, n + 1):
-                    start_idx = end - k          # smallest allowed starting prefix index
-                    
-                    # Add start_idx into data structures
-                    Ai_start = A[start_idx]
-                    Bi_start = B[start_idx]
-                    parA_start = Ai_start & 1
-                    parB_start = Bi_start & 1
-                    d_start = diff_arr[start_idx]
-                    segs[parA_start][parB_start].update(Bi_start, d_start)
-
-                    Aj_end = A[end]
-                    Bj_end = B[end]
-                    parA_end = Aj_end & 1
-                    parB_end = Bj_end & 1
-
-                    req_parA = parA_end ^ 1      # opposite parity
-                    req_parB = parB_end          # same parity
-
-                    Pmax = Bj_end - 2             # need B[end]-B[start] >= 2
-                    if Pmax >= 0:
-                        mmin = segs[req_parA][req_parB].query(0, Pmax)
-                        if mmin != math.inf:
-                            cand = diff_arr[end] - mmin
-                            ans = max(ans, cand)
-
-        return int(ans)
+        # Since s consists only of digits '0' to '4', we have 5 possible characters
+        # We'll use a prefix sum approach to count frequencies
+        
+        # For each character (0-4), we'll track prefix counts
+        prefix_count = [[0]*5 for _ in range(n+1)]
+        
+        # Build prefix sum array
+        for i in range(n):
+            for c in range(5):
+                prefix_count[i+1][c] = prefix_count[i][c]
+            prefix_count[i+1][int(s[i])] += 1
+        
+        max_diff = float('-inf')
+        
+        # Check all substrings of length at least k
+        for i in range(n - k + 1):
+            for j in range(i + k - 1, n):
+                # Get frequency of each character in substring s[i:j+1]
+                freq = [0] * 5
+                for c in range(5):
+                    freq[c] = prefix_count[j+1][c] - prefix_count[i][c]
+                
+                # Find max odd frequency and max even (non-zero) frequency
+                max_odd = -1
+                max_even = -1
+                
+                for c in range(5):
+                    if freq[c] > 0:
+                        if freq[c] % 2 == 1:  # odd frequency
+                            max_odd = max(max_odd, freq[c])
+                        else:  # even frequency
+                            max_even = max(max_even, freq[c])
+                
+                # If we have both odd and even frequencies
+                if max_odd != -1 and max_even != -1:
+                    max_diff = max(max_diff, max_odd - max_even)
+        
+        return max_diff if max_diff != float('-inf') else -1
 # @lc code=end
