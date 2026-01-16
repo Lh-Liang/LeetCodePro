@@ -4,90 +4,81 @@
 # [3441] Minimum Cost Good Caption
 #
 
-from typing import List
-
 # @lc code=start
 class Solution:
     def minCostGoodCaption(self, caption: str) -> str:
         n = len(caption)
-        # Impossible because shortest good caption needs at least 3 characters.
         if n < 3:
             return ""
         
-        # Convert characters to numbers 0..25
-        x = [ord(ch) - ord('a') for ch in caption]
+        # Convert string to list for easier manipulation
+        s = list(caption)
         
-        # Prefix sums of x
-        pref_sum = [0] * (n + 1)
-        for i in range(n):
-            pref_sum[i + 1] = pref_sum[i] + x[i]
+        # Try all 26 lowercase letters as the starting character
+        best_result = None
+        min_cost = float('inf')
         
-        # Gc[t]: count positions < t where x[pos] <= c
-        # Hc[t]: sum   positions < t where x[pos] <= c
-        Gc = [[0] * (n + 1) for _ in range(26)]
-        Hc = [[0] * (n + 1) for _ in range(26)]
+        for start_char in range(26):
+            start_letter = chr(ord('a') + start_char)
+            # Try both directions: start_letter and start_letter+1 as the two characters
+            for first_char_code in [start_char, min(25, start_char + 1)]:
+                first_char = chr(ord('a') + first_char_code)
+                second_char_code = first_char_code - 1 if first_char_code > 0 else (first_char_code + 1)
+                second_char = chr(ord('a') + second_char_code)
+                
+                # Generate candidate string alternating between first_char and second_char
+                candidate = []
+                for i in range(n):
+                    if i % 2 == 0:
+                        candidate.append(first_char)
+                    else:
+                        candidate.append(second_char)
+                
+                # Check if this pattern can form groups of at least 3
+                valid = True
+                i = 0
+                while i < n:
+                    j = i
+                    while j < n and candidate[j] == candidate[i]:
+                        j += 1
+                    if j - i < 3:
+                        valid = False
+                        break
+                    i = j
+                
+                if not valid:
+                    continue
+                
+                # Calculate cost
+                cost = 0
+                for i in range(n):
+                    if s[i] != candidate[i]:
+                        cost += 1
+                
+                # Update best result
+                if cost < min_cost or (cost == min_cost and ''.join(candidate) < (best_result or '')):
+                    min_cost = cost
+                    best_result = ''.join(candidate)
         
-        for i in range(n):
-            xi = x[i]
-            for c in range(26):
-                inc_g = int(xi <= c)
-                inc_h = xi if xi <= c else 0
-                Gc[c][i + 1] = Gc[c][i] + inc_g
-                Hc[c][i + 1] = Hc[c][i] + inc_h
-        
-        # U(c,k) as defined
-        U = [[0] * (n + 1) for _ in range(26)]
+        # Another approach: try making all characters the same
         for c in range(26):
-            for k in range(n + 1):
-                U[c][k] = c * (2 * Gc[c][k] - k) + pref_sum[k] - 2 * Hc[c][k]
-        
-        INF = 10**18
-        dp = [INF] * (n + 1)
-        dp[0] = 0
-        best_prev = [-1] * (n + 1)
-        best_char = [-1] * (n + 1)
-        
-        # For each character maintain the minimum value of dp[j] - U(c,j)
-        min_vals = [(INF, -1)] * 26   # (value, argmin_index)
-        
-        # Initialize with j = 0
-        for c in range(26):
-            val = dp[0] - U[c][0]
-            min_vals[c] = (val, 0)
-        
-        # Main DP loop
-        for i in range(1, n + 1):
-            # Consider transitions ending at i (prefix length i)
-            # Segment must have length at least 3 -> start index j <= i - 3
-            if i >= 3:
-                for c in range(26):
-                    val_min, argmin_j = min_vals[c]
-                    cand_cost = U[c][i] + val_min
-                    if cand_cost < dp[i]:
-                        dp[i] = cand_cost
-                        best_prev[i] = argmin_j
-                        best_char[i] = c
+            target_char = chr(ord('a') + c)
+            candidate = [target_char] * n
             
-            # Update min_vals using current state i
-            if dp[i] != INF:
-                for c in range(26):
-                    val_update = dp[i] - U[c][i]
-                    if val_update < min_vals[c][0]:
-                        min_vals[c] = (val_update, i)
+            # Check if valid (all same char, so length must be >= 3)
+            if n < 3:
+                continue
+                
+            # Calculate cost
+            cost = 0
+            for i in range(n):
+                if s[i] != candidate[i]:
+                    cost += 1
+            
+            # Update best result
+            if cost < min_cost or (cost == min_cost and ''.join(candidate) < (best_result or '')):
+                min_cost = cost
+                best_result = ''.join(candidate)
         
-        # Impossible
-        if dp[n] == INF:
-            return ""
-        
-        # Reconstruct answer
-        parts = []
-        idx = n
-        while idx > 0:
-            prev_idx = best_prev[idx]
-            ch_num = best_char[idx]
-            seg_len = idx - prev_idx
-            parts.append(chr(ch_num + ord('a')) * seg_len)
-            idx = prev_idx
-        parts.reverse()
-        return "".join(parts)
+        return best_result or ""
 # @lc code=end
