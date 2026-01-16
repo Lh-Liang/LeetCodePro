@@ -5,49 +5,71 @@
 #
 
 # @lc code=start
-from collections import defaultdict, deque
-from typing import List
-
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # Get all unique weights for binary search
-        weights = sorted(set(e[2] for e in edges))
+        # Binary search on the answer
+        # For a given max weight, check if it's possible to build a valid graph
         
-        if not weights:
-            return -1
+        # Sort edges by weight
+        edges.sort(key=lambda x: x[2])
         
-        def canReachAll(maxWeight):
-            # Build reversed graph with edges <= maxWeight
-            reversed_graph = defaultdict(list)
-            for a, b, w in edges:
-                if w <= maxWeight:
-                    # Original: a -> b, Reversed: b -> a
-                    reversed_graph[b].append(a)
+        def is_valid(max_weight):
+            # Build graph with edges having weight <= max_weight
+            # For each node, keep only threshold number of edges with smallest weights
             
-            # BFS from node 0 in reversed graph
+            # Group edges by source node
+            from collections import defaultdict
+            import heapq
+            
+            graph = defaultdict(list)
+            
+            for a, b, w in edges:
+                if w <= max_weight:
+                    # Use max heap to keep only threshold smallest weights
+                    # Python has min heap, so we negate weights
+                    heapq.heappush(graph[a], (-w, b))
+                    if len(graph[a]) > threshold:
+                        heapq.heappop(graph[a])
+            
+            # Build final adjacency list with only allowed edges
+            adj = defaultdict(list)
+            for node in graph:
+                for _, dest in graph[node]:
+                    adj[node].append(dest)
+            
+            # Check if node 0 is reachable from all other nodes using BFS/DFS
+            # This is equivalent to checking if all nodes can reach node 0 in reverse graph
+            
+            # Build reverse graph
+            reverse_graph = defaultdict(list)
+            for node in adj:
+                for neighbor in adj[node]:
+                    reverse_graph[neighbor].append(node)
+            
+            # BFS from node 0 in reverse graph to see which nodes can reach 0
             visited = [False] * n
+            queue = [0]
             visited[0] = True
-            queue = deque([0])
-            count = 1
+            reachable_count = 1
             
             while queue:
-                node = queue.popleft()
-                for neighbor in reversed_graph[node]:
+                node = queue.pop(0)
+                for neighbor in reverse_graph[node]:
                     if not visited[neighbor]:
                         visited[neighbor] = True
-                        count += 1
+                        reachable_count += 1
                         queue.append(neighbor)
             
-            return count == n
+            return reachable_count == n
         
-        # Binary search on weights
-        left, right = 0, len(weights) - 1
+        # Binary search on possible weights
+        left, right = 0, edges[-1][2] if edges else 0
         result = -1
         
         while left <= right:
             mid = (left + right) // 2
-            if canReachAll(weights[mid]):
-                result = weights[mid]
+            if is_valid(mid):
+                result = mid
                 right = mid - 1
             else:
                 left = mid + 1
