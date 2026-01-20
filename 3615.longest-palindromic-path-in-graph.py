@@ -5,66 +5,77 @@
 #
 
 # @lc code=start
+from functools import lru_cache
 from typing import List
 
 class Solution:
     def maxLen(self, n: int, edges: List[List[int]], label: str) -> int:
-        graph = [[] for _ in range(n)]
-        for a, b in edges:
-            graph[a].append(b)
-            graph[b].append(a)
-        N = 1 << n
-        NN = n * n
-        dp = [False] * (N * NN)
-
-        def get_idx(mask: int, u: int, v: int) -> int:
-            return mask * NN + u * n + v
-
-        pop = [0] * N
-        for mask in range(N):
-            pop[mask] = pop[mask >> 1] + (mask & 1)
+        # Build adjacency list
+        adj = [[] for _ in range(n)]
+        for u, v in edges:
+            adj[u].append(v)
+            adj[v].append(u)
+            
+        # Precompute neighbors grouped by their character label for faster lookup
+        # neighbors[u][char_code] will store a list of neighbors of u that have that label
+        neighbors = [[[] for _ in range(26)] for _ in range(n)]
+        for u in range(n):
+            for v in adj[u]:
+                char_idx = ord(label[v]) - ord('a')
+                neighbors[u][char_idx].append(v)
+        
+        # DFS with memoization to find the longest extension
+        # State: (u, v, mask)
+        # u, v: current endpoints of the path (u <= v enforced for uniqueness)
+        # mask: bitmask of visited nodes
+        @lru_cache(None)
+        def dfs(u, v, mask):
+            max_extension = 0
+            
+            # Try to extend from u to nu and v to nv such that label[nu] == label[nv]
+            # Iterate through all possible characters 'a'...'z'
+            for char_idx in range(26):
+                u_candidates = neighbors[u][char_idx]
+                if not u_candidates: continue
+                
+                v_candidates = neighbors[v][char_idx]
+                if not v_candidates: continue
+                
+                for nu in u_candidates:
+                    # If nu is already visited, skip
+                    if (mask >> nu) & 1:
+                        continue
+                    
+                    for nv in v_candidates:
+                        # If nv is already visited, skip
+                        if (mask >> nv) & 1:
+                            continue
+                        
+                        # Cannot extend to the same node from both ends (unless it's the center, handled separately)
+                        if nu == nv:
+                            continue
+                            
+                        # Determine next state, ensuring first endpoint index < second endpoint index
+                        next_u, next_v = (nu, nv) if nu < nv else (nv, nu)
+                        new_mask = mask | (1 << nu) | (1 << nv)
+                        
+                        max_extension = max(max_extension, 2 + dfs(next_u, next_v, new_mask))
+            
+            return max_extension
 
         ans = 1
-        # Base: single nodes
+        
+        # 1. Try odd-length palindromes centered at each node
         for i in range(n):
-            mask = 1 << i
-            idx = get_idx(mask, i, i)
-            dp[idx] = True
-
-        # Base: length 2
-        for a in range(n):
-            for b in graph[a]:
-                if a < b and label[a] == label[b]:
-                    mask = (1 << a) | (1 << b)
-                    idx_ab = get_idx(mask, a, b)
-                    idx_ba = get_idx(mask, b, a)
-                    dp[idx_ab] = True
-                    dp[idx_ba] = True
-                    ans = 2
-
-        # Fill DP
-        for mask in range(N):
-            for u in range(n):
-                if (mask & (1 << u)) == 0:
-                    continue
-                for v in range(n):
-                    if (mask & (1 << v)) == 0:
-                        continue
-                    idx = get_idx(mask, u, v)
-                    if not dp[idx]:
-                        continue
-                    # Extend
-                    for x in graph[u]:
-                        if (mask & (1 << x)) != 0:
-                            continue
-                        lx = label[x]
-                        for y in graph[v]:
-                            if y == x or (mask & (1 << y)) != 0 or label[y] != lx:
-                                continue
-                            newmask = mask | (1 << x) | (1 << y)
-                            newidx = get_idx(newmask, x, y)
-                            if not dp[newidx]:
-                                dp[newidx] = True
-                                ans = max(ans, pop[newmask])
+            # Path starts at i, length 1. Try to extend.
+            ans = max(ans, 1 + dfs(i, i, 1 << i))
+            
+        # 2. Try even-length palindromes centered at each edge with matching labels
+        for u, v in edges:
+            if label[u] == label[v]:
+                # Path starts at u-v, length 2. Try to extend.
+                u_sorted, v_sorted = (u, v) if u < v else (v, u)
+                ans = max(ans, 2 + dfs(u_sorted, v_sorted, (1 << u) | (1 << v)))
+                
         return ans
 # @lc code=end

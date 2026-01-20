@@ -1,96 +1,97 @@
-#
-# @lc app=leetcode id=3585 lang=python3
-#
-# [3585] Find Weighted Median Node in Tree
-#
-
-# @lc code=start
+from collections import deque
 from typing import List
-
-import sys
 
 class Solution:
     def findMedian(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
         adj = [[] for _ in range(n)]
-        for ui, vi, wi in edges:
-            adj[ui].append((vi, wi))
-            adj[vi].append((ui, wi))
-
-        LOG = 18
-        parent = [[-1] * n for _ in range(LOG)]
-        dist_to_anc = [[0] * n for _ in range(LOG)]
-        level = [0] * n
-        weighted_depth = [0] * n
-
-        def dfs(node: int, par: int, lev: int, wdep: int, edgew: int) -> None:
-            parent[0][node] = par
-            dist_to_anc[0][node] = edgew
-            level[node] = lev
-            weighted_depth[node] = wdep
-            for nei, w in adj[node]:
-                if nei != par:
-                    dfs(nei, node, lev + 1, wdep + w, w)
-
-        sys.setrecursionlimit(100010)
-        dfs(0, -1, 0, 0, 0)
-
-        # Build binary lifting tables
-        for k in range(1, LOG):
-            for i in range(n):
-                if parent[k - 1][i] != -1:
-                    p = parent[k - 1][i]
-                    parent[k][i] = parent[k - 1][p]
-                    dist_to_anc[k][i] = dist_to_anc[k - 1][i] + dist_to_anc[k - 1][p]
-
-        def get_lca(a: int, b: int) -> int:
-            if level[a] > level[b]:
-                a, b = b, a
-            # Equalize levels
-            for k in range(LOG):
-                if (level[b] - level[a]) & (1 << k):
-                    b = parent[k][b]
-            if a == b:
-                return a
-            # Lift both
-            for k in range(LOG - 1, -1, -1):
-                if (parent[k][a] != parent[k][b] and
-                    parent[k][a] != -1 and parent[k][b] != -1):
-                    a = parent[k][a]
-                    b = parent[k][b]
-            return parent[0][a]
+        for u, v, w in edges:
+            adj[u].append((v, w))
+            adj[v].append((u, w))
+            
+        parent = [-1] * n
+        depth = [0] * n
+        dist = [0] * n
+        LOG = 18  # Sufficient for 10^5 nodes
+        up = [[-1] * LOG for _ in range(n)]
+        
+        # BFS to build the tree structure (parent, depth, dist)
+        queue = deque([0])
+        # Standard BFS
+        while queue:
+            u = queue.popleft()
+            for v, w in adj[u]:
+                if v != parent[u]:
+                    parent[v] = u
+                    depth[v] = depth[u] + 1
+                    dist[v] = dist[u] + w
+                    queue.append(v)
+        
+        # Initialize binary lifting table
+        for u in range(n):
+            up[u][0] = parent[u]
+            
+        for i in range(1, LOG):
+            for u in range(n):
+                if up[u][i-1] != -1:
+                    up[u][i] = up[up[u][i-1]][i-1]
+                else:
+                    up[u][i] = -1
+                    
+        def get_lca(u, v):
+            if depth[u] < depth[v]:
+                u, v = v, u
+            
+            diff = depth[u] - depth[v]
+            for i in range(LOG):
+                if (diff >> i) & 1:
+                    u = up[u][i]
+            
+            if u == v:
+                return u
+            
+            for i in range(LOG - 1, -1, -1):
+                if up[u][i] != up[v][i]:
+                    u = up[u][i]
+                    v = up[v][i]
+            
+            return up[u][0]
 
         ans = []
-        for qu, qv in queries:
-            if qu == qv:
-                ans.append(qu)
-                continue
-            anc = get_lca(qu, qv)
-            du = weighted_depth[qu] - weighted_depth[anc]
-            dv = weighted_depth[qv] - weighted_depth[anc]
-            total = du + dv
-            thresh = (total + 1) // 2
-            if du >= thresh:
-                # Up lift from qu
-                current = qu
-                traveled = 0
-                for k in range(LOG - 1, -1, -1):
-                    if (parent[k][current] != -1 and
-                        traveled + dist_to_anc[k][current] < thresh):
-                        traveled += dist_to_anc[k][current]
-                        current = parent[k][current]
-                median = parent[0][current]
+        for u, v in queries:
+            lca = get_lca(u, v)
+            total_dist = dist[u] + dist[v] - 2 * dist[lca]
+            dist_u_lca = dist[u] - dist[lca]
+            
+            # Check if the median is on the path segment u -> lca
+            # We check if dist(u, lca) >= total_dist / 2
+            if 2 * dist_u_lca >= total_dist:
+                target_2dist = 2 * dist[u] - total_dist
+                # We want the node x closest to u (deepest) such that 2*dist[x] <= target_2dist.
+                # Check if u itself is the answer
+                if 2 * dist[u] <= target_2dist:
+                    ans.append(u)
+                else:
+                    # Lift u to the highest node that is INVALID (2*dist > target)
+                    # The parent of that node will be the first VALID node (closest to u)
+                    curr = u
+                    for i in range(LOG - 1, -1, -1):
+                        if up[curr][i] != -1:
+                            if 2 * dist[up[curr][i]] > target_2dist:
+                                curr = up[curr][i]
+                    ans.append(up[curr][0])
             else:
-                remaining = thresh - du
-                max_up = dv - remaining
-                current = qv
-                traveled = 0
-                for k in range(LOG - 1, -1, -1):
-                    if (parent[k][current] != -1 and
-                        traveled + dist_to_anc[k][current] <= max_up):
-                        traveled += dist_to_anc[k][current]
-                        current = parent[k][current]
-                median = current
-            ans.append(median)
+                # Median is on path segment lca -> v
+                # We want the node x closest to lca (shallowest) such that dist(u, x) >= total_dist / 2
+                # Equivalent to: 2*dist[x] >= total_dist - 2*dist[u] + 4*dist[lca]
+                target_2dist = total_dist - 2 * dist[u] + 4 * dist[lca]
+                
+                # We want the highest ancestor of v that satisfies the condition (VALID)
+                # Lift v as long as the destination is VALID
+                curr = v
+                for i in range(LOG - 1, -1, -1):
+                    if up[curr][i] != -1:
+                        if 2 * dist[up[curr][i]] >= target_2dist:
+                            curr = up[curr][i]
+                ans.append(curr)
+        
         return ans
-
-# @lc code=end

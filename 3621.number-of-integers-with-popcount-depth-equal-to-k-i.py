@@ -5,62 +5,86 @@
 #
 
 # @lc code=start
+import math
+
 class Solution:
     def popcountDepth(self, n: int, k: int) -> int:
         if k == 0:
+            # The only number with depth 0 is 1.
+            # Since range is [1, n] and n >= 1, the answer is 1.
             return 1
+
+        # Precompute depths for small numbers.
+        # Max n is 10^15, which is less than 2^50.
+        # The maximum popcount for a number <= 10^15 is roughly 50.
+        # We can compute depths up to 60 to be safe.
         
-        # Precompute depths for small m
-        depths = [0] * 65
-        for m in range(1, 65):
-            y = m
-            d = 0
-            while y > 1:
-                y = bin(y).count('1')
-                d += 1
-            depths[m] = d
+        depth_map = {}
+        depth_map[1] = 0
         
-        T = [m for m in range(1, 65) if depths[m] == k - 1]
-        if not T:
+        # Function to get depth for small numbers recursively
+        def get_depth(val):
+            if val in depth_map:
+                return depth_map[val]
+            # Recursive step: depth(x) = 1 + depth(popcount(x))
+            # popcount(val) will be strictly less than val for val > 1
+            d = 1 + get_depth(val.bit_count())
+            depth_map[val] = d
+            return d
+
+        # Fill depth map for possible popcounts (1 to 60)
+        for i in range(1, 61):
+            get_depth(i)
+            
+        # We are looking for x in [1, n] such that depth(x) == k.
+        # This is equivalent to depth(popcount(x)) == k - 1.
+        # Let c = popcount(x). Then we need depth(c) == k - 1.
+        # Since x <= n < 2^60, c will be between 1 and 60.
+        
+        target_popcounts = []
+        for c in range(1, 61):
+            if depth_map[c] == k - 1:
+                target_popcounts.append(c)
+        
+        if not target_popcounts:
             return 0
-        
-        # Binary representation of n, MSB first
-        bits = []
-        tmp = n
-        while tmp:
-            bits.append(tmp % 2)
-            tmp //= 2
-        bits = bits[::-1]
-        L = len(bits)
-        
-        def count_for_target(target):
-            memo = {}
-            def dfs(pos, cursum, tight):
-                if pos == L:
-                    return 1 if cursum == target else 0
-                key = (pos, cursum, tight)
-                if key in memo:
-                    return memo[key]
-                res = 0
-                upper = bits[pos] if tight else 1
-                for d in range(2):
-                    if d > upper:
-                        continue
-                    new_sum = cursum + d
-                    if new_sum > target:
-                        continue
-                    new_tight = 1 if tight and d == upper else 0
-                    res += dfs(pos + 1, new_sum, new_tight)
-                memo[key] = res
-                return res
-            return dfs(0, 0, 1)
-        
-        ans = 0
-        for t in T:
-            ans += count_for_target(t)
-        
-        if k == 1:
-            ans -= 1
-        
-        return ans
+            
+        # Function to count integers in [1, num] with exactly `cnt` set bits.
+        # Using combinatorics logic (Digit DP style without memoization table).
+        def count_with_bits(num, cnt):
+            if cnt < 0:
+                return 0
+            if num == 0:
+                return 0
+            
+            s = bin(num)[2:]
+            length = len(s)
+            res = 0
+            current_bits = 0
+            
+            for i in range(length):
+                if s[i] == '1':
+                    # If we put '0' at this position:
+                    # Remaining positions: length - 1 - i
+                    # Bits needed: cnt - current_bits
+                    remaining_len = length - 1 - i
+                    needed = cnt - current_bits
+                    if 0 <= needed <= remaining_len:
+                        res += math.comb(remaining_len, needed)
+                    
+                    # Now assume we put '1' at this position and continue
+                    current_bits += 1
+            
+            # Check the number itself
+            if current_bits == cnt:
+                res += 1
+            
+            return res
+
+        total_count = 0
+        for c in target_popcounts:
+            total_count += count_with_bits(n, c)
+            
+        return total_count
+
 # @lc code=end

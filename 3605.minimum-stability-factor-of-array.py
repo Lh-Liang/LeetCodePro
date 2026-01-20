@@ -4,61 +4,88 @@
 # [3605] Minimum Stability Factor of Array
 #
 
-import math
-from typing import List
-
 # @lc code=start
+import math
+
 class Solution:
     def minStable(self, nums: List[int], maxC: int) -> int:
         n = len(nums)
-        if n == 0:
-            return 0
+        # Local reference for speed
+        gcd = math.gcd
         
-        # Build sparse table for GCD
-        LOG = 18  # 2^17 > 1e5
-        st = [[0] * LOG for _ in range(n)]
-        for i in range(n):
-            st[i][0] = nums[i]
-        for j in range(1, LOG):
-            for i in range(n - (1 << j) + 1):
-                st[i][j] = math.gcd(st[i][j - 1], st[i + (1 << (j - 1))][j - 1])
-        
-        def query(L: int, R: int) -> int:
-            length = R - L + 1
-            k = (length).bit_length() - 1
-            return math.gcd(st[L][k], st[R - (1 << k) + 1][k])
-        
-        def min_hits(L: int) -> int:
-            if L > n:
-                return 0
-            bad_starts = []
-            for i in range(n - L + 1):
-                if query(i, i + L - 1) >= 2:
-                    bad_starts.append(i)
-            if not bad_starts:
-                return 0
-            count = 0
-            i = 0
-            m = len(bad_starts)
-            while i < m:
-                si = bad_starts[i]
-                p = si + L - 1
-                count += 1
-                while i < m and bad_starts[i] <= p:
-                    i += 1
-            return count
-        
-        def can_achieve(K: int) -> bool:
+        def check(K):
+            # We want to ensure no stable subarray of length > K exists.
+            # This is equivalent to breaking all stable subarrays of length L = K + 1.
             L = K + 1
-            return min_hits(L) <= maxC
-        
+            if L > n:
+                return True
+            
+            # Two-stack queue to maintain sliding window GCD
+            # stack_in stores (value, accumulated_gcd_from_bottom)
+            stack_in = []
+            # stack_out stores (value, accumulated_gcd_from_bottom)
+            stack_out = []
+            
+            cost = 0
+            current_len = 0
+            
+            for x in nums:
+                # Push x into stack_in
+                if not stack_in:
+                    stack_in.append((x, x))
+                else:
+                    stack_in.append((x, gcd(x, stack_in[-1][1])))
+                current_len += 1
+                
+                if current_len == L:
+                    # Query the GCD of the current window
+                    g = 0
+                    if stack_in:
+                        g = stack_in[-1][1]
+                    if stack_out:
+                        if g == 0:
+                            g = stack_out[-1][1]
+                        else:
+                            g = gcd(g, stack_out[-1][1])
+                    
+                    if g >= 2:
+                        # Found a stable subarray of length L
+                        cost += 1
+                        if cost > maxC:
+                            return False
+                        # Greedy strategy: modify the last element (current x) to break this window.
+                        # This modification effectively invalidates the current window and allows us
+                        # to skip overlapping windows starting within this range. 
+                        # We reset the queue to simulate this skip.
+                        stack_in.clear()
+                        stack_out.clear()
+                        current_len = 0
+                    else:
+                        # Window is not stable, slide forward by popping the oldest element
+                        if not stack_out:
+                            # Move elements from stack_in to stack_out
+                            if stack_in:
+                                val, _ = stack_in.pop()
+                                stack_out.append((val, val))
+                                while stack_in:
+                                    val, _ = stack_in.pop()
+                                    stack_out.append((val, gcd(val, stack_out[-1][1])))
+                        if stack_out:
+                            stack_out.pop()
+                        current_len -= 1
+            
+            return True
+
         low, high = 0, n
-        while low < high:
+        ans = n
+        
+        while low <= high:
             mid = (low + high) // 2
-            if can_achieve(mid):
-                high = mid
+            if check(mid):
+                ans = mid
+                high = mid - 1
             else:
                 low = mid + 1
-        return low
-
+        
+        return ans
 # @lc code=end
