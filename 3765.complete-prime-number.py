@@ -7,10 +7,10 @@
 # @lc code=start
 class Solution:
     def completePrime(self, num: int) -> bool:
-        def is_prime(n: int) -> bool:
+        def is_prime(n):
             if n <= 1:
                 return False
-            if n == 2 or n == 3:
+            if n <= 3:
                 return True
             if n % 2 == 0 or n % 3 == 0:
                 return False
@@ -20,21 +20,21 @@ class Solution:
                     return False
                 i += 6
             return True
-        
+
         s = str(num)
         n = len(s)
         
-        # Check prefixes
+        # Check all prefixes
         for i in range(1, n + 1):
             prefix = int(s[:i])
             if not is_prime(prefix):
                 return False
         
-        # Check suffixes
-        for i in range(1, n + 1):
-            suffix = int(s[-i:])
+        # Check all suffixes
+        for i in range(n):
+            suffix = int(s[i:])
             if not is_prime(suffix):
                 return False
-        
+                
         return True
 # @lc code=end

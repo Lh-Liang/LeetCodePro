@@ -5,52 +5,75 @@
 #
 
 # @lc code=start
-from typing import List
-
-
 class Solution:
     def countStableSubarrays(self, nums: List[int], queries: List[List[int]]) -> List[int]:
         n = len(nums)
         if n == 0:
-            return []
-        left = [0] * n
-        for i in range(1, n):
-            if nums[i - 1] <= nums[i]:
-                left[i] = left[i - 1]
-            else:
-                left[i] = i
-        prefix = [0] * (n + 1)
-        for i in range(n):
-            prefix[i + 1] = prefix[i] + left[i]
+            return [0] * len(queries)
         
-        def range_sum(l: int, r: int) -> int:
-            def s(x: int) -> int:
-                return x * (x + 1) // 2
-            return s(r) - s(l - 1)
+        # Identify segments
+        # A segment is a maximal contiguous subarray that is non-decreasing.
+        segments = []
+        start = 0
+        for i in range(n - 1):
+            if nums[i] > nums[i+1]:
+                segments.append((start, i))
+                start = i + 1
+        segments.append((start, n - 1))
         
+        # Map each index to its segment ID
+        # Since segments are contiguous and cover 0 to n-1, we can fill an array.
+        # However, filling an array of size 10^5 is fine.
+        segment_ids = [0] * n
+        for sid, (s, e) in enumerate(segments):
+            for i in range(s, e + 1):
+                segment_ids[i] = sid
+        
+        # Precompute prefix sums of the stable subarray counts for full segments
+        # Contribution of a segment of length l is l*(l+1)//2
+        segment_contributions = []
+        for s, e in segments:
+            length = e - s + 1
+            segment_contributions.append(length * (length + 1) // 2)
+        
+        # Prefix sum array for segment contributions
+        # prefix_sums[k] = sum of contributions of segments 0 to k-1
+        prefix_sums = [0] * (len(segments) + 1)
+        for i in range(len(segments)):
+            prefix_sums[i+1] = prefix_sums[i] + segment_contributions[i]
+            
         ans = []
         for l, r in queries:
-            m = r - l + 1
-            triangle = m * (m + 1) // 2
-            # Binary search for j0: smallest j >= l with left[j] > l
-            lo = l
-            hi = r + 1
-            while lo < hi:
-                mid = (lo + hi) // 2
-                if left[mid] > l:
-                    hi = mid
-                else:
-                    lo = mid + 1
-            j0 = lo
-            if j0 > r:
-                res = triangle
+            sid_l = segment_ids[l]
+            sid_r = segment_ids[r]
+            
+            if sid_l == sid_r:
+                # Entire query range is within one stable segment
+                length = r - l + 1
+                ans.append(length * (length + 1) // 2)
             else:
-                num_bad = r - j0 + 1
-                sum_left_bad = prefix[r + 1] - prefix[j0]
-                sum_max = l * (m - num_bad) + sum_left_bad
-                sum_jp1 = range_sum(l, r) + m
-                res = sum_jp1 - sum_max
-            ans.append(res)
+                res = 0
+                
+                # Left partial segment
+                # The segment sid_l ends at segments[sid_l][1]
+                # The part within [l, r] is [l, segments[sid_l][1]]
+                e_l = segments[sid_l][1]
+                len_l = e_l - l + 1
+                res += len_l * (len_l + 1) // 2
+                
+                # Right partial segment
+                # The segment sid_r starts at segments[sid_r][0]
+                # The part within [l, r] is [segments[sid_r][0], r]
+                s_r = segments[sid_r][0]
+                len_r = r - s_r + 1
+                res += len_r * (len_r + 1) // 2
+                
+                # Middle full segments
+                # Segments from sid_l + 1 to sid_r - 1
+                if sid_l + 1 < sid_r:
+                    res += prefix_sums[sid_r] - prefix_sums[sid_l + 1]
+                
+                ans.append(res)
+                
         return ans
-
 # @lc code=end
