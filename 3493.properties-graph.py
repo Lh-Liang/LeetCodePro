@@ -5,42 +5,42 @@
 #
 
 # @lc code=start
+from typing import List
+
+
 class Solution:
     def numberOfComponents(self, properties: List[List[int]], k: int) -> int:
         n = len(properties)
+        props = [set(p) for p in properties]
         
-        # Convert each property list to a set for faster intersection computation
-        property_sets = [set(prop) for prop in properties]
+        parent = list(range(n))
+        rank = [0] * n
         
-        # Build adjacency list representation of the graph
-        adj = [[] for _ in range(n)]
+        def find(x: int) -> int:
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
         
-        # Check all pairs of nodes to see if they should be connected
+        def union(x: int, y: int) -> bool:
+            px, py = find(x), find(y)
+            if px == py:
+                return False
+            if rank[px] < rank[py]:
+                parent[px] = py
+            elif rank[px] > rank[py]:
+                parent[py] = px
+            else:
+                parent[py] = px
+                rank[px] += 1
+            return True
+        
+        components = n
         for i in range(n):
             for j in range(i + 1, n):
-                # Count intersection of properties
-                intersection_count = len(property_sets[i] & property_sets[j])
-                
-                # If intersection count is at least k, add an edge
-                if intersection_count >= k:
-                    adj[i].append(j)
-                    adj[j].append(i)
-        
-        # Use DFS to count connected components
-        visited = [False] * n
-        components = 0
-        
-        def dfs(node):
-            visited[node] = True
-            for neighbor in adj[node]:
-                if not visited[neighbor]:
-                    dfs(neighbor)
-        
-        # Count connected components
-        for i in range(n):
-            if not visited[i]:
-                dfs(i)
-                components += 1
+                if len(props[i] & props[j]) >= k:
+                    if union(i, j):
+                        components -= 1
         
         return components
+
 # @lc code=end
