@@ -10,44 +10,51 @@ public:
         int n = edges1.size() + 1;
         int m = edges2.size() + 1;
 
-        auto get_parities = [&](int count, vector<vector<int>>& edges) {
-            vector<vector<int>> adj(count);
-            for (auto& edge : edges) {
-                adj[edge[0]].push_back(edge[1]);
-                adj[edge[1]].push_back(edge[0]);
+        auto get_parity = [&](int size, vector<vector<int>>& edges) {
+            vector<vector<int>> adj(size);
+            for (auto& e : edges) {
+                adj[e[0]].push_back(e[1]);
+                adj[e[1]].push_back(e[0]);
             }
-            vector<int> parity(count, -1);
+            vector<int> dist(size, -1);
             queue<int> q;
             q.push(0);
-            parity[0] = 0;
-            int even_count = 0;
+            dist[0] = 0;
+            int count0 = 0, count1 = 0;
             while (!q.empty()) {
                 int u = q.front();
                 q.pop();
-                if (parity[u] == 0) even_count++;
+                if (dist[u] % 2 == 0) count0++;
+                else count1++;
                 for (int v : adj[u]) {
-                    if (parity[v] == -1) {
-                        parity[v] = 1 - parity[u];
+                    if (dist[v] == -1) {
+                        dist[v] = dist[u] + 1;
                         q.push(v);
                     }
                 }
             }
-            return make_pair(parity, even_count);
+            return make_pair(dist, make_pair(count0, count1));
         };
 
-        auto [parity1, even1] = get_parities(n, edges1);
-        auto [parity2, even2] = get_parities(m, edges2);
+        auto res1 = get_parity(n, edges1);
+        vector<int> dist1 = res1.first;
+        int c1_0 = res1.second.first;
+        int c1_1 = res1.second.second;
 
-        int odd1 = n - even1;
-        int odd2 = m - even2;
-        int max_tree2_contribution = max(even2, odd2);
+        auto res2 = get_parity(m, edges2);
+        int c2_0 = res2.second.first;
+        int c2_1 = res2.second.second;
+        int max_tree2 = max(c2_0, c2_1);
 
-        vector<int> result(n);
+        vector<int> ans(n);
         for (int i = 0; i < n; ++i) {
-            int tree1_contribution = (parity1[i] == 0) ? even1 : odd1;
-            result[i] = tree1_contribution + max_tree2_contribution;
+            if (dist1[i] % 2 == 0) {
+                ans[i] = c1_0 + max_tree2;
+            } else {
+                ans[i] = c1_1 + max_tree2;
+            }
         }
 
-        return result;
+        return ans;
     }
 };

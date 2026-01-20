@@ -8,15 +8,18 @@
 #include <deque>
 
 class FrontMiddleBackQueue {
-    std::deque<int> left, right;
+private:
+    std::deque<int> dq1; // Front half
+    std::deque<int> dq2; // Back half
 
-    void rebalance() {
-        if (left.size() > right.size()) {
-            right.push_front(left.back());
-            left.pop_back();
-        } else if (right.size() > left.size() + 1) {
-            left.push_back(right.front());
-            right.pop_front();
+    // Maintain invariant: dq2.size() == dq1.size() OR dq2.size() == dq1.size() + 1
+    void balance() {
+        if (dq1.size() > dq2.size()) {
+            dq2.push_front(dq1.back());
+            dq1.pop_back();
+        } else if (dq2.size() > dq1.size() + 1) {
+            dq1.push_back(dq2.front());
+            dq2.pop_front();
         }
     }
 
@@ -25,57 +28,57 @@ public:
     }
     
     void pushFront(int val) {
-        left.push_front(val);
-        rebalance();
+        dq1.push_front(val);
+        balance();
     }
     
     void pushMiddle(int val) {
-        if (right.size() > left.size()) {
-            left.push_back(right.front());
-            right.pop_front();
+        if (dq1.size() == dq2.size()) {
+            dq2.push_front(val);
+        } else {
+            dq1.push_back(val);
         }
-        right.push_front(val);
     }
     
     void pushBack(int val) {
-        right.push_back(val);
-        rebalance();
+        dq2.push_back(val);
+        balance();
     }
     
     int popFront() {
-        if (left.empty() && right.empty()) return -1;
-        int val;
-        if (left.empty()) {
-            val = right.front();
-            right.pop_front();
+        if (dq2.empty()) return -1;
+        int res;
+        if (dq1.empty()) {
+            res = dq2.front();
+            dq2.pop_front();
         } else {
-            val = left.front();
-            left.pop_front();
+            res = dq1.front();
+            dq1.pop_front();
         }
-        rebalance();
-        return val;
+        balance();
+        return res;
     }
     
     int popMiddle() {
-        if (left.empty() && right.empty()) return -1;
-        int val;
-        if (left.size() == right.size()) {
-            val = left.back();
-            left.pop_back();
+        if (dq2.empty()) return -1;
+        int res;
+        if (dq1.size() == dq2.size()) {
+            res = dq1.back();
+            dq1.pop_back();
         } else {
-            val = right.front();
-            right.pop_front();
+            res = dq2.front();
+            dq2.pop_front();
         }
-        rebalance();
-        return val;
+        balance();
+        return res;
     }
     
     int popBack() {
-        if (left.empty() && right.empty()) return -1;
-        int val = right.back();
-        right.pop_back();
-        rebalance();
-        return val;
+        if (dq2.empty()) return -1;
+        int res = dq2.back();
+        dq2.pop_back();
+        balance();
+        return res;
     }
 };
 

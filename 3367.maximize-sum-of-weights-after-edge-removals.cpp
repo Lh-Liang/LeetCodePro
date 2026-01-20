@@ -22,39 +22,39 @@ public:
 
         auto dfs = [&](auto self, int u, int p) -> pair<long long, long long> {
             long long base_sum = 0;
-            vector<long long> gains;
+            vector<long long> diffs;
 
             for (auto& edge : adj[u]) {
                 int v = edge.first;
                 int w = edge.second;
                 if (v == p) continue;
 
-                auto [dp_v_0, dp_v_1] = self(self, v, u);
+                auto [res0, res1] = self(self, v, u);
+                // res0: max sum if v can connect to u
+                // res1: max sum if v cannot connect to u (already has k connections)
                 
-                // Base: assume we don't take edge (u, v)
-                base_sum += dp_v_0;
-                
-                // Gain if we take edge (u, v)
-                long long gain = (long long)w + dp_v_1 - dp_v_0;
-                if (gain > 0) {
-                    gains.push_back(gain);
+                base_sum += res1;
+                long long diff = (res0 + w) - res1;
+                if (diff > 0) {
+                    diffs.push_back(diff);
                 }
             }
 
-            sort(gains.rbegin(), gains.rend());
+            sort(diffs.rbegin(), diffs.rend());
 
-            long long res0 = base_sum; // u can take up to k children
-            long long res1 = base_sum; // u can take up to k-1 children (1 slot for parent)
+            long long sum0 = base_sum; // can take k-1 edges to children
+            long long sum1 = base_sum; // can take k edges to children
 
-            for (int i = 0; i < gains.size(); ++i) {
-                if (i < k) res0 += gains[i];
-                if (i < k - 1) res1 += gains[i];
+            for (int i = 0; i < diffs.size(); ++i) {
+                if (i < k - 1) sum0 += diffs[i];
+                if (i < k) sum1 += diffs[i];
             }
 
-            return {res0, res1};
+            return {sum0, sum1};
         };
 
-        return dfs(dfs, 0, -1).first;
+        auto result = dfs(dfs, 0, -1);
+        return result.second;
     }
 };
 # @lc code=end
