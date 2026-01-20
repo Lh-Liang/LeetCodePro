@@ -5,11 +5,6 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <cmath>
-
-using namespace std;
-
 class Solution {
 public:
     int uniqueXorTriplets(vector<int>& nums) {
@@ -17,18 +12,17 @@ public:
         if (n == 1) return 1;
         if (n == 2) return 2;
         
-        // For n >= 3, the unique XOR triplets will cover all values from 0 to 2^m - 1
-        // where m is the number of bits required to represent n.
-        // This is because we can always form 0 (1^2^3) and any value x in [1, n].
-        // XORing x with 0 (as 1^2^3) and other combinations allows us to span the basis.
-        int m = 0;
-        int temp_n = n;
-        while (temp_n > 0) {
-            temp_n >>= 1;
-            m++;
-        }
+        // For n >= 3, the reachable values cover the range [0, P-1] where P is the 
+        // smallest power of 2 strictly greater than n.
+        // This is because with {1, 2, 3} (n=3) we can form {0, 1, 2, 3}. 
+        // By induction, if we can form [0, 2^k - 1], adding 2^k allows us to form 
+        // [2^k, 2^{k+1} - 1] as well, provided we have enough elements to form any XOR pair.
         
-        return (1 << m);
+        long long p = 1;
+        while (p <= n) {
+            p <<= 1;
+        }
+        return (int)p;
     }
 };
 # @lc code=end
