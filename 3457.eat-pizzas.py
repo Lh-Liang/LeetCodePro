@@ -5,10 +5,21 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def maxWeight(self, pizzas: List[int]) -> int:
-        # Sort pizzas in descending order
         pizzas.sort(reverse=True)
-        # Sum every other element starting from index 0
-        # This selects k elements where k = n / 4
-        return sum(pizzas[::2])
+        n = len(pizzas)
+        k = n // 4
+        odd_days = (k + 1) // 2
+        even_days = k // 2
+        m = odd_days + 2 * even_days
+        sum_top = sum(pizzas[:m])
+        sacrificed = 0
+        start = odd_days
+        for i in range(even_days):
+            sacrificed += pizzas[start + 2 * i]
+        return sum_top - sacrificed
+
+# @lc code=end
