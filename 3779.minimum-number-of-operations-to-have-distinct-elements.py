@@ -9,21 +9,24 @@ from typing import List
 
 class Solution:
     def minOperations(self, nums: List[int]) -> int:
-        # Maximum index among first occurrences of duplicate pairs.
-        max_dup_start = -1
-        # Dictionary mapping value to its most recent occurrence index.
-        last_occurrence = {}
-        
-        for idx, num in enumerate(nums):
-            if num in last_occurrence:
-                # Found a duplicate pair.
-                # Update max_dup_start with the earlier occurrence index.
-                max_dup_start = max(max_dup_start, last_occurrence[num])
-            # Update the most recent occurrence.
-            last_occurrence[num] = idx
-        
-        # Minimum start index needed.
-        m = max_dup_start + 1
-        # Number of operations required.
-        return (m + 2) // 3
+        n = len(nums)
+        if n == 0:
+            return 0
+        is_distinct = [False] * (n + 1)
+        is_distinct[n] = True
+        count = {}
+        for i in range(n - 1, -1, -1):
+            val = nums[i]
+            prev_c = count.get(val, 0)
+            if prev_c > 0:
+                is_distinct[i] = False
+            else:
+                is_distinct[i] = is_distinct[i + 1]
+            count[val] = prev_c + 1
+        k = 0
+        while True:
+            s = min(3 * k, n)
+            if is_distinct[s]:
+                return k
+            k += 1
 # @lc code=end

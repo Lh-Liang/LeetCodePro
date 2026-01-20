@@ -7,19 +7,19 @@
 # @lc code=start
 class Solution:
     def lastInteger(self, n: int) -> int:
-        head = 1
-        step = 1
-        remaining = n
-        left = True
-        
-        while remaining > 1:
-            # When going from right and count is even, first element is deleted
-            if not left and remaining % 2 == 0:
-                head += step
-            
-            step *= 2
-            remaining = (remaining + 1) // 2
-            left = not left
-        
-        return head
+        s, d, m = 1, 1, n
+        turn = 1  # 1: op1 (left), 0: op2 (right)
+        while m > 1:
+            if turn == 1:
+                # op1: s unchanged
+                d *= 2
+                m = (m + 1) // 2
+            else:
+                # op2
+                if m % 2 == 0:
+                    s += d
+                d *= 2
+                m = (m + 1) // 2
+            turn = 1 - turn
+        return s
 # @lc code=end

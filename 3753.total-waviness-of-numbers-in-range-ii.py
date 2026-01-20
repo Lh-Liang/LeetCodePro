@@ -5,54 +5,44 @@
 #
 
 # @lc code=start
-from functools import lru_cache
+import functools
+from typing import Tuple
 
 class Solution:
     def totalWaviness(self, num1: int, num2: int) -> int:
-        MOD = 10**9 + 7
-        
-        def count(n):
-            if n <= 0:
+        def compute(num: int) -> int:
+            if num < 0:
                 return 0
-            s = str(n)
-            m = len(s)
-            
-            @lru_cache(maxsize=None)
-            def dp(pos, tight, pp, p):
-                # pp = prev_prev digit (-1 if not set)
-                # p = prev digit (-1 if number hasn't started)
-                if pos == m:
-                    return (1, 0)
-                
-                limit = int(s[pos]) if tight else 9
-                cnt, wav = 0, 0
-                
-                for d in range(limit + 1):
-                    nt = tight and (d == limit)
-                    
-                    if p == -1 and d == 0:
-                        # Still in leading zeros
-                        c, w = dp(pos + 1, nt, -1, -1)
-                    elif p == -1:
-                        # First significant digit
-                        c, w = dp(pos + 1, nt, -1, d)
-                    else:
-                        # Check if prev (p) is peak or valley
-                        add = 0
-                        if pp != -1:
-                            if pp < p > d:  # peak
-                                add = 1
-                            elif pp > p < d:  # valley
-                                add = 1
-                        c, w = dp(pos + 1, nt, p, d)
-                        w = (w + c * add) % MOD
-                    
-                    cnt = (cnt + c) % MOD
-                    wav = (wav + w) % MOD
-                
-                return (cnt, wav)
-            
-            return dp(0, True, -1, -1)[1]
-        
-        return (count(num2) - count(num1 - 1) + MOD) % MOD
+            s = f"{num:016d}"
+            @functools.lru_cache(None)
+            def dp(pos: int, tight: int, start_idx: int, pp: int, p: int) -> tuple[int, int]:
+                if pos == 16:
+                    return 1, 0
+                ans_c = 0
+                ans_s = 0
+                up = int(s[pos]) if tight == 1 else 9
+                s_pos_digit = int(s[pos])
+                for d in range(up + 1):
+                    ntight = 1 if tight == 1 and d == s_pos_digit else 0
+                    sp = start_idx - 1
+                    nsp = sp if sp != -1 else (pos if d > 0 else -1)
+                    nstart_idx = nsp + 1
+                    npp = p
+                    np = d
+                    contrib = 0
+                    if pos >= 2:
+                        isp = sp
+                        if isp != -1 and (pos - 1) >= isp + 1 and (pos - 1) <= 14:
+                            middle = p
+                            left = pp
+                            right = d
+                            if (middle > left and middle > right) or (middle < left and middle < right):
+                                contrib = 1
+                    sc, ss = dp(pos + 1, ntight, nstart_idx, npp, np)
+                    ans_c += sc
+                    ans_s += ss + contrib * sc
+                return ans_c, ans_s
+            return dp(0, 1, 0, 0, 0)[1]
+        return compute(num2) - compute(num1 - 1)
+
 # @lc code=end
