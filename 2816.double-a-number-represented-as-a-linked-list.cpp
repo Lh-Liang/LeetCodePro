@@ -18,23 +18,23 @@
 class Solution {
 public:
     ListNode* doubleIt(ListNode* head) {
-        // If the leading digit is 5 or greater, doubling will create a new most-significant digit.
-        // Prepend a node with value 0 to handle this carry seamlessly in the loop.
-        if (head->val >= 5) {
+        // If the head is greater than 4, doubling it will result in a carry
+        // that creates a new most significant digit.
+        if (head->val > 4) {
             head = new ListNode(0, head);
         }
 
         ListNode* curr = head;
         while (curr != nullptr) {
-            // The new value of the current digit is (val * 2) % 10.
-            // We also add a carry of 1 if the NEXT digit is 5 or greater.
-            int newVal = (curr->val * 2) % 10;
-            
-            if (curr->next != nullptr && curr->next->val >= 5) {
-                newVal += 1;
+            // Double the current value modulo 10
+            curr->val = (curr->val * 2) % 10;
+
+            // If the next digit is > 4, it will produce a carry when doubled,
+            // so we add 1 to the current digit.
+            if (curr->next != nullptr && curr->next->val > 4) {
+                curr->val += 1;
             }
-            
-            curr->val = newVal;
+
             curr = curr->next;
         }
 

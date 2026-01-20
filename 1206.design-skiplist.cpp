@@ -5,94 +5,118 @@
 #
 
 # @lc code=start
-#include <cstdlib>
+#include <vector>
+#include <random>
+#include <algorithm>
+
+using namespace std;
+
+struct Node {
+    int val;
+    vector<Node*> forward;
+    
+    Node(int v, int level) : val(v), forward(level, nullptr) {}
+};
 
 class Skiplist {
 private:
-    static const int MAX_LEVEL = 16;
-    
-    struct Node {
-        int val;
-        Node* next[MAX_LEVEL];
-        Node(int v) : val(v) {
-            for (int i = 0; i < MAX_LEVEL; ++i) {
-                next[i] = nullptr;
-            }
-        }
-    };
-
     Node* head;
+    int maxLevel;
+    const int MAX_LEVEL = 32;
+    const float P = 0.5;
+    
+    // Random level generator
+    int randomLevel() {
+        int lvl = 1;
+        while ((float)rand() / RAND_MAX < P && lvl < MAX_LEVEL) {
+            lvl++;
+        }
+        return lvl;
+    }
 
 public:
     Skiplist() {
-        head = new Node(-1);
-    }
-    
-    ~Skiplist() {
-        Node* curr = head;
-        while (curr) {
-            Node* temp = curr->next[0];
-            delete curr;
-            curr = temp;
-        }
+        head = new Node(-1, MAX_LEVEL);
+        maxLevel = 0; // Current highest level containing actual data
+        srand(time(0));
     }
     
     bool search(int target) {
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
-            while (curr->next[i] && curr->next[i]->val < target) {
-                curr = curr->next[i];
+        // Start from the highest level and go down
+        for (int i = maxLevel - 1; i >= 0; i--) {
+            while (curr->forward[i] && curr->forward[i]->val < target) {
+                curr = curr->forward[i];
             }
         }
-        curr = curr->next[0];
+        // Move to the next node at level 0
+        curr = curr->forward[0];
         return curr && curr->val == target;
     }
     
     void add(int num) {
-        Node* update[MAX_LEVEL];
+        vector<Node*> update(MAX_LEVEL, nullptr);
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
-            while (curr->next[i] && curr->next[i]->val < num) {
-                curr = curr->next[i];
+        
+        // Find the position to insert at all levels
+        for (int i = maxLevel - 1; i >= 0; i--) {
+            while (curr->forward[i] && curr->forward[i]->val < num) {
+                curr = curr->forward[i];
             }
             update[i] = curr;
         }
-
-        int lv = 1;
-        while (lv < MAX_LEVEL && (rand() % 2 == 0)) {
-            lv++;
+        
+        int lvl = randomLevel();
+        
+        // If the new level is higher than current maxLevel, update the head's forward pointers
+        if (lvl > maxLevel) {
+            for (int i = maxLevel; i < lvl; i++) {
+                update[i] = head;
+            }
+            maxLevel = lvl;
         }
-
-        Node* newNode = new Node(num);
-        for (int i = 0; i < lv; ++i) {
-            newNode->next[i] = update[i]->next[i];
-            update[i]->next[i] = newNode;
+        
+        // Create new node and insert links
+        Node* newNode = new Node(num, lvl);
+        for (int i = 0; i < lvl; i++) {
+            newNode->forward[i] = update[i]->forward[i];
+            update[i]->forward[i] = newNode;
         }
     }
     
     bool erase(int num) {
-        Node* update[MAX_LEVEL];
+        vector<Node*> update(MAX_LEVEL, nullptr);
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
-            while (curr->next[i] && curr->next[i]->val < num) {
-                curr = curr->next[i];
+        
+        // Find the predecessor nodes at all levels
+        for (int i = maxLevel - 1; i >= 0; i--) {
+            while (curr->forward[i] && curr->forward[i]->val < num) {
+                curr = curr->forward[i];
             }
             update[i] = curr;
         }
-
-        Node* target = curr->next[0];
-        if (!target || target->val != num) {
-            return false;
-        }
-
-        for (int i = 0; i < MAX_LEVEL; ++i) {
-            if (update[i]->next[i] != target) {
-                break;
+        
+        curr = curr->forward[0];
+        
+        // If target found
+        if (curr && curr->val == num) {
+            for (int i = 0; i < maxLevel; i++) {
+                if (update[i]->forward[i] != curr) {
+                    break;
+                }
+                update[i]->forward[i] = curr->forward[i];
             }
-            update[i]->next[i] = target->next[i];
+            
+            // Remove empty levels
+            while (maxLevel > 0 && head->forward[maxLevel - 1] == nullptr) {
+                maxLevel--;
+            }
+            
+            delete curr;
+            return true;
         }
-        delete target;
-        return true;
+        
+        return false;
     }
 };
 

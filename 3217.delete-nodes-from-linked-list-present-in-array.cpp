@@ -15,36 +15,34 @@
  *     ListNode(int x, ListNode *next) : val(x), next(next) {}
  * };
  */
-#include <vector>
-#include <unordered_set>
-
-using namespace std;
-
 class Solution {
 public:
     ListNode* modifiedList(vector<int>& nums, ListNode* head) {
-        // Convert vector to unordered_set for O(1) lookups
+        // Use an unordered_set for O(1) lookups
         unordered_set<int> numSet(nums.begin(), nums.end());
         
-        // Create a dummy node to simplify head deletion logic
-        ListNode dummy(0);
-        dummy.next = head;
-        ListNode* curr = &dummy;
+        // Create a dummy node to handle edge cases easily (e.g., removing head)
+        ListNode* dummy = new ListNode(0);
+        dummy->next = head;
         
-        // Traverse the list
-        while (curr->next != nullptr) {
-            if (numSet.count(curr->next->val)) {
-                // If the next node's value is in nums, skip it
-                ListNode* temp = curr->next;
-                curr->next = curr->next->next;
-                // In a real environment, you might delete temp here: delete temp;
+        ListNode* prev = dummy;
+        ListNode* curr = head;
+        
+        while (curr != nullptr) {
+            if (numSet.count(curr->val)) {
+                // If current node's value is in the set, remove it
+                prev->next = curr->next;
+                // Move curr forward, but keep prev the same
+                // (the next node might also need removal)
+                curr = curr->next;
             } else {
-                // Otherwise, move current pointer forward
+                // If not removing, move both pointers
+                prev = curr;
                 curr = curr->next;
             }
         }
         
-        return dummy.next;
+        return dummy->next;
     }
 };
 # @lc code=end
