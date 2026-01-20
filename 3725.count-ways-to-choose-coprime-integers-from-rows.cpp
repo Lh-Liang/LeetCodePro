@@ -1,7 +1,3 @@
-#include <vector>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=3725 lang=cpp
 #
@@ -9,84 +5,70 @@ using namespace std;
 #
 
 # @lc code=start
+#include <vector>
+#include <numeric>
+#include <map>
+
+using namespace std;
+
 class Solution {
 public:
-    /**
-     * Returns the number of ways to choose exactly one integer from each row 
-     * such that the GCD of all chosen integers is 1.
-     */
     int countCoprime(vector<vector<int>>& mat) {
         int m = mat.size();
-        if (m == 0) return 0;
-        int n = mat[0].size();
+        int MOD = 1e9 + 7;
+        int MAX_VAL = 0;
         
-        int max_v = 0;
-        for (const auto& row : mat) {
-            for (int x : row) {
-                if (x > max_v) max_v = x;
+        // Find the maximum possible value to size our DP array, though 150 is the constraint limit.
+        // The constraints say values <= 150.
+        for(const auto& row : mat) {
+            for(int val : row) {
+                MAX_VAL = max(MAX_VAL, val);
             }
         }
-
-        if (max_v == 0) return 0;
-
-        // Step 1: Precompute the Mobius function up to max_v using a linear sieve
-        vector<int> mu(max_v + 1, 0);
-        vector<int> primes;
-        vector<bool> is_not_prime(max_v + 1, false);
-        mu[1] = 1;
-        for (int i = 2; i <= max_v; ++i) {
-            if (!is_not_prime[i]) {
-                primes.push_back(i);
-                mu[i] = -1;
+        
+        // dp[g] stores the number of ways to pick numbers from processed rows
+        // such that their running GCD is g.
+        vector<long long> dp(MAX_VAL + 1, 0);
+        
+        // Initialize for the first row
+        // We use a map or frequency array to handle duplicates in the row.
+        // Since we need to pick exactly one from the row, duplicates just add to the ways.
+        for (int val : mat[0]) {
+            dp[val]++;
+        }
+        
+        // Process remaining rows
+        for (int i = 1; i < m; ++i) {
+            vector<long long> next_dp(MAX_VAL + 1, 0);
+            
+            // Count frequencies of numbers in the current row to optimize
+            // Instead of iterating n times, we iterate distinct values (at most 150).
+            vector<int> row_counts(MAX_VAL + 1, 0);
+            bool has_val = false;
+            for (int val : mat[i]) {
+                row_counts[val]++;
+                has_val = true;
             }
-            for (int p : primes) {
-                if (i * p > max_v) break;
-                is_not_prime[i * p] = true;
-                if (i % p == 0) {
-                    mu[i * p] = 0;
-                    break;
-                } else {
-                    mu[i * p] = -mu[i];
+            
+            if (!has_val) continue; // Should not happen based on constraints
+
+            // Iterate over all possible GCD values from the previous state
+            for (int g = 1; g <= MAX_VAL; ++g) {
+                if (dp[g] == 0) continue;
+                
+                // Try combining with every number present in the current row
+                for (int val = 1; val <= MAX_VAL; ++val) {
+                    if (row_counts[val] > 0) {
+                        int new_gcd = std::gcd(g, val);
+                        long long ways = (dp[g] * row_counts[val]) % MOD;
+                        next_dp[new_gcd] = (next_dp[new_gcd] + ways) % MOD;
+                    }
                 }
             }
+            dp = next_dp;
         }
-
-        // Step 2: Pre-count the frequency of each value in each row
-        vector<vector<int>> val_counts(m, vector<int>(max_v + 1, 0));
-        for (int i = 0; i < m; ++i) {
-            for (int x : mat[i]) {
-                val_counts[i][x]++;
-            }
-        }
-
-        long long total_ans = 0;
-        const long long MOD = 1e9 + 7;
-
-        // Step 3: Use Mobius Inversion to find the number of ways where GCD is 1
-        // f(1) = sum over g of (mu(g) * F(g))
-        // F(g) is the number of ways to pick integers all divisible by g
-        for (int g = 1; g <= max_v; ++g) {
-            if (mu[g] == 0) continue;
-
-            long long ways_for_g = 1;
-            for (int i = 0; i < m; ++i) {
-                int count_multiples = 0;
-                for (int multiple = g; multiple <= max_v; multiple += g) {
-                    count_multiples += val_counts[i][multiple];
-                }
-                // Multiply the number of choices in this row that are multiples of g
-                ways_for_g = (ways_for_g * count_multiples) % MOD;
-                if (ways_for_g == 0) break;
-            }
-
-            if (mu[g] == 1) {
-                total_ans = (total_ans + ways_for_g) % MOD;
-            } else if (mu[g] == -1) {
-                total_ans = (total_ans - ways_for_g + MOD) % MOD;
-            }
-        }
-
-        return static_cast<int>(total_ans);
+        
+        return dp[1];
     }
 };
 # @lc code=end
