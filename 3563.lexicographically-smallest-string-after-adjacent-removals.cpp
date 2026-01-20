@@ -15,15 +15,18 @@ class Solution {
 public:
     string lexicographicallySmallestString(string s) {
         int n = s.length();
-        // can_empty[i][j] is true if substring s[i...j] can be reduced to ""
-        vector<vector<bool>> can_empty(n + 1, vector<bool>(n + 1, false));
+        
+        auto is_consecutive = [](char a, char b) {
+            int diff = abs(a - b);
+            return diff == 1 || diff == 25;
+        };
 
-        // Base case: empty string is empty
+        // can_empty[i][j] is true if s[i...j] can be completely removed
+        vector<vector<bool>> can_empty(n + 1, vector<bool>(n + 1, false));
         for (int i = 0; i <= n; ++i) {
-            can_empty[i][i - 1] = true;
+            can_empty[i][i - 1] = true; // Base case: empty range
         }
 
-        // DP to find all substrings that can be reduced to ""
         for (int len = 2; len <= n; len += 2) {
             for (int i = 0; i <= n - len; ++i) {
                 int j = i + len - 1;
@@ -36,30 +39,26 @@ public:
             }
         }
 
-        // f[i] is the lexicographically smallest string possible from s[i...n-1]
-        vector<string> f(n + 1);
-        f[n] = "";
+        // dp[i] is the lexicographically smallest string from s[i...n-1]
+        vector<string> dp(n + 1);
+        dp[n] = "";
+
         for (int i = n - 1; i >= 0; --i) {
             // Option 1: Keep current character s[i]
-            f[i] = s[i] + f[i + 1];
-            
+            dp[i] = s[i] + dp[i + 1];
+
             // Option 2: Remove s[i] by pairing it with some s[k]
-            for (int k = i + 1; k < n; k += 2) {
-                if (can_empty[i][k]) {
-                    if (f[k + 1] < f[i]) {
-                        f[i] = f[k + 1];
+            for (int k = i + 1; k < n; ++k) {
+                // To remove s[i] and s[k], the segment between them must be removable
+                if (is_consecutive(s[i], s[k]) && can_empty[i + 1][k - 1]) {
+                    if (dp[k + 1] < dp[i]) {
+                        dp[i] = dp[k + 1];
                     }
                 }
             }
         }
 
-        return f[0];
-    }
-
-private:
-    bool is_consecutive(char a, char b) {
-        int diff = abs(a - b);
-        return diff == 1 || diff == 25;
+        return dp[0];
     }
 };
 # @lc code=end

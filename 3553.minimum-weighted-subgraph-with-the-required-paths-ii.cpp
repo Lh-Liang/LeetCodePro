@@ -6,64 +6,63 @@
 
 # @lc code=start
 #include <vector>
+#include <queue>
 #include <algorithm>
 
 using namespace std;
 
 class Solution {
 public:
-    vector<int> minimumWeight(vector<vector<int>>& edges, vector<vector<int>>& queries) {
+    vector<long long> minimumWeight(vector<vector<int>>& edges, vector<vector<int>>& queries) {
         int n = edges.size() + 1;
         vector<vector<pair<int, int>>> adj(n);
-        for (const auto& edge : edges) {
-            adj[edge[0]].push_back({edge[1], edge[2]});
-            adj[edge[1]].push_back({edge[0], edge[2]});
+        for (const auto& e : edges) {
+            adj[e[0]].push_back({e[1], e[2]});
+            adj[e[1]].push_back({e[0], e[2]});
         }
 
-        vector<int> depth(n, 0);
-        vector<long long> dist(n, 0);
-        vector<vector<int>> up(n, vector<int>(18, 0));
-        vector<int> parent(n, -1);
-        
-        vector<int> q;
-        q.reserve(n);
-        q.push_back(0);
-        parent[0] = 0;
-        depth[0] = 0;
-        dist[0] = 0;
+        int LOG = 18;
+        vector<vector<int>> up(n, vector<int>(LOG));
+        vector<long long> depth(n, 0);
+        vector<int> level(n, 0);
+        vector<bool> visited(n, false);
+
+        queue<int> q;
+        q.push(0);
+        visited[0] = true;
         up[0][0] = 0;
 
-        int head = 0;
-        while (head < q.size()) {
-            int u = q[head++];
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
             for (auto& edge : adj[u]) {
                 int v = edge.first;
                 int w = edge.second;
-                if (v != parent[u]) {
-                    parent[v] = u;
-                    depth[v] = depth[u] + 1;
-                    dist[v] = dist[u] + w;
+                if (!visited[v]) {
+                    visited[v] = true;
                     up[v][0] = u;
-                    q.push_back(v);
+                    depth[v] = depth[u] + w;
+                    level[v] = level[u] + 1;
+                    q.push(v);
                 }
             }
         }
 
-        for (int j = 1; j < 18; j++) {
-            for (int i = 0; i < n; i++) {
-                up[i][j] = up[up[i][j - 1]][j - 1];
+        for (int i = 1; i < LOG; i++) {
+            for (int u = 0; u < n; u++) {
+                up[u][i] = up[up[u][i - 1]][i - 1];
             }
         }
 
         auto get_lca = [&](int u, int v) {
-            if (depth[u] < depth[v]) swap(u, v);
-            for (int i = 17; i >= 0; i--) {
-                if (depth[u] - (1 << i) >= depth[v]) {
+            if (level[u] < level[v]) swap(u, v);
+            for (int i = LOG - 1; i >= 0; i--) {
+                if (level[u] - (1 << i) >= level[v]) {
                     u = up[u][i];
                 }
             }
             if (u == v) return u;
-            for (int i = 17; i >= 0; i--) {
+            for (int i = LOG - 1; i >= 0; i--) {
                 if (up[u][i] != up[v][i]) {
                     u = up[u][i];
                     v = up[v][i];
@@ -73,17 +72,19 @@ public:
         };
 
         auto get_dist = [&](int u, int v) {
-            return dist[u] + dist[v] - 2 * dist[get_lca(u, v)];
+            return depth[u] + depth[v] - 2 * depth[get_lca(u, v)];
         };
 
-        vector<int> results;
+        vector<long long> results;
         results.reserve(queries.size());
         for (const auto& query : queries) {
-            int u = query[0], v = query[1], w = query[2];
-            long long d_uv = get_dist(u, v);
-            long long d_vw = get_dist(v, w);
-            long long d_uw = get_dist(u, w);
-            results.push_back((int)((d_uv + d_vw + d_uw) / 2));
+            int a = query[0];
+            int b = query[1];
+            int c = query[2];
+            long long d_ab = get_dist(a, b);
+            long long d_bc = get_dist(b, c);
+            long long d_ca = get_dist(c, a);
+            results.push_back((d_ab + d_bc + d_ca) / 2);
         }
 
         return results;
