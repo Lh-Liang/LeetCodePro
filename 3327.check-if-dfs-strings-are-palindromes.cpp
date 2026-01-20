@@ -1,111 +1,88 @@
+#
+# @lc app=leetcode id=3327 lang=cpp
+#
+# [3327] Check if DFS Strings Are Palindromes
+#
+
+# @lc code=start
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <chrono>
-#include <random>
+#include <stack>
 
 using namespace std;
 
-typedef unsigned __int128 uint128;
-
 class Solution {
-    const long long MOD = (1LL << 61) - 1;
-
-    struct HashHelper {
-        vector<long long> pref;
-        vector<long long> powB;
-        long long mod, b;
-
-        HashHelper(const string& s, long long b, long long mod) : b(b), mod(mod) {
-            int n = s.length();
-            pref.resize(n + 1, 0);
-            powB.resize(n + 1, 1);
-            for (int i = 0; i < n; ++i) {
-                pref[i + 1] = add(mul(pref[i], b), s[i] - 'a' + 1);
-                powB[i + 1] = mul(powB[i], b);
-            }
-        }
-
-        long long getHash(int i, int j) {
-            int len = j - i + 1;
-            return sub(pref[j + 1], mul(pref[i], powB[len]));
-        }
-
-        long long mul(long long a, long long b) {
-            uint128 res = (uint128)a * b;
-            uint128 ans = (res >> 61) + (res & mod);
-            if (ans >= mod) ans -= mod;
-            if (ans >= mod) ans -= mod;
-            return (long long)ans;
-        }
-
-        long long add(long long a, long long b) {
-            a += b;
-            if (a >= mod) a -= mod;
-            return a;
-        }
-
-        long long sub(long long a, long long b) {
-            a -= b;
-            if (a < 0) a += mod;
-            return a;
-        }
-    };
-
 public:
     vector<bool> findAnswer(vector<int>& parent, string s) {
         int n = parent.size();
         vector<vector<int>> adj(n);
-        for (int i = 1; i < n; ++i) {
+        for (int i = 1; i < n; i++) {
             adj[parent[i]].push_back(i);
         }
 
+        string totalDfsStr = "";
+        totalDfsStr.reserve(n);
         vector<int> start(n), end(n);
-        string T = "";
-        int timer = 0;
-
-        struct Frame {
-            int u;
-            int childIdx;
-        };
-        vector<Frame> st;
-        st.push_back({0, 0});
-
+        stack<pair<int, int>> st;
+        st.push({0, 0});
+        
+        // Iterative post-order traversal to build the DFS string and record ranges
         while (!st.empty()) {
-            Frame& top = st.back();
-            int u = top.u;
-            if (top.childIdx == 0) {
-                start[u] = timer;
+            int u = st.top().first;
+            int& childIdx = st.top().second;
+            if (childIdx == 0) {
+                start[u] = totalDfsStr.size();
             }
-            if (top.childIdx < adj[u].size()) {
-                int v = adj[u][top.childIdx];
-                top.childIdx++;
-                st.push_back({v, 0});
+            if (childIdx < adj[u].size()) {
+                int v = adj[u][childIdx];
+                childIdx++;
+                st.push({v, 0});
             } else {
-                T += s[u];
-                end[u] = timer;
-                timer++;
-                st.pop_back();
+                totalDfsStr += s[u];
+                end[u] = (int)totalDfsStr.size() - 1;
+                st.pop();
             }
         }
 
-        mt19937_64 rng(chrono::steady_clock::now().time_since_epoch().count());
-        long long B = uniform_int_distribution<long long>(300, 1e9)(rng);
-
-        HashHelper forward(T, B, MOD);
-        string Trev = T;
-        reverse(Trev.begin(), Trev.end());
-        HashHelper backward(Trev, B, MOD);
-
-        vector<bool> answer(n);
-        for (int i = 0; i < n; ++i) {
-            int l = start[i];
-            int r = end[i];
-            long long h1 = forward.getHash(l, r);
-            long long h2 = backward.getHash(n - 1 - r, n - 1 - l);
-            answer[i] = (h1 == h2);
+        // Manacher's Algorithm to find all palindromic centers
+        string t = "#";
+        for (char c : totalDfsStr) {
+            t += c;
+            t += "#";
         }
 
-        return answer;
+        int m = t.size();
+        vector<int> d(m, 0);
+        int l = 0, r = -1;
+        for (int i = 0; i < m; i++) {
+            int k = (i > r) ? 1 : min(d[l + r - i], r - i + 1);
+            while (i - k >= 0 && i + k < m && t[i - k] == t[i + k]) {
+                k++;
+            }
+            d[i] = k--;
+            if (i + k > r) {
+                l = i - k;
+                r = i + k;
+            }
+        }
+
+        vector<bool> ans(n);
+        for (int i = 0; i < n; i++) {
+            int L = start[i];
+            int R = end[i];
+            int len = R - L + 1;
+            // Mapping substring [L, R] to center in t
+            int C = L + R + 1;
+            // d[C]-1 is the length of the longest palindrome centered at C in totalDfsStr
+            if (d[C] - 1 >= len) {
+                ans[i] = true;
+            } else {
+                ans[i] = false;
+            }
+        }
+
+        return ans;
     }
 };
+# @lc code=end
