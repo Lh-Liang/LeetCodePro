@@ -1,121 +1,105 @@
-#
-# @lc app=leetcode id=3605 lang=cpp
-#
-# [3605] Minimum Stability Factor of Array
-#
-
-# @lc code=start
 #include <vector>
 #include <algorithm>
-#include <map>
+#include <cmath>
 
 using namespace std;
 
 class Solution {
-    struct Segment {
-        int l, r;
-        bool operator<(const Segment& other) const {
-            if (l != other.l) return l < other.l;
-            return r > other.r;
-        }
-    };
-
 public:
     int minStable(vector<int>& nums, int maxC) {
         int n = nums.size();
-        vector<int> primes;
-        vector<bool> is_prime(31623, true);
-        for (int p = 2; p <= 31622; ++p) {
-            if (is_prime[p]) {
-                primes.push_back(p);
-                for (long long i = (long long)p * p; i <= 31622; i += p)
-                    is_prime[i] = false;
+        if (maxC >= n) return 0;
+
+        // Pre-calculate primes up to sqrt(10^9)
+        const int MAX_SQRT = 31622;
+        static vector<int> primes;
+        if (primes.empty()) {
+            vector<bool> is_prime(MAX_SQRT + 1, true);
+            is_prime[0] = is_prime[1] = false;
+            for (int p = 2; p * p <= MAX_SQRT; p++) {
+                if (is_prime[p]) {
+                    for (int i = p * p; i <= MAX_SQRT; i += p)
+                        is_prime[i] = false;
+                }
+            }
+            for (int p = 2; p <= MAX_SQRT; p++) {
+                if (is_prime[p]) primes.push_back(p);
             }
         }
 
-        map<int, vector<int>> prime_to_indices;
+        // Collect (prime, index) pairs
+        vector<pair<int, int>> prime_index;
         for (int i = 0; i < n; ++i) {
-            int val = nums[i];
-            if (val < 2) continue;
+            int x = nums[i];
+            if (x < 2) continue;
             for (int p : primes) {
-                if (p * p > val) break;
-                if (val % p == 0) {
-                    prime_to_indices[p].push_back(i);
-                    while (val % p == 0) val /= p;
+                if (p * p > x) break;
+                if (x % p == 0) {
+                    prime_index.push_back({p, i});
+                    while (x % p == 0) x /= p;
                 }
             }
-            if (val > 1) prime_to_indices[val].push_back(i);
+            if (x > 1) prime_index.push_back({x, i});
         }
 
-        vector<Segment> all_segments;
-        for (auto const& [p, indices] : prime_to_indices) {
-            int start = indices[0];
-            for (int i = 1; i < indices.size(); ++i) {
-                if (indices[i] != indices[i - 1] + 1) {
-                    all_segments.push_back({start, indices[i - 1]});
-                    start = indices[i];
+        // Sort and find maximal segments for each prime
+        sort(prime_index.begin(), prime_index.end());
+        vector<pair<int, int>> all_segments;
+        int m = prime_index.size();
+        for (int i = 0; i < m; ) {
+            int j = i;
+            int start = prime_index[i].second;
+            int last = start;
+            while (j + 1 < m && prime_index[j+1].first == prime_index[i].first) {
+                if (prime_index[j+1].second == last + 1) {
+                    last++;
+                    j++;
+                } else {
+                    all_segments.push_back({start, last});
+                    j++;
+                    start = prime_index[j].second;
+                    last = start;
                 }
             }
-            all_segments.push_back({start, indices.back()});
+            all_segments.push_back({start, last});
+            i = j + 1;
         }
 
+        // Sort all segments by start point for efficient merging
         sort(all_segments.begin(), all_segments.end());
-        vector<Segment> filtered;
-        int max_r = -1;
-        for (auto& seg : all_segments) {
-            if (seg.r > max_r) {
-                filtered.push_back(seg);
-                max_r = seg.r;
-            }
-        }
 
         auto check = [&](int L) {
-            if (L >= n) return true;
+            if (L == n) return true;
             long long count = 0;
-            int curr_reach = -1;
-            int active_s = -1, active_e = -1;
-
-            for (auto& seg : filtered) {
-                if (seg.r - seg.l + 1 > L) {
-                    int s = seg.l;
-                    int e = seg.r - L;
-                    if (active_s == -1) {
-                        active_s = s;
-                        active_e = e;
-                    } else if (s <= active_e) {
-                        active_e = max(active_e, e);
-                    } else {
-                        int start = max(active_s, curr_reach);
-                        if (start <= active_e) {
-                            int num = (active_e - start) / (L + 1) + 1;
-                            count += num;
-                            curr_reach = start + num * (L + 1);
+            int current_S = -1, current_E = -1;
+            for (const auto& seg : all_segments) {
+                if (seg.second - seg.first + 1 > L) {
+                    int S = seg.first + L;
+                    int E = seg.second;
+                    if (S > current_E) {
+                        if (current_S != -1) {
+                            count += (current_E - current_S) / (L + 1) + 1;
                         }
-                        active_s = s;
-                        active_e = e;
+                        current_S = S;
+                        current_E = E;
+                    } else {
+                        current_E = max(current_E, E);
                     }
                 }
             }
-            if (active_s != -1) {
-                int start = max(active_s, curr_reach);
-                if (start <= active_e) {
-                    count += (active_e - start) / (L + 1) + 1;
-                }
+            if (current_S != -1) {
+                count += (current_E - current_S) / (L + 1) + 1;
             }
-            return count <= maxC;
+            return count <= (long long)maxC;
         };
 
-        int left = 0, right = n, ans = n;
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
-            if (check(mid)) {
-                ans = mid;
-                right = mid - 1;
-            } else {
-                left = mid + 1;
-            }
+        int low = 0, high = n;
+        while (low < high) {
+            int mid = low + (high - low) / 2;
+            if (check(mid)) high = mid;
+            else low = mid + 1;
         }
-        return ans;
+
+        return low;
     }
 };
-# @lc code=end

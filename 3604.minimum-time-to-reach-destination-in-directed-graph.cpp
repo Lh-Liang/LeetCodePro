@@ -13,50 +13,51 @@ using namespace std;
 
 class Solution {
 public:
+    struct Edge {
+        int to;
+        int start;
+        int end;
+    };
+
     int minTime(int n, vector<vector<int>>& edges) {
-        struct Edge {
-            int to, start, end;
-        };
-        
-        // Build adjacency list for the directed graph
+        // Build adjacency list
         vector<vector<Edge>> adj(n);
         for (const auto& e : edges) {
             adj[e[0]].push_back({e[1], e[2], e[3]});
         }
 
-        // Standard Dijkstra's distance array
-        // Max possible time is approx 1e9 + 1e5, so 2e9 is a safe infinity
-        vector<int> dist(n, 2000000000); 
+        // Dijkstra's algorithm
+        // dist[i] stores the earliest time we can reach node i
+        const int INF = 2000000000; // 2e9 is safe for the expected maximum time
+        vector<int> dist(n, INF);
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
+
         dist[0] = 0;
-        
-        // Min-heap for Dijkstra's: {time, node}
-        using pii = pair<int, int>;
-        priority_queue<pii, vector<pii>, greater<pii>> pq;
         pq.push({0, 0});
 
         while (!pq.empty()) {
-            auto [d, u] = pq.top();
+            pair<int, int> current = pq.top();
+            int d = current.first;
+            int u = current.second;
             pq.pop();
 
-            // If we already found a better way to reach u, skip
+            // If we already found a faster way to reach u, skip
             if (d > dist[u]) continue;
-            // If we reached the destination, return the current minimum time
+
+            // If we reached the destination node, return the time
             if (u == n - 1) return d;
 
             for (const auto& edge : adj[u]) {
-                int v = edge.to;
-                int s = edge.start;
-                int e = edge.end;
-
-                // The earliest time we can start traversing this edge is max(current_time, edge_start)
-                int wait_until = max(d, s);
-                
-                // Check if the edge is still available at or after the earliest possible start time
-                if (wait_until <= e) {
-                    // Arrive at the destination node v at time wait_until + 1
-                    if (wait_until + 1 < dist[v]) {
-                        dist[v] = wait_until + 1;
-                        pq.push({dist[v], v});
+                // Can only use the edge if current time is not past the end time
+                if (d <= edge.end) {
+                    // Earliest time to start travel is max(current time, edge start time)
+                    int startTime = max(d, edge.start);
+                    int arrivalTime = startTime + 1;
+                    
+                    // If this path is faster, update and push to priority queue
+                    if (arrivalTime < dist[edge.to]) {
+                        dist[edge.to] = arrivalTime;
+                        pq.push({arrivalTime, edge.to});
                     }
                 }
             }
