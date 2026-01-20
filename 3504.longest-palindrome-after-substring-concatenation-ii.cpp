@@ -1,155 +1,92 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <map>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=3504 lang=cpp
 #
 # [3504] Longest Palindrome After Substring Concatenation II
 #
-
 # @lc code=start
-class SAM {
-public:
-    struct Node {
-        int len, link;
-        map<char, int> next;
-    };
-    vector<Node> st;
-    int last;
-
-    SAM(string s) {
-        st.push_back({0, -1, {}});
-        last = 0;
-        for (char c : s) extend(c);
-    }
-
-    void extend(char c) {
-        int cur = st.size();
-        st.push_back({st[last].len + 1, 0, {}});
-        int p = last;
-        while (p != -1 && !st[p].next.count(c)) {
-            st[p].next[c] = cur;
-            p = st[p].link;
-        }
-        if (p == -1) {
-            st[cur].link = 0;
-        } else {
-            int q = st[p].next[c];
-            if (st[p].len + 1 == st[q].len) {
-                st[cur].link = q;
-            } else {
-                int clone = st.size();
-                st.push_back({st[p].len + 1, st[q].link, st[q].next});
-                while (p != -1 && st[p].next[c] == q) {
-                    st[p].next[c] = clone;
-                    p = st[p].link;
-                }
-                st[q].link = st[cur].link = clone;
-            }
-        }
-        last = cur;
-    }
-};
-
 class Solution {
 public:
     int longestPalindrome(string s, string t) {
+        // We need to check two cases:
+        // 1. The center of the palindrome is within the substring from s.
+        // 2. The center of the palindrome is within the substring from t.
+        // The second case is symmetric to the first if we swap s and t.
+        return max(solve(s, t), solve(t, s));
+    }
+
+private:
+    // Solves the problem assuming the center of the palindrome is in s (or at the boundary)
+    int solve(const string& s, const string& t) {
         int n = s.length();
         int m = t.length();
+        string tr = t;
+        reverse(tr.begin(), tr.end());
 
-        auto getPal = [](string str) {
-            int len = str.length();
-            vector<vector<bool>> dp(len, vector<bool>(len, false));
-            for (int i = len - 1; i >= 0; i--) {
-                dp[i][i] = true;
-                for (int j = i + 1; j < len; j++) {
-                    if (str[i] == str[j]) {
-                        dp[i][j] = (j - i == 1) ? true : dp[i + 1][j - 1];
-                    }
-                }
-            }
-            return dp;
-        };
+        // dp[i][j] stores the length of the longest common suffix 
+        // of s[0...i-1] and tr[0...j-1].
+        // This effectively finds the longest suffix of s[0...i-1] that matches a suffix of tr[0...j-1].
+        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
+        
+        // match_s[i] stores the maximum length of a suffix of s[0...i-1]
+        // that appears as a substring in tr (which is t reversed).
+        // This corresponds to finding the longest P such that P is a suffix of s[0...i-1]
+        // and P^R is a substring of t.
+        vector<int> match_s(n + 1, 0);
 
-        vector<vector<bool>> isPalS = getPal(s);
-        vector<vector<bool>> isPalT = getPal(t);
-
-        vector<int> maxPalSStartingAt(n + 1, 0);
-        for (int i = 0; i < n; i++) {
-            for (int j = i; j < n; j++) {
-                if (isPalS[i][j]) maxPalSStartingAt[i] = max(maxPalSStartingAt[i], j - i + 1);
-            }
-        }
-
-        vector<int> maxPalTEndingAt(m, 0);
-        for (int j = 0; j < m; j++) {
-            for (int i = 0; i <= j; i++) {
-                if (isPalT[i][j]) maxPalTEndingAt[j] = max(maxPalTEndingAt[j], j - i + 1);
-            }
-        }
-
-        SAM samT(t);
-        vector<int> f(n, 0);
-        int curr = 0, l = 0;
-        for (int i = 0; i < n; i++) {
-            char c = s[i];
-            while (curr != 0 && !samT.st[curr].next.count(c)) {
-                curr = samT.st[curr].link;
-                l = samT.st[curr].len;
-            }
-            if (samT.st[curr].next.count(c)) {
-                curr = samT.st[curr].next[c];
-                l++;
-            }
-            // We need the longest suffix of s[0..i] whose REVERSE is in t.
-            // So we actually need to process characters of s in reverse for each i.
-        }
-
-        // Correct approach for f(k) and g(k) with N=1000:
-        auto getLongestReverseIn = [](string src, string target, bool suffix) {
-            int n_src = src.length();
-            vector<int> res(n_src, 0);
-            for (int i = 0; i < n_src; i++) {
-                string sub = "";
-                if (suffix) {
-                    for (int j = i; j >= 0; j--) {
-                        sub += src[j];
-                        if (target.find(sub) != string::npos) res[i] = sub.length();
-                        else break;
-                    }
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 1; j <= m; ++j) {
+                if (s[i - 1] == tr[j - 1]) {
+                    dp[i][j] = dp[i - 1][j - 1] + 1;
                 } else {
-                    for (int j = i; j < n_src; j++) {
-                        sub += src[j];
-                        string rev = sub; reverse(rev.begin(), rev.end());
-                        if (target.find(rev) != string::npos) res[i] = sub.length();
-                        else break;
-                    }
+                    dp[i][j] = 0;
                 }
+                match_s[i] = max(match_s[i], dp[i][j]);
             }
-            return res;
-        };
-
-        vector<int> fk = getLongestReverseIn(s, t, true);
-        vector<int> gk = getLongestReverseIn(t, s, false);
-
-        int ans = 0;
-        for (int k = 0; k <= n; k++) {
-            int prefixLen = (k == 0) ? 0 : fk[k - 1];
-            int palLen = (k == n) ? 0 : maxPalSStartingAt[k];
-            ans = max(ans, 2 * prefixLen + palLen);
-        }
-        for (int k = -1; k < m; k++) {
-            int suffixLen = (k == m - 1) ? 0 : gk[k + 1];
-            int palLen = (k == -1) ? 0 : maxPalTEndingAt[k];
-            ans = max(ans, 2 * suffixLen + palLen);
         }
 
-        return ans;
+        int max_len = 0;
+
+        // Case 1: The palindrome center is exactly at the concatenation boundary.
+        // This means A = P and B = P^R. Length is 2 * |P|.
+        // P is a suffix of some prefix of s (i.e., a substring ending at some i).
+        // P^R must be in t. This is exactly what match_s[i] computes.
+        for (int i = 0; i <= n; ++i) {
+            max_len = max(max_len, 2 * match_s[i]);
+        }
+
+        // Case 2: The palindrome center is inside s.
+        // We iterate over all possible centers in s.
+        for (int i = 0; i < n; ++i) {
+            // Odd length palindrome centered at s[i]
+            int l = i, r = i;
+            while (l >= 0 && r < n && s[l] == s[r]) {
+                l--;
+                r++;
+            }
+            // The maximal palindrome in s centered at i is s[l+1 ... r-1].
+            // Its length is (r - 1) - (l + 1) + 1 = r - l - 1.
+            // The part of s to the left of this palindrome ends at index l.
+            // We can extend this palindrome by P if P is a suffix of s[...l] and P^R is in t.
+            int pal_len = r - l - 1;
+            int p_len = match_s[l + 1]; // match_s is 1-based size, so index l+1 corresponds to prefix length l+1
+            max_len = max(max_len, pal_len + 2 * p_len);
+
+            // Even length palindrome centered between s[i] and s[i+1]
+            l = i;
+            r = i + 1;
+            while (l >= 0 && r < n && s[l] == s[r]) {
+                l--;
+                r++;
+            }
+            // Palindrome s[l+1 ... r-1]
+            pal_len = r - l - 1;
+            if (pal_len > 0) {
+                 p_len = match_s[l + 1];
+                 max_len = max(max_len, pal_len + 2 * p_len);
+            }
+        }
+
+        return max_len;
     }
 };
 # @lc code=end

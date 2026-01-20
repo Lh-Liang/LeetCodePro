@@ -5,19 +5,15 @@
 #
 
 # @lc code=start
-#include <string>
-#include <algorithm>
-#include <vector>
-
-using namespace std;
-
 class Solution {
 public:
     bool isPalindrome(const string& str) {
-        if (str.empty()) return false;
-        int left = 0, right = str.length() - 1;
+        int left = 0;
+        int right = str.length() - 1;
         while (left < right) {
-            if (str[left] != str[right]) return false;
+            if (str[left] != str[right]) {
+                return false;
+            }
             left++;
             right--;
         }
@@ -29,29 +25,26 @@ public:
         int m = t.length();
         int maxLen = 0;
 
-        vector<string> s_subs = {""};
-        for (int i = 0; i < n; ++i) {
-            for (int len = 1; i + len <= n; ++len) {
-                s_subs.push_back(s.substr(i, len));
-            }
-        }
+        // Iterate over all substrings of s (including empty)
+        for (int i = 0; i <= n; ++i) {
+            for (int len_s = 0; i + len_s <= n; ++len_s) {
+                string sub_s = s.substr(i, len_s);
+                
+                // Iterate over all substrings of t (including empty)
+                for (int j = 0; j <= m; ++j) {
+                    for (int len_t = 0; j + len_t <= m; ++len_t) {
+                        string sub_t = t.substr(j, len_t);
+                        
+                        if (sub_s.empty() && sub_t.empty()) continue;
 
-        vector<string> t_subs = {""};
-        for (int i = 0; i < m; ++i) {
-            for (int len = 1; i + len <= m; ++len) {
-                t_subs.push_back(t.substr(i, len));
-            }
-        }
-
-        for (const string& sub1 : s_subs) {
-            for (const string& sub2 : t_subs) {
-                string combined = sub1 + sub2;
-                if (isPalindrome(combined)) {
-                    maxLen = max(maxLen, (int)combined.length());
+                        string combined = sub_s + sub_t;
+                        if (isPalindrome(combined)) {
+                            maxLen = max(maxLen, (int)combined.length());
+                        }
+                    }
                 }
             }
         }
-
         return maxLen;
     }
 };
