@@ -8,53 +8,44 @@
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
+        orig = [int(c) for c in s]
         
-        # Binary search on the answer
-        def canAchieve(maxLen: int) -> bool:
-            # For each possible substring of length maxLen, check if we can break all longer segments
-            # with at most numOps flips
+        def can_achieve(k: int) -> bool:
+            INF = 10**9
+            dp = [[[INF] * 2 for _ in range(k + 2)] for _ in range(n + 1)]
             
-            # First, find all maximal segments of identical characters
-            segments = []
-            i = 0
-            while i < n:
-                j = i
-                while j < n and s[j] == s[i]:
-                    j += 1
-                segments.append((i, j - 1))
-                i = j
+            for c in [0, 1]:
+                cost = 1 if orig[0] != c else 0
+                dp[1][1][c] = cost
             
-            # For a given maxLen, we need to ensure no segment is longer than maxLen
-            # We can reduce a segment of length L to at most maxLen by flipping
-            # ceil((L - maxLen) / 2) characters in optimal positions
+            for i in range(1, n):
+                for prev_len in range(1, k + 1):
+                    for prev_c in [0, 1]:
+                        if dp[i][prev_len][prev_c] == INF:
+                            continue
+                        for new_c in [0, 1]:
+                            cost = 1 if orig[i] != new_c else 0
+                            if new_c == prev_c:
+                                new_len = prev_len + 1
+                                if new_len > k:
+                                    continue
+                            else:
+                                new_len = 1
+                            dp[i + 1][new_len][new_c] = min(dp[i + 1][new_len][new_c], dp[i][prev_len][prev_c] + cost)
             
-            ops_needed = 0
-            for start, end in segments:
-                length = end - start + 1
-                if length > maxLen:
-                    # Number of operations needed to break this segment
-                    # We place breaks every maxLen characters
-                    # The number of breaks needed is ceil(length / maxLen) - 1
-                    # But it's easier to think: we need to reduce length to maxLen
-                    # We can reduce it by flipping every other character in the excess part
-                    # If length is L and maxLen is M, excess is (L-M)
-                    # We need to flip ceil((L-M)/2) characters
-                    ops_needed += (length - maxLen + 1) // 2
-                    if ops_needed > numOps:
-                        return False
-            return ops_needed <= numOps
+            min_cost = INF
+            for ln in range(1, k + 1):
+                for c in [0, 1]:
+                    min_cost = min(min_cost, dp[n][ln][c])
+            return min_cost <= numOps
         
-        # Binary search for the minimum possible length
         left, right = 1, n
-        result = n
-        
-        while left <= right:
+        while left < right:
             mid = (left + right) // 2
-            if canAchieve(mid):
-                result = mid
-                right = mid - 1
+            if can_achieve(mid):
+                right = mid
             else:
                 left = mid + 1
-        
-        return result
+        return left
+
 # @lc code=end

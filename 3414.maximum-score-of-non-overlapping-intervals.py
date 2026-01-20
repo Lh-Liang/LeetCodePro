@@ -4,77 +4,59 @@
 # [3414] Maximum Score of Non-overlapping Intervals
 #
 
+from typing import List
+import bisect
+
 # @lc code=start
 class Solution:
     def maximumWeight(self, intervals: List[List[int]]) -> List[int]:
         n = len(intervals)
-        # Add original indices and sort by end time
-        indexed_intervals = [(intervals[i][0], intervals[i][1], intervals[i][2], i) for i in range(n)]
-        indexed_intervals.sort(key=lambda x: x[1])  # Sort by end time
+        if n == 0:
+            return []
         
-        # Extract sorted data
-        starts = [interval[0] for interval in indexed_intervals]
-        ends = [interval[1] for interval in indexed_intervals]
-        weights = [interval[2] for interval in indexed_intervals]
-        indices = [interval[3] for interval in indexed_intervals]
+        inter = [(intervals[j][0], intervals[j][1], intervals[j][2], j) for j in range(n)]
+        sorted_inter = sorted(inter, key=lambda x: x[1])
+        ends = [x[1] for x in sorted_inter]
         
-        # Precompute prev_non_overlap[i] = largest j such that end[j] < start[i]
-        import bisect
-        prev_non_overlap = [-1] * n
-        for i in range(n):
-            # Find rightmost j such that ends[j] < starts[i]
-            pos = bisect.bisect_left(ends, starts[i])
-            if pos > 0:
-                prev_non_overlap[i] = pos - 1
-        
-        # DP[i][k] = maximum weight using at most k intervals from first i intervals
-        # parent[i][k] = (choice, prev_i) for backtracking
-        DP = [[0] * 5 for _ in range(n + 1)]
-        parent = [[(-1, -1)] * 5 for _ in range(n + 1)]
+        INF = float('-inf')
+        score_dp = [[INF] * 5 for _ in range(n + 1)]
+        list_dp = [[[] for _ in range(5)] for _ in range(n + 1)]
+        score_dp[0][0] = 0
         
         for i in range(1, n + 1):
-            curr_idx = i - 1
-            prev_idx = prev_non_overlap[curr_idx]
-            
-            for k in range(5):  # k from 0 to 4
-                # Don't take current interval
-                DP[i][k] = DP[i-1][k]
-                parent[i][k] = (0, i-1)  # 0 means don't take
+            this_start, this_end, this_w, this_idx = sorted_inter[i - 1]
+            for k in range(5):
+                # Not take
+                score_dp[i][k] = score_dp[i - 1][k]
+                list_dp[i][k] = list_dp[i - 1][k][:]
                 
-                # Take current interval (if k >= 1)
+                # Take
                 if k >= 1:
-                    prev_dp_val = DP[prev_idx + 1][k-1] if prev_idx != -1 else (DP[0][k-1] if k-1 == 0 else 0)
-                    take_val = prev_dp_val + weights[curr_idx]
-                    
-                    if take_val > DP[i][k]:
-                        DP[i][k] = take_val
-                        parent[i][k] = (1, prev_idx + 1)  # 1 means take current
-                    elif take_val == DP[i][k]:
-                        # For lexicographically smallest, prefer not taking if values are equal
-                        # But we need to check which gives lex smaller result
-                        pass
+                    pos = bisect.bisect_left(ends, this_start, 0, i)
+                    prev_j = pos - 1
+                    prev_m = prev_j + 1 if prev_j >= 0 else 0
+                    prev_s = score_dp[prev_m][k - 1]
+                    if prev_s != INF:
+                        new_s = prev_s + this_w
+                        prev_l = list_dp[prev_m][k - 1]
+                        new_l = sorted(prev_l + [this_idx])
+                        
+                        curr_s = score_dp[i][k]
+                        curr_l = list_dp[i][k]
+                        
+                        update = False
+                        if new_s > curr_s:
+                            update = True
+                        elif new_s == curr_s:
+                            if new_l < curr_l:
+                                update = True
+                        
+                        if update:
+                            score_dp[i][k] = new_s
+                            list_dp[i][k] = new_l
         
-        # Find best k (0 to 4) and backtrack
-        best_k = 0
-        for k in range(1, 5):
-            if DP[n][k] > DP[n][best_k]:
-                best_k = k
-        
-        # Backtrack to find indices
-        result_indices = []
-        i = n
-        k = best_k
-        
-        while i > 0 and k > 0:
-            choice, prev_i = parent[i][k]
-            if choice == 1:  # Take current interval
-                curr_idx = i - 1
-                result_indices.append(indices[curr_idx])
-                prev_idx = prev_non_overlap[curr_idx]
-                i = prev_idx + 1 if prev_idx != -1 else 0
-                k -= 1
-            else:  # Don't take current interval
-                i = prev_i
-        
-        result_indices.sort()
-        return result_indices
+        max_s = max(score_dp[n][k] for k in range(5))
+        best_lists = [list_dp[n][k] for k in range(5) if score_dp[n][k] == max_s]
+        return min(best_lists)
+
+# @lc code=end
