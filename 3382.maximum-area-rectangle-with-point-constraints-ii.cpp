@@ -5,101 +5,106 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <algorithm>
-#include <map>
-
-using namespace std;
-
-class BIT {
-    vector<int> tree;
-    int n;
-public:
-    BIT(int n) : n(n), tree(n + 1, 0) {}
-    void update(int i, int val) {
-        for (; i <= n; i += i & -i) tree[i] += val;
-    }
-    int query(int i) {
-        int res = 0;
-        for (; i > 0; i -= i & -i) res += tree[i];
-        return res;
-    }
-};
-
 class Solution {
+    struct FenwickTree {
+        int size;
+        vector<int> tree;
+        
+        FenwickTree(int n) : size(n), tree(n + 1, 0) {}
+        
+        void add(int index, int val) {
+            for (; index <= size; index += index & -index) {
+                tree[index] += val;
+            }
+        }
+        
+        int query(int index) {
+            int sum = 0;
+            for (; index > 0; index -= index & -index) {
+                sum += tree[index];
+            }
+            return sum;
+        }
+    };
+
 public:
     long long maxRectangleArea(vector<int>& xCoord, vector<int>& yCoord) {
         int n = xCoord.size();
-        struct Point {
-            int x, y;
-        };
-        vector<Point> points(n);
-        vector<int> ys;
-        for (int i = 0; i < n; i++) {
+        vector<pair<int, int>> points(n);
+        vector<int> distinctY;
+        distinctY.reserve(n);
+        
+        for (int i = 0; i < n; ++i) {
             points[i] = {xCoord[i], yCoord[i]};
-            ys.push_back(yCoord[i]);
+            distinctY.push_back(yCoord[i]);
         }
         
-        sort(ys.begin(), ys.end());
-        ys.erase(unique(ys.begin(), ys.end()), ys.end());
-        auto get_y = [&](int y) {
-            return lower_bound(ys.begin(), ys.end(), y) - ys.begin() + 1;
+        sort(distinctY.begin(), distinctY.end());
+        distinctY.erase(unique(distinctY.begin(), distinctY.end()), distinctY.end());
+        
+        auto getY = [&](int y) {
+            return lower_bound(distinctY.begin(), distinctY.end(), y) - distinctY.begin() + 1;
         };
         
-        sort(points.begin(), points.end(), [](const Point& a, const Point& b) {
-            if (a.x != b.x) return a.x < b.x;
-            return a.y < b.y;
-        });
+        sort(points.begin(), points.end());
         
-        BIT bit(ys.size());
-        map<pair<int, int>, pair<int, int>> last_segment_info;
-        long long max_area = -1;
+        FenwickTree bit(distinctY.size());
+        // Map key: (y1_compressed << 32 | y2_compressed)
+        // Map value: {x_coord, bit_sum_snapshot}
+        unordered_map<long long, pair<int, int>> activeSegments;
+        
+        long long maxArea = -1;
         
         for (int i = 0; i < n; ) {
             int j = i;
-            while (j < n && points[j].x == points[i].x) {
+            while (j < n && points[j].first == points[i].first) {
                 j++;
             }
             
-            // 1. Check segments for potential rectangles
-            for (int k = i; k < j - 1; k++) {
-                int y1 = points[k].y;
-                int y2 = points[k+1].y;
-                int cy1 = get_y(y1);
-                int cy2 = get_y(y2);
+            // Points from i to j-1 have the same x-coordinate
+            // Check for valid rectangles with previous segments
+            for (int k = i; k < j - 1; ++k) {
+                int y1 = points[k].second;
+                int y2 = points[k+1].second;
+                int y1_idx = getY(y1);
+                int y2_idx = getY(y2);
                 
-                int s_before = bit.query(cy2) - bit.query(cy1 - 1);
-                if (last_segment_info.count({y1, y2})) {
-                    auto info = last_segment_info[{y1, y2}];
-                    int x_prev = info.first;
-                    int s_prev_after = info.second;
+                long long key = ((long long)y1_idx << 32) | y2_idx;
+                
+                if (activeSegments.count(key)) {
+                    auto [prevX, prevSum] = activeSegments[key];
+                    int currentSum = bit.query(y2_idx) - bit.query(y1_idx - 1);
                     
-                    if (s_before == s_prev_after) {
-                        long long area = (long long)(points[i].x - x_prev) * (y2 - y1);
-                        if (area > max_area) max_area = area;
+                    if (currentSum == prevSum) {
+                        long long area = (long long)(points[i].first - prevX) * (y2 - y1);
+                        if (area > maxArea) {
+                            maxArea = area;
+                        }
                     }
                 }
             }
             
-            // 2. Add points of current column to BIT
-            for (int k = i; k < j; k++) {
-                bit.update(get_y(points[k].y), 1);
+            // Add current points to BIT
+            for (int k = i; k < j; ++k) {
+                bit.add(getY(points[k].second), 1);
             }
             
-            // 3. Update segment info for next steps
-            for (int k = i; k < j - 1; k++) {
-                int y1 = points[k].y;
-                int y2 = points[k+1].y;
-                int cy1 = get_y(y1);
-                int cy2 = get_y(y2);
-                int s_after = bit.query(cy2) - bit.query(cy1 - 1);
-                last_segment_info[{y1, y2}] = {points[i].x, s_after};
+            // Update active segments
+            for (int k = i; k < j - 1; ++k) {
+                int y1 = points[k].second;
+                int y2 = points[k+1].second;
+                int y1_idx = getY(y1);
+                int y2_idx = getY(y2);
+                
+                long long key = ((long long)y1_idx << 32) | y2_idx;
+                int currentSum = bit.query(y2_idx) - bit.query(y1_idx - 1);
+                activeSegments[key] = {points[i].first, currentSum};
             }
             
             i = j;
         }
         
-        return max_area;
+        return maxArea;
     }
 };
 # @lc code=end

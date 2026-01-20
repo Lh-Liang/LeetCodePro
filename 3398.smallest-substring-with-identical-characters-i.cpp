@@ -5,63 +5,62 @@
 #
 
 # @lc code=start
-#include <string>
-#include <vector>
-#include <algorithm>
-
-using namespace std;
-
 class Solution {
 public:
-    /**
-     * Check if it is possible to make the maximum identical substring length <= k
-     * using at most numOps operations.
-     */
-    bool check(int k, const string& s, int numOps) {
+    bool check(int maxLen, const string& s, int numOps) {
         int n = s.length();
-        
-        // Special case for k = 1: The string must become alternating.
-        if (k == 1) {
-            int flips0 = 0; // Target: 010101...
-            int flips1 = 0; // Target: 101010...
+        if (maxLen == 1) {
+            // Special case for maxLen = 1: the string must be strictly alternating.
+            // Pattern 1: 010101...
+            // Pattern 2: 101010...
+            int ops1 = 0;
+            int ops2 = 0;
             for (int i = 0; i < n; ++i) {
-                if (s[i] != (i % 2 == 0 ? '0' : '1')) flips0++;
-                if (s[i] != (i % 2 == 0 ? '1' : '0')) flips1++;
+                if (s[i] != (i % 2 == 0 ? '0' : '1')) ops1++;
+                if (s[i] != (i % 2 == 0 ? '1' : '0')) ops2++;
             }
-            return min(flips0, flips1) <= numOps;
+            return min(ops1, ops2) <= numOps;
         }
 
-        // Case k >= 2: Use greedy approach on contiguous blocks.
-        int totalFlips = 0;
-        int currentLen = 1;
-        for (int i = 1; i < n; ++i) {
-            if (s[i] == s[i - 1]) {
-                currentLen++;
+        int opsNeeded = 0;
+        int currentRun = 0;
+        char currentChar = 0;
+
+        for (int i = 0; i < n; ++i) {
+            if (i == 0 || s[i] == currentChar) {
+                currentRun++;
+                currentChar = s[i];
             } else {
-                totalFlips += currentLen / (k + 1);
-                currentLen = 1;
+                // End of a run
+                if (currentRun > maxLen) {
+                    opsNeeded += currentRun / (maxLen + 1);
+                }
+                currentRun = 1;
+                currentChar = s[i];
             }
         }
-        totalFlips += currentLen / (k + 1);
-        
-        return totalFlips <= numOps;
+        // Check the last run
+        if (currentRun > maxLen) {
+            opsNeeded += currentRun / (maxLen + 1);
+        }
+
+        return opsNeeded <= numOps;
     }
 
     int minLength(string s, int numOps) {
         int n = s.length();
-        int left = 1, right = n;
+        int low = 1, high = n;
         int ans = n;
 
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
             if (check(mid, s, numOps)) {
                 ans = mid;
-                right = mid - 1;
+                high = mid - 1;
             } else {
-                left = mid + 1;
+                low = mid + 1;
             }
         }
-
         return ans;
     }
 };

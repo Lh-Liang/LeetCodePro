@@ -5,72 +5,60 @@
 #
 
 # @lc code=start
-#include <string>
-#include <algorithm>
-#include <vector>
-
-using namespace std;
-
 class Solution {
 public:
-    /**
-     * Specialized check for k = 1.
-     * For k = 1, the string must be perfectly alternating (0101... or 1010...).
-     */
-    bool check1(const string& s, int numOps) {
-        int n = s.length();
-        int ops0 = 0; // flips needed to make s match "010101..."
-        for (int i = 0; i < n; ++i) {
-            char expected = (i % 2 == 0) ? '0' : '1';
-            if (s[i] != expected) ops0++;
-        }
-        // flips needed for "101010..." is simply n - ops0
-        return min(ops0, n - ops0) <= numOps;
-    }
-
-    /**
-     * Greedy check for k >= 2.
-     * For each block of identical characters of length L, we need floor(L / (k+1)) flips.
-     */
-    bool checkK(const string& s, int k, int numOps) {
-        int totalOps = 0;
-        int n = s.length();
-        int count = 0;
-        for (int i = 0; i < n; ++i) {
-            if (i > 0 && s[i] == s[i - 1]) {
-                count++;
-            } else {
-                totalOps += count / (k + 1);
-                count = 1;
-            }
-        }
-        totalOps += count / (k + 1);
-        return totalOps <= numOps;
-    }
-
     int minLength(string s, int numOps) {
         int n = s.length();
-        int l = 1, r = n, ans = n;
+        
+        // Check specifically for length 1
+        // Target patterns are "010101..." or "101010..."
+        int opsPattern1 = 0;
+        int opsPattern2 = 0;
+        for (int i = 0; i < n; ++i) {
+            if (s[i] != (i % 2 == 0 ? '0' : '1')) opsPattern1++;
+            if (s[i] != (i % 2 == 0 ? '1' : '0')) opsPattern2++;
+        }
+        if (min(opsPattern1, opsPattern2) <= numOps) return 1;
 
-        while (l <= r) {
-            int mid = l + (r - l) / 2;
-            bool possible = false;
-            
-            if (mid == 1) {
-                possible = check1(s, numOps);
-            } else {
-                possible = checkK(s, mid, numOps);
-            }
+        // Binary search for the minimum length k in range [2, n]
+        int low = 2;
+        int high = n;
+        int ans = n;
 
-            if (possible) {
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            if (check(s, numOps, mid)) {
                 ans = mid;
-                r = mid - 1;
+                high = mid - 1;
             } else {
-                l = mid + 1;
+                low = mid + 1;
             }
         }
-
         return ans;
+    }
+
+private:
+    bool check(const string& s, int numOps, int k) {
+        int opsNeeded = 0;
+        int currentRun = 0;
+        char lastChar = '\0';
+
+        for (char c : s) {
+            if (c == lastChar) {
+                currentRun++;
+            } else {
+                if (currentRun > 0) {
+                    opsNeeded += currentRun / (k + 1);
+                }
+                currentRun = 1;
+                lastChar = c;
+            }
+        }
+        if (currentRun > 0) {
+            opsNeeded += currentRun / (k + 1);
+        }
+
+        return opsNeeded <= numOps;
     }
 };
 # @lc code=end
