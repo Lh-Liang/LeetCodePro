@@ -1,3 +1,4 @@
+```python
 #
 # @lc app=leetcode id=3445 lang=python3
 #
@@ -8,67 +9,83 @@
 class Solution:
     def maxDifference(self, s: str, k: int) -> int:
         n = len(s)
-        prefix = [[0] * (n + 1) for _ in range(5)]
-        for i in range(n):
-            c = int(s[i])
-            for j in range(5):
-                prefix[j][i + 1] = prefix[j][i]
-            prefix[c][i + 1] += 1
-        ans = float('-inf')
+        # Map for digits '0'-'4'
+        # Precompute prefix counts for each digit
+        # prefix_counts[i][d] is the count of digit d in s[:i]
+        prefix_counts = [[0] * 5 for _ in range(n + 1)]
+        for i, char in enumerate(s):
+            digit = int(char)
+            for d in range(5):
+                prefix_counts[i+1][d] = prefix_counts[i][d]
+            prefix_counts[i+1][digit] += 1
+            
+        max_diff = -float('inf')
+        
+        # Iterate over all ordered pairs of distinct digits (odd_char, even_char)
+        # We want to maximize: count(odd_char) - count(even_char)
         for a in range(5):
             for b in range(5):
                 if a == b:
                     continue
-                pa = prefix[a]
-                pb = prefix[b]
-                groups = [[] for _ in range(4)]
-                for i in range(n + 1):
-                    par_a = pa[i] % 2
-                    par_b = pb[i] % 2
-                    gidx = par_a * 2 + par_b
-                    st = pa[i] - pb[i]
-                    groups[gidx].append((i, st, pb[i]))
-                prefix_mins = []
-                for gidx in range(4):
-                    lst = groups[gidx]
-                    if not lst:
-                        prefix_mins.append([])
-                        continue
-                    pm = [0] * len(lst)
-                    pm[0] = lst[0][1]
-                    for j in range(1, len(lst)):
-                        pm[j] = min(pm[j - 1], lst[j][1])
-                    prefix_mins.append(pm)
-                for endd in range(k, n + 1):
-                    if pb[endd] < 2:
-                        continue
-                    p_a_e = pa[endd] % 2
-                    p_b_e = pb[endd] % 2
-                    t_pa = 1 - p_a_e
-                    t_pb = p_b_e
-                    gidx = t_pa * 2 + t_pb
-                    lst = groups[gidx]
-                    if not lst:
-                        continue
-                    pm = prefix_mins[gidx]
-                    pos_max = endd - k
-                    pb_max = pb[endd] - 2
-                    # binary search for largest index satisfying conditions
-                    l, r = 0, len(lst) - 1
-                    res_idx = -1
-                    while l <= r:
-                        m = (l + r) // 2
-                        pos_m, pb_m = lst[m][0], lst[m][2]
-                        if pos_m <= pos_max and pb_m <= pb_max:
-                            res_idx = m
-                            l = m + 1
-                        else:
-                            r = m - 1
-                    if res_idx != -1:
-                        min_st = pm[res_idx]
-                        cand = (pa[endd] - pb[endd]) - min_st
-                        if cand > ans:
-                            ans = cand
-        return ans if ans != float('-inf') else -1
-
+                
+                # min_vals[parity_a][parity_b] stores the minimum (count(a) - count(b))
+                # seen so far for a valid starting index i.
+                # parity_a, parity_b are 0 or 1.
+                min_vals = [[float('inf')] * 2 for _ in range(2)]
+                
+                current_valid_idx = 0
+                last_pos_b = -1
+                
+                for j in range(1, n + 1):
+                    # Update last position of character b
+                    # s is 0-indexed, so s[j-1] is the character we just added to the prefix
+                    if int(s[j-1]) == b:
+                        last_pos_b = j - 1
+                    
+                    # We need to find an index i such that:
+                    # 1. Length constraint: j - i >= k  =>  i <= j - k
+                    # 2. Even char constraint: count(b) in s[i:j] > 0
+                    #    This means index i must be <= last_pos_b
+                    #    (i.e., the substring must start at or before the last occurrence of b)
+                    
+                    upper_bound_i = min(j - k, last_pos_b)
+                    
+                    # Update the min_vals with all newly valid indices i
+                    while current_valid_idx <= upper_bound_i:
+                        count_a = prefix_counts[current_valid_idx][a]
+                        count_b = prefix_counts[current_valid_idx][b]
+                        diff = count_a - count_b
+                        p_a = count_a % 2
+                        p_b = count_b % 2
+                        
+                        if diff < min_vals[p_a][p_b]:
+                            min_vals[p_a][p_b] = diff
+                        
+                        current_valid_idx += 1
+                    
+                    # If we have a potentially valid window length
+                    if j >= k:
+                        curr_count_a = prefix_counts[j][a]
+                        curr_count_b = prefix_counts[j][b]
+                        curr_diff = curr_count_a - curr_count_b
+                        curr_p_a = curr_count_a % 2
+                        curr_p_b = curr_count_b % 2
+                        
+                        # We need substring count(a) to be odd:
+                        # (curr_count_a - prev_count_a) % 2 == 1
+                        # => prev_count_a has different parity from curr_count_a
+                        target_p_a = 1 - curr_p_a
+                        
+                        # We need substring count(b) to be even:
+                        # (curr_count_b - prev_count_b) % 2 == 0
+                        # => prev_count_b has same parity as curr_count_b
+                        target_p_b = curr_p_b
+                        
+                        if min_vals[target_p_a][target_p_b] != float('inf'):
+                            current_best = curr_diff - min_vals[target_p_a][target_p_b]
+                            if current_best > max_diff:
+                                max_diff = current_best
+                                
+        return max_diff if max_diff != -float('inf') else -1
 # @lc code=end
+```

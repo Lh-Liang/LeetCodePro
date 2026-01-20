@@ -1,126 +1,81 @@
-#
-# @lc app=leetcode id=3435 lang=python3
-#
-# [3435] Frequencies of Shortest Supersequences
-#
-
-# @lc code=start
-from typing import List
 import collections
 
 class Solution:
     def supersequences(self, words: List[str]) -> List[List[int]]:
-        all_chars = set()
+        unique_chars = sorted(list(set("".join(words))))
+        char_to_idx = {c: i for i, c in enumerate(unique_chars)}
+        n = len(unique_chars)
+        
+        adj = [0] * n
+        in_degree_mask = [0] * n
+        mandatory_doubled = 0
+        
         for w in words:
-            all_chars.update(w)
-        char_list = sorted(all_chars)
-        m = len(char_list)
-        if m == 0:
-            return []
-        ch_to_id = {ch: i for i, ch in enumerate(char_list)}
-        has_edge = [[False] * m for _ in range(m)]
-        for w in words:
-            x = ch_to_id[w[0]]
-            y = ch_to_id[w[1]]
-            has_edge[x][y] = True
-        min_req = [0] * m
-        neigh = [0] * m
-        for x in range(m):
-            has_self = has_edge[x][x]
-            has_out = False
-            has_in = False
-            for j in range(m):
-                if has_edge[x][j]:
-                    neigh[x] |= (1 << j)
-                    has_out = True
-                if has_edge[j][x]:
-                    has_in = True
-            if has_self:
-                min_req[x] = 2
-            elif has_out or has_in:
-                min_req[x] = 1
-        # precompute popcount
-        MAX = 1 << m
-        pop = [0] * MAX
-        for i in range(1, MAX):
-            pop[i] = pop[i >> 1] + (i & 1)
-        # precompute is_dag
-        is_dag = [False] * MAX
-        for smask in range(MAX):
-            indeg = [0] * m
-            for x in range(m):
-                if (smask & (1 << x)) == 0:
-                    continue
-                adj = neigh[x] & smask
-                for y in range(m):
-                    if adj & (1 << y):
-                        indeg[y] += 1
-            q = collections.deque()
-            for y in range(m):
-                if (smask & (1 << y)) and indeg[y] == 0:
-                    q.append(y)
-            count = 0
-            while q:
-                x = q.popleft()
-                count += 1
-                adj = neigh[x] & smask
-                for y in range(m):
-                    if adj & (1 << y):
-                        indeg[y] -= 1
-                        if indeg[y] == 0:
-                            q.append(y)
-            is_dag[smask] = (count == pop[smask])
-        # find min_L
-        min_L = float('inf')
-        for dmask in range(MAX):
-            if not is_dag[dmask]:
-                continue
-            feasible = True
-            for c in range(m):
-                if dmask & (1 << c):
-                    if min_req[c] > 1:
-                        feasible = False
-                        break
-            if not feasible:
-                continue
-            num_singles = pop[dmask]
-            num_forced_out = 0
-            for c in range(m):
-                if (dmask & (1 << c)) == 0 and min_req[c] >= 1:
-                    num_forced_out += 1
-            L = num_singles + 2 * num_forced_out
-            if L < min_L:
-                min_L = L
-        # collect freqs at min_L
-        freq_set = set()
-        a_ord = ord('a')
-        for dmask in range(MAX):
-            if not is_dag[dmask]:
-                continue
-            feasible = True
-            for c in range(m):
-                if dmask & (1 << c):
-                    if min_req[c] > 1:
-                        feasible = False
-                        break
-            if not feasible:
-                continue
-            num_singles = pop[dmask]
-            num_forced_out = 0
-            for c in range(m):
-                if (dmask & (1 << c)) == 0 and min_req[c] >= 1:
-                    num_forced_out += 1
-            L = num_singles + 2 * num_forced_out
-            if L == min_L:
-                freq = [0] * 26
-                for c in range(m):
-                    ch_idx = ord(char_list[c]) - a_ord
-                    if dmask & (1 << c):
-                        freq[ch_idx] = 1
-                    elif min_req[c] >= 1:
-                        freq[ch_idx] = 2
-                freq_set.add(tuple(freq))
-        ans = [list(t) for t in freq_set]
-        return ans
-
-# @lc code=end
+            u, v = char_to_idx[w[0]], char_to_idx[w[1]]
+            if u == v:
+                mandatory_doubled |= (1 << u)
+            else:
+                # Edge u -> v
+                if not (adj[u] & (1 << v)):
+                    adj[u] |= (1 << v)
+                    in_degree_mask[v] |= (1 << u)
+        
+        # valid_dag[mask] is True if the subgraph induced by the nodes in 'mask' is a DAG
+        valid_dag = [False] * (1 << n)
+        valid_dag[0] = True
+        
+        for mask in range(1, 1 << n):
+            # Try to find a node 'i' in 'mask' that has 0 in-degree within the induced subgraph
+            # i.e., no other node 'j' in 'mask' has an edge j -> i.
+            for i in range(n):
+                if (mask >> i) & 1:
+                    if (in_degree_mask[i] & mask) == 0:
+                        # If removing i leaves a valid DAG, then mask is a valid DAG
+                        if valid_dag[mask ^ (1 << i)]:
+                            valid_dag[mask] = True
+                            break
+        
+        max_single_count = -1
+        best_masks = []
+        
+        # We want to maximize the number of characters that appear once (are in the mask).
+        # Characters in the mask have count 1. Characters NOT in the mask have count 2.
+        # Condition 1: Mask cannot contain any character that MUST be doubled (mandatory_doubled).
+        # Condition 2: The induced subgraph of the mask must be a DAG.
+        
+        for mask in range(1 << n):
+            if (mask & mandatory_doubled) == 0:
+                if valid_dag[mask]:
+                    cnt = bin(mask).count('1')
+                    if cnt > max_single_count:
+                        max_single_count = cnt
+                        best_masks = [mask]
+                    elif cnt == max_single_count:
+                        best_masks.append(mask)
+        
+        results = []
+        # It's possible to generate duplicate frequency arrays if multiple masks map to same freqs?
+        # No, a mask uniquely determines the counts for the subset of unique_chars.
+        # However, we need to map these back to the full 26-char alphabet.
+        
+        seen_freqs = set()
+        
+        for mask in best_masks:
+            freq = [0] * 26
+            # For chars in unique_chars:
+            # If in mask -> count 1
+            # Else -> count 2
+            for i in range(n):
+                char_code = ord(unique_chars[i]) - ord('a')
+                if (mask >> i) & 1:
+                    freq[char_code] = 1
+                else:
+                    freq[char_code] = 2
+            
+            # Convert to tuple to store in set
+            freq_tuple = tuple(freq)
+            if freq_tuple not in seen_freqs:
+                seen_freqs.add(freq_tuple)
+                results.append(freq)
+                
+        return results
