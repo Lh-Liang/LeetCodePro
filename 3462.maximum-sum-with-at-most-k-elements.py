@@ -5,24 +5,24 @@
 #
 
 # @lc code=start
-from typing import List
-
 class Solution:
     def maxSum(self, grid: List[List[int]], limits: List[int], k: int) -> int:
-        n = len(grid)
-        all_elements = []
-        for i in range(n):
-            for j in range(len(grid[i])):
-                all_elements.append((grid[i][j], i))
-        all_elements.sort(key=lambda x: -x[0])
-        picked = [0] * n
-        total = 0
-        cnt = 0
-        for val, row in all_elements:
-            if picked[row] < limits[row] and cnt < k:
-                total += val
-                picked[row] += 1
-                cnt += 1
-        return total
+        candidates = []
+        
+        # For each row, pick the largest allowed elements based on limits[i]
+        for i in range(len(grid)):
+            # Sort the row in descending order to easily pick the largest ones
+            grid[i].sort(reverse=True)
+            
+            # Take up to limits[i] elements from this row
+            # We extend the candidates list with these top elements
+            candidates.extend(grid[i][:limits[i]])
+        
+        # Now we have a list of all possible candidates that satisfy row constraints.
+        # To maximize the total sum with at most k elements, we pick the largest k 
+        # from this combined pool.
+        candidates.sort(reverse=True)
+        
+        return sum(candidates[:k])
 
 # @lc code=end

@@ -9,102 +9,106 @@ import bisect
 
 class Solution:
     def shortestMatchingSubstring(self, s: str, p: str) -> int:
-        def find_matches(text: str, pat: str) -> list[int]:
-            n, m = len(text), len(pat)
-            if m == 0 or m > n:
-                return []
-            # KMP prefix function
+        parts = p.split('*')
+        # p has exactly two '*', so splitting gives exactly 3 parts
+        A, B, C = parts[0], parts[1], parts[2]
+        
+        # KMP implementation to find all occurrences of a pattern in text
+        def get_occurrences(text, pattern):
+            if not pattern: return []
+            n, m = len(text), len(pattern)
+            if m > n: return []
+            
+            # Compute pi table
             pi = [0] * m
             j = 0
             for i in range(1, m):
-                while j > 0 and pat[i] != pat[j]:
-                    j = pi[j - 1]
-                if pat[i] == pat[j]:
+                while j > 0 and pattern[i] != pattern[j]:
+                    j = pi[j-1]
+                if pattern[i] == pattern[j]:
                     j += 1
                 pi[i] = j
+            
             # Search
-            matches = []
+            res = []
             j = 0
             for i in range(n):
-                while j > 0 and text[i] != pat[j]:
-                    j = pi[j - 1]
-                if text[i] == pat[j]:
+                while j > 0 and text[i] != pattern[j]:
+                    j = pi[j-1]
+                if text[i] == pattern[j]:
                     j += 1
                 if j == m:
-                    matches.append(i - m + 1)
-                    j = pi[j - 1]
-            return matches
+                    res.append(i - m + 1)
+                    j = pi[j-1]
+            return res
 
-        star1 = p.find('*')
-        star2 = p.find('*', star1 + 1)
-        A = p[:star1]
-        B = p[star1 + 1:star2]
-        C = p[star2 + 1:]
-        lenA, lenB, lenC = len(A), len(B), len(C)
-        n = len(s)
-        if lenA == 0 and lenB == 0 and lenC == 0:
-            return 0
+        # Find occurrences of each non-empty part
+        # If a part is empty, we don't search, represented by empty list or handled logic
+        idxsA = get_occurrences(s, A) if A else []
+        idxsB = get_occurrences(s, B) if B else []
+        idxsC = get_occurrences(s, C) if C else []
 
-        startsA = find_matches(s, A) if lenA > 0 else []
-        startsB = find_matches(s, B)
-        startsC = find_matches(s, C) if lenC > 0 else []
-
-        min_len = float('inf')
-
-        if lenB > 0:
-            for kb in startsB:
-                target_jc = kb + lenB
-                if lenC == 0:
-                    jc_next = target_jc
-                else:
-                    idx = bisect.bisect_left(startsC, target_jc)
-                    if idx == len(startsC):
-                        continue
-                    jc_next = startsC[idx]
-                j = jc_next + lenC - 1
-                target_ia = kb - lenA
-                if target_ia < 0:
-                    continue
-                if lenA == 0:
-                    i_start = target_ia
-                else:
-                    idx = bisect.bisect_right(startsA, target_ia) - 1
-                    if idx < 0:
-                        continue
-                    i_start = startsA[idx]
-                if i_start > j:
-                    continue
-                length = j - i_start + 1
-                if length < min_len:
-                    min_len = length
+        # If any NON-EMPTY part is not found, impossible to match
+        if A and not idxsA: return -1
+        if B and not idxsB: return -1
+        if C and not idxsC: return -1
+        
+        ans = float('inf')
+        
+        # Case 1: B is empty. Pattern looks like A**C -> A*C
+        if not B:
+            if not A and not C:
+                return 0 # Pattern is **
+            if not A:
+                return len(C) # Pattern is *C or **C
+            if not C:
+                return len(A) # Pattern is A* or A**
+            
+            # Both A and C are non-empty. Pattern A*C
+            # For each occurrence of A, find the closest valid C
+            for a in idxsA:
+                limit = a + len(A)
+                # We need smallest c in idxsC such that c >= a + len(A)
+                idx = bisect.bisect_left(idxsC, limit)
+                if idx < len(idxsC):
+                    c = idxsC[idx]
+                    ans = min(ans, c + len(C) - a)
+                    
+        # Case 2: B is not empty. Pattern A*B*C
         else:
-            # lenB == 0
-            startsA = find_matches(s, A) if lenA > 0 else []
-            startsC = find_matches(s, C) if lenC > 0 else []
-            if lenC == 0:
-                if lenA == 0:
-                    min_len = 0
-                elif startsA:
-                    min_len = lenA
-            else:
-                for jc in startsC:
-                    target_ia = jc - lenA
-                    if target_ia < 0:
-                        continue
-                    if lenA == 0:
-                        i_start = target_ia
-                    else:
-                        idx = bisect.bisect_right(startsA, target_ia) - 1
-                        if idx < 0:
-                            continue
-                        i_start = startsA[idx]
-                    j = jc + lenC - 1
-                    if i_start > j:
-                        continue
-                    length = j - i_start + 1
-                    if length < min_len:
-                        min_len = length
-
-        return min_len if min_len != float('inf') else -1
-
+            # We iterate over every occurrence of B as the anchor
+            for b in idxsB:
+                # 1. Determine start of the substring (based on A)
+                start_pos = -1
+                if not A:
+                    # If A is empty, the match starts at B's start
+                    start_pos = b
+                else:
+                    # Find largest a in idxsA such that a + len(A) <= b
+                    # This means A ends at or before B starts
+                    limit = b - len(A)
+                    idx = bisect.bisect_right(idxsA, limit)
+                    if idx > 0:
+                        start_pos = idxsA[idx-1]
+                
+                if start_pos == -1: 
+                    continue
+                
+                # 2. Determine end of the substring (based on C)
+                end_pos = -1
+                if not C:
+                    # If C is empty, the match ends at B's end
+                    end_pos = b + len(B)
+                else:
+                    # Find smallest c in idxsC such that c >= b + len(B)
+                    # This means C starts at or after B ends
+                    limit = b + len(B)
+                    idx = bisect.bisect_left(idxsC, limit)
+                    if idx < len(idxsC):
+                        end_pos = idxsC[idx] + len(C)
+                
+                if end_pos != -1:
+                    ans = min(ans, end_pos - start_pos)
+                    
+        return ans if ans != float('inf') else -1
 # @lc code=end
