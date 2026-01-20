@@ -5,52 +5,80 @@
 #
 
 # @lc code=start
-from typing import List
-
 class FenwickTree:
-    def __init__(self, size: int):
-        self.size = size
-        self.tree = [0] * (size + 1)
+    __slots__ = 'tree'
+    def __init__(self, n: int):
+        self.tree = [0] * (n + 1)
 
-    def update(self, idx: int, delta: int) -> None:
-        while idx <= self.size:
-            self.tree[idx] += delta
-            idx += idx & -idx
+    def update(self, i: int, delta: int) -> None:
+        while i < len(self.tree):
+            self.tree[i] += delta
+            i += i & (-i)
 
-    def query(self, idx: int) -> int:
-        res = 0
-        while idx > 0:
-            res += self.tree[idx]
-            idx -= idx & -idx
-        return res
+    def query(self, i: int) -> int:
+        s = 0
+        while i > 0:
+            s += self.tree[i]
+            i -= i & (-i)
+        return s
 
 class Solution:
     def minDeletions(self, s: str, queries: List[List[int]]) -> List[int]:
         n = len(s)
-        s_list = list(s)
+        # Convert string to integer array: 0 for 'A', 1 for 'B'
+        arr = [0] * n
+        for i, c in enumerate(s):
+            if c == 'B':
+                arr[i] = 1
+        
+        # Fenwick Tree to store differences between adjacent characters.
+        # We track `diff[i]` which is 1 if arr[i] != arr[i+1] else 0.
+        # This is stored at index `i+1` in the 1-based Fenwick Tree.
         ft = FenwickTree(n)
+        
+        # Build initial state
         for i in range(n - 1):
-            ind = 1 if s_list[i] != s_list[i + 1] else 0
-            ft.update(i + 1, ind)
+            if arr[i] != arr[i+1]:
+                ft.update(i + 1, 1)
+        
         ans = []
-        for query in queries:
-            if query[0] == 1:
-                j = query[1]
-                old_left = 1 if j > 0 and s_list[j - 1] != s_list[j] else 0
-                old_right = 1 if j < n - 1 and s_list[j] != s_list[j + 1] else 0
-                # Flip
-                s_list[j] = 'A' if s_list[j] == 'B' else 'B'
-                new_left = 1 if j > 0 and s_list[j - 1] != s_list[j] else 0
-                new_right = 1 if j < n - 1 and s_list[j] != s_list[j + 1] else 0
-                if j > 0:
-                    ft.update(j, new_left - old_left)
-                if j < n - 1:
-                    ft.update(j + 1, new_right - old_right)
+        for q in queries:
+            if q[0] == 1:
+                idx = q[1]
+                
+                # Update left neighbor relation (diff at idx-1, stored at idx)
+                if idx > 0:
+                    # If currently equal, they become different -> add 1
+                    # If currently different, they become equal -> sub 1
+                    if arr[idx-1] == arr[idx]:
+                        ft.update(idx, 1)
+                    else:
+                        ft.update(idx, -1)
+                        
+                # Update right neighbor relation (diff at idx, stored at idx+1)
+                if idx < n - 1:
+                    if arr[idx] == arr[idx+1]:
+                        ft.update(idx + 1, 1)
+                    else:
+                        ft.update(idx + 1, -1)
+                
+                # Flip the character
+                arr[idx] ^= 1
+                
             else:
-                l, r = query[1], query[2]
-                changes = ft.query(r) - ft.query(l)
-                min_del = (r - l) - changes
-                ans.append(min_del)
+                l, r = q[1], q[2]
+                if l == r:
+                    ans.append(0)
+                else:
+                    # Number of diffs in s[l...r] is sum of diffs for indices l to r-1.
+                    # In BIT, this corresponds to query(r) - query(l).
+                    count_diffs = ft.query(r) - ft.query(l)
+                    
+                    # LAS length = count_diffs + 1
+                    # Deletions = (r - l + 1) - LAS length
+                    #           = (r - l + 1) - (count_diffs + 1)
+                    #           = r - l - count_diffs
+                    ans.append(r - l - count_diffs)
+                    
         return ans
-
 # @lc code=end
