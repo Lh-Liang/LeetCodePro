@@ -5,59 +5,84 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <algorithm>
-#include <queue>
-
-using namespace std;
-
 class Solution {
 public:
     int minMaxWeight(int n, vector<vector<int>>& edges, int threshold) {
-        // The threshold condition is effectively satisfied if we can form a tree
-        // rooted at node 0 in the reversed graph, as each node would have 
-        // exactly one outgoing edge in that tree, and 1 <= threshold.
-        
-        vector<vector<pair<int, int>>> adj(n);
+        // We need to find the minimum weight W such that if we only consider edges
+        // with weight <= W, node 0 is reachable from all other nodes.
+        // Note: The threshold constraint (out-degree <= threshold) is always satisfiable
+        // if reachability is satisfiable, because we can just pick a spanning tree 
+        // directed towards 0 (where every node != 0 has out-degree 1).
+        // Since threshold >= 1, out-degree 1 is always allowed.
+
+        // To check reachability efficiently, we can use the reversed graph.
+        // If in the reversed graph, node 0 can reach all other nodes, then in the
+        // original graph, all other nodes can reach node 0.
+
+        // 1. Build adjacency list for the reversed graph: adj[v] = {u, w} means u->v with weight w in original.
+        vector<vector<pair<int, int>>> reverse_adj(n);
         int max_w = 0;
         for (const auto& edge : edges) {
-            // Reverse the edges: Ai -> Bi becomes Bi -> Ai
-            adj[edge[1]].push_back({edge[0], edge[2]});
-            max_w = max(max_w, edge[2]);
+            int u = edge[0];
+            int v = edge[1];
+            int w = edge[2];
+            reverse_adj[v].push_back({u, w});
+            max_w = max(max_w, w);
         }
 
-        auto check = [&](int limit) {
+        // Helper function for BFS
+        auto check = [&](int max_weight_limit) -> bool {
             vector<bool> visited(n, false);
             queue<int> q;
-            q.push(0);
+            
             visited[0] = true;
+            q.push(0);
             int count = 1;
 
             while (!q.empty()) {
-                int u = q.front();
+                int curr = q.front();
                 q.pop();
 
-                for (auto& edge : adj[u]) {
-                    int v = edge.first;
-                    int w = edge.second;
-                    if (w <= limit && !visited[v]) {
-                        visited[v] = true;
+                if (count == n) return true; // Optimization
+
+                for (const auto& neighbor : reverse_adj[curr]) {
+                    int next_node = neighbor.first;
+                    int weight = neighbor.second;
+
+                    if (!visited[next_node] && weight <= max_weight_limit) {
+                        visited[next_node] = true;
                         count++;
-                        q.push(v);
+                        q.push(next_node);
                     }
                 }
             }
             return count == n;
         };
 
-        int low = 1, high = max_w, ans = -1;
-        while (low <= high) {
-            int mid = low + (high - low) / 2;
-            if (check(mid)) {
-                ans = mid;
-                high = mid - 1;
+        // Collect all unique weights for binary search or just use range [1, 10^6]
+        // Using sorted unique weights is slightly faster but range binary search is simpler to implement.
+        // Given constraints, distinct weights might be up to E. Let's use sorted unique weights.
+        vector<int> weights;
+        weights.reserve(edges.size());
+        for(const auto& e : edges) weights.push_back(e[2]);
+        sort(weights.begin(), weights.end());
+        weights.erase(unique(weights.begin(), weights.end()), weights.end());
+
+        if (weights.empty()) return -1; // No edges, impossible if n > 1. But problem says n >= 2.
+
+        int left = 0;
+        int right = weights.size() - 1;
+        int ans = -1;
+
+        while (left <= right) {
+            int mid_idx = left + (right - left) / 2;
+            int w = weights[mid_idx];
+            
+            if (check(w)) {
+                ans = w;
+                right = mid_idx - 1;
             } else {
-                low = mid + 1;
+                left = mid_idx + 1;
             }
         }
 
