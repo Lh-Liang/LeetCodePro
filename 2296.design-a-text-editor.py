@@ -3,50 +3,39 @@
 #
 # [2296] Design a Text Editor
 #
+
 # @lc code=start
 class TextEditor:
 
     def __init__(self):
-        # Use two stacks to represent left and right parts of cursor
-        # left stack: characters to the left of cursor
-        # right stack: characters to the right of cursor (in reverse order)
-        self.left = []   # Stack for characters to the left of cursor
-        self.right = []  # Stack for characters to the right of cursor
+        self.left = []
+        self.right = []
 
     def addText(self, text: str) -> None:
-        # Add all characters to the left stack
-        for char in text:
-            self.left.append(char)
+        for c in text:
+            self.left.append(c)
 
     def deleteText(self, k: int) -> int:
-        # Delete at most k characters from left stack
-        deleted = 0
-        while deleted < k and self.left:
+        del_count = min(k, len(self.left))
+        for _ in range(del_count):
             self.left.pop()
-            deleted += 1
-        return deleted
+        return del_count
 
     def cursorLeft(self, k: int) -> str:
-        # Move cursor left by moving characters from left to right stack
-        moves = 0
-        while moves < k and self.left:
-            char = self.left.pop()
-            self.right.append(char)
-            moves += 1
-        
-        # Return last min(10, len) characters to the left of cursor
-        return ''.join(self.left[-10:])
+        move = min(k, len(self.left))
+        for _ in range(move):
+            self.right.append(self.left.pop())
+        n = len(self.left)
+        pl = min(10, n)
+        return ''.join(self.left[-pl:]) if pl > 0 else ""
 
     def cursorRight(self, k: int) -> str:
-        # Move cursor right by moving characters from right to left stack
-        moves = 0
-        while moves < k and self.right:
-            char = self.right.pop()
-            self.left.append(char)
-            moves += 1
-        
-        # Return last min(10, len) characters to the left of cursor
-        return ''.join(self.left[-10:])
+        move = min(k, len(self.right))
+        for _ in range(move):
+            self.left.append(self.right.pop())
+        n = len(self.left)
+        pl = min(10, n)
+        return ''.join(self.left[-pl:]) if pl > 0 else ""
 
 
 # Your TextEditor object will be instantiated and called as such:

@@ -4,42 +4,37 @@
 # [3310] Remove Methods From Project
 #
 
+from typing import List
+from collections import deque
+
 # @lc code=start
 class Solution:
     def remainingMethods(self, n: int, k: int, invocations: List[List[int]]) -> List[int]:
-        # Build adjacency list for the graph
-        graph = [[] for _ in range(n)]
-        reverse_graph = [[] for _ in range(n)]
-        
+        adj = [[] for _ in range(n)]
         for a, b in invocations:
-            graph[a].append(b)
-            reverse_graph[b].append(a)
+            adj[a].append(b)
         
-        # Find all suspicious methods using DFS from method k
-        suspicious = set()
-        stack = [k]
-        suspicious.add(k)
+        # Compute suspicious set S: reachable from k
+        susp = set()
+        q = deque([k])
+        susp.add(k)
+        while q:
+            u = q.popleft()
+            for v in adj[u]:
+                if v not in susp:
+                    susp.add(v)
+                    q.append(v)
         
-        while stack:
-            node = stack.pop()
-            for neighbor in graph[node]:
-                if neighbor not in suspicious:
-                    suspicious.add(neighbor)
-                    stack.append(neighbor)
+        # Check if removable: no incoming edges from outside to S
+        can_remove = True
+        for a, b in invocations:
+            if a not in susp and b in susp:
+                can_remove = False
+                break
         
-        # Check if any method outside suspicious set points to a method inside suspicious set
-        for method in range(n):
-            if method not in suspicious:
-                for invoked_method in graph[method]:
-                    if invoked_method in suspicious:
-                        # Cannot remove suspicious methods
-                        return list(range(n))
+        if can_remove:
+            return [i for i in range(n) if i not in susp]
+        else:
+            return list(range(n))
         
-        # If we can remove, return all methods except suspicious ones
-        result = []
-        for i in range(n):
-            if i not in suspicious:
-                result.append(i)
-        
-        return result
 # @lc code=end
