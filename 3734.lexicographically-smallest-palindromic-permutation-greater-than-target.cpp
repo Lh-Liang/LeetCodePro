@@ -1,10 +1,3 @@
-#include <string>
-#include <vector>
-#include <algorithm>
-#include <map>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=3734 lang=cpp
 #
@@ -16,86 +9,101 @@ class Solution {
 public:
     string lexPalindromicPermutation(string s, string target) {
         int n = s.length();
-        vector<int> counts(26, 0);
-        for (char c : s) counts[c - 'a']++;
+        vector<int> count(26, 0);
+        for (char c : s) count[c - 'a']++;
 
-        int odd_count = 0;
-        char mid_char = 0;
-        vector<int> half_counts(26, 0);
+        int oddCount = 0;
+        int oddCharIdx = -1;
         for (int i = 0; i < 26; ++i) {
-            if (counts[i] % 2 != 0) {
-                odd_count++;
-                mid_char = 'a' + i;
+            if (count[i] % 2 != 0) {
+                oddCount++;
+                oddCharIdx = i;
             }
-            half_counts[i] = counts[i] / 2;
         }
 
-        if (odd_count > (n % 2)) return "";
+        if (oddCount > 1) return "";
+
+        string mid = "";
+        if (n % 2 == 1) {
+            mid += (char)('a' + oddCharIdx);
+            count[oddCharIdx]--;
+        }
+
+        // half_counts for the first n/2 characters
+        vector<int> half_counts(26);
+        for (int i = 0; i < 26; ++i) half_counts[i] = count[i] / 2;
 
         int m = n / 2;
-        int k = (n + 1) / 2;
-
-        auto can_form = [&](string prefix) {
-            vector<int> temp = half_counts;
-            for (char c : prefix) {
-                if (temp[c - 'a'] > 0) temp[c - 'a']--;
-                else return false;
-            }
-            return true;
+        
+        // Helper to construct palindrome from left half
+        auto construct = [&](string left) {
+            string right = left;
+            reverse(right.begin(), right.end());
+            return left + mid + right;
         };
 
-        // Case 1: Prefix matches target for k characters
-        if (can_form(target.substr(0, m))) {
-            bool match_mid = (n % 2 == 0) || (target[m] == mid_char);
-            if (match_mid) {
-                string s_half = target.substr(0, m);
-                string P = s_half;
-                if (n % 2 == 1) P += mid_char;
-                reverse(s_half.begin(), s_half.end());
-                P += s_half;
-                if (P > target) return P;
+        // 1. Try to match the full left half (prefix length m)
+        bool possible = true;
+        vector<int> current_counts = half_counts;
+        string current_prefix = "";
+        for (int i = 0; i < m; ++i) {
+            int charIdx = target[i] - 'a';
+            if (current_counts[charIdx] > 0) {
+                current_counts[charIdx]--;
+                current_prefix += target[i];
+            } else {
+                possible = false;
+                break;
             }
         }
 
-        // Case 2: Find largest i < k to make P[i] > target[i]
-        for (int i = k - 1; i >= 0; --i) {
-            if (n % 2 == 1 && i == m) {
-                if (mid_char > target[m] && can_form(target.substr(0, m))) {
-                    string s_half = target.substr(0, m);
-                    string P = s_half + mid_char;
-                    reverse(s_half.begin(), s_half.end());
-                    P += s_half;
-                    return P;
+        if (possible) {
+            string cand = construct(current_prefix);
+            if (cand > target) return cand;
+        }
+
+        // 2. Iterate backwards to find the latest divergence point
+        // We try to match target[0...i-1] and then place c > target[i] at position i
+        // Since we want the smallest result, we want the longest matching prefix.
+        // So we iterate i from m-1 down to 0.
+        
+        // We need to maintain the counts available for the prefix 0...i-1.
+        // Re-calculating prefix validity every time is O(N^2), which is fine for N=300.
+        
+        for (int i = m - 1; i >= 0; --i) {
+            // Check if prefix 0...i-1 is valid
+            vector<int> temp_counts = half_counts;
+            string prefix = "";
+            bool prefix_valid = true;
+            for (int j = 0; j < i; ++j) {
+                int c = target[j] - 'a';
+                if (temp_counts[c] > 0) {
+                    temp_counts[c]--;
+                    prefix += target[j];
+                } else {
+                    prefix_valid = false;
+                    break;
                 }
-            } else if (i < m) {
-                if (can_form(target.substr(0, i))) {
-                    vector<int> rem_counts = half_counts;
-                    for (int j = 0; j < i; ++j) rem_counts[target[j] - 'a']--;
+            }
+            
+            if (!prefix_valid) continue;
 
-                    int best_c = -1;
-                    for (int c = (target[i] - 'a' + 1); c < 26; ++c) {
-                        if (rem_counts[c] > 0) {
-                            best_c = c;
-                            break;
+            // Try to place smallest character c > target[i]
+            for (int c = target[i] - 'a' + 1; c < 26; ++c) {
+                if (temp_counts[c] > 0) {
+                    // Found the divergence point!
+                    temp_counts[c]--;
+                    prefix += (char)('a' + c);
+                    
+                    // Fill the rest (i+1 to m-1) with smallest available characters
+                    for (int k = 0; k < 26; ++k) {
+                        while (temp_counts[k] > 0) {
+                            prefix += (char)('a' + k);
+                            temp_counts[k]--;
                         }
                     }
-
-                    if (best_c != -1) {
-                        string s_half = target.substr(0, i);
-                        s_half += (char)('a' + best_c);
-                        rem_counts[best_c]--;
-                        for (int c = 0; c < 26; ++c) {
-                            while (rem_counts[c] > 0) {
-                                s_half += (char)('a' + c);
-                                rem_counts[c]--;
-                            }
-                        }
-                        string P = s_half;
-                        if (n % 2 == 1) P += mid_char;
-                        reverse(s_half.begin(), s_half.end());
-                        P += s_half;
-                        return P;
-                    }
+                    
+                    return construct(prefix);
                 }
             }
         }

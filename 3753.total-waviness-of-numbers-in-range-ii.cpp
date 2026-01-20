@@ -1,10 +1,3 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <cstring>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=3753 lang=cpp
 #
@@ -12,71 +5,90 @@ using namespace std;
 #
 
 # @lc code=start
+#include <string>
+#include <vector>
+#include <cstring>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
-    long long memo_count[20][2][2][12][12];
-    long long memo_sum[20][2][2][12][12];
-    vector<int> digits;
+    struct Result {
+        long long totalWaviness;
+        long long count;
+    };
 
-    pair<long long, long long> solve(int idx, bool tight, bool isLeading, int prev, int prevPrev) {
-        if (idx == digits.size()) {
-            return {1, 0};
+    string S;
+    Result dp[20][11][11][2][2];
+
+    Result solve(int idx, int prev, int prev2, bool isLess, bool isStarted) {
+        if (idx == S.size()) {
+            return {0, 1};
         }
-        if (memo_count[idx][tight][isLeading][prev + 1][prevPrev + 1] != -1) {
-            return {memo_count[idx][tight][isLeading][prev + 1][prevPrev + 1],
-                    memo_sum[idx][tight][isLeading][prev + 1][prevPrev + 1]};
+        if (dp[idx][prev][prev2][isLess][isStarted].count != -1) {
+            return dp[idx][prev][prev2][isLess][isStarted];
         }
 
-        long long count = 0;
-        long long sum = 0;
-        int limit = tight ? digits[idx] : 9;
+        long long totW = 0;
+        long long cnt = 0;
+        int limit = isLess ? 9 : (S[idx] - '0');
 
-        for (int d = 0; d <= limit; ++d) {
-            bool nextTight = tight && (d == limit);
-            bool nextIsLeading = isLeading && (d == 0);
-            
-            int nextPrev, nextPrevPrev;
-            if (nextIsLeading) {
-                nextPrev = -1;
-                nextPrevPrev = -1;
-            } else {
-                nextPrev = d;
-                nextPrevPrev = prev;
+        for (int digit = 0; digit <= limit; ++digit) {
+            bool newLess = isLess || (digit < limit);
+            bool newStarted = isStarted || (digit > 0);
+
+            // Determine contribution of the previous digit (prev)
+            // We can only evaluate prev if we have prev2 (meaning prev was not the first digit)
+            // and we are currently placing a digit (meaning prev is not the last digit relative to current placement, though we are building prefix)
+            int isPeakValley = 0;
+            if (isStarted && prev2 != 10) {
+                if (prev > prev2 && prev > digit) isPeakValley = 1;
+                else if (prev < prev2 && prev < digit) isPeakValley = 1;
             }
 
-            pair<long long, long long> nextRes = solve(idx + 1, nextTight, nextIsLeading, nextPrev, nextPrevPrev);
+            int next_prev = newStarted ? digit : 10;
+            int next_prev2 = newStarted ? (isStarted ? prev : 10) : 10;
+
+            Result res = solve(idx + 1, next_prev, next_prev2, newLess, newStarted);
             
-            long long wavinessAdded = 0;
-            if (!isLeading && prevPrev != -1) {
-                // A peak/valley is defined by three digits: prevPrev (idx-2), prev (idx-1), and d (idx).
-                if ((prev > prevPrev && prev > d) || (prev < prevPrev && prev < d)) {
-                    wavinessAdded = 1;
+            // If we form a valid number suffix (res.count > 0)
+            if (res.count > 0) {
+                cnt += res.count;
+                // Add waviness from the suffix
+                totW += res.totalWaviness;
+                // Add waviness from the potential peak/valley formed at 'prev'
+                // This contribution applies to all valid suffixes formed from the next state
+                if (newStarted) { // Only if current digit is part of the number
+                     totW += (long long)isPeakValley * res.count;
                 }
             }
-
-            count += nextRes.first;
-            sum += nextRes.second + wavinessAdded * nextRes.first;
         }
 
-        memo_count[idx][tight][isLeading][prev + 1][prevPrev + 1] = count;
-        memo_sum[idx][tight][isLeading][prev + 1][prevPrev + 1] = sum;
-        return {count, sum};
+        return dp[idx][prev][prev2][isLess][isStarted] = {totW, cnt};
     }
 
-    long long countWaviness(long long n) {
-        if (n < 100) return 0;
-        string s = to_string(n);
-        digits.clear();
-        for (char c : s) digits.push_back(c - '0');
-        
-        memset(memo_count, -1, sizeof(memo_count));
-        memset(memo_sum, -1, sizeof(memo_sum));
-        
-        return solve(0, true, true, -1, -1).sum;
+    long long calc(long long num) {
+        if (num < 0) return 0;
+        if (num == 0) return 0; // Problem says num1 >= 1, and 0 has waviness 0 anyway.
+        S = to_string(num);
+        // Initialize DP table with -1
+        // Using a loop or memset carefully. Since struct has longs, memset -1 works if we treat it as bytes, 
+        // but safer to loop or use a specific marker. 
+        // Actually memset to -1 works for integer types for checking visited if we only check .count
+        for(int i=0; i<20; ++i)
+            for(int j=0; j<11; ++j)
+                for(int k=0; k<11; ++k)
+                    for(int l=0; l<2; ++l)
+                        for(int m=0; m<2; ++m)
+                            dp[i][j][k][l][m] = {-1, -1};
+
+        Result res = solve(0, 10, 10, false, false);
+        return res.totalWaviness;
     }
 
 public:
     long long totalWaviness(long long num1, long long num2) {
-        return countWaviness(num2) - countWaviness(num1 - 1);
+        return calc(num2) - calc(num1 - 1);
     }
 };
 # @lc code=end
