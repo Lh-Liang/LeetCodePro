@@ -1,74 +1,63 @@
-#
-# @lc app=leetcode id=3458 lang=cpp
-#
-# [3458] Select K Disjoint Special Substrings
-#
+#include <bits/stdc++.h>
+using namespace std;
 
-# @lc code=start
+/*
+ * @lc app=leetcode id=3458 lang=cpp
+ *
+ * [3458] Select K Disjoint Special Substrings
+ */
+
+// @lc code=start
 class Solution {
 public:
     bool maxSubstringLength(string s, int k) {
         if (k == 0) return true;
-        
-        int n = s.length();
-        vector<int> first(26, -1);
-        vector<int> last(26, -1);
-        
+        int n = (int)s.size();
+
+        vector<int> first(26, n), last(26, -1);
         for (int i = 0; i < n; ++i) {
-            int charIdx = s[i] - 'a';
-            if (first[charIdx] == -1) {
-                first[charIdx] = i;
-            }
-            last[charIdx] = i;
+            int c = s[i] - 'a';
+            first[c] = min(first[c], i);
+            last[c] = max(last[c], i);
         }
-        
-        vector<pair<int, int>> intervals;
-        
-        // Try to form a valid special substring starting with the first occurrence of each character
-        for (int charIdx = 0; charIdx < 26; ++charIdx) {
-            if (first[charIdx] == -1) continue;
-            
-            int start = first[charIdx];
-            int end = last[charIdx];
-            bool valid = true;
-            
-            // We iterate through the current range [start, end]
-            // If we find a character whose range extends beyond current end, we extend end.
-            // If we find a character whose range starts before current start, this start is invalid.
-            for (int i = start; i <= end; ++i) {
-                int currentCharField = s[i] - 'a';
-                if (first[currentCharField] < start) {
-                    valid = false;
-                    break;
-                }
-                end = max(end, last[currentCharField]);
+
+        auto buildInterval = [&](int l) -> pair<int,int> {
+            int r = last[s[l] - 'a'];
+            for (int i = l; i <= r; ++i) {
+                int c = s[i] - 'a';
+                if (first[c] < l) return {-1, -1}; // invalid
+                r = max(r, last[c]);
             }
-            
-            if (valid) {
-                // Constraint: The substring is not the entire string s.
-                if (end - start + 1 < n) {
-                    intervals.push_back({start, end});
-                }
-            }
+            return {l, r};
+        };
+
+        vector<pair<int,int>> intervals;
+        intervals.reserve(26);
+        for (int c = 0; c < 26; ++c) {
+            if (last[c] == -1) continue; // not present
+            int l = first[c];
+            auto seg = buildInterval(l);
+            if (seg.first == -1) continue;
+            // cannot be the entire string
+            if (seg.first == 0 && seg.second == n - 1) continue;
+            intervals.push_back(seg);
         }
-        
-        // Greedy Interval Scheduling
-        // Sort by end time
-        sort(intervals.begin(), intervals.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
-            return a.second < b.second;
+
+        sort(intervals.begin(), intervals.end(), [](const auto& a, const auto& b) {
+            if (a.second != b.second) return a.second < b.second;
+            return a.first < b.first;
         });
-        
-        int count = 0;
-        int lastEnd = -1;
-        
-        for (const auto& interval : intervals) {
-            if (interval.first > lastEnd) {
-                count++;
-                lastEnd = interval.second;
+
+        int cnt = 0;
+        int prevEnd = -1;
+        for (auto [l, r] : intervals) {
+            if (l > prevEnd) {
+                ++cnt;
+                prevEnd = r;
+                if (cnt >= k) return true;
             }
         }
-        
-        return count >= k;
+        return cnt >= k;
     }
 };
-# @lc code=end
+// @lc code=end

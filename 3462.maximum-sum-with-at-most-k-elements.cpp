@@ -3,38 +3,52 @@
 #
 # [3462] Maximum Sum With at Most K Elements
 #
-
 # @lc code=start
+#include <vector>
+#include <algorithm>
+#include <numeric>
+using namespace std;
+
 class Solution {
 public:
     long long maxSum(vector<vector<int>>& grid, vector<int>& limits, int k) {
-        vector<int> candidates;
-        int n = grid.size();
-        
-        // Step 1: Collect valid candidates from each row based on row limits
-        for (int i = 0; i < n; ++i) {
-            // Sort the row in descending order to pick the largest elements
-            sort(grid[i].rbegin(), grid[i].rend());
-            
-            // We can take at most limits[i] elements from this row
-            int count = limits[i];
-            for (int j = 0; j < count && j < grid[i].size(); ++j) {
-                candidates.push_back(grid[i][j]);
+        if (k == 0) return 0LL;
+
+        int n = (int)grid.size();
+        long long totalCap = 0;
+        for (int i = 0; i < n; i++) {
+            totalCap += min(limits[i], (int)grid[i].size());
+        }
+
+        vector<int> cand;
+        cand.reserve((size_t)totalCap);
+
+        for (int i = 0; i < n; i++) {
+            int m = (int)grid[i].size();
+            int t = min(limits[i], m);
+            if (t <= 0) continue;
+
+            auto &row = grid[i];
+            if (t == m) {
+                cand.insert(cand.end(), row.begin(), row.end());
+            } else {
+                nth_element(row.begin(), row.begin() + t, row.end(), greater<int>());
+                for (int j = 0; j < t; j++) cand.push_back(row[j]);
             }
         }
-        
-        // Step 2: Sort all collected candidates in descending order
-        sort(candidates.rbegin(), candidates.rend());
-        
-        // Step 3: Pick the top k elements (or fewer if we don't have enough candidates)
-        long long totalSum = 0;
-        int selections = min((int)candidates.size(), k);
-        
-        for (int i = 0; i < selections; ++i) {
-            totalSum += candidates[i];
+
+        if (cand.empty()) return 0LL;
+
+        if (k >= (int)cand.size()) {
+            long long ans = 0;
+            for (int v : cand) ans += v;
+            return ans;
         }
-        
-        return totalSum;
+
+        nth_element(cand.begin(), cand.begin() + k, cand.end(), greater<int>());
+        long long ans = 0;
+        for (int i = 0; i < k; i++) ans += cand[i];
+        return ans;
     }
 };
 # @lc code=end

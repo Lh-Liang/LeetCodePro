@@ -3,75 +3,76 @@
 #
 # [3449] Maximize the Minimum Game Score
 #
+#include <bits/stdc++.h>
+using namespace std;
 
 # @lc code=start
 class Solution {
 public:
-    bool check(long long target, const vector<int>& points, int m) {
-        long long moves = 0;
-        long long cur = 0;
-        int n = points.size();
-        
-        // We iterate up to n-2. The last element n-1 is handled specially
-        // or as a consequence of n-2.
-        for (int i = 0; i < n - 1; ++i) {
-            if (i == 0) {
-                moves++; // Move -1 -> 0
-                cur = 1;
-            }
-            
-            long long req = (target + points[i] - 1) / points[i];
-            long long needed = 0;
-            if (cur < req) {
-                needed = req - cur;
-                moves += needed * 2;
-            }
-            
-            if (moves > m) return false;
-            
-            // needed loops of i -> i+1 -> i contribute 'needed' visits to i+1
-            long long visits_next = needed;
-            
-            // Strategy check: can we stop at i (after the loops) without moving to i+1?
-            // This is only valid if i+1 is the last element (n-1) and it is already satisfied.
-            if (i == n - 2) {
-                long long req_last = (target + points[n-1] - 1) / points[n-1];
-                if (visits_next >= req_last) {
-                    return true;
-                }
-            }
-            
-            // Proceed to i+1
-            moves++;
-            cur = visits_next + 1; // visits from loops + the arrival move
-            
-            if (moves > m) return false;
-        }
-        
-        // At this point, we are at n-1. 'cur' tracks visits to n-1.
-        // We might need more visits for n-1. The only way is to oscillate (n-1) -> (n-2) -> (n-1).
-        long long req = (target + points[n-1] - 1) / points[n-1];
-        if (cur < req) {
-            moves += (req - cur) * 2;
-        }
-        
-        return moves <= m;
-    }
-
     long long maxScore(vector<int>& points, int m) {
-        long long low = 0, high = 200000000000000LL; // 2e14, safe upper bound
-        long long ans = 0;
-        
-        while (low <= high) {
-            long long mid = low + (high - low) / 2;
-            if (check(mid, points, m)) {
-                ans = mid;
-                low = mid + 1;
-            } else {
-                high = mid - 1;
+        int n = (int)points.size();
+        long long mn = *min_element(points.begin(), points.end());
+        long long hi = mn * 1LL * m; // safe upper bound
+
+        auto feasible = [&](long long X) -> bool {
+            if (X == 0) return true;
+
+            auto req = [&](int i) -> long long {
+                long long p = points[i];
+                return (X + p - 1) / p;
+            };
+
+            long long moves = 1; // first move: -1 -> 0
+            if (moves > m) return false;
+
+            long long extra = 0; // extra landings already obtained for current i
+
+            // process indices 0..n-3, must end each step at i+1
+            for (int i = 0; i <= n - 3; i++) {
+                long long have = 1 + extra;
+                long long need = req(i);
+                long long d = (need > have) ? (need - have) : 0; // bounces needed
+
+                // cost of bounces: 2*d
+                if (d > 0) {
+                    // early overflow-safe check against m
+                    if (moves + 2 * d > (long long)m) return false;
+                    moves += 2 * d;
+                }
+
+                // move right once to reach i+1
+                if (moves + 1 > (long long)m) return false;
+                moves += 1;
+
+                // those d bounces contribute d extra landings to i+1
+                extra = d;
             }
+
+            // Now at index n-2 (or 0 if n==2). Handle last edge (n-2, n-1).
+            int i2 = n - 2;
+            long long have2 = 1 + extra;
+            long long need2 = req(i2);
+            long long needLast = req(n - 1);
+
+            // Option A: end at n-2 => returns = k, last landings = k
+            long long kA = max(needLast, max(0LL, need2 - have2));
+            long long movesA = moves + 2 * kA;
+
+            // Option B: end at n-1 => returns = k-1, last landings = k
+            long long kB = max(needLast, need2 - have2 + 1);
+            long long movesB = moves + 2 * kB - 1;
+
+            long long best = min(movesA, movesB);
+            return best <= (long long)m;
+        };
+
+        long long lo = 0;
+        while (lo < hi) {
+            long long mid = lo + (hi - lo + 1) / 2;
+            if (feasible(mid)) lo = mid;
+            else hi = mid - 1;
         }
-        return ans;
+        return lo;
     }
 };
 # @lc code=end

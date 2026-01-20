@@ -1,209 +1,134 @@
-#include <vector>
-#include <algorithm>
-#include <iostream>
-
+#include <bits/stdc++.h>
 using namespace std;
 
+// @lc app=leetcode id=3420 lang=cpp
+//
+// [3420] Count Non-Decreasing Subarrays After K Operations
+//
+
+// @lc code=start
 class Solution {
-    struct Node {
-        long long min_val;
-        long long rate_right;
-        long long lz_add;
-        long long lz_set_rate;
-        bool has_set_rate;
-        long long lz_tick;
+    struct Seg {
+        long long v;      // prefix-max value
+        int cnt;          // how many positions have this prefix-max
+        long long prefCnt; // prefix sum of cnt
+        long long prefSum; // prefix sum of v*cnt
     };
 
-    vector<Node> tree;
+    struct Node {
+        long long mx = 0;       // maximum in interval
+        long long baseCost = 0; // cost when starting prev=0
+        vector<Seg> segs;       // increasing v, with prefix sums filled
+
+        long long costWithPrev(long long prev) const {
+            if (segs.empty()) return 0;
+            // find first segment with v >= prev
+            auto it = lower_bound(
+                segs.begin(), segs.end(), prev,
+                [](const Seg& s, long long val) { return s.v < val; }
+            );
+            if (it == segs.begin()) return baseCost;
+            int idx = int(it - segs.begin()) - 1; // last with v < prev
+            long long cntBelow = segs[idx].prefCnt;
+            long long sumBelow = segs[idx].prefSum;
+            long long extra = prev * cntBelow - sumBelow;
+            return baseCost + extra;
+        }
+    };
+
     int n;
+    vector<int> a;
+    vector<Node> st;
 
-    void push_tick(int node, long long tick) {
-        tree[node].min_val += tree[node].rate_right * tick;
-        tree[node].lz_tick += tick;
-    }
+    static Node mergeNodes(const Node& L, const Node& R) {
+        Node res;
+        res.mx = max(L.mx, R.mx);
 
-    void push_set_rate(int node, long long rate) {
-        // Before setting rate, we must ensure any pending ticks are processed by children
-        // However, in our logic, we push ticks before setting rate in push()
-        // So here we just set the rate.
-        tree[node].rate_right = rate;
-        tree[node].lz_set_rate = rate;
-        tree[node].has_set_rate = true;
-    }
+        long long rightCost = R.costWithPrev(L.mx);
+        res.baseCost = L.baseCost + rightCost;
 
-    void push_add(int node, long long val) {
-        tree[node].min_val += val;
-        tree[node].lz_add += val;
-    }
-
-    void push(int node, int start, int end) {
-        int mid = (start + end) / 2;
-        int left = 2 * node;
-        int right = 2 * node + 1;
-
-        // 1. Push Set Rate
-        if (tree[node].has_set_rate) {
-            // If we are setting rate, previous ticks on children should be valid with OLD rate.
-            // But wait, if we have pending ticks on current node, they happened *before* or *after* set rate?
-            // In our loop: Set Rate -> Tick -> Add Val.
-            // So Ticks accumulate AFTER Set Rate.
-            // So if we have both Set Rate and Tick, Set Rate happened first.
-            // So we apply Set Rate to children, THEN Tick.
-            
-            // Actually, if `lz_set_rate` is present, it overrides previous rates.
-            // We must clear children's pending ticks? No.
-            // Children's pending ticks occurred before this Set Rate? 
-            // No, the lazy tags on `node` are ordered accumulation of operations.
-            // Since we always do SetRate then Tick, `lz_set_rate` corresponds to an operation 
-            // that happened before the `lz_tick` accumulation.
-            // However, `lz_tick` applies to the NEW rate.
-            // So we push `lz_set_rate` first, then `lz_tick`.
-            
-            // But wait, does `lz_set_rate` override children's `lz_set_rate`? Yes.
-            // Does it affect children's `lz_tick`? 
-            // The children might have `lz_tick` from previous steps. 
-            // Those ticks used the OLD rate. 
-            // We must `push` the children essentially? 
-            // No, standard lazy prop: we assume children are clean relative to `node`'s new ops.
-            // But children might have old tags. 
-            // We need to apply `lz_set_rate` to children. 
-            // If child has `lz_tick`, that tick used child's old rate. That is correct. 
-            // We just update child's current rate for FUTURE ticks.
-            
-            push_set_rate(left, tree[node].lz_set_rate);
-            push_set_rate(right, tree[node].lz_set_rate);
-            tree[node].has_set_rate = false;
+        res.segs.reserve(L.segs.size() + R.segs.size());
+        for (const auto& s : L.segs) {
+            res.segs.push_back({s.v, s.cnt, 0, 0});
         }
 
-        // 2. Push Tick
-        if (tree[node].lz_tick > 0) {
-            push_tick(left, tree[node].lz_tick);
-            push_tick(right, tree[node].lz_tick);
-            tree[node].lz_tick = 0;
+        long long threshold = L.mx;
+        for (const auto& s : R.segs) {
+            long long v2 = max(s.v, threshold);
+            int c2 = s.cnt;
+            if (!res.segs.empty() && res.segs.back().v == v2) {
+                res.segs.back().cnt += c2;
+            } else {
+                res.segs.push_back({v2, c2, 0, 0});
+            }
         }
 
-        // 3. Push Add
-        if (tree[node].lz_add != 0) {
-            push_add(left, tree[node].lz_add);
-            push_add(right, tree[node].lz_add);
-            tree[node].lz_add = 0;
+        long long pc = 0, ps = 0;
+        for (auto& s : res.segs) {
+            pc += s.cnt;
+            ps += s.v * 1LL * s.cnt;
+            s.prefCnt = pc;
+            s.prefSum = ps;
         }
+        return res;
     }
 
-    void update_set_rate(int node, int start, int end, int l, int r, long long val) {
-        if (l > end || r < start) return;
-        if (l <= start && end <= r) {
-            // Important: If we have pending ticks, we must push them? 
-            // No, we are setting rate now. Ticks accumulated on this node apply to the rate *after* this set?
-            // Or *before*? 
-            // In our global loop: Set Rate, THEN Tick.
-            // So `lz_tick` on this node (if any) belongs to AFTER this Set Rate operation from previous steps? 
-            // No, `lz_tick` is cleared at end of push.
-            // If we visit this node, we pushed everything. `lz_tick` is 0.
-            // So we can safely set rate.
-            push_set_rate(node, val);
+    void build(int p, int l, int r) {
+        if (l + 1 == r) {
+            long long x = a[l];
+            st[p].mx = x;
+            st[p].baseCost = 0;
+            st[p].segs = {Seg{x, 1, 1, x}};
             return;
         }
-        push(node, start, end);
-        int mid = (start + end) / 2;
-        update_set_rate(2 * node, start, mid, l, r, val);
-        update_set_rate(2 * node + 1, mid + 1, end, l, r, val);
-        // Pull up
-        tree[node].min_val = tree[2 * node + 1].min_val; // Rightmost min
-        tree[node].rate_right = tree[2 * node + 1].rate_right;
+        int m = (l + r) >> 1;
+        build(p << 1, l, m);
+        build(p << 1 | 1, m, r);
+        st[p] = mergeNodes(st[p << 1], st[p << 1 | 1]);
     }
 
-    void update_tick(int node, int start, int end, int l, int r, long long val) {
-        if (l > end || r < start) return;
-        if (l <= start && end <= r) {
-            push_tick(node, val);
-            return;
-        }
-        push(node, start, end);
-        int mid = (start + end) / 2;
-        update_tick(2 * node, start, mid, l, r, val);
-        update_tick(2 * node + 1, mid + 1, end, l, r, val);
-        tree[node].min_val = tree[2 * node + 1].min_val;
-        tree[node].rate_right = tree[2 * node + 1].rate_right;
-    }
+    // Returns the first position in [idx..n] that cannot be included (i.e., boundary p).
+    int walkMaxRight(int p, int l, int r, int idx, long long &prev, long long &used, long long K) {
+        if (r <= idx) return idx;
 
-    void update_add(int node, int start, int end, int l, int r, long long val) {
-        if (l > end || r < start) return;
-        if (l <= start && end <= r) {
-            push_add(node, val);
-            return;
+        if (l >= idx) {
+            long long c = st[p].costWithPrev(prev);
+            if (used + c <= K) {
+                used += c;
+                prev = max(prev, st[p].mx);
+                return r;
+            }
+            if (l + 1 == r) {
+                return l; // cannot include this element
+            }
         }
-        push(node, start, end);
-        int mid = (start + end) / 2;
-        update_add(2 * node, start, mid, l, r, val);
-        update_add(2 * node + 1, mid + 1, end, l, r, val);
-        tree[node].min_val = tree[2 * node + 1].min_val;
-        tree[node].rate_right = tree[2 * node + 1].rate_right;
-    }
-    
-    // Find first index i such that val[i] <= k
-    // Since val is monotonic decreasing, we look for the first i.
-    // If left child's min_val (which is val[mid]) <= k, then answer is in left or before.
-    // Wait, val[0] > val[1] > ... > val[n]. 
-    // min_val of left child is val[mid]. 
-    // If val[mid] <= k, then mid is valid. Since it's decreasing, all i > mid are valid.
-    // We want the *smallest* i. So if val[mid] <= k, we try left child.
-    // If val[mid] > k, then mid is invalid. All i < mid are invalid (larger). We try right child.
-    int find_first(int node, int start, int end, long long k) {
-        if (start == end) {
-            return (tree[node].min_val <= k) ? start : -1;
-        }
-        push(node, start, end);
-        int mid = (start + end) / 2;
-        // Check min_val of left child. 
-        // In our definition, min_val is the value at the right end of the range.
-        // So tree[2*node].min_val is val[mid].
-        if (tree[2 * node].min_val <= k) {
-            int res = find_first(2 * node, start, mid, k);
-            return res != -1 ? res : -1; // Should be res, as mid is valid.
+
+        int m = (l + r) >> 1;
+        if (idx < m) {
+            int leftRes = walkMaxRight(p << 1, l, m, idx, prev, used, K);
+            if (leftRes < m) return leftRes;
+            return walkMaxRight(p << 1 | 1, m, r, m, prev, used, K);
         } else {
-            return find_first(2 * node + 1, mid + 1, end, k);
+            return walkMaxRight(p << 1 | 1, m, r, idx, prev, used, K);
         }
     }
 
 public:
     long long countNonDecreasingSubarrays(vector<int>& nums, int k) {
-        n = nums.size();
-        tree.resize(4 * n + 1, {0, 0, 0, 0, false, 0});
-        
-        vector<int> stack = {-1};
+        a = nums;
+        n = (int)a.size();
+        st.assign(4 * n + 5, Node());
+        build(1, 0, n);
+
+        long long K = (long long)k;
         long long ans = 0;
-
-        for (int right = 0; right < n; ++right) {
-            long long num = nums[right];
-            
-            // 1. Update rates based on stack
-            while (stack.size() > 1 && nums[stack.back()] <= num) {
-                int idx = stack.back();
-                stack.pop_back();
-                int prev = stack.back();
-                // Range (prev + 1, idx] was dominated by nums[idx]
-                // Now it is dominated by num. 
-                // We update rate.
-                update_set_rate(1, 0, n - 1, prev + 1, idx, num);
-            }
-            int prev = stack.back();
-            update_set_rate(1, 0, n - 1, prev + 1, right, num);
-            stack.push_back(right);
-
-            // 2. Tick (Add rates)
-            update_tick(1, 0, n - 1, 0, right, 1);
-
-            // 3. Add -num
-            update_add(1, 0, n - 1, 0, right, -num);
-
-            // 4. Query
-            int left = find_first(1, 0, n - 1, k);
-            if (left != -1 && left <= right) {
-                ans += (right - left + 1);
-            }
+        for (int l = 0; l < n; l++) {
+            long long prev = 0;
+            long long used = 0;
+            int p = walkMaxRight(1, 0, n, l, prev, used, K); // p is first not included
+            ans += (long long)(p - l);
         }
-
         return ans;
     }
 };
+// @lc code=end
