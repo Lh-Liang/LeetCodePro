@@ -4,42 +4,74 @@
 # [3640] Trionic Array II
 #
 
+from typing import List
+
 # @lc code=start
 class Solution:
     def maxSumTrionic(self, nums: List[int]) -> int:
         n = len(nums)
+        prefix = [0] * (n + 1)
+        for i in range(n):
+            prefix[i + 1] = prefix[i] + nums[i]
+        
+        INF = float('inf')
         NEG_INF = float('-inf')
         
-        # DP states:
-        # A_1: first increasing phase with exactly 1 element
-        # A_2: first increasing phase with >= 2 elements
-        # B: first increasing done, in decreasing phase (>= 2 elements)
-        # C: complete trionic (all three phases have >= 2 elements)
-        
-        A_1 = nums[0]
-        A_2 = NEG_INF
-        B = NEG_INF
-        C = NEG_INF
-        
-        result = NEG_INF
-        
+        # max_inc_end[i]: max sum strict inc len>=2 ending at i
+        len_inc = [1] * n
         for i in range(1, n):
-            new_A_1 = nums[i]
-            new_A_2 = NEG_INF
-            new_B = NEG_INF
-            new_C = NEG_INF
-            
-            if nums[i] > nums[i-1]:  # strictly increasing
-                # Extend first increasing
-                new_A_2 = max(A_1 + nums[i], A_2 + nums[i])
-                # Extend second increasing (transition from B or extend C)
-                new_C = max(B + nums[i], C + nums[i])
-            elif nums[i] < nums[i-1]:  # strictly decreasing
-                # Start or extend decreasing (transition from A_2 or extend B)
-                new_B = max(A_2 + nums[i], B + nums[i])
-            
-            A_1, A_2, B, C = new_A_1, new_A_2, new_B, new_C
-            result = max(result, C)
+            if nums[i - 1] < nums[i]:
+                len_inc[i] = len_inc[i - 1] + 1
+        max_inc_end = [NEG_INF] * n
+        min_for_end = [INF] * n
+        for i in range(1, n):
+            if len_inc[i] >= 2:
+                if len_inc[i] == 2:
+                    min_for_end[i] = prefix[i - 1]
+                else:
+                    min_for_end[i] = min(min_for_end[i - 1], prefix[i - 1])
+                max_inc_end[i] = prefix[i + 1] - min_for_end[i]
         
-        return result
+        # len_forward[i]: max inc length starting at i
+        len_forward = [1] * n
+        for i in range(n - 2, -1, -1):
+            if nums[i] < nums[i + 1]:
+                len_forward[i] = len_forward[i + 1] + 1
+        
+        # max_inc_start[i]: max sum strict inc len>=2 starting at i
+        max_inc_start = [NEG_INF] * n
+        for i in range(n - 1, -1, -1):
+            if len_forward[i] >= 2:
+                next_max = max_inc_start[i + 1] if i + 1 < n else NEG_INF
+                cand1 = nums[i + 1]
+                max_add = max(cand1, next_max)
+                max_inc_start[i] = nums[i] + max_add
+        
+        # len_dec[i]: max dec length ending at i
+        len_dec = [1] * n
+        for i in range(1, n):
+            if nums[i - 1] > nums[i]:
+                len_dec[i] = len_dec[i - 1] + 1
+        
+        # B[p]
+        B = [NEG_INF] * n
+        for p in range(n):
+            if max_inc_end[p] != NEG_INF:
+                B[p] = max_inc_end[p] - prefix[p] - nums[p]
+        
+        # Now for each q
+        ans = NEG_INF
+        current_max_B = NEG_INF
+        for q in range(n):
+            if len_dec[q] >= 2:
+                if len_dec[q] == 2:
+                    current_max_B = B[q - 1]
+                else:
+                    current_max_B = max(current_max_B, B[q - 1])
+                if current_max_B != NEG_INF and max_inc_start[q] != NEG_INF:
+                    c_q = prefix[q + 1] + max_inc_start[q] - nums[q]
+                    total = current_max_B + c_q
+                    ans = max(ans, total)
+        
+        return int(ans)
 # @lc code=end

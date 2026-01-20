@@ -10,65 +10,49 @@ from typing import List
 class Solution:
     def maximizeXorAndXor(self, nums: List[int]) -> int:
         n = len(nums)
-        BITS = 30
-        ALL_BITS = (1 << BITS) - 1
-        
-        # Precompute XOR for each subset
+        full = (1 << n) - 1
+        MOD_MASK = (1 << 32) - 1
+        INF_AND = MOD_MASK
         xor_all = [0] * (1 << n)
-        for mask in range(1, 1 << n):
-            lsb = mask & (-mask)
-            idx = lsb.bit_length() - 1
-            xor_all[mask] = xor_all[mask ^ lsb] ^ nums[idx]
-        
-        # Precompute AND for each subset (AND of empty set is 0)
         and_all = [0] * (1 << n)
+        and_all[0] = INF_AND
         for mask in range(1, 1 << n):
-            lsb = mask & (-mask)
-            idx = lsb.bit_length() - 1
-            if mask == lsb:
-                and_all[mask] = nums[idx]
-            else:
-                and_all[mask] = and_all[mask ^ lsb] & nums[idx]
-        
-        # Precompute basis for each subset (for XOR linear space)
-        basis_all = [[] for _ in range(1 << n)]
-        for mask in range(1, 1 << n):
-            lsb = mask & (-mask)
-            idx = lsb.bit_length() - 1
-            prev_basis = basis_all[mask ^ lsb][:]
-            cur = nums[idx]
-            for b in prev_basis:
-                cur = min(cur, cur ^ b)
-            if cur > 0:
-                prev_basis.append(cur)
-                prev_basis.sort(reverse=True)
-            basis_all[mask] = prev_basis
-        
-        def max_xor_sum(s_mask):
-            if s_mask == 0:
-                return 0
-            
-            c = xor_all[s_mask]
-            # We want to maximize x + (c XOR x) = c + 2*(x AND ~c)
-            target = ALL_BITS ^ c  # bits where c is 0
-            basis = basis_all[s_mask]
-            
-            # Greedy: find x in span that maximizes x AND target
+            i = 0
+            tmp = mask
+            while (tmp & 1) == 0:
+                i += 1
+                tmp >>= 1
+            sub = mask ^ (1 << i)
+            xor_all[mask] = xor_all[sub] ^ nums[i]
+            and_all[mask] = and_all[sub] & nums[i]
+        total_xor = xor_all[full]
+        ans = 0
+        for mb in range(1 << n):
+            andb = 0 if mb == 0 else and_all[mb]
+            xs = total_xor ^ xor_all[mb]
+            smask = full ^ mb
+            basis = [0] * 32
+            for i in range(n):
+                if (smask & (1 << i)) == 0:
+                    continue
+                val = nums[i]
+                for j in range(31, -1, -1):
+                    if (val & (1 << j)) == 0:
+                        continue
+                    if basis[j]:
+                        val ^= basis[j]
+                    else:
+                        basis[j] = val
+                        break
+            M = (~xs) & MOD_MASK
             x = 0
-            for b in basis:
-                if (x ^ b) & target > x & target:
-                    x ^= b
-            
-            return c + 2 * (x & target)
-        
-        max_value = 0
-        full_mask = (1 << n) - 1
-        
-        for b_mask in range(1 << n):
-            and_b = and_all[b_mask]
-            s_mask = full_mask ^ b_mask
-            xor_sum = max_xor_sum(s_mask)
-            max_value = max(max_value, and_b + xor_sum)
-        
-        return max_value
+            for k in range(31, -1, -1):
+                if (M & (1 << k)) and basis[k] and (x & (1 << k)) == 0:
+                    x ^= basis[k]
+            extra = x & M
+            curr = xs + 2 * extra + andb
+            if curr > ans:
+                ans = curr
+        return ans
+
 # @lc code=end
