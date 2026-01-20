@@ -5,56 +5,154 @@
 #
 
 # @lc code=start
+import heapq
 from typing import List
-import math
+
+class SegmentTree:
+    def __init__(self, nn: int):
+        self.m = nn - 1
+        self.tree = [0] * (4 * nn)
+        self.lazy = [0] * (4 * nn)
+
+    def propagate(self, node: int, start: int, end: int) -> None:
+        if self.lazy[node] != 0:
+            self.tree[node] += self.lazy[node]
+            if start != end:
+                self.lazy[2 * node] += self.lazy[node]
+                self.lazy[2 * node + 1] += self.lazy[node]
+            self.lazy[node] = 0
+
+    def _update(self, node: int, start: int, end: int, left: int, right: int, val: int) -> None:
+        self.propagate(node, start, end)
+        if start > end or start > right or end < left:
+            return
+        if left <= start and end <= right:
+            self.lazy[node] += val
+            self.propagate(node, start, end)
+            return
+        mid = (start + end) // 2
+        self._update(2 * node, start, mid, left, right, val)
+        self._update(2 * node + 1, mid + 1, end, left, right, val)
+        self.tree[node] = max(self.tree[2 * node], self.tree[2 * node + 1])
+
+    def update_range(self, left: int, right: int, val: int) -> None:
+        if left > right:
+            return
+        self._update(1, 1, self.m, left, right, val)
+
+    def _query(self, node: int, start: int, end: int, left: int, right: int) -> int:
+        self.propagate(node, start, end)
+        if start > right or end < left:
+            return float('-inf')
+        if left <= start and end <= right:
+            return self.tree[node]
+        mid = (start + end) // 2
+        lmax = self._query(2 * node, start, mid, left, right)
+        rmax = self._query(2 * node + 1, mid + 1, end, left, right)
+        return max(lmax, rmax)
+
+    def query_max(self) -> int:
+        if self.m < 1:
+            return 0
+        return self._query(1, 1, self.m, 1, self.m)
 
 class Solution:
     def maximumCount(self, nums: List[int], queries: List[List[int]]) -> List[int]:
-        # Precompute primes up to 100000 using sieve
-        MAX_VAL = 100000
-        is_prime = [True] * (MAX_VAL + 1)
+        MAXV = 10**5 + 10
+        is_prime = [True] * MAXV
         is_prime[0] = is_prime[1] = False
-        for i in range(2, int(math.sqrt(MAX_VAL)) + 1):
+        for i in range(2, int(MAXV**0.5) + 1):
             if is_prime[i]:
-                step = i
-                start = i * i
-                for j in range(start, MAX_VAL + 1, step):
+                for j in range(i * i, MAXV, i):
                     is_prime[j] = False
-        
+
         n = len(nums)
-        # Count distinct primes in entire array initially
-        # We'll maintain two frequency maps: one for prefix (from left to right) and one for suffix (from right to left)
-        # But we need to answer after each update: we need to compute max over k of (distinct primes in prefix up to k-1 + distinct primes in suffix from k to n-1)
-        # Let dp_prefix[i] be number of distinct primes in nums[0..i-1] (i elements). Actually we need distinct counts as we extend.
-        # We can maintain a global frequency map of primes in the whole array.
-        # For each split point k, the distinct primes in prefix are those that appear at least once in [0..k-1]; similarly suffix.
-        # We can precompute for each prime, the first and last occurrence? That might be heavy.
-        # Alternative: For each index i, we can know how many distinct primes are in prefix ending at i and suffix starting at i.
-        # But updates change values, so we need dynamic structure.
-        # Since n up to 5e4 and queries up to 5e4, we need O(log n) per query.
-        # We can use segment tree that stores for each segment:
-        #   - set of distinct primes? That would be too large.
-        # Instead, note that the total number of distinct primes across all numbers is limited because each number <=1e5 and there are about 9592 primes up to 1e5.
-        # But storing sets per segment would still be heavy.
-        # Another approach: The sum of distinct primes in prefix + suffix equals (distinct primes in prefix) + (distinct primes in suffix). 
-        # For a given split k, let A be set of primes in prefix, B be set of primes in suffix. Then total = |A| + |B|.
-        # Note that A and B may overlap. Overlap is counted twice. So total = |A ∪ B| + |A ∩ B| = total_distinct_in_whole_array + |A ∩ B|.
-        # Because |A ∪ B| is the set of all primes present in the whole array (since every prime appears somewhere). Actually not necessarily: a prime might appear only in prefix or only in suffix. But A ∪ B is exactly the set of primes that appear anywhere in the array. So |A ∪ B| is constant for the whole array regardless of split? Wait, if a prime appears only in prefix and not suffix, it's still in A ∪ B. Similarly only in suffix. So indeed A ∪ B is the set of all primes that appear anywhere in nums. That set does not depend on split k. Let total_distinct = |A ∪ B| for whole array.
-        # Then total = total_distinct + |A ∩ B|. So maximizing total is equivalent to maximizing the size of intersection between prefix primes and suffix primes.
-        # Because total_distinct is fixed for the current array state.
-        # So we need to choose k such that the number of distinct primes that appear both in prefix [0..k-1] AND suffix [k..n-1] is maximized.
-        # Let’s denote for each prime p, let first[p] be first index where p appears, last[p] be last index where p appears.
-        # Then p is in both prefix and suffix for a split k if first[p] < k <= last[p]. Because p must appear at least once in prefix (so first[p] <= k-1) and at least once in suffix (so last[p] >= k). Actually condition: exists i < k with nums[i]=p and exists j >= k with nums[j]=p. That means first[p] < k and last[p] >= k. So condition: first[p] < k <= last[p].
-        # Therefore, for each prime p, it contributes to intersection for all k such that first[p]+1 <= k <= last[p]. That's a range [first[p]+1, last[p]].
-        # So the problem reduces to: given a collection of intervals (one per distinct prime), find the integer point k (1<=k<n) covered by the maximum number of intervals. The answer for query is total_distinct + max_coverage.
-        # This is classic interval point maximum overlap problem. We can use sweep line: for each interval [l,r], add +1 at l and -1 at r+1. Then sweep over possible k from 1 to n-1 to get coverage count at each k.
-        # However, we have updates that change nums values. Each update changes at most two numbers: old value at idx and new value at idx. So we need to update intervals for primes affected by those changes.
-        # We need to maintain:
-        #   - For each prime p, its first occurrence index and last occurrence index across current nums.
-        #   - Then generate intervals as described.
-        #   - Maintain a data structure that supports adding an interval, removing an interval, and querying maximum coverage over integer points 1..n-1.
-        # Since n up to 5e4 and queries up to 5e4, we can use difference array with Fenwick tree or segment tree that supports range add and point query? Actually we need point queries after range updates to get coverage at each point; but we need maximum over all points. We can use segment tree with lazy propagation that stores max value over range after range additions. Because adding an interval corresponds to adding +1 on range [l,r]. Removing an interval corresponds to adding -1 on same range. Then the maximum value over points 1..n-1 gives max_coverage.
-        # So plan:
-        #   - Precompute prime list up to 100000.
-        #   - Maintain arrays first_occ and last_occ for each prime (size ~9592). But indices are up to n=5e4; we can store default first_occ = INF, last_occ = -INF.
-        #   - Also maintain frequency count per prime? Actually we need existence across indices; but if multiple occurrences, first and last suffice because any occurrence between them ensures interval condition holds regardless of interior presence? Wait condition requires existence both before and after split. If there are multiple occurrences but all before split or all after split then it doesn't count. So indeed only first and last matter because if there's any occurrence before split and any after split then p contributes. The existence before split requires at least one occurrence index < k; existence after requires at least one index >= k. So having first < k <= last ensures both conditions because first < k means there exists an occurrence before split (since first < k implies index=first < k), and last >= k means there exists an occurrence after or at split? Actually condition needs existence after split meaning index >= k; but if last == k then index ==k which is part of suffix? Suffix starts at index k; so yes includes nums[k]. So condition is first < k <= last works because if first < k then there's an occurrence strictly before split; if last >=k then there's an occurrence at or after split. However note: if there's exactly one occurrence at position idx, then first=last=idx. Then condition becomes idx < k <= idx which is impossible; so such prime never contributes to intersection as it cannot be both sides simultaneously. That's correct because single occurrence cannot be on both sides no matter where you split unless you allow empty? Not allowed non-empty parts; but even if you could split exactly at idx? Not allowed because parts must be non-empty; but splitting at idx would put idx into suffix? Wait suffix starts at idx; so left part ends before idx; right part includes idx; so indeed it's only on right side; not left side; so doesn't contribute intersection.
+        tree = SegmentTree(n)
+        structures = {}
+        T = 0
+
+        for i in range(n):
+            val = nums[i]
+            if val < MAXV and is_prime[val]:
+                p = val
+                if p not in structures:
+                    structures[p] = {'poss': set(), 'minh': [], 'maxh': []}
+                s = structures[p]
+                s['poss'].add(i)
+                heapq.heappush(s['minh'], i)
+                heapq.heappush(s['maxh'], -i)
+
+        T = len(structures)
+        def get_min(structures, p):
+            if p not in structures:
+                return None
+            s = structures[p]
+            minh = s['minh']
+            poss = s['poss']
+            while minh and minh[0] not in poss:
+                heapq.heappop(minh)
+            return minh[0] if minh else None
+
+        def get_max(structures, p):
+            if p not in structures:
+                return None
+            s = structures[p]
+            maxh = s['maxh']
+            poss = s['poss']
+            while maxh and -maxh[0] not in poss:
+                heapq.heappop(maxh)
+            return -maxh[0] if maxh else None
+
+        def adjust_contribution(structures, tree, p, delta):
+            minp = get_min(structures, p)
+            if minp is None:
+                return
+            maxp = get_max(structures, p)
+            if minp >= maxp:
+                return
+            L = minp + 1
+            R = maxp
+            tree.update_range(L, R, delta)
+
+        for p in list(structures):
+            adjust_contribution(structures, tree, p, 1)
+
+        ans = []
+        for q in queries:
+            idx, new_val = q
+            old_val = nums[idx]
+            nums[idx] = new_val
+
+            # process old
+            if old_val < MAXV and is_prime[old_val]:
+                p = old_val
+                adjust_contribution(structures, tree, p, -1)
+                s = structures[p]
+                s['poss'].remove(idx)
+                if not s['poss']:
+                    del structures[p]
+                    T -= 1
+                else:
+                    adjust_contribution(structures, tree, p, 1)
+
+            # process new
+            if new_val < MAXV and is_prime[new_val]:
+                p = new_val
+                if p not in structures:
+                    structures[p] = {'poss': set(), 'minh': [], 'maxh': []}
+                s = structures[p]
+                was_empty = len(s['poss']) == 0
+                adjust_contribution(structures, tree, p, -1)
+                s['poss'].add(idx)
+                heapq.heappush(s['minh'], idx)
+                heapq.heappush(s['maxh'], -idx)
+                if was_empty:
+                    T += 1
+                adjust_contribution(structures, tree, p, 1)
+
+            max_inter = tree.query_max()
+            ans.append(T + max_inter)
+
+        return ans
+
+# @lc code=end

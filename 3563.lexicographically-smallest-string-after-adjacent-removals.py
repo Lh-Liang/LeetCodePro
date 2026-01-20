@@ -3,40 +3,53 @@
 #
 # [3563] Lexicographically Smallest String After Adjacent Removals
 #
-from functools import lru_cache
+
 # @lc code=start
 class Solution:
     def lexicographicallySmallestString(self, s: str) -> str:
         n = len(s)
-        ords = [ord(ch)-97 for ch in s]
-        
-        def cons(a,b):
-            # circular consecutiveness modulo 26
-            diff = abs(ords[a]-ords[b])
-            return diff == 25 or diff == 27 or diff == (-25)%32?
-Actually simpler use modular difference.
-def cons_val(x,y):
-x_val,y_val = ords[x],ords[y]
-diff_mod=(x_val-y_val)%26return diff_mod==or diff_mod==25Similar.
-def cons_idx(i,j):
-x,y=ords[i],ords[j]
-diff_mod=(x-y)%return diff_mod==or diff_mod==But careful negative Python modulus positive.
-def cons_val(x,y):
-diff_mod=(x-y)%return diff_mod==or diff_mod==Let's define outside class easier.
-def cons_val(x,y):
-diff_mod=(x-y)%return diff_mod==or diff_mod==Now back.
-def cons_idx(i,j):
-x,y=ords[i],ords[j]
-diff_mod=(x-y)%return diff_mod==or diff_mod==Simplify create list vals outside.
-vls=[ord(c)-for cin]
-n len(vls)
-def con(a,b):
-diff_absabs(vls[a]-vls[b])return diff_abs==or diff_abs==Better just compute absolute difference ignoring circular initially.
-def con_val(x,y):
-diff_absabs(x-y)							ifdiff_abs == ordiff_abs ==returnTrueelseifdiff_abs ==returnTrueforcircular case'a'and'z'differencebetweenandisnotbutin modular terms|122-97|=butin our mapping aandza->b->...y->soanddifferenceisActually mappingandtoanddifferenceisIndeed ord('a')='b')='difference=|98-'=|Similarly ord('z')='difference=|122-'=|Socircular case corresponds differenceofbecauseaftercomesThus absolute differencemustbeorHence con_val(x,y):diff_absabs(x-y);returndiff_abs == ordiff_abs ==Yes.
-def con_idx(i,j):return con_val(vls[i],vls[j]))
-good.
-good.
-good.
-good.
-good.
+        s_list = list(s)
+        dp = [[False] * n for _ in range(n)]
+
+        def is_consecutive(ch1: str, ch2: str) -> bool:
+            a = ord(ch1) - ord('a')
+            b = ord(ch2) - ord('a')
+            diff = abs(a - b)
+            return diff == 1 or diff == 25
+
+        # Interval DP for reducible to empty
+        for length in range(2, n + 1, 2):
+            for l in range(n - length + 1):
+                r = l + length - 1
+                # Check splits
+                for k in range(l, r):
+                    if dp[l][k] and dp[k + 1][r]:
+                        dp[l][r] = True
+                        break
+                # Check outer pair
+                inner_l, inner_r = l + 1, r - 1
+                inner_ok = inner_l > inner_r or dp[inner_l][inner_r]
+                if is_consecutive(s_list[l], s_list[r]) and inner_ok:
+                    dp[l][r] = True
+
+        # Now compute f[start]: lex smallest from start
+        f = [''] * (n + 1)
+        for start in range(n - 1, -1, -1):
+            min_str = None
+            # Empty if whole reducible
+            whole_len = n - start
+            if whole_len % 2 == 0 and (whole_len == 0 or dp[start][n - 1]):
+                min_str = ''
+            # Other candidates
+            for j in range(start, n):
+                gap_l = start
+                gap_r = j - 1
+                gap_len = gap_r - gap_l + 1 if gap_r >= gap_l else 0
+                gap_ok = gap_len == 0 or (gap_len % 2 == 0 and dp[gap_l][gap_r])
+                if gap_ok:
+                    cand = s_list[j] + f[j + 1]
+                    if min_str is None or cand < min_str:
+                        min_str = cand
+            f[start] = min_str
+        return f[0]
+# @lc code=end

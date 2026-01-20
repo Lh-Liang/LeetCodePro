@@ -13,71 +13,54 @@ class Solution:
         MOD = 10**9 + 7
         n = len(edges) + 1
         adj = [[] for _ in range(n + 1)]
-        for u, v in edges:
-            adj[u].append(v)
-            adj[v].append(u)
+        for a, b in edges:
+            adj[a].append(b)
+            adj[b].append(a)
         
-        # BFS to compute depths and parents
-        parent = [-1] * (n + 1)
-        depth = [0] * (n + 1)
+        dep = [0] * (n + 1)
+        LOG = 18
+        par = [[0] * LOG for _ in range(n + 1)]
+        vis = [False] * (n + 1)
+        
         q = deque([1])
-        parent[1] = -1
+        vis[1] = True
+        par[1][0] = 1
         while q:
-            u = q.popleft()
-            for v in adj[u]:
-                if v == parent[u]:
-                    continue
-                parent[v] = u
-                depth[v] = depth[u] + 1
-                q.append(v)
+            cur = q.popleft()
+            for nei in adj[cur]:
+                if not vis[nei]:
+                    vis[nei] = True
+                    dep[nei] = dep[cur] + 1
+                    par[nei][0] = cur
+                    q.append(nei)
         
-        # Binary lifting preprocessing
-        LOG = n.bit_length()
-        up = [[-1] * (LOG + 1) for _ in range(n + 1)]
-        for i in range(1, n + 1):
-            up[i][0] = parent[i]
-        
-        for k in range(1, LOG + 1):
+        for j in range(1, LOG):
             for i in range(1, n + 1):
-                if up[i][k - 1] != -1:
-                    up[i][k] = up[up[i][k - 1]][k - 1]
-                else:
-                    up[i][k] = -1
+                par[i][j] = par[par[i][j - 1]][j - 1]
         
-        def lca(u: int, v: int) -> int:
-            # Ensure u is deeper than or same as v
-            if depth[u] < depth[v]:
+        def get_lca(u: int, v: int) -> int:
+            if dep[u] > dep[v]:
                 u, v = v, u
-            # Lift u to same level as v
-            diff = depth[u] - depth[v]
-            k = 0
-            while diff:
-                if diff & 1:
-                    u = up[u][k]
-                diff >>= 1
-                k += 1
+            # Level v to same depth as u
+            for j in range(LOG):
+                if ((dep[v] - dep[u]) & (1 << j)):
+                    v = par[v][j]
             if u == v:
                 return u
-            # Lift both until their parents are equal
-            for k in range(LOG, -1, -1):
-                if up[u][k] != up[v][k]:
-                    u = up[u][k]
-                    v = up[v][k]
-            return parent[u]
-        
-        # Precompute powers of two
-        max_dist = n - 1
-        pow_two = [1] * (max_dist + 1)
-        for i in range(1, max_dist + 1):
-            pow_two[i] = (pow_two[i - 1] * 2) % MOD
+            # Jump
+            for j in range(LOG - 1, -1, -1):
+                if par[u][j] != par[v][j]:
+                    u = par[u][j]
+                    v = par[v][j]
+            return par[u][0]
         
         ans = []
-        for u, v in queries:
-            anc = lca(u, v)
-            dist = depth[u] + depth[v] - 2 * depth[anc]
-            if dist == 0:
+        for ui, vi in queries:
+            l = get_lca(ui, vi)
+            k = dep[ui] + dep[vi] - 2 * dep[l]
+            if k == 0:
                 ans.append(0)
             else:
-                ans.append(pow_two[dist - 1]) 
+                ans.append(pow(2, k - 1, MOD))
         return ans
 # @lc code=end
