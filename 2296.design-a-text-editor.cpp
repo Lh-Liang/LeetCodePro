@@ -1,3 +1,6 @@
+#include <string>
+#include <algorithm>
+
 #
 # @lc app=leetcode id=2296 lang=cpp
 #
@@ -5,15 +8,10 @@
 #
 
 # @lc code=start
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
 class TextEditor {
 private:
-    string left;
-    string right;
+    std::string left;
+    std::string right;
 
 public:
     TextEditor() {
@@ -21,33 +19,33 @@ public:
         right = "";
     }
     
-    void addText(string text) {
+    void addText(std::string text) {
         left += text;
     }
     
     int deleteText(int k) {
-        int numToDelete = min(k, (int)left.size());
-        left.erase(left.size() - numToDelete);
-        return numToDelete;
+        int toDelete = std::min(k, (int)left.size());
+        left.resize(left.size() - toDelete);
+        return toDelete;
     }
     
-    string cursorLeft(int k) {
-        int numToMove = min(k, (int)left.size());
-        for (int i = 0; i < numToMove; ++i) {
+    std::string cursorLeft(int k) {
+        int toMove = std::min(k, (int)left.size());
+        for (int i = 0; i < toMove; ++i) {
             right.push_back(left.back());
             left.pop_back();
         }
-        int start = max(0, (int)left.size() - 10);
+        int start = (left.size() > 10) ? (left.size() - 10) : 0;
         return left.substr(start);
     }
     
-    string cursorRight(int k) {
-        int numToMove = min(k, (int)right.size());
-        for (int i = 0; i < numToMove; ++i) {
+    std::string cursorRight(int k) {
+        int toMove = std::min(k, (int)right.size());
+        for (int i = 0; i < toMove; ++i) {
             left.push_back(right.back());
             right.pop_back();
         }
-        int start = max(0, (int)left.size() - 10);
+        int start = (left.size() > 10) ? (left.size() - 10) : 0;
         return left.substr(start);
     }
 };
