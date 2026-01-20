@@ -5,54 +5,73 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <unordered_map>
-#include <algorithm>
-#include <cmath>
-
-using namespace std;
-
 class Solution {
 public:
     int minSwaps(vector<int>& nums, vector<int>& forbidden) {
+        // Step 1: Feasibility Check
+        // We need to ensure that for every value 'v' present in nums,
+        // there are enough valid positions in the array (indices i where forbidden[i] != v).
+        // If count(v in nums) + count(v in forbidden) > n, it's impossible.
+        
         int n = nums.size();
-        unordered_map<int, int> num_counts;
-        unordered_map<int, int> forbidden_counts;
-        unordered_map<int, int> bad_counts;
-        int total_bad = 0;
-
-        for (int i = 0; i < n; ++i) {
-            num_counts[nums[i]]++;
-            forbidden_counts[forbidden[i]]++;
-            if (nums[i] == forbidden[i]) {
-                bad_counts[nums[i]]++;
-                total_bad++;
-            }
-        }
-
-        // Check existence condition: count(nums, x) + count(forbidden, x) <= n
-        // We only need to check values that appear in nums or forbidden.
+        map<int, int> num_counts;
+        map<int, int> forbid_counts;
+        
+        for (int x : nums) num_counts[x]++;
+        for (int x : forbidden) forbid_counts[x]++;
+        
         for (auto const& [val, count] : num_counts) {
-            if (count + forbidden_counts[val] > n) {
+            // Use long long to prevent overflow, though n <= 10^5 fits in int.
+            if ((long long)count + forbid_counts[val] > n) {
                 return -1;
             }
         }
-        // Also check values that might only be in forbidden
-        for (auto const& [val, count] : forbidden_counts) {
-            if (count + num_counts[val] > n) {
-                return -1;
+        
+        // Step 2: Identify Conflicts
+        // A conflict exists at index i if nums[i] == forbidden[i].
+        // We group conflicts by the value involved.
+        
+        map<int, int> conflict_counts;
+        int total_conflicts = 0;
+        
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] == forbidden[i]) {
+                conflict_counts[nums[i]]++;
+                total_conflicts++;
             }
         }
-
-        if (total_bad == 0) return 0;
-
-        int max_bad_group = 0;
-        for (auto const& [val, count] : bad_counts) {
-            max_bad_group = max(max_bad_group, count);
+        
+        // Step 3: Calculate Minimum Swaps
+        // Strategy:
+        // 1. Swapping two conflicts with DIFFERENT values (e.g., val A and val B) resolves both conflicts in 1 swap.
+        //    (Index i has A, forbids A; Index j has B, forbids B. Swap -> i has B, j has A. valid since A!=B).
+        // 2. Swapping a conflict with a non-conflict index resolves 1 conflict in 1 swap.
+        
+        // We want to maximize strategy 1. This is a matching problem.
+        // If we have a "dominant" conflict group (size > sum of all others), we can't match all of them.
+        // Otherwise, we can match almost all (maybe 1 left over).
+        
+        int max_conflict = 0;
+        for (auto const& [val, count] : conflict_counts) {
+            max_conflict = max(max_conflict, count);
         }
-
-        // Result is max(ceil(total_bad / 2), max_bad_group)
-        return max((total_bad + 1) / 2, max_bad_group);
+        
+        int others = total_conflicts - max_conflict;
+        
+        if (max_conflict > others) {
+            // Dominant case:
+            // We can pair all 'others' with 'max_conflict' group. Cost = others.
+            // Remaining 'max_conflict - others' items must be swapped with non-conflict indices. Cost = remaining.
+            // Total = others + (max_conflict - others) = max_conflict.
+            return max_conflict;
+        } else {
+            // Non-dominant case:
+            // We can pair up conflicts nearly perfectly.
+            // Each swap resolves 2 conflicts.
+            // If odd total, 1 swap resolves the last one.
+            // Formula: ceil(total / 2)
+            return (total_conflicts + 1) / 2;
+        }
     }
 };
 # @lc code=end

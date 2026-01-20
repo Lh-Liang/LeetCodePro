@@ -1,90 +1,89 @@
+#
+# @lc app=leetcode id=3777 lang=cpp
+#
+# [3777] Minimum Deletions to Make Alternating Substring
+#
+
+# @lc code=start
 #include <vector>
 #include <string>
-#include <algorithm>
 
 using namespace std;
 
-struct Node {
-    int dp[2][2]; // [start_char][end_char], 0 for 'A', 1 for 'B'
-    Node() {
-        for (int i = 0; i < 2; ++i)
-            for (int j = 0; j < 2; ++j)
-                dp[i][j] = -1e9;
-    }
-};
-
 class Solution {
+    vector<int> bit;
     int n;
-    vector<Node> tree;
 
-    Node merge(const Node& l, const Node& r) {
-        Node res;
-        for (int i = 0; i < 2; ++i) {
-            for (int j = 0; j < 2; ++j) {
-                res.dp[i][j] = max(l.dp[i][j], r.dp[i][j]);
-                for (int m1 = 0; m1 < 2; ++m1) {
-                    for (int m2 = 0; m2 < 2; ++m2) {
-                        if (m1 != m2) {
-                            res.dp[i][j] = max(res.dp[i][j], l.dp[i][m1] + r.dp[m2][j]);
-                        }
-                    }
-                }
-            }
-        }
-        return res;
-    }
-
-    void build(const string& s, int v, int tl, int tr) {
-        if (tl == tr) {
-            int char_idx = s[tl] - 'A';
-            tree[v].dp[char_idx][char_idx] = 1;
-        } else {
-            int tm = (tl + tr) / 2;
-            build(s, 2 * v, tl, tm);
-            build(s, 2 * v + 1, tm + 1, tr);
-            tree[v] = merge(tree[2 * v], tree[2 * v + 1]);
+    // Helper to add value to BIT (1-based index)
+    void add(int idx, int val) {
+        for (; idx < bit.size(); idx += idx & -idx) {
+            bit[idx] += val;
         }
     }
 
-    void update(int v, int tl, int tr, int pos) {
-        if (tl == tr) {
-            int old_a = tree[v].dp[0][0];
-            tree[v].dp[0][0] = (old_a > 0) ? -1e9 : 1;
-            tree[v].dp[1][1] = (old_a > 0) ? 1 : -1e9;
-        } else {
-            int tm = (tl + tr) / 2;
-            if (pos <= tm) update(2 * v, tl, tm, pos);
-            else update(2 * v + 1, tm + 1, tr, pos);
-            tree[v] = merge(tree[2 * v], tree[2 * v + 1]);
+    // Helper to query prefix sum from BIT (1-based index)
+    int query(int idx) {
+        int sum = 0;
+        for (; idx > 0; idx -= idx & -idx) {
+            sum += bit[idx];
         }
-    }
-
-    Node query(int v, int tl, int tr, int l, int r) {
-        if (l == tl && r == tr) return tree[v];
-        int tm = (tl + tr) / 2;
-        if (r <= tm) return query(2 * v, tl, tm, l, r);
-        if (l > tm) return query(2 * v + 1, tm + 1, tr, l, r);
-        return merge(query(2 * v, tl, tm, l, tm), query(2 * v + 1, tm + 1, tr, tm + 1, r));
+        return sum;
     }
 
 public:
     vector<int> minDeletions(string s, vector<vector<int>>& queries) {
         n = s.length();
-        tree.assign(4 * n, Node());
-        build(s, 1, 0, n - 1);
-        vector<int> results;
-        for (const auto& q : queries) {
-            if (q[0] == 1) {
-                update(1, 0, n - 1, q[1]);
-            } else {
-                Node res = query(1, 0, n - 1, q[1], q[2]);
-                int max_len = 0;
-                for (int i = 0; i < 2; ++i)
-                    for (int j = 0; j < 2; ++j)
-                        max_len = max(max_len, res.dp[i][j]);
-                results.push_back((q[2] - q[1] + 1) - max_len);
+        // bad[i] represents equality of s[i] and s[i+1]
+        // mapped to BIT index i + 1
+        // Max BIT index needed is n-1 (for bad[n-2]), so size n is sufficient.
+        // Using n + 1 for safety and 1-based indexing alignment.
+        bit.assign(n + 1, 0);
+
+        // Initialize BIT based on initial string s
+        for (int i = 0; i < n - 1; ++i) {
+            if (s[i] == s[i + 1]) {
+                add(i + 1, 1);
             }
         }
-        return results;
+
+        vector<int> ans;
+        ans.reserve(queries.size());
+
+        for (const auto& q : queries) {
+            if (q[0] == 1) {
+                int j = q[1];
+                
+                // Update effect on left neighbor pair (j-1, j)
+                if (j > 0) {
+                    // If equal before flip, they become unequal -> -1
+                    // If unequal before flip, they become equal -> +1
+                    int delta = (s[j - 1] == s[j]) ? -1 : 1;
+                    add(j, delta);
+                }
+                
+                // Update effect on right neighbor pair (j, j+1)
+                if (j < n - 1) {
+                    int delta = (s[j] == s[j + 1]) ? -1 : 1;
+                    add(j + 1, delta);
+                }
+                
+                // Perform the flip
+                s[j] = (s[j] == 'A' ? 'B' : 'A');
+            } else {
+                int l = q[1];
+                int r = q[2];
+                
+                if (l >= r) {
+                    ans.push_back(0);
+                } else {
+                    // We need sum of bad indices from l to r-1
+                    // In BIT (1-based), this is range [l+1, r]
+                    // Sum is query(r) - query(l)
+                    ans.push_back(query(r) - query(l));
+                }
+            }
+        }
+        return ans;
     }
 };
+# @lc code=end
