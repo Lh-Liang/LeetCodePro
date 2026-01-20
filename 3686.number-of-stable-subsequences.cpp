@@ -5,37 +5,42 @@
 #
 
 # @lc code=start
+#include <vector>
+
+using namespace std;
+
 class Solution {
 public:
     int countStableSubsequences(vector<int>& nums) {
-        long long dpE1 = 0; // Number of stable subsequences ending in exactly one even number
-        long long dpE2 = 0; // Number of stable subsequences ending in exactly two even numbers
-        long long dpO1 = 0; // Number of stable subsequences ending in exactly one odd number
-        long long dpO2 = 0; // Number of stable subsequences ending in exactly two odd numbers
+        long long lastE = 0, lastEE = 0, lastO = 0, lastOO = 0;
         const int MOD = 1000000007;
 
         for (int x : nums) {
             if (x % 2 == 0) {
-                // Current element is even. It can follow an empty sequence, any odd-ending sequence,
-                // or a single-even-ending sequence.
-                long long wE1 = (1 + dpO1 + dpO2) % MOD;
-                long long wE2 = dpE1;
+                // If current number is even, it can:
+                // 1. Start a new subsequence [E]
+                // 2. Append to any stable subseq ending in O or OO to form ...O, E or ...OO, E
+                // 3. Append to any stable subseq ending in exactly one E to form ...E, E
+                long long ways_to_make_E = (lastO + lastOO + 1) % MOD;
+                long long ways_to_make_EE = lastE;
                 
-                dpE1 = (dpE1 + wE1) % MOD;
-                dpE2 = (dpE2 + wE2) % MOD;
+                lastE = (lastE + ways_to_make_E) % MOD;
+                lastEE = (lastEE + ways_to_make_EE) % MOD;
             } else {
-                // Current element is odd. It can follow an empty sequence, any even-ending sequence,
-                // or a single-odd-ending sequence.
-                long long wO1 = (1 + dpE1 + dpE2) % MOD;
-                long long wO2 = dpO1;
+                // If current number is odd, it can:
+                // 1. Start a new subsequence [O]
+                // 2. Append to any stable subseq ending in E or EE to form ...E, O or ...EE, O
+                // 3. Append to any stable subseq ending in exactly one O to form ...O, O
+                long long ways_to_make_O = (lastE + lastEE + 1) % MOD;
+                long long ways_to_make_OO = lastO;
                 
-                dpO1 = (dpO1 + wO1) % MOD;
-                dpO2 = (dpO2 + wO2) % MOD;
+                lastO = (lastO + ways_to_make_O) % MOD;
+                lastOO = (lastOO + ways_to_make_OO) % MOD;
             }
         }
 
-        // The total number of stable subsequences is the sum of all tracked categories.
-        return (int)((dpE1 + dpE2 + dpO1 + dpO2) % MOD);
+        long long total = (lastE + lastEE + lastO + lastOO) % MOD;
+        return (int)total;
     }
 };
 # @lc code=end

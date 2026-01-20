@@ -1,5 +1,3 @@
-#include <iostream>
-
 #
 # @lc app=leetcode id=3677 lang=cpp
 #
@@ -9,45 +7,59 @@
 # @lc code=start
 class Solution {
 public:
+    /**
+     * Constructs a binary palindrome of a given length using the provided prefix.
+     */
+    long long constructPalindrome(long long prefix, int length) {
+        long long res = prefix;
+        int k = length / 2; // Number of bits to mirror
+        long long temp = prefix;
+        // If length is odd, the middle bit is not mirrored
+        if (length % 2 == 1) {
+            temp >>= 1;
+        }
+        for (int i = 0; i < k; ++i) {
+            res = (res << 1) | (temp & 1);
+            temp >>= 1;
+        }
+        return res;
+    }
+
     int countBinaryPalindromes(long long n) {
         if (n == 0) return 1;
 
-        int bitLen = 0;
+        // Find the number of bits in n
+        int W = 0;
         long long tempN = n;
         while (tempN > 0) {
             tempN >>= 1;
-            bitLen++;
+            W++;
         }
 
-        long long totalCount = 1; // Account for the number 0 ("0")
+        // Initial count for n=0 ("0") and n=1 ("1")
+        long long count = 2;
 
-        // Count palindromes with length L < bitLen
-        for (int L = 1; L < bitLen; ++L) {
-            int halfLen = (L + 1) / 2;
-            totalCount += (1LL << (halfLen - 1));
+        // Count all binary palindromes with bit length L such that 2 <= L < W
+        for (int L = 2; L < W; ++L) {
+            int K = (L + 1) / 2;
+            count += (1LL << (K - 1));
         }
 
-        // Count palindromes with length L = bitLen
-        int L = bitLen;
-        int halfLen = (L + 1) / 2;
-        long long firstHalfOfN = n >> (L - halfLen);
+        // Count binary palindromes with bit length W that are <= n
+        if (W > 1) {
+            int K = (W + 1) / 2;
+            long long val = n >> (W - K); // The prefix of n that determines the palindrome
+            
+            // Count palindromes formed by prefixes from 2^(K-1) to val-1
+            count += (val - (1LL << (K - 1)));
 
-        // Number of first halves X such that 2^(halfLen-1) <= X < firstHalfOfN
-        totalCount += (firstHalfOfN - (1LL << (halfLen - 1)));
-
-        // Construct the palindrome from firstHalfOfN and check if it's <= n
-        long long pal = firstHalfOfN;
-        long long temp = (L % 2 == 0) ? firstHalfOfN : (firstHalfOfN >> 1);
-        for (int i = 0; i < L / 2; ++i) {
-            pal = (pal << 1) | (temp & 1);
-            temp >>= 1;
+            // Check if the palindrome formed by the prefix 'val' is <= n
+            if (constructPalindrome(val, W) <= n) {
+                count++;
+            }
         }
 
-        if (pal <= n) {
-            totalCount++;
-        }
-
-        return (int)totalCount;
+        return (int)count;
     }
 };
 # @lc code=end
