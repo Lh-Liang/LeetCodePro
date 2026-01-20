@@ -1,69 +1,94 @@
-#include <cmath>
+#
+# @lc app=leetcode id=3609 lang=cpp
+#
+# [3609] Minimum Moves to Reach Target in Grid
+#
 
+# @lc code=start
 class Solution {
 public:
     int minMoves(int sx, int sy, int tx, int ty) {
-        long long csx = sx, csy = sy, ctx = tx, cty = ty;
-        long long moves = 0;
-
-        while (true) {
-            if (ctx == csx && cty == csy) return (int)moves;
-            if (ctx < csx || cty < csy) return -1;
-
-            if (ctx > cty) {
-                if (ctx >= 2 * cty && cty > 0) {
-                    if (ctx % 2 != 0) return -1;
-                    ctx /= 2;
-                    moves++;
-                } else if (ctx > cty) {
-                    ctx -= cty;
+        // If target is smaller than start, impossible
+        if (tx < sx || ty < sy) return -1;
+        
+        int moves = 0;
+        
+        // While both coordinates are larger than start
+        while (tx > sx && ty > sy) {
+            if (tx > ty) {
+                if (tx % 2 == 0 && tx / 2 >= ty) {
+                    tx /= 2;
                     moves++;
                 } else {
-                    // This case is handled by ctx == cty
-                    break;
+                    tx -= ty;
+                    moves++;
                 }
-            } else if (cty > ctx) {
-                if (cty >= 2 * ctx && ctx > 0) {
-                    if (cty % 2 != 0) return -1;
-                    cty /= 2;
-                    moves++;
-                } else if (cty > ctx) {
-                    cty -= ctx;
+            } else if (ty > tx) {
+                if (ty % 2 == 0 && ty / 2 >= tx) {
+                    ty /= 2;
                     moves++;
                 } else {
-                    break;
+                    ty -= tx;
+                    moves++;
                 }
             } else {
-                // ctx == cty and ctx > 0
-                if (csx == 0 && csy > 0) {
-                    if (cty % csy == 0) {
-                        long long ratio = cty / csy;
-                        if ((ratio & (ratio - 1)) == 0) {
-                            return (int)(moves + 1 + log2(ratio));
-                        }
-                    }
+                // tx == ty
+                // Can only be reached from (0, ty) or (tx, 0)
+                // If sx == 0, we can reduce tx. If sy == 0, we can reduce ty.
+                if (sx == 0) {
+                    tx -= ty;
+                    moves++;
+                } else if (sy == 0) {
+                    ty -= tx;
+                    moves++;
+                } else {
+                    return -1;
                 }
-                if (csy == 0 && csx > 0) {
-                    if (ctx % csx == 0) {
-                        long long ratio = ctx / csx;
-                        if ((ratio & (ratio - 1)) == 0) {
-                            return (int)(moves + 1 + log2(ratio));
-                        }
-                    }
-                }
-                return -1;
             }
         }
-        return -1;
-    }
-
-private:
-    int log2(long long n) {
-        int res = 0;
-        while (n > 1) {
-            n >>= 1;
-            res++;
+        
+        // Now we are at the boundary for at least one coordinate
+        if (tx == sx) {
+            while (ty > sy) {
+                if (ty > tx) {
+                    if (ty % 2 == 0 && ty / 2 >= tx) {
+                        ty /= 2;
+                        moves++;
+                    } else {
+                        ty -= tx;
+                        moves++;
+                    }
+                } else {
+                    // ty <= tx
+                    // We can only subtract tx. 
+                    ty -= tx;
+                    moves++;
+                }
+            }
+            if (ty != sy) return -1;
+        } else if (ty == sy) {
+            while (tx > sx) {
+                if (tx > ty) {
+                    if (tx % 2 == 0 && tx / 2 >= ty) {
+                        tx /= 2;
+                        moves++;
+                    } else {
+                        tx -= ty;
+                        moves++;
+                    }
+                } else {
+                    // tx <= ty
+                    tx -= ty;
+                    moves++;
+                }
+            }
+            if (tx != sx) return -1;
+        } else {
+            // Should not happen if loop logic is correct and we return -1 on impossible tx==ty
+            return -1;
         }
-        return res;
+        
+        return moves;
     }
 };
+# @lc code=end

@@ -6,92 +6,141 @@
 
 # @lc code=start
 #include <vector>
-#include <string>
 #include <algorithm>
-#include <cstring>
+#include <iostream>
 
 using namespace std;
 
 class Solution {
 public:
-    int get_mask(int n) {
-        int m = 0;
-        while (n > 0) {
-            int d = n % 10;
-            if (m & (1 << d)) return -1;
-            m |= (1 << d);
-            n /= 10;
+    vector<vector<int>> adj;
+    vector<int> values;
+    long long total_sum = 0;
+    const int MOD = 1e9 + 7;
+    long long dp_buffer[1024]; // Global buffer to avoid repeated allocations
+
+    // Helper to extract digit mask from a value
+    // Returns -1 if the value itself has duplicate digits
+    int getMask(int val) {
+        int mask = 0;
+        if (val == 0) return 1; 
+        while (val > 0) {
+            int digit = val % 10;
+            if ((mask >> digit) & 1) return -1;
+            mask |= (1 << digit);
+            val /= 10;
         }
-        return m;
+        return mask;
     }
 
-    int goodSubtreeSum(vector<int>& vals, vector<int>& par) {
-        int n = vals.size();
-        vector<vector<int>> children(n);
-        for (int i = 1; i < n; ++i) {
-            children[par[i]].push_back(i);
-        }
+    // DFS to compute DP states for each subtree
+    // Returns a vector of pairs {mask, max_score}
+    vector<pair<int, long long>> dfs(int u) {
+        vector<pair<int, long long>> current_states;
+        current_states.reserve(1024);
+        // Base state: empty subset, mask 0, score 0
+        current_states.push_back({0, 0});
 
-        vector<int> masks(n);
-        for (int i = 0; i < n; ++i) {
-            masks[i] = get_mask(vals[i]);
-        }
-
-        // max_val_for_mask[u][m] is the max value for mask m in subtree of u
-        static int max_val_for_mask[500][1024];
-        memset(max_val_for_mask, 0, sizeof(max_val_for_mask));
-
-        // Post-order traversal to fill max_val_for_mask
-        // Using iterative DFS or recursion since n is small (500)
-        auto fill_max_vals = [&](auto self, int u) -> void {
-            if (masks[u] != -1) {
-                max_val_for_mask[u][masks[u]] = vals[u];
-            }
-            for (int v : children[u]) {
-                self(self, v);
-                for (int m = 0; m < 1024; ++m) {
-                    if (max_val_for_mask[v][m] > max_val_for_mask[u][m]) {
-                        max_val_for_mask[u][m] = max_val_for_mask[v][m];
-                    }
-                }
-            }
-        };
-        fill_max_vals(fill_max_vals, 0);
-
-        long long total_max_score_sum = 0;
-        long long MOD = 1e9 + 7;
-
-        for (int u = 0; u < n; ++u) {
-            vector<pair<int, int>> items;
-            for (int m = 1; m < 1024; ++m) {
-                if (max_val_for_mask[u][m] > 0) {
-                    items.push_back({m, max_val_for_mask[u][m]});
-                }
-            }
-
-            vector<long long> dp(1024, -1);
-            dp[0] = 0;
-            long long current_max = 0;
-
-            for (auto& item : items) {
-                int m_v = item.first;
-                int v_v = item.second;
-                for (int curr_m = 1023; curr_m >= 0; --curr_m) {
-                    if (dp[curr_m] != -1 && (curr_m & m_v) == 0) {
-                        int next_m = curr_m | m_v;
-                        if (dp[curr_m] + v_v > dp[next_m]) {
-                            dp[next_m] = dp[curr_m] + v_v;
-                            if (dp[next_m] > current_max) {
-                                current_max = dp[next_m];
-                            }
+        for (int v : adj[u]) {
+            vector<pair<int, long long>> child_states = dfs(v);
+            
+            vector<int> dirty;
+            dirty.reserve(1024);
+            
+            // Merge child states into current states
+            // We iterate all pairs and combine if masks are disjoint
+            for (const auto& p1 : current_states) {
+                for (const auto& p2 : child_states) {
+                    if ((p1.first & p2.first) == 0) {
+                        int nm = p1.first | p2.first;
+                        long long ns = p1.second + p2.second;
+                        
+                        if (dp_buffer[nm] == -1) {
+                            dp_buffer[nm] = ns;
+                            dirty.push_back(nm);
+                        } else {
+                            if (ns > dp_buffer[nm]) dp_buffer[nm] = ns;
                         }
                     }
                 }
             }
-            total_max_score_sum = (total_max_score_sum + current_max) % MOD;
+            
+            // Update current_states from buffer and reset buffer
+            current_states.clear();
+            for (int m : dirty) {
+                current_states.push_back({m, dp_buffer[m]});
+                dp_buffer[m] = -1;
+            }
         }
 
-        return (int)total_max_score_sum;
+        // Try to include the current node u
+        int u_mask = getMask(values[u]);
+        if (u_mask != -1) {
+             vector<int> dirty;
+             dirty.reserve(1024);
+
+             // First, load current states into buffer to serve as the base for "not including u"
+             // and to allow merging "including u"
+             for(const auto& p : current_states) {
+                 if(dp_buffer[p.first] == -1) {
+                     dp_buffer[p.first] = p.second;
+                     dirty.push_back(p.first);
+                 } else {
+                     if (p.second > dp_buffer[p.first]) dp_buffer[p.first] = p.second;
+                 }
+             }
+
+             // Now iterate current_states (which represent subsets of descendants)
+             // and try to add u to them
+             int sz = current_states.size();
+             for(int i=0; i<sz; ++i) {
+                 const auto& p = current_states[i];
+                 if ((p.first & u_mask) == 0) {
+                     int nm = p.first | u_mask;
+                     long long ns = p.second + values[u];
+                     
+                     if (dp_buffer[nm] == -1) {
+                         dp_buffer[nm] = ns;
+                         dirty.push_back(nm);
+                     } else {
+                         if (ns > dp_buffer[nm]) dp_buffer[nm] = ns;
+                     }
+                 }
+             }
+             
+             // Collect results back
+             current_states.clear();
+             for(int m : dirty) {
+                 current_states.push_back({m, dp_buffer[m]});
+                 dp_buffer[m] = -1;
+             }
+        }
+        
+        // Calculate max score for subtree rooted at u
+        long long current_max = 0;
+        for(const auto& p : current_states) {
+            if (p.second > current_max) current_max = p.second;
+        }
+        total_sum = (total_sum + current_max) % MOD;
+        
+        return current_states;
+    }
+
+    int goodSubtreeSum(vector<int>& vals, vector<int>& par) {
+        int n = vals.size();
+        adj.assign(n, vector<int>());
+        values = vals;
+        for (int i = 0; i < n; ++i) {
+            if (par[i] != -1) {
+                adj[par[i]].push_back(i);
+            }
+        }
+
+        // Initialize buffer with -1
+        fill(begin(dp_buffer), end(dp_buffer), -1);
+
+        dfs(0);
+        return total_sum;
     }
 };
 # @lc code=end
