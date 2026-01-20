@@ -5,76 +5,84 @@
 #
 
 # @lc code=start
-from typing import List
-
-
 class Solution:
     def longestBalanced(self, nums: List[int]) -> int:
         n = len(nums)
-        if n == 0:
-            return 0
-        first_pos = {}
-        last_pos = {}
-        for i in range(n):
-            num = nums[i]
-            if num not in first_pos:
-                first_pos[num] = i
-            last_pos[num] = i
+        # Segment Tree arrays: 4 * n size
+        # tree_min stores the minimum value in the range
+        # tree_max stores the maximum value in the range
+        # lazy stores the pending updates
+        tree_min = [0] * (4 * n)
+        tree_max = [0] * (4 * n)
+        lazy = [0] * (4 * n)
         
-        N = n
-        M = 4 * (N + 2)
-        tree_min = [0] * M
-        tree_max = [0] * M
-        lazy = [0] * M
-        INF = n + 2
-        
-        def push(node: int, ns: int, ne: int) -> None:
-            if lazy[node] != 0:
-                tree_min[node] += lazy[node]
-                tree_max[node] += lazy[node]
-                if ns != ne:
-                    lazy[2 * node] += lazy[node]
-                    lazy[2 * node + 1] += lazy[node]
-                lazy[node] = 0
-        
-        def update(node: int, ns: int, ne: int, l: int, r: int, val: int) -> None:
-            push(node, ns, ne)
-            if ns > r or ne < l:
-                return
-            if l <= ns and ne <= r:
-                lazy[node] += val
-                push(node, ns, ne)
-                return
-            mid = (ns + ne) // 2
-            update(2 * node, ns, mid, l, r, val)
-            update(2 * node + 1, mid + 1, ne, l, r, val)
-            tree_min[node] = min(tree_min[2 * node], tree_min[2 * node + 1])
-            tree_max[node] = max(tree_max[2 * node], tree_max[2 * node + 1])
-        
-        def find_leftmost(node: int, ns: int, ne: int, ql: int, qr: int) -> int:
-            push(node, ns, ne)
-            if ns > qr or ne < ql:
-                return INF
-            if tree_min[node] > 0 or tree_max[node] < 0:
-                return INF
-            if ns == ne:
-                return ns
-            mid = (ns + ne) // 2
-            left_res = find_leftmost(2 * node, ns, mid, ql, qr)
-            if left_res != INF:
-                return left_res
-            return find_leftmost(2 * node + 1, mid + 1, ne, ql, qr)
-        
-        ans = 0
-        for r in range(n):
-            num = nums[r]
-            if num in first_pos and first_pos[num] == r:
-                p = last_pos[num]
-                s = 1 if num % 2 == 0 else -1
-                update(1, 0, N, 0, p, s)
-            min_l = find_leftmost(1, 0, N, 0, r + 1)
-            if min_l < INF and min_l <= r:
-                ans = max(ans, r - min_l + 1)
-        return ans
+        def push(v):
+            if lazy[v] != 0:
+                lazy[2*v] += lazy[v]
+                tree_min[2*v] += lazy[v]
+                tree_max[2*v] += lazy[v]
+                
+                lazy[2*v+1] += lazy[v]
+                tree_min[2*v+1] += lazy[v]
+                tree_max[2*v+1] += lazy[v]
+                
+                lazy[v] = 0
 
+        def update(v, tl, tr, l, r, add):
+            if l > r:
+                return
+            if l == tl and r == tr:
+                tree_min[v] += add
+                tree_max[v] += add
+                lazy[v] += add
+            else:
+                push(v)
+                tm = (tl + tr) // 2
+                update(2*v, tl, tm, l, min(r, tm), add)
+                update(2*v+1, tm+1, tr, max(l, tm+1), r, add)
+                tree_min[v] = min(tree_min[2*v], tree_min[2*v+1])
+                tree_max[v] = max(tree_max[2*v], tree_max[2*v+1])
+
+        def query(v, tl, tr):
+            # If 0 is not within the range [min, max], it doesn't exist in this node's range
+            if tree_min[v] > 0 or tree_max[v] < 0:
+                return -1
+            
+            if tl == tr:
+                return tl
+            
+            push(v)
+            tm = (tl + tr) // 2
+            
+            # Try to find the first zero in the left child
+            res = query(2*v, tl, tm)
+            if res != -1:
+                return res
+            
+            # If not found in left, try right child
+            return query(2*v+1, tm+1, tr)
+
+        last_pos = {}
+        ans = 0
+        
+        for i, x in enumerate(nums):
+            prev = last_pos.get(x, -1)
+            # If x is even, it adds +1 to the balance (distinct even - distinct odd)
+            # If x is odd, it adds -1 to the balance
+            val = 1 if x % 2 == 0 else -1
+            
+            # Update the range (prev + 1, i) for all start indices l
+            # where the current x is a new distinct element.
+            update(1, 0, n-1, prev + 1, i, val)
+            
+            # Find the smallest index l such that the subarray nums[l...i] is balanced (diff is 0)
+            idx = query(1, 0, n-1)
+            
+            # If a valid index is found and it's within the current processed range
+            if idx != -1 and idx <= i:
+                ans = max(ans, i - idx + 1)
+            
+            last_pos[x] = i
+            
+        return ans
 # @lc code=end

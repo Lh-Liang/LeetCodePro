@@ -4,53 +4,53 @@
 # [3710] Maximum Partition Factor
 #
 
-from typing import List
-
 # @lc code=start
 class Solution:
     def maxPartitionFactor(self, points: List[List[int]]) -> int:
-        def get_dist(i: int, j: int) -> int:
-            return abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
+        n = len(points)
+        if n == 2:
+            return 0
         
-        def can_partition(T: int) -> bool:
-            n = len(points)
-            adj = [[] for _ in range(n)]
-            for i in range(n):
-                for j in range(i + 1, n):
-                    if get_dist(i, j) < T:
-                        adj[i].append(j)
-                        adj[j].append(i)
-            color = [-1] * n
-            
-            def bfs(start: int) -> bool:
-                from collections import deque
-                q = deque([start])
-                color[start] = 0
-                while q:
-                    u = q.popleft()
-                    for v in adj[u]:
-                        if color[v] == -1:
-                            color[v] = 1 - color[u]
-                            q.append(v)
-                        elif color[v] == color[u]:
-                            return False
-                return True
-            
-            for i in range(n):
-                if color[i] == -1:
-                    if not bfs(i):
-                        return False
-            # Graph is bipartite
-            if n == 2:
-                return T <= 0
-            return True
+        edges = []
+        for i in range(n):
+            for j in range(i + 1, n):
+                dist = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
+                edges.append((dist, i, j))
         
-        low, high = 0, 2 * 10**9
-        while low < high:
-            mid = (low + high + 1) // 2
-            if can_partition(mid):
-                low = mid
+        edges.sort(key=lambda x: x[0])
+        
+        parent = list(range(n))
+        # diff[i] stores the color difference between node i and parent[i]
+        # 0 means same color, 1 means different color
+        diff = [0] * n
+        
+        def find(i):
+            if parent[i] != i:
+                root, root_diff = find(parent[i])
+                parent[i] = root
+                diff[i] = diff[i] ^ root_diff
+            return parent[i], diff[i]
+        
+        for w, u, v in edges:
+            root_u, d_u = find(u)
+            root_v, d_v = find(v)
+            
+            if root_u != root_v:
+                # Merge components
+                # We want color[u] != color[v]
+                # color[u] = color[root_u] ^ d_u
+                # color[v] = color[root_v] ^ d_v
+                # We want (color[root_u] ^ d_u) != (color[root_v] ^ d_v)
+                # => color[root_u] ^ color[root_v] = d_u ^ d_v ^ 1
+                # Let's attach root_u to root_v
+                parent[root_u] = root_v
+                diff[root_u] = d_u ^ d_v ^ 1
             else:
-                high = mid - 1
-        return low
+                # Same component
+                # Check if valid
+                if d_u == d_v:
+                    # Same parity relative to root => same color => conflict
+                    return w
+                    
+        return 0
 # @lc code=end

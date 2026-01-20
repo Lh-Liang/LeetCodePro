@@ -5,35 +5,52 @@
 #
 
 # @lc code=start
-from typing import List
-
 class Solution:
     def countMajoritySubarrays(self, nums: List[int], target: int) -> int:
         n = len(nums)
-        a = [1 if num == target else -1 for num in nums]
-        prefix = [0] * (n + 1)
-        for i in range(1, n + 1):
-            prefix[i] = prefix[i - 1] + a[i - 1]
-        OFFSET = n + 1
-        SIZE = 2 * n + 2
-        tree = [0] * (SIZE + 1)
-        
-        def update(idx: int, val: int) -> None:
-            while idx <= SIZE:
-                tree[idx] += val
-                idx += idx & -idx
-        
-        def query(idx: int) -> int:
-            res = 0
-            while idx > 0:
-                res += tree[idx]
-                idx -= idx & -idx
-            return res
-        
+        # Offset to handle negative indices in BIT
+        # Range of prefix sums is [-n, n].
+        # We map -n to 1, 0 to n+1, n to 2n+1.
+        offset = n + 1
+        size = 2 * n + 2
+        bit = [0] * (size + 1)
+
+        def update(i, delta):
+            while i < len(bit):
+                bit[i] += delta
+                i += i & (-i)
+
+        def query(i):
+            s = 0
+            while i > 0:
+                s += bit[i]
+                i -= i & (-i)
+            return s
+
         ans = 0
-        update(prefix[0] + OFFSET, 1)
-        for r in range(1, n + 1):
-            ans += query(prefix[r] + OFFSET - 1)
-            update(prefix[r] + OFFSET, 1)
+        current_prefix_sum = 0
+        
+        # Initialize with prefix sum 0 (representing empty prefix before start)
+        # Map 0 to offset
+        update(0 + offset, 1)
+
+        for num in nums:
+            if num == target:
+                current_prefix_sum += 1
+            else:
+                current_prefix_sum -= 1
+            
+            # We want to count previous prefix sums P_prev such that
+            # current_prefix_sum - P_prev > 0  => P_prev < current_prefix_sum
+            # In BIT, we query for indices strictly less than (current_prefix_sum + offset)
+            # which is query(current_prefix_sum + offset - 1)
+            
+            count = query(current_prefix_sum + offset - 1)
+            ans += count
+            
+            # Add current prefix sum to BIT
+            update(current_prefix_sum + offset, 1)
+            
         return ans
+
 # @lc code=end
