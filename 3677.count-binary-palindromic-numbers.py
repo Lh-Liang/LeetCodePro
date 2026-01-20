@@ -7,44 +7,46 @@
 # @lc code=start
 class Solution:
     def countBinaryPalindromes(self, n: int) -> int:
-        # If n is 0, only 0 is palindrome
         if n == 0:
             return 1
-        
-        # Helper function to generate binary palindromes of given length
-        def generate_palindromes(length):
-            # length is the number of bits in the binary representation (without leading zeros)
-            # For length 1: palindromes are "0" and "1" (but note: "0" is only for number 0, which we handle separately)
-            # Actually we generate all binary strings of given length that are palindromes.
-            # For odd length: half = (length + 1) // 2 bits for first half, then mirror excluding middle.
-            # For even length: half = length // 2 bits for first half, then mirror.
-            half = (length + 1) // 2
-            res = []
-            # The first bit must be 1 because binary representation has no leading zeros (except number 0).
-            # So we iterate over all numbers from 2^(half-1) to 2^half - 1.
-            start = 1 << (half - 1) if half > 0 else 0
-            end = (1 << half) - 1
-            for i in range(start, end + 1):
-                # Build palindrome binary string
-                if length % 2 == 0:
-                    # Even: mirror whole half
-                    first_half = bin(i)[2:].zfill(half)
-                    full = first_half + first_half[::-1]
-                else:
-                    # Odd: mirror half excluding middle bit
-                    first_half = bin(i)[2:].zfill(half)
-                    full = first_half + first_half[-2::-1]   # exclude middle, i.e., reverse without last char
-                res.append(int(full, 2))
-            return res
-        
-        # Determine max length of binary representation of n
-        max_len = n.bit_length()
-        count = 1  # for number 0
-        # For each length from 1 to max_len, generate palindromes and count those <= n
-        for l in range(1, max_len + 1):
-            pals = generate_palindromes(l)
-            for p in pals:
-                if p <= n:
-                    count += 1
+        s = bin(n)[2:]
+        L = len(s)
+        count = 1  # for 0
+        for l in range(1, L):
+            cl = (l + 1) // 2
+            count += 1 << (cl - 1)
+        # Now for length L
+        half_len = (L + 1) // 2
+        first_str = s[:half_len]
+        memo = {}
+        def dfs(pos: int, tight: int) -> int:
+            if pos == half_len:
+                return 1
+            key = (pos, tight)
+            if key in memo:
+                return memo[key]
+            ans = 0
+            up = 1 if tight == 0 else int(first_str[pos])
+            for d in range(2):
+                if pos == 0 and d == 0:
+                    continue
+                if d > up:
+                    continue
+                new_tight = 1 if tight == 1 and d == up else 0
+                ans += dfs(pos + 1, new_tight)
+            memo[key] = ans
+            return ans
+        num_leq = dfs(0, 1)
+        # Build pal_second
+        sec_len = L - half_len
+        pal_second = ['0'] * sec_len
+        for i in range(L // 2):
+            sec_idx = L - 1 - i - half_len
+            pal_second[sec_idx] = first_str[i]
+        pal_str = ''.join(pal_second)
+        sec_str = s[half_len:]
+        check = (pal_str <= sec_str)
+        total_l = num_leq if check else num_leq - 1
+        count += total_l
         return count
 # @lc code=end
