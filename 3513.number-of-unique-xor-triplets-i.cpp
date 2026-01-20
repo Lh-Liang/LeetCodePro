@@ -12,25 +12,23 @@ using namespace std;
 
 class Solution {
 public:
-    /**
-     * The set of possible values is T = {a ^ b ^ c | a, b, c in {1, ..., n}}.
-     * For n=1, T = {1}, size 1.
-     * For n=2, T = {1, 2}, size 2.
-     * For n >= 3, T is the entire span of {1, ..., n}.
-     * The span of {1, ..., n} is {0, 1, ..., 2^k - 1} where 2^k > n.
-     */
     int uniqueXorTriplets(vector<int>& nums) {
         int n = nums.size();
         if (n == 1) return 1;
         if (n == 2) return 2;
         
-        // Find the smallest power of 2 strictly greater than n.
-        // This defines the range [0, 2^k - 1].
-        int k = 0;
-        while ((1 << k) <= n) {
-            k++;
+        // For n >= 3, the unique XOR triplets will cover all values from 0 to 2^m - 1
+        // where m is the number of bits required to represent n.
+        // This is because we can always form 0 (1^2^3) and any value x in [1, n].
+        // XORing x with 0 (as 1^2^3) and other combinations allows us to span the basis.
+        int m = 0;
+        int temp_n = n;
+        while (temp_n > 0) {
+            temp_n >>= 1;
+            m++;
         }
-        return (1 << k);
+        
+        return (1 << m);
     }
 };
 # @lc code=end
