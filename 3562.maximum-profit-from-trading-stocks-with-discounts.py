@@ -5,71 +5,78 @@
 #
 
 # @lc code=start
-from typing import List
-
 class Solution:
     def maxProfit(self, n: int, present: List[int], future: List[int], hierarchy: List[List[int]], budget: int) -> int:
-        adj = [[] for _ in range(n + 1)]
+        adj = [[] for _ in range(n)]
         for u, v in hierarchy:
-            adj[u].append(v)
+            adj[u-1].append(v-1)
         
-        INF = -10**9
-        self.dp = [[[INF] * (budget + 1) for _ in range(2)] for _ in range(n + 1)]
-        self.budget = budget
-        self.present = present
-        self.future = future
-        self.adj = adj
-        
-        def dfs(u: int) -> None:
-            children = self.adj[u]
-            for v in children:
-                dfs(v)
+        # Helper to merge two DP arrays (knapsack convolution)
+        # dp[i] = max profit with budget i
+        def merge(dp1, dp2):
+            new_dp = [-1] * (budget + 1)
+            # Extract valid entries to avoid iterating over -1s
+            items1 = [(c, p) for c, p in enumerate(dp1) if p != -1]
+            items2 = [(c, p) for c, p in enumerate(dp2) if p != -1]
             
-            # Compute child_dp[disc][j]: max profit from children with child discount 'disc', spending j
-            child_dp = [[INF] * (self.budget + 1) for _ in range(2)]
-            for disc in range(2):
-                temp = [INF] * (self.budget + 1)
-                temp[0] = 0
-                for v in children:
-                    new_temp = [INF] * (self.budget + 1)
-                    dpv = self.dp[v][disc]
-                    for s in range(self.budget + 1):
-                        if temp[s] == INF:
-                            continue
-                        for a in range(self.budget - s + 1):
-                            if dpv[a] != INF:
-                                ns = s + a
-                                if ns > self.budget:
-                                    break
-                                new_temp[ns] = max(new_temp[ns], temp[s] + dpv[a])
-                    temp = new_temp
-                child_dp[disc] = temp
-            
-            # Now for each discount d for u
-            for d in range(2):
-                p_idx = u - 1
-                # No buy: cost=0, prof=0, child_disc=0
-                for j in range(self.budget + 1):
-                    if child_dp[0][j] != INF:
-                        m = j
-                        self.dp[u][d][m] = max(self.dp[u][d][m], child_dp[0][j])
-                
-                # Buy: compute cost and prof, child_disc=1
-                p = self.present[p_idx]
-                f = self.future[p_idx]
-                cost = p // 2 if d == 1 else p
-                prof = f - cost
-                for j in range(self.budget + 1):
-                    if child_dp[1][j] != INF:
-                        m = cost + j
-                        if m <= self.budget:
-                            self.dp[u][d][m] = max(self.dp[u][d][m], prof + child_dp[1][j])
-        
-        dfs(1)
-        
-        ans = 0
-        for m in range(self.budget + 1):
-            ans = max(ans, self.dp[1][0][m])
-        return ans
+            for c1, p1 in items1:
+                for c2, p2 in items2:
+                    if c1 + c2 <= budget:
+                        if p1 + p2 > new_dp[c1 + c2]:
+                            new_dp[c1 + c2] = p1 + p2
+            return new_dp
 
+        def dfs(u):
+            # agg_0: max profit from children assuming u DOES NOT buy
+            # agg_1: max profit from children assuming u DOES buy
+            
+            # Base initialization: 0 cost, 0 profit
+            agg_0 = [-1] * (budget + 1)
+            agg_0[0] = 0
+            agg_1 = [-1] * (budget + 1)
+            agg_1[0] = 0
+            
+            # Merge results from children
+            for v in adj[u]:
+                v_res0, v_res1 = dfs(v)
+                agg_0 = merge(agg_0, v_res0)
+                agg_1 = merge(agg_1, v_res1)
+            
+            # Calculate results for current node u
+            
+            # Case 1: Parent of u did NOT buy (u pays full price)
+            # Option A: u doesn't buy. We use agg_0 (children see u not buying).
+            res0 = list(agg_0)
+            
+            # Option B: u buys. We use agg_1 (children see u buying).
+            # u pays full price.
+            cost_full = present[u]
+            profit_full = future[u] - cost_full
+            
+            if cost_full <= budget:
+                for c, p in enumerate(agg_1):
+                    if p != -1 and c + cost_full <= budget:
+                        if p + profit_full > res0[c + cost_full]:
+                            res0[c + cost_full] = p + profit_full
+            
+            # Case 2: Parent of u DID buy (u pays half price)
+            # Option A: u doesn't buy. We use agg_0.
+            res1 = list(agg_0)
+            
+            # Option B: u buys. We use agg_1.
+            # u pays discounted price.
+            cost_half = present[u] // 2
+            profit_half = future[u] - cost_half
+            
+            if cost_half <= budget:
+                for c, p in enumerate(agg_1):
+                    if p != -1 and c + cost_half <= budget:
+                        if p + profit_half > res1[c + cost_half]:
+                            res1[c + cost_half] = p + profit_half
+                            
+            return res0, res1
+
+        # Root is employee 1 (index 0). CEO has no boss, so effectively boss didn't buy.
+        final_res0, _ = dfs(0)
+        return max(final_res0)
 # @lc code=end

@@ -5,126 +5,106 @@
 #
 
 # @lc code=start
-from typing import List
-
 class Solution:
     def canPartitionGrid(self, grid: List[List[int]]) -> bool:
-        if not grid or not grid[0]:
-            return False
-        m, n = len(grid), len(grid[0])
-        total = 0
-        row_sums = [0] * m
-        col_sums = [0] * n
-        for i in range(m):
-            for j in range(n):
-                v = grid[i][j]
-                total += v
-                row_sums[i] += v
-                col_sums[j] += v
-        prefix_row = [0] * (m + 1)
-        for i in range(m):
-            prefix_row[i + 1] = prefix_row[i] + row_sums[i]
-        prefix_col = [0] * (n + 1)
-        for j in range(n):
-            prefix_col[j + 1] = prefix_col[j] + col_sums[j]
-        # Dicts for prefixes 1 to m-1 and 1 to n-1
-        row_dict = {prefix_row[h]: h for h in range(1, m)}
-        col_dict = {prefix_col[w]: w for w in range(1, n)}
-        # No discount horizontal
-        for h in range(1, m):
-            if prefix_row[h] * 2 == total:
-                return True
-        # No discount vertical
-        for w in range(1, n):
-            if prefix_col[w] * 2 == total:
-                return True
-        # Discounts horizontal
-        for i in range(m):
-            for j in range(n):
-                V = grid[i][j]
-                # Top discount horiz
-                target = total + V
-                if target % 2 == 0:
-                    target_top = target // 2
-                    if target_top in row_dict:
-                        h_top = row_dict[target_top]
-                        top_size = h_top * n
-                        bot_size = (m - h_top) * n
-                        if h_top >= i + 1 and top_size >= 2 and bot_size >= 1:
-                            hh, ww = h_top, n
-                            if min(hh, ww) >= 2:
-                                return True
-                            else:
-                                # line
-                                if hh == 1:  # horiz line row 0
-                                    if i == 0 and (j == 0 or j == n - 1):
-                                        return True
-                                elif n == 1:  # vert line col 0
-                                    if j == 0 and (i == 0 or i == h_top - 1):
-                                        return True
-                # Bottom discount horiz
-                target2 = total - V
-                if target2 % 2 == 0:
-                    target_top2 = target2 // 2
-                    if target_top2 in row_dict:
-                        h_top = row_dict[target_top2]
-                        top_size = h_top * n
-                        bot_size = (m - h_top) * n
-                        if h_top <= i and h_top >= 1 and top_size >= 1 and bot_size >= 2:
-                            hh, ww = m - h_top, n
-                            start_row = h_top
-                            if min(hh, ww) >= 2:
-                                return True
-                            else:
-                                if hh == 1:  # horiz line row start_row
-                                    if i == start_row and (j == 0 or j == n - 1):
-                                        return True
-                                elif n == 1:  # vert line col 0, rows start_row to m-1
-                                    if j == 0 and (i == start_row or i == m - 1):
-                                        return True
-        # Discounts vertical
-        for i in range(m):
-            for j in range(n):
-                V = grid[i][j]
-                # Left discount vert
-                target = total + V
-                if target % 2 == 0:
-                    target_left = target // 2
-                    if target_left in col_dict:
-                        w_left = col_dict[target_left]
-                        left_size = w_left * m
-                        right_size = (n - w_left) * m
-                        if w_left >= j + 1 and left_size >= 2 and right_size >= 1:
-                            hh, ww = m, w_left
-                            if min(hh, ww) >= 2:
-                                return True
-                            else:
-                                if m == 1:  # horiz line row 0, cols 0 to w_left-1
-                                    if i == 0 and (j == 0 or j == w_left - 1):
-                                        return True
-                                elif w_left == 1:  # vert line col 0
-                                    if j == 0 and (i == 0 or i == m - 1):
-                                        return True
-                # Right discount vert
-                target2 = total - V
-                if target2 % 2 == 0:
-                    target_left2 = target2 // 2
-                    if target_left2 in col_dict:
-                        w_left = col_dict[target_left2]
-                        left_size = w_left * m
-                        right_size = (n - w_left) * m
-                        if w_left <= j and w_left >= 1 and left_size >= 1 and right_size >= 2:
-                            hh, ww = m, n - w_left
-                            start_col = w_left
-                            if min(hh, ww) >= 2:
-                                return True
-                            else:
-                                if m == 1:  # horiz line row 0, cols start_col to n-1
-                                    if i == 0 and (j == start_col or j == n - 1):
-                                        return True
-                                elif n - w_left == 1:  # vert line col start_col
-                                    if j == start_col and (i == 0 or i == m - 1):
-                                        return True
-        return False
+        from collections import Counter
 
+        def solve(g):
+            R = len(g)
+            C = len(g[0])
+            if R < 2:
+                return False
+            
+            total_sum = 0
+            total_counts = Counter()
+            row_sums = []
+            
+            # Precompute total sum and counts
+            for r in range(R):
+                s = 0
+                for c in range(C):
+                    val = g[r][c]
+                    s += val
+                    total_counts[val] += 1
+                row_sums.append(s)
+                total_sum += s
+            
+            top_sum = 0
+            top_counts = Counter()
+            
+            # Iterate through horizontal cuts
+            # A horizontal cut can be made after row i, where 0 <= i < R - 1
+            for i in range(R - 1):
+                # Update top section stats by adding row i
+                top_sum += row_sums[i]
+                for c in range(C):
+                    top_counts[g[i][c]] += 1
+                
+                bot_sum = total_sum - top_sum
+                diff = top_sum - bot_sum
+                
+                # Case 1: Sums are already equal
+                if diff == 0:
+                    return True
+                
+                # Case 2: Top sum is larger, try to remove from Top
+                if diff > 0:
+                    x = diff
+                    # We need x to be available in Top
+                    if top_counts[x] > 0:
+                        # Check connectivity of Top after removing x
+                        # Top section covers rows 0 to i
+                        h_top = i + 1
+                        
+                        # If the section is "thin" (1D in either dimension), we must remove from ends
+                        if h_top == 1 or C == 1:
+                            valid = False
+                            # If it's a single row (1 x C)
+                            if h_top == 1:
+                                if g[0][0] == x or g[0][C-1] == x: valid = True
+                            # If it's a single column (h_top x 1)
+                            elif C == 1:
+                                if g[0][0] == x or g[i][0] == x: valid = True
+                            
+                            if valid:
+                                return True
+                        else:
+                            # If dimensions are > 1 in both axes, removing any single cell keeps it connected
+                            return True
+                            
+                # Case 3: Bottom sum is larger, try to remove from Bottom
+                else:
+                    y = -diff
+                    # We need y to be available in Bottom
+                    if total_counts[y] - top_counts[y] > 0:
+                        # Check connectivity of Bottom
+                        # Bottom section covers rows i+1 to R-1
+                        h_bot = R - 1 - i
+                        r_start = i + 1
+                        r_end = R - 1
+                        
+                        if h_bot == 1 or C == 1:
+                            valid = False
+                            if h_bot == 1:
+                                if g[r_start][0] == y or g[r_start][C-1] == y: valid = True
+                            elif C == 1:
+                                if g[r_start][0] == y or g[r_end][0] == y: valid = True
+                            
+                            if valid:
+                                return True
+                        else:
+                            return True
+            return False
+
+        # Check horizontal cuts on original grid
+        if solve(grid):
+            return True
+            
+        # Check vertical cuts by transposing the grid
+        # zip(*grid) returns tuples, convert to list of lists/tuples for indexing
+        transposed_grid = list(zip(*grid))
+        if solve(transposed_grid):
+            return True
+            
+        return False
 # @lc code=end

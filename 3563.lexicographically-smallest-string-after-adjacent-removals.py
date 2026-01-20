@@ -5,51 +5,73 @@
 #
 
 # @lc code=start
+import sys
+
+# Increase recursion depth for deep DP trees
+sys.setrecursionlimit(20000)
+
 class Solution:
     def lexicographicallySmallestString(self, s: str) -> str:
         n = len(s)
-        s_list = list(s)
-        dp = [[False] * n for _ in range(n)]
+        
+        # Memoization tables
+        memo_removable = {}
+        memo_solve = {}
 
-        def is_consecutive(ch1: str, ch2: str) -> bool:
-            a = ord(ch1) - ord('a')
-            b = ord(ch2) - ord('a')
-            diff = abs(a - b)
+        def are_consecutive(c1, c2):
+            diff = abs(ord(c1) - ord(c2))
             return diff == 1 or diff == 25
 
-        # Interval DP for reducible to empty
-        for length in range(2, n + 1, 2):
-            for l in range(n - length + 1):
-                r = l + length - 1
-                # Check splits
-                for k in range(l, r):
-                    if dp[l][k] and dp[k + 1][r]:
-                        dp[l][r] = True
+        def can_fully_remove(i, j):
+            if i > j:
+                return True
+            if (i, j) in memo_removable:
+                return memo_removable[(i, j)]
+            
+            # If length is odd, cannot remove all pairs
+            if (j - i + 1) % 2 != 0:
+                memo_removable[(i, j)] = False
+                return False
+            
+            res = False
+            # Try to pair s[i] with s[k]
+            # For s[i] and s[k] to be removed together, s[i+1...k-1] must be fully removable
+            # and s[k+1...j] must be fully removable.
+            # We iterate k with step 2 because the inner chunk size must be even.
+            for k in range(i + 1, j + 1, 2):
+                if are_consecutive(s[i], s[k]):
+                    if can_fully_remove(i + 1, k - 1) and can_fully_remove(k + 1, j):
+                        res = True
                         break
-                # Check outer pair
-                inner_l, inner_r = l + 1, r - 1
-                inner_ok = inner_l > inner_r or dp[inner_l][inner_r]
-                if is_consecutive(s_list[l], s_list[r]) and inner_ok:
-                    dp[l][r] = True
+            
+            memo_removable[(i, j)] = res
+            return res
 
-        # Now compute f[start]: lex smallest from start
-        f = [''] * (n + 1)
-        for start in range(n - 1, -1, -1):
-            min_str = None
-            # Empty if whole reducible
-            whole_len = n - start
-            if whole_len % 2 == 0 and (whole_len == 0 or dp[start][n - 1]):
-                min_str = ''
-            # Other candidates
-            for j in range(start, n):
-                gap_l = start
-                gap_r = j - 1
-                gap_len = gap_r - gap_l + 1 if gap_r >= gap_l else 0
-                gap_ok = gap_len == 0 or (gap_len % 2 == 0 and dp[gap_l][gap_r])
-                if gap_ok:
-                    cand = s_list[j] + f[j + 1]
-                    if min_str is None or cand < min_str:
-                        min_str = cand
-            f[start] = min_str
-        return f[0]
+        def solve(i, j):
+            if i > j:
+                return ""
+            if (i, j) in memo_solve:
+                return memo_solve[(i, j)]
+            
+            # Option 1: Keep s[i]
+            # We just append the best result for the rest of the string
+            res = s[i] + solve(i + 1, j)
+            
+            # Option 2: Try to remove s[i] by pairing with some s[k]
+            # s[i] can be removed with s[k] if they are consecutive
+            # AND everything between them (s[i+1...k-1]) can be fully removed.
+            # If that happens, we are left with the problem of solving s[k+1...j].
+            for k in range(i + 1, j + 1):
+                if are_consecutive(s[i], s[k]):
+                    # Check if the middle part is removable
+                    if can_fully_remove(i + 1, k - 1):
+                        candidate = solve(k + 1, j)
+                        if candidate < res:
+                            res = candidate
+            
+            memo_solve[(i, j)] = res
+            return res
+
+        return solve(0, n - 1)
+
 # @lc code=end
