@@ -1,5 +1,3 @@
-import random
-
 #
 # @lc app=leetcode id=1206 lang=python3
 #
@@ -7,58 +5,97 @@ import random
 #
 
 # @lc code=start
+import random
+
+class SkiplistNode:
+    def __init__(self, val, level):
+        self.val = val
+        # Array of pointers to next nodes at different levels
+        self.forward = [None] * level
+
 class Skiplist:
 
-    MAX_LVL = 16
-    P = 0.5
-
-    class Node:
-        def __init__(self, val: int, max_lvl: int):
-            self.val = val
-            self.next = [None] * max_lvl
-
     def __init__(self):
-        self.head = self.Node(float('-inf'), self.MAX_LVL)
+        self.MAX_LEVEL = 16
+        self.P = 0.5
+        # Head is a dummy node with a value less than any valid input
+        # or we just handle it logically. 
+        # Using -1 as dummy value since constraints say 0 <= num.
+        self.head = SkiplistNode(-1, self.MAX_LEVEL)
+        self.level = 0  # Current highest level in the skiplist
 
-    def _random_level(self) -> int:
+    def random_level(self):
         lvl = 1
-        while random.random() < self.P and lvl < self.MAX_LVL:
+        while random.random() < self.P and lvl < self.MAX_LEVEL:
             lvl += 1
         return lvl
 
     def search(self, target: int) -> bool:
-        cur = self.head
-        for lvl in range(self.MAX_LVL - 1, -1, -1):
-            while cur.next[lvl] is not None and cur.next[lvl].val < target:
-                cur = cur.next[lvl]
-        return cur.next[0] is not None and cur.next[0].val == target
+        current = self.head
+        # Start from the highest level and move down
+        for i in range(self.level - 1, -1, -1):
+            while current.forward[i] and current.forward[i].val < target:
+                current = current.forward[i]
+        
+        # Move to the next node at level 0, which should be the target
+        current = current.forward[0]
+        
+        return current is not None and current.val == target
 
     def add(self, num: int) -> None:
-        lvl = self._random_level()
-        new_node = self.Node(num, self.MAX_LVL)
-        cur = self.head
-        for i in range(self.MAX_LVL - 1, -1, -1):
-            while cur.next[i] is not None and cur.next[i].val < num:
-                cur = cur.next[i]
-            if i < lvl:
-                new_node.next[i] = cur.next[i]
-                cur.next[i] = new_node
+        update = [None] * self.MAX_LEVEL
+        current = self.head
+        
+        # Find the place to insert
+        for i in range(self.level - 1, -1, -1):
+            while current.forward[i] and current.forward[i].val < num:
+                current = current.forward[i]
+            update[i] = current
+            
+        lvl = self.random_level()
+        
+        # If the new level is higher than current skiplist level,
+        # initialize update array for the new levels to head
+        if lvl > self.level:
+            for i in range(self.level, lvl):
+                update[i] = self.head
+            self.level = lvl
+            
+        # Create new node
+        new_node = SkiplistNode(num, lvl)
+        
+        # Insert the node by updating pointers
+        for i in range(lvl):
+            new_node.forward[i] = update[i].forward[i]
+            update[i].forward[i] = new_node
 
     def erase(self, num: int) -> bool:
-        cur = self.head
-        update = [None] * self.MAX_LVL
-        for lvl in range(self.MAX_LVL - 1, -1, -1):
-            while cur.next[lvl] is not None and cur.next[lvl].val < num:
-                cur = cur.next[lvl]
-            update[lvl] = cur
-        if update[0].next[0] is None or update[0].next[0].val != num:
+        update = [None] * self.MAX_LEVEL
+        current = self.head
+        
+        # Find the node and its predecessors
+        for i in range(self.level - 1, -1, -1):
+            while current.forward[i] and current.forward[i].val < num:
+                current = current.forward[i]
+            update[i] = current
+            
+        target_node = current.forward[0]
+        
+        # If target not found
+        if target_node is None or target_node.val != num:
             return False
-        node = update[0].next[0]
-        for lvl in range(self.MAX_LVL):
-            if update[lvl].next[lvl] == node:
-                update[lvl].next[lvl] = node.next[lvl]
+        
+        # Update pointers to skip the target node
+        for i in range(self.level):
+            if update[i].forward[i] != target_node:
+                break
+            update[i].forward[i] = target_node.forward[i]
+            
+        # Update current level of the skiplist if top layers are empty
+        while self.level > 0 and self.head.forward[self.level - 1] is None:
+            self.level -= 1
+            
         return True
-
 
 # Your Skiplist object will be instantiated and called as such:
 # obj = Skiplist()

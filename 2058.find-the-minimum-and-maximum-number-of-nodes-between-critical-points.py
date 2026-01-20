@@ -10,32 +10,37 @@
 #     def __init__(self, val=0, next=None):
 #         self.val = val
 #         self.next = next
-
-from typing import Optional, List
-
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
-        critical = []
-        if not head or not head.next:
+        if not head or not head.next or not head.next.next:
             return [-1, -1]
+        
         prev = head
-        cur = head.next
-        pos = 2
-        while cur.next:
-            nxt = cur.next
-            if (cur.val > prev.val and cur.val > nxt.val) or \
-               (cur.val < prev.val and cur.val < nxt.val):
-                critical.append(pos)
-            prev = cur
-            cur = nxt
-            pos += 1
-        if len(critical) < 2:
+        curr = head.next
+        index = 1  # 0-based index, head is 0, curr starts at 1
+        
+        first_critical_idx = -1
+        last_critical_idx = -1
+        min_dist = float('inf')
+        
+        while curr.next:
+            # Check for local maxima or minima
+            if (curr.val > prev.val and curr.val > curr.next.val) or \
+               (curr.val < prev.val and curr.val < curr.next.val):
+                
+                if first_critical_idx == -1:
+                    first_critical_idx = index
+                else:
+                    min_dist = min(min_dist, index - last_critical_idx)
+                
+                last_critical_idx = index
+            
+            prev = curr
+            curr = curr.next
+            index += 1
+            
+        if min_dist == float('inf'):
             return [-1, -1]
-        min_d = float('inf')
-        for j in range(1, len(critical)):
-            d = critical[j] - critical[j - 1]
-            min_d = min(min_d, d)
-        max_d = critical[-1] - critical[0]
-        return [min_d, max_d]
-
+            
+        return [min_dist, last_critical_idx - first_critical_idx]
 # @lc code=end
