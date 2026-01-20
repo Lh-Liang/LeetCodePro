@@ -12,41 +12,58 @@ class Solution:
         if sx == tx and sy == ty:
             return 0
         
-        if sx == 0 and sy == 0:
-            return -1
+        dist = {}
+        q = deque()
+        q.append((tx, ty))
+        dist[(tx, ty)] = 0
         
-        visited = {(tx, ty)}
-        queue = deque([(tx, ty, 0)])
-        
-        while queue:
-            x, y, dist = queue.popleft()
+        while q:
+            x, y = q.popleft()
+            d = dist[(x, y)]
             
-            prevs = []
+            # x-back: halve
+            if x % 2 == 0:
+                px = x // 2
+                if px >= y and px >= sx and y >= sy:
+                    p = (px, y)
+                    if p not in dist:
+                        if px == sx and y == sy:
+                            return d + 1
+                        dist[p] = d + 1
+                        q.append(p)
             
-            # Option 1: (x/2, y) if x is even and x >= 2y
-            if x % 2 == 0 and x >= 2 * y and x > 0:
-                prevs.append((x // 2, y))
+            # x-back: subtract
+            if y <= x < 2 * y:
+                px = x - y
+                if px >= sx and y >= sy:
+                    p = (px, y)
+                    if p not in dist:
+                        if px == sx and y == sy:
+                            return d + 1
+                        dist[p] = d + 1
+                        q.append(p)
             
-            # Option 2: (x - y, y) if y <= x < 2y
-            if y > 0 and y <= x < 2 * y:
-                prevs.append((x - y, y))
+            # y-back: halve
+            if y % 2 == 0:
+                py = y // 2
+                if py >= x and x >= sx and py >= sy:
+                    p = (x, py)
+                    if p not in dist:
+                        if x == sx and py == sy:
+                            return d + 1
+                        dist[p] = d + 1
+                        q.append(p)
             
-            # Option 3: (x, y/2) if y is even and y >= 2x
-            if y % 2 == 0 and y >= 2 * x and y > 0:
-                prevs.append((x, y // 2))
-            
-            # Option 4: (x, y - x) if x <= y < 2x
-            if x > 0 and x <= y < 2 * x:
-                prevs.append((x, y - x))
-            
-            for px, py in prevs:
-                if px < sx or py < sy:
-                    continue
-                if (px, py) == (sx, sy):
-                    return dist + 1
-                if (px, py) not in visited:
-                    visited.add((px, py))
-                    queue.append((px, py, dist + 1))
+            # y-back: subtract
+            if x <= y < 2 * x:
+                py = y - x
+                if x >= sx and py >= sy:
+                    p = (x, py)
+                    if p not in dist:
+                        if x == sx and py == sy:
+                            return d + 1
+                        dist[p] = d + 1
+                        q.append(p)
         
         return -1
 # @lc code=end

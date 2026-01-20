@@ -3,91 +3,94 @@
 #
 # [3585] Find Weighted Median Node in Tree
 #
+
 # @lc code=start
+from typing import List
+
+import sys
+
 class Solution:
     def findMedian(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        from collections import defaultdict, deque
-        
-        adj = defaultdict(list)
-        for u, v, w in edges:
-            adj[u].append((v, w))
-            adj[v].append((u, w))
-        
+        adj = [[] for _ in range(n)]
+        for ui, vi, wi in edges:
+            adj[ui].append((vi, wi))
+            adj[vi].append((ui, wi))
+
         LOG = 18
         parent = [[-1] * n for _ in range(LOG)]
-        dist_to_root = [0] * n
-        depth = [0] * n
-        dist_up = [[0] * n for _ in range(LOG)]
-        
-        visited = [False] * n
-        queue = deque([0])
-        visited[0] = True
-        while queue:
-            node = queue.popleft()
-            for neighbor, weight in adj[node]:
-                if not visited[neighbor]:
-                    visited[neighbor] = True
-                    parent[0][neighbor] = node
-                    depth[neighbor] = depth[node] + 1
-                    dist_to_root[neighbor] = dist_to_root[node] + weight
-                    dist_up[0][neighbor] = weight
-                    queue.append(neighbor)
-        
+        dist_to_anc = [[0] * n for _ in range(LOG)]
+        level = [0] * n
+        weighted_depth = [0] * n
+
+        def dfs(node: int, par: int, lev: int, wdep: int, edgew: int) -> None:
+            parent[0][node] = par
+            dist_to_anc[0][node] = edgew
+            level[node] = lev
+            weighted_depth[node] = wdep
+            for nei, w in adj[node]:
+                if nei != par:
+                    dfs(nei, node, lev + 1, wdep + w, w)
+
+        sys.setrecursionlimit(100010)
+        dfs(0, -1, 0, 0, 0)
+
+        # Build binary lifting tables
         for k in range(1, LOG):
-            for v in range(n):
-                if parent[k-1][v] != -1:
-                    mid = parent[k-1][v]
-                    parent[k][v] = parent[k-1][mid]
-                    dist_up[k][v] = dist_up[k-1][v] + dist_up[k-1][mid]
-        
-        def lca(u, v):
-            if depth[u] < depth[v]:
-                u, v = v, u
-            diff = depth[u] - depth[v]
+            for i in range(n):
+                if parent[k - 1][i] != -1:
+                    p = parent[k - 1][i]
+                    parent[k][i] = parent[k - 1][p]
+                    dist_to_anc[k][i] = dist_to_anc[k - 1][i] + dist_to_anc[k - 1][p]
+
+        def get_lca(a: int, b: int) -> int:
+            if level[a] > level[b]:
+                a, b = b, a
+            # Equalize levels
             for k in range(LOG):
-                if (diff >> k) & 1:
-                    u = parent[k][u]
-            if u == v:
-                return u
+                if (level[b] - level[a]) & (1 << k):
+                    b = parent[k][b]
+            if a == b:
+                return a
+            # Lift both
             for k in range(LOG - 1, -1, -1):
-                if parent[k][u] != -1 and parent[k][u] != parent[k][v]:
-                    u = parent[k][u]
-                    v = parent[k][v]
-            return parent[0][u]
-        
-        results = []
-        for u, v in queries:
-            if u == v:
-                results.append(u)
+                if (parent[k][a] != parent[k][b] and
+                    parent[k][a] != -1 and parent[k][b] != -1):
+                    a = parent[k][a]
+                    b = parent[k][b]
+            return parent[0][a]
+
+        ans = []
+        for qu, qv in queries:
+            if qu == qv:
+                ans.append(qu)
                 continue
-            
-            l = lca(u, v)
-            total_weight = dist_to_root[u] + dist_to_root[v] - 2 * dist_to_root[l]
-            cumulative_at_lca = dist_to_root[u] - dist_to_root[l]
-            
-            if 2 * cumulative_at_lca >= total_weight:
-                curr = u
-                cumulative = 0
+            anc = get_lca(qu, qv)
+            du = weighted_depth[qu] - weighted_depth[anc]
+            dv = weighted_depth[qv] - weighted_depth[anc]
+            total = du + dv
+            thresh = (total + 1) // 2
+            if du >= thresh:
+                # Up lift from qu
+                current = qu
+                traveled = 0
                 for k in range(LOG - 1, -1, -1):
-                    anc = parent[k][curr]
-                    if anc != -1 and depth[anc] >= depth[l]:
-                        new_cumulative = cumulative + dist_up[k][curr]
-                        if 2 * new_cumulative < total_weight:
-                            curr = anc
-                            cumulative = new_cumulative
-                results.append(parent[0][curr])
+                    if (parent[k][current] != -1 and
+                        traveled + dist_to_anc[k][current] < thresh):
+                        traveled += dist_to_anc[k][current]
+                        current = parent[k][current]
+                median = parent[0][current]
             else:
-                curr = v
-                dist_from_v = 0
+                remaining = thresh - du
+                max_up = dv - remaining
+                current = qv
+                traveled = 0
                 for k in range(LOG - 1, -1, -1):
-                    anc = parent[k][curr]
-                    if anc != -1 and depth[anc] > depth[l]:
-                        new_dist = dist_from_v + dist_up[k][curr]
-                        cumulative_at_anc = cumulative_at_lca + (dist_to_root[v] - dist_to_root[l]) - new_dist
-                        if 2 * cumulative_at_anc >= total_weight:
-                            curr = anc
-                            dist_from_v = new_dist
-                results.append(curr)
-        
-        return results
+                    if (parent[k][current] != -1 and
+                        traveled + dist_to_anc[k][current] <= max_up):
+                        traveled += dist_to_anc[k][current]
+                        current = parent[k][current]
+                median = current
+            ans.append(median)
+        return ans
+
 # @lc code=end
