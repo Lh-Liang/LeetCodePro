@@ -1,67 +1,67 @@
-#
-# @lc app=leetcode id=3398 lang=cpp
-#
-# [3398] Smallest Substring With Identical Characters I
-#
+#include <bits/stdc++.h>
+using namespace std;
 
-# @lc code=start
+/*
+ * @lc app=leetcode id=3398 lang=cpp
+ *
+ * [3398] Smallest Substring With Identical Characters I
+ */
+
+// @lc code=start
 class Solution {
 public:
-    bool check(int maxLen, const string& s, int numOps) {
-        int n = s.length();
-        if (maxLen == 1) {
-            // Special case for maxLen = 1: the string must be strictly alternating.
-            // Pattern 1: 010101...
-            // Pattern 2: 101010...
-            int ops1 = 0;
-            int ops2 = 0;
-            for (int i = 0; i < n; ++i) {
-                if (s[i] != (i % 2 == 0 ? '0' : '1')) ops1++;
-                if (s[i] != (i % 2 == 0 ? '1' : '0')) ops2++;
-            }
-            return min(ops1, ops2) <= numOps;
-        }
-
-        int opsNeeded = 0;
-        int currentRun = 0;
-        char currentChar = 0;
-
-        for (int i = 0; i < n; ++i) {
-            if (i == 0 || s[i] == currentChar) {
-                currentRun++;
-                currentChar = s[i];
-            } else {
-                // End of a run
-                if (currentRun > maxLen) {
-                    opsNeeded += currentRun / (maxLen + 1);
-                }
-                currentRun = 1;
-                currentChar = s[i];
-            }
-        }
-        // Check the last run
-        if (currentRun > maxLen) {
-            opsNeeded += currentRun / (maxLen + 1);
-        }
-
-        return opsNeeded <= numOps;
-    }
-
     int minLength(string s, int numOps) {
-        int n = s.length();
-        int low = 1, high = n;
-        int ans = n;
+        int n = (int)s.size();
 
-        while (low <= high) {
-            int mid = low + (high - low) / 2;
-            if (check(mid, s, numOps)) {
-                ans = mid;
-                high = mid - 1;
-            } else {
-                low = mid + 1;
+        auto feasible = [&](int L) -> bool {
+            const int INF = 1e9;
+            vector<vector<int>> dp(2, vector<int>(L + 1, INF));
+
+            // Initialize at position 0
+            for (int c = 0; c < 2; c++) {
+                char ch = (c == 0 ? '0' : '1');
+                dp[c][1] = (s[0] != ch);
             }
+
+            for (int i = 1; i < n; i++) {
+                vector<vector<int>> ndp(2, vector<int>(L + 1, INF));
+                for (int last = 0; last < 2; last++) {
+                    for (int len = 1; len <= L; len++) {
+                        int cur = dp[last][len];
+                        if (cur == INF) continue;
+                        for (int nc = 0; nc < 2; nc++) {
+                            int nlen;
+                            if (nc == last) {
+                                if (len == L) continue;
+                                nlen = len + 1;
+                            } else {
+                                nlen = 1;
+                            }
+                            char want = (nc == 0 ? '0' : '1');
+                            int add = (s[i] != want);
+                            ndp[nc][nlen] = min(ndp[nc][nlen], cur + add);
+                        }
+                    }
+                }
+                dp.swap(ndp);
+            }
+
+            int best = INT_MAX;
+            for (int c = 0; c < 2; c++) {
+                for (int len = 1; len <= L; len++) {
+                    best = min(best, dp[c][len]);
+                }
+            }
+            return best <= numOps;
+        };
+
+        int lo = 1, hi = n;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (feasible(mid)) hi = mid;
+            else lo = mid + 1;
         }
-        return ans;
+        return lo;
     }
 };
-# @lc code=end
+// @lc code=end
