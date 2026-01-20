@@ -18,50 +18,46 @@
 class Solution {
 public:
     ListNode* reverseEvenLengthGroups(ListNode* head) {
-        // The first group (size 1) is always odd, so it's never reversed.
-        // We start with prevGroupEnd at the head and groupSize = 2.
-        if (!head || !head->next) return head;
+        // The first group (length 1) is never reversed because 1 is odd.
+        // We start with prev pointing to the first node (head).
+        ListNode* prev = head;
+        int g = 2; // The next group target length is 2
 
-        ListNode* prevGroupEnd = head;
-        int groupSize = 2;
-
-        while (prevGroupEnd->next) {
-            // Count the actual number of nodes available for the current group
-            ListNode* node = prevGroupEnd->next;
-            int actualSize = 0;
-            while (node != nullptr && actualSize < groupSize) {
-                node = node->next;
-                actualSize++;
+        while (prev->next) {
+            // 1. Identify how many nodes are actually in the current group
+            int actualCount = 0;
+            ListNode* temp = prev->next;
+            while (temp && actualCount < g) {
+                temp = temp->next;
+                actualCount++;
             }
 
-            if (actualSize % 2 == 0) {
-                // Reverse the segment of length actualSize
-                ListNode* curr = prevGroupEnd->next;
-                ListNode* prev = nullptr;
-                for (int i = 0; i < actualSize; ++i) {
-                    ListNode* nextNode = curr->next;
-                    curr->next = prev;
-                    prev = curr;
-                    curr = nextNode;
+            if (actualCount % 2 == 0) {
+                // 2. Reverse the group if its actual length is even
+                ListNode* curr = prev->next; // This will become the tail after reversal
+                ListNode* node = curr;
+                ListNode* rev_prev = nullptr;
+                for (int i = 0; i < actualCount; ++i) {
+                    ListNode* next_node = node->next;
+                    node->next = rev_prev;
+                    rev_prev = node;
+                    node = next_node;
                 }
-                
-                // Reconnect the reversed segment
-                // tail is the node that was at the start of the group before reversal
-                ListNode* tail = prevGroupEnd->next;
-                prevGroupEnd->next = prev;
-                tail->next = curr;
-                
-                // Move prevGroupEnd to the end of the group we just processed
-                prevGroupEnd = tail;
+                // Link the node before the group to the new head (rev_prev)
+                // and link the new tail (curr) to the start of the next group (node)
+                prev->next = rev_prev;
+                curr->next = node;
+                // Move prev to the tail of the processed group
+                prev = curr;
             } else {
-                // If odd, we don't reverse; just skip the nodes
-                for (int i = 0; i < actualSize; ++i) {
-                    prevGroupEnd = prevGroupEnd->next;
+                // 3. If the length is odd, skip the nodes
+                for (int i = 0; i < actualCount; ++i) {
+                    prev = prev->next;
                 }
             }
             
-            // Increment the intended group size for the next iteration
-            groupSize++;
+            // 4. Increment target group length for the next iteration
+            g++;
         }
 
         return head;

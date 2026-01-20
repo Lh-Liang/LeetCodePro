@@ -21,7 +21,7 @@
  *     int val;
  *     TreeNode *left;
  *     TreeNode *right;
- *     TreeNode() : val(0), left(nullptr), right(nullptr) {}
+ *     TreeNode() : val(0), left(nullptr), right(nullptr) {} 
  *     TreeNode(int x) : val(x), left(nullptr), right(nullptr) {}
  *     TreeNode(int x, TreeNode *left, TreeNode *right) : val(x), left(left), right(right) {}
  * };
@@ -30,22 +30,21 @@ class Solution {
 public:
     bool isSubPath(ListNode* head, TreeNode* root) {
         if (!root) return false;
-        // Check if the path starts at the current root, 
-        // or if it exists in the left or right subtrees.
-        return isMatch(head, root) || isSubPath(head, root->left) || isSubPath(head, root->right);
+        // Check if the path starts at the current root, or search in left/right subtrees
+        return checkPath(head, root) || isSubPath(head, root->left) || isSubPath(head, root->right);
     }
 
 private:
-    bool isMatch(ListNode* head, TreeNode* root) {
-        // If we reached the end of the list, we found a match.
+    bool checkPath(ListNode* head, TreeNode* node) {
+        // If we've reached the end of the linked list, we found a match
         if (!head) return true;
-        // If we reached a leaf in the tree but the list isn't finished, no match.
-        if (!root) return false;
-        // If values don't match, this path is invalid.
-        if (head->val != root->val) return false;
+        // If we reach a null tree node but the list isn't finished, no match
+        if (!node) return false;
+        // If values don't match, this path is invalid
+        if (head->val != node->val) return false;
         
-        // Continue matching the next list element in either the left or right child.
-        return isMatch(head->next, root->left) || isMatch(head->next, root->right);
+        // Continue checking the next node in the list in both children of the tree node
+        return checkPath(head->next, node->left) || checkPath(head->next, node->right);
     }
 };
 # @lc code=end

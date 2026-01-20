@@ -8,11 +8,9 @@
 #include <deque>
 
 class FrontMiddleBackQueue {
-private:
     std::deque<int> left, right;
 
-    // Maintain invariant: left.size() <= right.size() <= left.size() + 1
-    void balance() {
+    void rebalance() {
         if (left.size() > right.size()) {
             right.push_front(left.back());
             left.pop_back();
@@ -24,61 +22,60 @@ private:
 
 public:
     FrontMiddleBackQueue() {
-        
     }
     
     void pushFront(int val) {
         left.push_front(val);
-        balance();
+        rebalance();
     }
     
     void pushMiddle(int val) {
-        if (left.size() == right.size()) {
-            right.push_front(val);
-        } else {
-            left.push_back(val);
+        if (right.size() > left.size()) {
+            left.push_back(right.front());
+            right.pop_front();
         }
+        right.push_front(val);
     }
     
     void pushBack(int val) {
         right.push_back(val);
-        balance();
+        rebalance();
     }
     
     int popFront() {
-        if (right.empty()) return -1;
-        int res;
+        if (left.empty() && right.empty()) return -1;
+        int val;
         if (left.empty()) {
-            res = right.front();
+            val = right.front();
             right.pop_front();
         } else {
-            res = left.front();
+            val = left.front();
             left.pop_front();
         }
-        balance();
-        return res;
+        rebalance();
+        return val;
     }
     
     int popMiddle() {
-        if (right.empty()) return -1;
-        int res;
+        if (left.empty() && right.empty()) return -1;
+        int val;
         if (left.size() == right.size()) {
-            res = left.back();
+            val = left.back();
             left.pop_back();
         } else {
-            res = right.front();
+            val = right.front();
             right.pop_front();
         }
-        balance();
-        return res;
+        rebalance();
+        return val;
     }
     
     int popBack() {
-        if (right.empty()) return -1;
-        int res = right.back();
+        if (left.empty() && right.empty()) return -1;
+        int val = right.back();
         right.pop_back();
-        balance();
-        return res;
+        rebalance();
+        return val;
     }
 };
 
