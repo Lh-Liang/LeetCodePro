@@ -5,67 +5,83 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <algorithm>
-#include <cstring>
-
-using namespace std;
-
-int memo[500][500][4][2][2];
-
 class Solution {
+public:
+    int n, m;
+    int memo[505][505][4][2];
+    // Directions: 0: SE, 1: SW, 2: NW, 3: NE (Clockwise order)
     int dr[4] = {1, 1, -1, -1};
     int dc[4] = {1, -1, -1, 1};
-    int n, m;
 
-    int solve(int r, int c, int d, int turned, int val_idx, const vector<vector<int>>& grid) {
-        if (memo[r][c][d][turned][val_idx] != -1) return memo[r][c][d][turned][val_idx];
+    // Check if coordinates are within grid bounds
+    bool isValid(int r, int c) {
+        return r >= 0 && r < n && c >= 0 && c < m;
+    }
 
-        int current_val = (val_idx == 0) ? 0 : 2;
-        int target_val = 2 - current_val;
-        int target_idx = 1 - val_idx;
-        int res = 1;
-
-        // Option 1: Continue in current direction
-        int nr = r + dr[d], nc = c + dc[d];
-        if (nr >= 0 && nr < n && nc >= 0 && nc < m && grid[nr][nc] == target_val) {
-            res = max(res, 1 + solve(nr, nc, d, turned, target_idx, grid));
+    int dfs(vector<vector<int>>& grid, int r, int c, int dir, int turned) {
+        if (memo[r][c][dir][turned] != -1) {
+            return memo[r][c][dir][turned];
         }
 
-        // Option 2: Turn clockwise (only if not already turned)
+        int currentVal = grid[r][c];
+        int targetNext = (currentVal == 2) ? 0 : 2;
+        
+        int maxLength = 0;
+
+        // Option 1: Continue in the same direction
+        int nr = r + dr[dir];
+        int nc = c + dc[dir];
+        
+        if (isValid(nr, nc) && grid[nr][nc] == targetNext) {
+            maxLength = max(maxLength, 1 + dfs(grid, nr, nc, dir, turned));
+        }
+
+        // Option 2: Turn 90 degrees clockwise (only if haven't turned yet)
         if (turned == 0) {
-            int nd = (d + 1) % 4;
-            int nr2 = r + dr[nd], nc2 = c + dc[nd];
-            if (nr2 >= 0 && nr2 < n && nc2 >= 0 && nc2 < m && grid[nr2][nc2] == target_val) {
-                res = max(res, 1 + solve(nr2, nc2, nd, 1, target_idx, grid));
+            int newDir = (dir + 1) % 4;
+            int tr = r + dr[newDir];
+            int tc = c + dc[newDir];
+            
+            if (isValid(tr, tc) && grid[tr][tc] == targetNext) {
+                maxLength = max(maxLength, 1 + dfs(grid, tr, tc, newDir, 1));
             }
         }
 
-        return memo[r][c][d][turned][val_idx] = res;
+        return memo[r][c][dir][turned] = maxLength;
     }
 
-public:
     int lenOfVDiagonal(vector<vector<int>>& grid) {
         n = grid.size();
         m = grid[0].size();
+        
+        // Initialize memoization table with -1
+        // Using memset is faster/easier for C-style arrays
+        // Size: 505 * 505 * 4 * 2 * sizeof(int) is roughly 8MB, perfectly fine.
         memset(memo, -1, sizeof(memo));
 
-        int max_len = 0;
+        int maxLen = 0;
+
         for (int i = 0; i < n; ++i) {
             for (int j = 0; j < m; ++j) {
                 if (grid[i][j] == 1) {
-                    max_len = max(max_len, 1);
+                    // A segment of length at least 1 exists.
+                    maxLen = max(maxLen, 1);
+                    
+                    // Try starting in all 4 diagonal directions looking for the next '2'
                     for (int d = 0; d < 4; ++d) {
-                        int ni = i + dr[d], nj = j + dc[d];
-                        if (ni >= 0 && ni < n && nj >= 0 && nj < m && grid[ni][nj] == 2) {
-                            max_len = max(max_len, 1 + solve(ni, nj, d, 0, 1, grid));
+                        int ni = i + dr[d];
+                        int nj = j + dc[d];
+                        
+                        if (isValid(ni, nj) && grid[ni][nj] == 2) {
+                            // Length is 1 (current '1') + 1 (next '2') + whatever follows
+                            maxLen = max(maxLen, 2 + dfs(grid, ni, nj, d, 0));
                         }
                     }
                 }
             }
         }
 
-        return max_len;
+        return maxLen;
     }
 };
 # @lc code=end

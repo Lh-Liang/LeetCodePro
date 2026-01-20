@@ -6,7 +6,7 @@
 
 # @lc code=start
 #include <vector>
-#include <bitset>
+#include <algorithm>
 #include <numeric>
 #include <set>
 
@@ -14,53 +14,73 @@ using namespace std;
 
 class Solution {
 public:
+    // Standard DSU implementation
     struct DSU {
         vector<int> parent;
-        int components;
-        DSU(int n) : components(n) {
+        int count;
+        
+        DSU(int n) : count(n) {
             parent.resize(n);
             iota(parent.begin(), parent.end(), 0);
         }
-        int find(int i) {
-            if (parent[i] == i) return i;
-            return parent[i] = find(parent[i]);
+        
+        int find(int x) {
+            if (parent[x] != x) {
+                parent[x] = find(parent[x]);
+            }
+            return parent[x];
         }
-        void unite(int i, int j) {
-            int root_i = find(i);
-            int root_j = find(j);
-            if (root_i != root_j) {
-                parent[root_i] = root_j;
-                components--;
+        
+        void unite(int x, int y) {
+            int rootX = find(x);
+            int rootY = find(y);
+            if (rootX != rootY) {
+                parent[rootX] = rootY;
+                count--;
             }
         }
     };
 
     int numberOfComponents(vector<vector<int>>& properties, int k) {
         int n = properties.size();
-        if (n == 0) return 0;
-
-        // Convert each row to a bitset of unique values (values 1-100)
-        vector<bitset<101>> bitsets(n);
+        
+        // Preprocess: sort and unique each property list to handle "distinct integers"
+        // and make intersection checks efficient.
         for (int i = 0; i < n; ++i) {
-            for (int val : properties[i]) {
-                bitsets[i].set(val);
-            }
+            sort(properties[i].begin(), properties[i].end());
+            properties[i].erase(unique(properties[i].begin(), properties[i].end()), properties[i].end());
         }
-
+        
         DSU dsu(n);
-
-        // Compare every pair of nodes
+        
+        // Check every pair
         for (int i = 0; i < n; ++i) {
             for (int j = i + 1; j < n; ++j) {
-                // intersect(a, b) counts unique common integers
-                // bitset intersection and count() gives exactly this
-                if ((int)(bitsets[i] & bitsets[j]).count() >= k) {
+                // Calculate intersection size of two sorted unique vectors
+                int common = 0;
+                int idx1 = 0, idx2 = 0;
+                int size1 = properties[i].size();
+                int size2 = properties[j].size();
+                
+                while (idx1 < size1 && idx2 < size2) {
+                    if (properties[i][idx1] < properties[j][idx2]) {
+                        idx1++;
+                    } else if (properties[i][idx1] > properties[j][idx2]) {
+                        idx2++;
+                    } else {
+                        common++;
+                        idx1++;
+                        idx2++;
+                    }
+                }
+                
+                if (common >= k) {
                     dsu.unite(i, j);
                 }
             }
         }
-
-        return dsu.components;
+        
+        return dsu.count;
     }
 };
 # @lc code=end
