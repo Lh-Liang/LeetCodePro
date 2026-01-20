@@ -5,62 +5,72 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
 class Solution {
 public:
+    // Helper to compute LCP of two strings
+    int computeLCP(const string& a, const string& b) {
+        int n = min(a.length(), b.length());
+        int i = 0;
+        while (i < n && a[i] == b[i]) {
+            i++;
+        }
+        return i;
+    }
+
     vector<int> longestCommonPrefix(vector<string>& words) {
         int n = words.size();
-        if (n == 0) return {};
         if (n == 1) return {0};
 
-        auto getLCP = [](const string& a, const string& b) {
-            int len = 0;
-            int minLen = min((int)a.length(), (int)b.length());
-            while (len < minLen && a[len] == b[len]) {
-                len++;
-            }
-            return len;
-        };
-
-        // L[i] is LCP of words[i] and words[i+1]
-        vector<int> L(n - 1);
+        // adjLCP[i] stores LCP(words[i], words[i+1])
+        // Size is n-1
+        vector<int> adjLCP(n - 1, 0);
         for (int i = 0; i < n - 1; ++i) {
-            L[i] = getLCP(words[i], words[i + 1]);
+            adjLCP[i] = computeLCP(words[i], words[i+1]);
         }
 
-        // pref[i] is max(L[0]...L[i-1])
-        vector<int> pref(n, 0);
-        for (int i = 1; i < n; ++i) {
-            pref[i] = max(pref[i - 1], L[i - 1]);
-        }
-
-        // suff[i] is max(L[i]...L[n-2])
-        vector<int> suff(n, 0);
-        for (int i = n - 2; i >= 0; --i) {
-            suff[i] = max(suff[i + 1], L[i]);
-        }
-
-        vector<int> ans(n);
-        for (int i = 0; i < n; ++i) {
-            // Original pairs excluding those involving words[i]
-            int left_max = (i >= 2) ? pref[i - 1] : 0;
-            int right_max = (i <= n - 3) ? suff[i + 1] : 0;
-            
-            // New pair formed by removing words[i]
-            int mid_lcp = 0;
-            if (i >= 1 && i <= n - 2) {
-                mid_lcp = getLCP(words[i - 1], words[i + 1]);
+        // Precompute prefix maximums for adjLCP
+        vector<int> prefixMax(n - 1, 0);
+        if (n > 1) {
+            prefixMax[0] = adjLCP[0];
+            for (int i = 1; i < n - 1; ++i) {
+                prefixMax[i] = max(prefixMax[i - 1], adjLCP[i]);
             }
-            
-            ans[i] = max({left_max, right_max, mid_lcp});
         }
 
-        return ans;
+        // Precompute suffix maximums for adjLCP
+        vector<int> suffixMax(n - 1, 0);
+        if (n > 1) {
+            suffixMax[n - 2] = adjLCP[n - 2];
+            for (int i = n - 3; i >= 0; --i) {
+                suffixMax[i] = max(suffixMax[i + 1], adjLCP[i]);
+            }
+        }
+
+        vector<int> answer(n);
+        for (int i = 0; i < n; ++i) {
+            int maxVal = 0;
+
+            // 1. Max from left side (unaffected pairs before i-1)
+            // We need max of adjLCP[0...i-2]
+            if (i >= 2) {
+                maxVal = max(maxVal, prefixMax[i - 2]);
+            }
+
+            // 2. Max from right side (unaffected pairs after i)
+            // We need max of adjLCP[i+1...n-2]
+            if (i < n - 2) {
+                maxVal = max(maxVal, suffixMax[i + 1]);
+            }
+
+            // 3. The new pair formed by removing words[i]: (words[i-1], words[i+1])
+            if (i > 0 && i < n - 1) {
+                maxVal = max(maxVal, computeLCP(words[i - 1], words[i + 1]));
+            }
+
+            answer[i] = maxVal;
+        }
+
+        return answer;
     }
 };
 # @lc code=end

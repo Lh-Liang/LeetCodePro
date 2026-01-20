@@ -1,9 +1,3 @@
-#include <vector>
-#include <queue>
-#include <algorithm>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=3604 lang=cpp
 #
@@ -11,56 +5,61 @@ using namespace std;
 #
 
 # @lc code=start
-class Solution {
-    struct Edge {
-        int to;
-        int start;
-        int end;
-    };
+#include <vector>
+#include <queue>
+#include <tuple>
+#include <algorithm>
+#include <climits>
 
+using namespace std;
+
+class Solution {
 public:
     int minTime(int n, vector<vector<int>>& edges) {
-        // Build the adjacency list for the directed graph
-        vector<vector<Edge>> adj(n);
-        for (const auto& e : edges) {
-            adj[e[0]].push_back({e[1], e[2], e[3]});
+        // Adjacency list: u -> list of {v, start, end}
+        vector<vector<tuple<int, int, int>>> adj(n);
+        for (const auto& edge : edges) {
+            adj[edge[0]].emplace_back(edge[1], edge[2], edge[3]);
         }
 
-        // Dijkstra's algorithm to find the minimum arrival time
-        // Priority queue stores {time, node}, using a min-heap
+        // Dijkstra's algorithm
+        // min_time[i] stores the minimum time to reach node i
+        vector<int> min_time(n, INT_MAX);
+        // Priority queue stores {current_time, u}, ordered by current_time ascending
         priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq;
-        vector<int> dist(n, 2000000000); // Initialize with a value larger than any possible arrival time
 
-        // Starting point: node 0 at time 0
-        dist[0] = 0;
+        min_time[0] = 0;
         pq.push({0, 0});
 
         while (!pq.empty()) {
             auto [t, u] = pq.top();
             pq.pop();
 
-            // If we already found a better way to reach this node, skip
-            if (t > dist[u]) continue;
-            
-            // If we reached the destination, return the time
+            if (t > min_time[u]) continue;
             if (u == n - 1) return t;
 
-            for (const auto& edge : adj[u]) {
-                // The earliest time we can start using this edge is max(current time, edge start window)
-                int t_use = max(t, edge.start);
+            for (const auto& [v, start, end] : adj[u]) {
+                // We arrived at u at time t.
+                // We can take the edge if we leave at time t_departure such that:
+                // 1. t_departure >= t (we can't travel back in time)
+                // 2. start <= t_departure <= end
                 
-                // Check if the edge is still available at the time we want to use it
-                if (t_use <= edge.end) {
-                    int t_arrival = t_use + 1;
-                    if (t_arrival < dist[edge.to]) {
-                        dist[edge.to] = t_arrival;
-                        pq.push({t_arrival, edge.to});
-                    }
+                // If current time is already past the end of the window, we can't use this edge.
+                if (t > end) continue;
+
+                // Calculate earliest departure time
+                int t_departure = max(t, start);
+                
+                // Arrival time at v is departure time + 1 unit of traversal
+                int t_arrival = t_departure + 1;
+
+                if (t_arrival < min_time[v]) {
+                    min_time[v] = t_arrival;
+                    pq.push({t_arrival, v});
                 }
             }
         }
 
-        // If node n-1 is unreachable
         return -1;
     }
 };
