@@ -1,46 +1,41 @@
-#
-# @lc app=leetcode id=3457 lang=cpp
-#
-# [3457] Eat Pizzas!
-#
-
-# @lc code=start
-#include <vector>
-#include <algorithm>
-#include <numeric>
-
+#include <bits/stdc++.h>
 using namespace std;
 
+//
+// @lc app=leetcode id=3457 lang=cpp
+//
+// [3457] Eat Pizzas!
+//
+
+// @lc code=start
 class Solution {
 public:
     long long maxWeight(vector<int>& pizzas) {
-        long long n = pizzas.size();
-        long long days = n / 4;
-        long long odd_days = (days + 1) / 2;
-        long long even_days = days / 2;
-
         sort(pizzas.begin(), pizzas.end());
+        int n = (int)pizzas.size();
+        int m = n / 4;
+        int odd = (m + 1) / 2;
+        int even = m / 2;
 
-        long long totalWeight = 0;
-        int index = n - 1;
+        long long ans = 0;
+        int l = 0, r = n - 1;
 
-        // For odd days, we gain weight Z (the largest in the group).
-        // We greedily take the largest available pizzas.
-        for (int i = 0; i < odd_days; ++i) {
-            totalWeight += pizzas[index];
-            index--;
+        // Odd days: gain Z (largest in the group)
+        for (int i = 0; i < odd; i++) {
+            ans += pizzas[r--];
+            l += 3; // consume 3 smallest as fillers
         }
 
-        // For even days, we gain weight Y (the second largest in the group).
-        // We need pairs of large pizzas. The larger of the pair serves as Z (wasted),
-        // the smaller serves as Y (gained).
-        for (int i = 0; i < even_days; ++i) {
-            index--; // Skip the largest remaining (acts as Z)
-            totalWeight += pizzas[index]; // Take the next largest (acts as Y)
-            index--;
+        // Even days: gain Y (2nd largest in the group)
+        for (int i = 0; i < even; i++) {
+            // take Z (largest) but not counted
+            r--;
+            // take Y (next largest) and count it
+            ans += pizzas[r--];
+            l += 2; // consume 2 smallest as fillers
         }
 
-        return totalWeight;
+        return ans;
     }
 };
-# @lc code=end
+// @lc code=end
