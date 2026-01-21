@@ -3,42 +3,46 @@
 #
 # [3604] Minimum Time to Reach Destination in Directed Graph
 #
-
 # @lc code=start
 class Solution {
 public:
     int minTime(int n, vector<vector<int>>& edges) {
-        vector<vector<vector<int>>> adj(n);
-        for (auto& edge : edges) {
-            int u = edge[0], v = edge[1], s = edge[2], e = edge[3];
-            adj[u].push_back({v, s, e});
+        // Build adjacency list
+        vector<vector<tuple<int, int, int>>> graph(n);
+        for (const auto& e : edges) {
+            graph[e[0]].push_back({e[1], e[2], e[3]});
         }
-        const long long INF = 1LL << 60;
-        vector<long long> dist(n, INF);
+        
+        // Dijkstra's algorithm
+        vector<int> dist(n, INT_MAX);
+        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> pq;
+        
         dist[0] = 0;
-        using T = pair<long long, int>;
-        priority_queue<T, vector<T>, greater<T>> pq;
-        pq.push({0, 0});
+        pq.push({0, 0}); // {time, node}
+        
         while (!pq.empty()) {
-            T front = pq.top(); pq.pop();
-            long long time = front.first;
-            int u = front.second;
-            if (time > dist[u]) continue;
-            for (auto& ed : adj[u]) {
-                int v = ed[0];
-                int s = ed[1], ee = ed[2];
-                long long dep = max(time, (long long)s);
-                if (dep <= ee) {
-                    long long arrv = dep + 1;
-                    if (arrv < dist[v]) {
-                        dist[v] = arrv;
-                        pq.push({arrv, v});
+            auto [time, node] = pq.top();
+            pq.pop();
+            
+            // Early return if we reached the destination
+            if (node == n - 1) return time;
+            
+            // Skip if we've already found a better path to this node
+            if (time > dist[node]) continue;
+            
+            // Explore all outgoing edges
+            for (const auto& [next, start, end] : graph[node]) {
+                if (time <= end) { // We can potentially use this edge
+                    int arrival = max(time, start) + 1;
+                    if (arrival < dist[next]) {
+                        dist[next] = arrival;
+                        pq.push({arrival, next});
                     }
                 }
             }
         }
-        long long ans = dist[n - 1];
-        return ans >= INF ? -1 : (int)ans;
+        
+        return -1; // Cannot reach destination
     }
 };
 # @lc code=end

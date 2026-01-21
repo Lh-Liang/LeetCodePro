@@ -3,56 +3,78 @@
 #
 # [3605] Minimum Stability Factor of Array
 #
-
 # @lc code=start
-#include <bits/stdc++.h>
-using namespace std;
-
 class Solution {
 public:
+    int gcd(int a, int b) {
+        while (b) {
+            int temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
+    }
+    
+    bool canAchieve(vector<int>& nums, int maxC, int K) {
+        int n = nums.size();
+        int i = 0;
+        int total_breaks = 0;
+        
+        while (i < n) {
+            if (nums[i] < 2) {
+                i++;
+                continue;
+            }
+            
+            int j = i;
+            int current_gcd = nums[i];
+            while (j + 1 < n) {
+                int new_gcd = gcd(current_gcd, nums[j + 1]);
+                if (new_gcd < 2) {
+                    break;
+                }
+                current_gcd = new_gcd;
+                j++;
+            }
+            
+            int L = j - i + 1;
+            if (L > K) {
+                int breaks_needed = L / (K + 1);
+                total_breaks += breaks_needed;
+            }
+            
+            i = j + 1;
+        }
+        
+        return total_breaks <= maxC;
+    }
+    
     int minStable(vector<int>& nums, int maxC) {
         int n = nums.size();
-        if (n == 0) return 0;
-        vector<int> logg(n + 1, 0);
-        for (int i = 2; i <= n; ++i) {
-            logg[i] = logg[i / 2] + 1;
+        
+        int elements_gte_2 = 0;
+        for (int num : nums) {
+            if (num >= 2) elements_gte_2++;
         }
-        const int LOG = 18;
-        vector<vector<int>> st(LOG, vector<int>(n));
-        for (int i = 0; i < n; ++i) {
-            st[0][i] = nums[i];
+        
+        if (elements_gte_2 <= maxC) {
+            return 0;
         }
-        for (int k = 1; k < LOG; ++k) {
-            for (int i = 0; i + (1 << k) <= n; ++i) {
-                st[k][i] = gcd(st[k - 1][i], st[k - 1][i + (1 << (k - 1))]);
-            }
-        }
-        auto query = [&](int l, int r) -> int {
-            int len = r - l + 1;
-            int k = logg[len];
-            return gcd(st[k][l], st[k][r - (1 << k) + 1]);
-        };
-        int low = 0, high = n;
-        while (low < high) {
-            int mid = low + (high - low) / 2;
-            int LEN = mid + 1;
-            int count = 0;
-            int last = -1;
-            for (int r = LEN - 1; r < n; ++r) {
-                int l = r - LEN + 1;
-                int g = (LEN > n) ? 1 : query(l, r);
-                if (g >= 2 && last < l) {
-                    last = r;
-                    ++count;
-                }
-            }
-            if (count <= maxC) {
-                high = mid;
+        
+        int left = 1, right = n;
+        int answer = n;
+        
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (canAchieve(nums, maxC, mid)) {
+                answer = mid;
+                right = mid - 1;
             } else {
-                low = mid + 1;
+                left = mid + 1;
             }
         }
-        return low;
+        
+        return answer;
     }
 };
 # @lc code=end
