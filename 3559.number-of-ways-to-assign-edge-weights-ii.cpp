@@ -7,75 +7,56 @@
 class Solution {
 public:
     const int MOD = 1e9 + 7;
+    vector<vector<int>> adj;
     
-    int findPathLength(int u, int v, vector<vector<int>>& adj, int n) {
-        if (u == v) return 0;
+    bool findPath(int node, int target, int parent, vector<int>& path) {
+        path.push_back(node);
+        if (node == target) return true;
         
-        vector<int> parent(n + 1, -1);
-        queue<int> q;
-        q.push(u);
-        parent[u] = u;
-        
-        while (!q.empty()) {
-            int node = q.front();
-            q.pop();
-            
-            if (node == v) break;
-            
-            for (int neighbor : adj[node]) {
-                if (parent[neighbor] == -1) {
-                    parent[neighbor] = node;
-                    q.push(neighbor);
-                }
-            }
+        for (int neighbor : adj[node]) {
+            if (neighbor == parent) continue;
+            if (findPath(neighbor, target, node, path)) return true;
         }
         
-        int length = 0;
-        int curr = v;
-        while (curr != u) {
-            length++;
-            curr = parent[curr];
-        }
-        return length;
+        path.pop_back();
+        return false;
     }
     
-    long long power(long long base, long long exp, long long mod) {
+    long long power(long long base, long long exp) {
         long long result = 1;
+        base %= MOD;
         while (exp > 0) {
-            if (exp % 2 == 1) {
-                result = (result * base) % mod;
-            }
-            base = (base * base) % mod;
-            exp /= 2;
+            if (exp & 1) result = (result * base) % MOD;
+            base = (base * base) % MOD;
+            exp >>= 1;
         }
         return result;
     }
     
     vector<int> assignEdgeWeights(vector<vector<int>>& edges, vector<vector<int>>& queries) {
         int n = edges.size() + 1;
-        vector<vector<int>> adj(n + 1);
+        adj.resize(n + 1);
         
         for (auto& edge : edges) {
             adj[edge[0]].push_back(edge[1]);
             adj[edge[1]].push_back(edge[0]);
         }
         
-        vector<int> result;
+        vector<int> answer;
         for (auto& query : queries) {
-            int u = query[0];
-            int v = query[1];
+            int u = query[0], v = query[1];
+            vector<int> path;
+            findPath(u, v, -1, path);
             
-            int edgeCount = findPathLength(u, v, adj, n);
-            
-            if (edgeCount == 0) {
-                result.push_back(0);
+            int numEdges = path.size() - 1;
+            if (numEdges == 0) {
+                answer.push_back(0);
             } else {
-                long long ans = power(2, edgeCount - 1, MOD);
-                result.push_back(ans);
+                answer.push_back((int)power(2, numEdges - 1));
             }
         }
         
-        return result;
+        return answer;
     }
 };
 # @lc code=end

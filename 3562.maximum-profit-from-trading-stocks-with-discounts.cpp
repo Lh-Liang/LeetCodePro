@@ -3,71 +3,68 @@
 #
 # [3562] Maximum Profit from Trading Stocks with Discounts
 #
-
 # @lc code=start
 class Solution {
 public:
-    map<tuple<int, int, int>, int> memo;
-    vector<vector<int>> graph;
-    vector<int> present, future;
-    
-    int maxProfit(int n, vector<int>& present, vector<int>& future, 
-                  vector<vector<int>>& hierarchy, int budget) {
-        this->present = present;
-        this->future = future;
-        graph.resize(n + 1);
-        
-        for (auto& edge : hierarchy) {
-            graph[edge[0]].push_back(edge[1]);
+    int maxProfit(int n, vector<int>& present, vector<int>& future, vector<vector<int>>& hierarchy, int budget) {
+        vector<vector<int>> children(n + 1);
+        for (const auto& h : hierarchy) {
+            children[h[0]].push_back(h[1]);
         }
         
-        return dp(1, budget, 0);
-    }
-    
-    int dp(int u, int budget, int parent_bought) {
-        if (budget < 0) return -1e9;
+        map<tuple<int, int, int>, int> memo;
         
-        auto key = make_tuple(u, budget, parent_bought);
-        if (memo.count(key)) return memo[key];
-        
-        int cost = parent_bought ? present[u - 1] / 2 : present[u - 1];
-        int own_profit = future[u - 1] - cost;
-        
-        int result = 0;
-        
-        // Option 1: Don't buy stock for employee u
-        if (!graph[u].empty()) {
-            result = distributeChildren(u, budget, 0);
-        }
-        
-        // Option 2: Buy stock for employee u
-        if (budget >= cost) {
-            int val = own_profit;
-            if (!graph[u].empty()) {
-                val += distributeChildren(u, budget - cost, 1);
+        function<int(int, int, bool)> dfs = [&](int node, int remaining_budget, bool parent_bought) -> int {
+            auto key = make_tuple(node, remaining_budget, parent_bought);
+            if (memo.count(key)) return memo[key];
+            
+            int cost = parent_bought ? present[node - 1] / 2 : present[node - 1];
+            int local_profit = future[node - 1] - cost;
+            
+            if (children[node].empty()) {
+                int result = 0;
+                if (cost <= remaining_budget && local_profit > 0) {
+                    result = local_profit;
+                }
+                return memo[key] = result;
             }
-            result = max(result, val);
-        }
-        
-        return memo[key] = result;
-    }
-    
-    int distributeChildren(int u, int budget, int u_bought) {
-        vector<int> dpk(budget + 1, 0);
-        
-        for (int child : graph[u]) {
-            vector<int> new_dpk(budget + 1, 0);
-            for (int b = 0; b <= budget; b++) {
-                new_dpk[b] = dpk[b];
-                for (int cb = 0; cb <= b; cb++) {
-                    int child_val = dp(child, cb, u_bought);
-                    new_dpk[b] = max(new_dpk[b], dpk[b - cb] + child_val);
+            
+            int num_children = children[node].size();
+            
+            vector<vector<int>> dp_without(num_children + 1, vector<int>(remaining_budget + 1, 0));
+            for (int i = 0; i < num_children; i++) {
+                int child = children[node][i];
+                for (int b = 0; b <= remaining_budget; b++) {
+                    dp_without[i + 1][b] = dp_without[i][b];
+                    for (int b2 = 0; b2 <= b; b2++) {
+                        dp_without[i + 1][b] = max(dp_without[i + 1][b], 
+                                                    dp_without[i][b - b2] + dfs(child, b2, false));
+                    }
                 }
             }
-            dpk = new_dpk;
-        }
+            int max_profit = dp_without[num_children][remaining_budget];
+            
+            if (cost <= remaining_budget) {
+                int new_budget = remaining_budget - cost;
+                vector<vector<int>> dp_with(num_children + 1, vector<int>(new_budget + 1, 0));
+                for (int i = 0; i < num_children; i++) {
+                    int child = children[node][i];
+                    for (int b = 0; b <= new_budget; b++) {
+                        dp_with[i + 1][b] = dp_with[i][b];
+                        for (int b2 = 0; b2 <= b; b2++) {
+                            dp_with[i + 1][b] = max(dp_with[i + 1][b], 
+                                                     dp_with[i][b - b2] + dfs(child, b2, true));
+                        }
+                    }
+                }
+                int total_with_buy = local_profit + dp_with[num_children][new_budget];
+                max_profit = max(max_profit, total_with_buy);
+            }
+            
+            return memo[key] = max_profit;
+        };
         
-        return dpk[budget];
+        return dfs(1, budget, false);
     }
 };
 # @lc code=end
