@@ -1,88 +1,73 @@
+#
+# @lc app=leetcode id=3445 lang=cpp
+#
+# [3445] Maximum Difference Between Even and Odd Frequency II
+#
+
+# @lc code=start
 #include <bits/stdc++.h>
 using namespace std;
 
-// @lc code=start
 class Solution {
-    struct FenwickMin {
-        int n;
-        int INF;
-        vector<int> bit;
-        FenwickMin() : n(0), INF(1e9) {}
-        FenwickMin(int n_) { init(n_); }
-        void init(int n_) {
-            n = n_;
-            INF = 1000000000;
-            bit.assign(n + 1, INF);
-        }
-        // point update: bit[pos] = min(bit[pos], val)
-        void update(int pos, int val) {
-            for (int i = pos + 1; i <= n; i += i & -i)
-                bit[i] = min(bit[i], val);
-        }
-        // query min over [0..pos]
-        int query(int pos) const {
-            if (pos < 0) return INF;
-            int res = INF;
-            for (int i = pos + 1; i > 0; i -= i & -i)
-                res = min(res, bit[i]);
-            return res;
-        }
-    };
-
 public:
     int maxDifference(string s, int k) {
-        int n = (int)s.size();
-        const int SIG = 5;
-
-        // pref[c][i] = count of digit c in s[0..i-1]
-        vector<vector<int>> pref(SIG, vector<int>(n + 1, 0));
-        for (int i = 0; i < n; i++) {
-            int d = s[i] - '0';
-            for (int c = 0; c < SIG; c++) pref[c][i + 1] = pref[c][i];
-            pref[d][i + 1]++;
+        int n = s.size();
+        vector<vector<int>> prefix(5, vector<int>(n + 1, 0));
+        vector<vector<int>> parity(5, vector<int>(n + 1, 0));
+        for (int i = 1; i <= n; ++i) {
+            int ch = s[i - 1] - '0';
+            for (int c = 0; c < 5; ++c) {
+                prefix[c][i] = prefix[c][i - 1] + (c == ch);
+                parity[c][i] = prefix[c][i] % 2;
+            }
         }
-
-        int ans = INT_MIN;
-
-        for (int a = 0; a < SIG; a++) {
-            for (int b = 0; b < SIG; b++) {
+        const int INF = 2000000000;
+        const int MAXP = 30010;
+        int ans = -INF;
+        for (int a = 0; a < 5; ++a) {
+            for (int b = 0; b < 5; ++b) {
                 if (a == b) continue;
-                int totalB = pref[b][n];
-                if (totalB < 2) continue; // cannot have positive even frequency for b in any substring
-
-                // 4 parity states: (pa%2, pb%2) => idx = (pa%2)*2 + (pb%2)
-                FenwickMin fw[4];
-                for (int t = 0; t < 4; t++) fw[t].init(totalB + 1);
-
-                for (int r = k; r <= n; r++) {
-                    int l = r - k;
-
-                    // insert prefix at l
-                    int pa_l = pref[a][l];
-                    int pb_l = pref[b][l];
-                    int pr_l = pa_l - pb_l;
-                    int idx_l = ((pa_l & 1) << 1) | (pb_l & 1);
-                    fw[idx_l].update(pb_l, pr_l);
-
-                    // query for r
-                    int pa_r = pref[a][r];
-                    int pb_r = pref[b][r];
-                    if (pb_r == 0) continue; // cannot make pb_r - pb_l > 0
-
-                    int pr_r = pa_r - pb_r;
-                    int need_pa_par = (pa_r & 1) ^ 1;
-                    int need_pb_par = (pb_r & 1);
-                    int idx_need = (need_pa_par << 1) | need_pb_par;
-
-                    int bestMin = fw[idx_need].query(pb_r - 1); // enforce pb_l < pb_r
-                    if (bestMin != fw[idx_need].INF) {
-                        ans = max(ans, pr_r - bestMin);
+                vector<int> diff(n + 1);
+                for (int t = 0; t <= n; ++t) {
+                    diff[t] = prefix[a][t] - prefix[b][t];
+                }
+                auto update = [&](vector<int>& tree, int idx, int val) {
+                    for (; idx <= MAXP; idx += idx & -idx) {
+                        tree[idx] = min(tree[idx], val);
                     }
+                };
+                auto query = [&](const vector<int>& tree, int idx) -> int {
+                    int res = INF;
+                    for (; idx > 0; idx -= idx & -idx) {
+                        res = min(res, tree[idx]);
+                    }
+                    return res;
+                };
+                vector<vector<int>> trees(4, vector<int>(MAXP + 1, INF));
+                int left = 0;
+                for (int t = 1; t <= n; ++t) {
+                    int maxstart = t - k;
+                    while (left <= maxstart && left <= n) {
+                        int pAu = parity[a][left];
+                        int pBu = parity[b][left];
+                        int state = pAu * 2 + pBu;
+                        int pbu = prefix[b][left];
+                        update(trees[state], pbu + 1, diff[left]);
+                        ++left;
+                    }
+                    int pAt = parity[a][t];
+                    int pBt = parity[b][t];
+                    int target_pa = 1 - pAt;
+                    int target_state = target_pa * 2 + pBt;
+                    int M = prefix[b][t] - 2;
+                    if (M < 0) continue;
+                    int min_d = query(trees[target_state], M + 1);
+                    if (min_d == INF) continue;
+                    ans = max(ans, diff[t] - min_d);
                 }
             }
         }
-
-        return ans;
+        return ans == -INF ? -1 : ans;
     }
 };
-// @lc code=end
+# @lc code=end
