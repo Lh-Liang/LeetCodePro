@@ -9,7 +9,7 @@ public:
     vector<int> remainingMethods(int n, int k, vector<vector<int>>& invocations) {
         // Build adjacency list
         vector<vector<int>> graph(n);
-        for (auto& inv : invocations) {
+        for (const auto& inv : invocations) {
             graph[inv[0]].push_back(inv[1]);
         }
         
@@ -22,6 +22,7 @@ public:
         while (!q.empty()) {
             int curr = q.front();
             q.pop();
+            
             for (int next : graph[curr]) {
                 if (suspicious.find(next) == suspicious.end()) {
                     suspicious.insert(next);
@@ -31,21 +32,24 @@ public:
         }
         
         // Check if any non-suspicious method invokes a suspicious method
-        for (auto& inv : invocations) {
-            int from = inv[0];
-            int to = inv[1];
-            if (suspicious.find(from) == suspicious.end() && 
-                suspicious.find(to) != suspicious.end()) {
-                // Non-suspicious invokes suspicious, cannot remove
-                vector<int> result;
-                for (int i = 0; i < n; i++) {
-                    result.push_back(i);
+        for (int i = 0; i < n; i++) {
+            if (suspicious.find(i) == suspicious.end()) {
+                // i is not suspicious
+                for (int next : graph[i]) {
+                    if (suspicious.find(next) != suspicious.end()) {
+                        // Non-suspicious method invokes suspicious method
+                        // Can't remove, return all methods
+                        vector<int> result;
+                        for (int j = 0; j < n; j++) {
+                            result.push_back(j);
+                        }
+                        return result;
+                    }
                 }
-                return result;
             }
         }
         
-        // Can remove suspicious methods, return non-suspicious ones
+        // Can remove all suspicious methods
         vector<int> result;
         for (int i = 0; i < n; i++) {
             if (suspicious.find(i) == suspicious.end()) {
