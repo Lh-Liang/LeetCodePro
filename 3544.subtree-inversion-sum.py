@@ -7,80 +7,68 @@
 # @lc code=start
 import sys
 
-# Increase recursion depth to handle deep trees as N can be up to 50,000
-sys.setrecursionlimit(100000)
+# Increase recursion depth for deep trees
+sys.setrecursionlimit(10**6)
 
 class Solution:
-    def subtreeInversionSum(self, edges: List[List[int]], nums: List[int], k: int) -> int:
+    def subtreeInversionSum(self, edges: list[list[int]], nums: list[int], k: int) -> int:
         n = len(nums)
         adj = [[] for _ in range(n)]
         for u, v in edges:
             adj[u].append(v)
             adj[v].append(u)
+
+        # dp[u][i] where i in [0, k-1] means parity 0, nearest flip at dist i (0 = none)
+        # dp[u][i+k] where i in [0, k-1] means parity 1, nearest flip at dist i (0 = none)
+        # Note: 'none' is distance infinity, but we use 0 to represent 'available to flip'
         
-        # Helper function for DFS
-        # Returns a tuple of two lists: (max_sums, min_sums)
-        # max_sums[j] stores the max subtree sum given distance to nearest inverted ancestor is j
-        # min_sums[j] stores the min subtree sum given distance to nearest inverted ancestor is j
-        # Indices are 1-based for convenience (0 is unused)
-        def dfs(u, p):
-            # Collect results from children first
-            children_results = []
+        memo = {}
+
+        # Flatten tree to process iteratively or use optimized recursion
+        order = []
+        parent = [-1] * n
+        stack = [0]
+        while stack:
+            u = stack.pop()
+            order.append(u)
             for v in adj[u]:
-                if v != p:
-                    children_results.append(dfs(v, u))
-            
-            # Current node's value
-            val = nums[u]
-            
-            # Arrays to store results for states 1 to k
-            # Initialize with 0, but we will overwrite 1..k
-            curr_maxs = [0] * (k + 1)
-            curr_mins = [0] * (k + 1)
-            
-            # 1. Fill states where we CANNOT invert u (distance j < k)
-            # If dist to ancestor is j, child will be at distance j+1
-            # We iterate j from 1 to k-1
-            for j in range(1, k):
-                s_max = val
-                s_min = val
-                next_dist = j + 1
-                # Sum up contributions from all children
-                for c_maxs, c_mins in children_results:
-                    s_max += c_maxs[next_dist]
-                    s_min += c_mins[next_dist]
-                curr_maxs[j] = s_max
-                curr_mins[j] = s_min
-            
-            # 2. Fill state where we CAN invert u (distance j == k)
-            # Option A: Don't invert u. Child sees distance k (capped at k).
-            no_inv_max = val
-            no_inv_min = val
-            for c_maxs, c_mins in children_results:
-                no_inv_max += c_maxs[k]
-                no_inv_min += c_mins[k]
-            
-            # Option B: Invert u. Child sees distance 1.
-            # If we invert, the values in subtree flip.
-            # Total sum = - ( val + sum(children_sums_at_dist_1) )
-            # To maximize total, we need to minimize the inner sum.
-            # To minimize total, we need to maximize the inner sum.
-            inv_max = -val
-            inv_min = -val
-            for c_maxs, c_mins in children_results:
-                # maximize -> - (min of child)
-                inv_max += -c_mins[1]
-                # minimize -> - (max of child)
-                inv_min += -c_maxs[1]
-            
-            curr_maxs[k] = max(no_inv_max, inv_max)
-            curr_mins[k] = min(no_inv_min, inv_min)
-            
-            return curr_maxs, curr_mins
-
-        # Root is effectively at distance infinity >= k from any inverted ancestor
-        root_maxs, _ = dfs(0, -1)
+                if v != parent[u]:
+                    parent[v] = u
+                    stack.append(v)
         
-        return root_maxs[k]
+        # dp[u][state] 
+        # state 0: parity 0, can flip (no flipped ancestor within k-1)
+        # state 1..k-1: parity 0, nearest flipped ancestor at distance state
+        # state k: parity 1, can flip (no flipped ancestor within k-1) - Impossible state by logic but kept for indexing
+        # state k..2k-1: parity 1, nearest flipped ancestor at distance state-k
+        
+        dp = [[0] * (2 * k) for _ in range(n)]
 
+        for u in reversed(order):
+            for state in range(2 * k):
+                p = state // k
+                dist = state % k
+                
+                val = nums[u] if p == 0 else -nums[u]
+                
+                # Option 1: Don't flip u
+                res_no_flip = val
+                next_dist = 0 if dist == 0 or dist + 1 >= k else dist + 1
+                next_state = p * k + next_dist
+                for v in adj[u]:
+                    if v != parent[u]:
+                        res_no_flip += dp[v][next_state]
+                
+                # Option 2: Flip u (only if dist == 0)
+                if dist == 0:
+                    res_flip = -val
+                    next_state_flip = (1 - p) * k + 1
+                    for v in adj[u]:
+                        if v != parent[u]:
+                            res_flip += dp[v][next_state_flip]
+                    dp[u][state] = max(res_no_flip, res_flip)
+                else:
+                    dp[u][state] = res_no_flip
+
+        return dp[0][0]
 # @lc code=end
