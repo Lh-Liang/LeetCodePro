@@ -3,84 +3,89 @@
 #
 # [3575] Maximum Good Subtree Score
 #
-
 # @lc code=start
-#include <bits/stdc++.h>
-using namespace std;
-
 class Solution {
 public:
-    int goodSubtreeSum(vector<int>& vals, vector<int>& par) {
-        int n = vals.size();
-        vector<vector<int>> children(n);
-        for (int i = 1; i < n; ++i) {
-            children[par[i]].push_back(i);
+    const int MOD = 1e9 + 7;
+    vector<vector<int>> children;
+    vector<int> vals;
+    
+    bool hasDuplicateDigits(int num) {
+        int digitCount[10] = {0};
+        if (num == 0) return false;
+        while (num > 0) {
+            int d = num % 10;
+            digitCount[d]++;
+            if (digitCount[d] > 1) return true;
+            num /= 10;
         }
-        vector<int> masks(n, 0);
-        auto get_mask = [](int x) -> int {
-            int m = 0;
-            string s = to_string(x);
-            for (char c : s) {
-                int d = c - '0';
-                int bit = 1 << d;
-                if (m & bit) return 0;
-                m |= bit;
-            }
-            return m;
-        };
-        for (int i = 0; i < n; ++i) {
-            masks[i] = get_mask(vals[i]);
+        return false;
+    }
+    
+    int getDigitMask(int num) {
+        int mask = 0;
+        if (num == 0) return 1;
+        while (num > 0) {
+            int d = num % 10;
+            mask |= (1 << d);
+            num /= 10;
         }
-        const long long INF = 1LL << 60;
-        const int MS = 1 << 10;
-        vector<vector<long long>> dp(n, vector<long long>(MS, -INF));
-        const int MOD = 1000000007;
-        long long answer = 0;
-        function<void(int)> dfs = [&](int u) {
-            vector<long long> curr(MS, -INF);
-            curr[0] = 0;
-            for (int v : children[u]) {
-                dfs(v);
-                vector<long long> nxt(MS, -INF);
-                vector<int> act_curr, act_v;
-                for (int j = 0; j < MS; ++j) {
-                    if (curr[j] != -INF) act_curr.push_back(j);
-                    if (dp[v][j] != -INF) act_v.push_back(j);
-                }
-                for (int pm : act_curr) {
-                    for (int cm : act_v) {
-                        if ((pm & cm) == 0) {
-                            int nm = pm | cm;
-                            nxt[nm] = max(nxt[nm], curr[pm] + dp[v][cm]);
-                        }
+        return mask;
+    }
+    
+    map<int, long long> dfs(int node, vector<long long>& maxScore) {
+        map<int, long long> dp;
+        dp[0] = 0;
+        
+        if (!hasDuplicateDigits(vals[node])) {
+            int nodeMask = getDigitMask(vals[node]);
+            dp[nodeMask] = vals[node];
+        }
+        
+        for (int child : children[node]) {
+            map<int, long long> childDp = dfs(child, maxScore);
+            map<int, long long> newDp;
+            
+            for (auto& [mask1, score1] : dp) {
+                newDp[mask1] = max(newDp[mask1], score1);
+                
+                for (auto& [mask2, score2] : childDp) {
+                    if ((mask1 & mask2) == 0) {
+                        int newMask = mask1 | mask2;
+                        newDp[newMask] = max(newDp[newMask], score1 + score2);
                     }
                 }
-                curr = std::move(nxt);
             }
-            vector<long long> this_dp(MS, -INF);
-            int mu = masks[u];
-            long long vu = vals[u];
-            bool can = (mu != 0);
-            vector<int> act_c;
-            for (int j = 0; j < MS; ++j) {
-                if (curr[j] != -INF) act_c.push_back(j);
-            }
-            for (int m : act_c) {
-                this_dp[m] = max(this_dp[m], curr[m]);
-                if (can && (m & mu) == 0) {
-                    int nm = m | mu;
-                    this_dp[nm] = max(this_dp[nm], curr[m] + vu);
-                }
-            }
-            dp[u] = std::move(this_dp);
-            long long mx = 0;
-            for (int j = 0; j < MS; ++j) {
-                mx = max(mx, dp[u][j]);
-            }
-            answer = (answer + mx) % MOD;
-        };
-        dfs(0);
-        return answer;
+            dp = newDp;
+        }
+        
+        long long maxVal = 0;
+        for (auto& [mask, score] : dp) {
+            maxVal = max(maxVal, score);
+        }
+        maxScore[node] = maxVal;
+        
+        return dp;
+    }
+    
+    int goodSubtreeSum(vector<int>& vals, vector<int>& par) {
+        int n = vals.size();
+        this->vals = vals;
+        children.resize(n);
+        vector<long long> maxScore(n);
+        
+        for (int i = 1; i < n; i++) {
+            children[par[i]].push_back(i);
+        }
+        
+        dfs(0, maxScore);
+        
+        long long totalSum = 0;
+        for (long long score : maxScore) {
+            totalSum = (totalSum + score) % MOD;
+        }
+        
+        return (int)totalSum;
     }
 };
 # @lc code=end

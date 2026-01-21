@@ -3,86 +3,69 @@
 #
 # [3562] Maximum Profit from Trading Stocks with Discounts
 #
-
 # @lc code=start
-#include <bits/stdc++.h>
-using namespace std;
-
 class Solution {
 public:
     int maxProfit(int n, vector<int>& present, vector<int>& future, vector<vector<int>>& hierarchy, int budget) {
         vector<vector<int>> children(n + 1);
-        for (auto& h : hierarchy) {
-            children[h[0]].push_back(h[1]);
+        for (auto& edge : hierarchy) {
+            children[edge[0]].push_back(edge[1]);
         }
-        const int INF = 1e9 + 5;
-        vector<vector<vector<int>>> memo(n + 1, vector<vector<int>>(2, vector<int>(budget + 1, -INF)));
-        vector<vector<bool>> computed(n + 1, vector<bool>(2, false));
-
-        auto dfs = [&](auto&& self, int u, int disc) -> vector<int> {
-            if (computed[u][disc]) {
-                return memo[u][disc];
-            }
-            computed[u][disc] = true;
-            vector<int>& res = memo[u][disc];
-
-            int cost_full = present[u - 1];
-            int cost_disc = cost_full / 2;
-            int my_cost = disc ? cost_disc : cost_full;
-            int my_prof = future[u - 1] - my_cost;
-
-            // comb_no: u not buying, children no discount
-            vector<int> comb_no(budget + 1, -INF);
-            comb_no[0] = 0;
-            for (int v : children[u]) {
-                vector<int> dpv = self(self, v, 0);
-                vector<int> newc(budget + 1, -INF);
-                for (int s = 0; s <= budget; ++s) {
-                    if (comb_no[s] == -INF) continue;
-                    for (int t = 0; t <= budget - s; ++t) {
-                        if (dpv[t] != -INF) {
-                            newc[s + t] = max(newc[s + t], comb_no[s] + dpv[t]);
-                        }
+        
+        map<pair<int, int>, vector<int>> memo;
+        
+        function<vector<int>(int, int)> dfs = [&](int node, int parent_bought) -> vector<int> {
+            auto key = make_pair(node, parent_bought);
+            if (memo.count(key)) return memo[key];
+            
+            vector<int> dp(budget + 1, 0);
+            
+            // Process children first (for not buying this node)
+            vector<int> children_combined(budget + 1, 0);
+            for (int child : children[node]) {
+                vector<int> child_dp = dfs(child, 0);
+                vector<int> new_combined(budget + 1, 0);
+                for (int i = 0; i <= budget; i++) {
+                    for (int j = 0; j <= budget - i; j++) {
+                        new_combined[i + j] = max(new_combined[i + j], children_combined[i] + child_dp[j]);
                     }
                 }
-                comb_no = std::move(newc);
+                children_combined = new_combined;
             }
-
-            // comb_yes: u buying, children get discount
-            vector<int> comb_yes(budget + 1, -INF);
-            comb_yes[0] = 0;
-            for (int v : children[u]) {
-                vector<int> dpv = self(self, v, 1);
-                vector<int> newc(budget + 1, -INF);
-                for (int s = 0; s <= budget; ++s) {
-                    if (comb_yes[s] == -INF) continue;
-                    for (int t = 0; t <= budget - s; ++t) {
-                        if (dpv[t] != -INF) {
-                            newc[s + t] = max(newc[s + t], comb_yes[s] + dpv[t]);
+            
+            // Option 1: Not buying this node
+            dp = children_combined;
+            
+            // Option 2: Buying this node
+            int cost = parent_bought ? present[node - 1] / 2 : present[node - 1];
+            
+            if (cost <= budget) {
+                int node_profit = future[node - 1] - cost;
+                
+                // Combine node purchase with children (with discount)
+                vector<int> children_combined_discounted(budget + 1, 0);
+                for (int child : children[node]) {
+                    vector<int> child_dp = dfs(child, 1);
+                    vector<int> new_combined(budget + 1, 0);
+                    for (int i = 0; i <= budget; i++) {
+                        for (int j = 0; j <= budget - i; j++) {
+                            new_combined[i + j] = max(new_combined[i + j], children_combined_discounted[i] + child_dp[j]);
                         }
                     }
+                    children_combined_discounted = new_combined;
                 }
-                comb_yes = std::move(newc);
-            }
-
-            // Combine
-            for (int k = 0; k <= budget; ++k) {
-                res[k] = comb_no[k];
-                if (k >= my_cost && comb_yes[k - my_cost] != -INF) {
-                    res[k] = max(res[k], my_prof + comb_yes[k - my_cost]);
+                
+                // Buy this node + children
+                for (int b = 0; b <= budget - cost; b++) {
+                    dp[cost + b] = max(dp[cost + b], node_profit + children_combined_discounted[b]);
                 }
             }
-            return res;
+            
+            return memo[key] = dp;
         };
-
-        vector<int> root_dp = dfs(dfs, 1, 0);
-        int ans = 0;
-        for (int k = 0; k <= budget; ++k) {
-            if (root_dp[k] > ans) {
-                ans = root_dp[k];
-            }
-        }
-        return ans;
+        
+        vector<int> result = dfs(1, 0);
+        return *max_element(result.begin(), result.end());
     }
 };
 # @lc code=end
