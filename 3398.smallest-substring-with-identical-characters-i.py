@@ -8,52 +8,44 @@
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-        
-        def check(length):
-            if length == 1:
-                # Check cost to make 010101...
-                cost1 = 0
-                for i in range(n):
-                    if i % 2 == 0:
-                        if s[i] != '0': cost1 += 1
-                    else:
-                        if s[i] != '1': cost1 += 1
-                
-                # Check cost to make 101010...
-                cost2 = 0
-                for i in range(n):
-                    if i % 2 == 0:
-                        if s[i] != '1': cost2 += 1
-                    else:
-                        if s[i] != '0': cost2 += 1
-                
-                return min(cost1, cost2) <= numOps
-            
-            # For length >= 2, we calculate flips needed for each consecutive block
-            # A block of size L needs L // (length + 1) flips to ensure no sub-block > length
-            ops_needed = 0
-            i = 0
-            while i < n:
-                j = i
-                while j < n and s[j] == s[i]:
-                    j += 1
-                
-                run_length = j - i
-                ops_needed += run_length // (length + 1)
-                i = j
-            
-            return ops_needed <= numOps
 
-        left, right = 1, n
+        def check(k):
+            if k == 1:
+                # For k=1, the string must be 0101... or 1010...
+                cnt1 = 0  # pattern starting with 0
+                cnt2 = 0  # pattern starting with 1
+                for i in range(n):
+                    # Pattern 1: i % 2
+                    if int(s[i]) != (i % 2):
+                        cnt1 += 1
+                    # Pattern 2: (i + 1) % 2
+                    if int(s[i]) != ((i + 1) % 2):
+                        cnt2 += 1
+                return min(cnt1, cnt2) <= numOps
+            else:
+                # For k >= 2, we can split blocks independently
+                flips = 0
+                i = 0
+                while i < n:
+                    j = i
+                    while j < n and s[j] == s[i]:
+                        j += 1
+                    length = j - i
+                    flips += length // (k + 1)
+                    i = j
+                return flips <= numOps
+
+        low = 1
+        high = n
         ans = n
-        
-        while left <= right:
-            mid = (left + right) // 2
+
+        while low <= high:
+            mid = (low + high) // 2
             if check(mid):
                 ans = mid
-                right = mid - 1
+                high = mid - 1
             else:
-                left = mid + 1
-                
+                low = mid + 1
+        
         return ans
 # @lc code=end
