@@ -7,40 +7,45 @@
 # @lc code=start
 class Solution:
     def maxFrequency(self, nums: List[int], k: int) -> int:
+        # Count occurrences and positions of each number
+        n = len(nums)
+        indices = [[] for _ in range(51)]
+        count_k = [0] * (n + 1)
+        
         total_k = 0
-        for x in nums:
+        for i, x in enumerate(nums):
             if x == k:
                 total_k += 1
-        
+            count_k[i + 1] = total_k
+            indices[x].append(i)
+            
         max_gain = 0
         
-        # The constraints say nums[i] <= 50. We can iterate over all possible
-        # target values that we want to convert to k.
-        # Let's say we want to convert value `v` to `k`.
-        # We treat `v` as +1 and `k` as -1 in a subarray to maximize the gain.
-        
-        # Optimization: only consider values actually present in nums
-        unique_elements = set(nums)
-        if k in unique_elements:
-            unique_elements.remove(k)
+        # For each possible value v that we want to turn into k
+        for v in range(1, 51):
+            if v == k or not indices[v]:
+                continue
             
-        for v in unique_elements:
             current_gain = 0
-            max_v_gain = 0
-            for x in nums:
-                if x == v:
-                    current_gain += 1
-                elif x == k:
-                    current_gain -= 1
-                
-                if current_gain < 0:
-                    current_gain = 0
-                
-                if current_gain > max_v_gain:
-                    max_v_gain = current_gain
+            local_max_gain = 0
             
-            if max_v_gain > max_gain:
-                max_gain = max_v_gain
+            # Apply Kadane's algorithm logic on indices of v and k
+            # We only need to consider subarrays starting and ending with v
+            for i in range(len(indices[v])):
+                if i > 0:
+                    # Subtract the number of k's between the previous v and this v
+                    # Number of k's in nums[indices[v][i-1]+1 : indices[v][i]]
+                    num_k_between = count_k[indices[v][i]] - count_k[indices[v][i-1] + 1]
+                    current_gain -= num_k_between
+                    if current_gain < 0:
+                        current_gain = 0
+                
+                current_gain += 1 # for the current v
+                if current_gain > local_max_gain:
+                    local_max_gain = current_gain
+            
+            if local_max_gain > max_gain:
+                max_gain = local_max_gain
                 
         return total_k + max_gain
 # @lc code=end
