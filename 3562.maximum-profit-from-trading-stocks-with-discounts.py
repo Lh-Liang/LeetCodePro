@@ -5,94 +5,97 @@
 #
 
 # @lc code=start
+from typing import List
+import math
+
 class Solution:
     def maxProfit(self, n: int, present: List[int], future: List[int], hierarchy: List[List[int]], budget: int) -> int:
-        adj = [[] for _ in range(n)]
+        adj = [[] for _ in range(n + 1)]
         for u, v in hierarchy:
-            adj[u-1].append(v-1)
-        
-        # Helper to merge two DP arrays: dp[cost] = profit
-        # Performs convolution: new_dp[i+j] = max(new_dp[i+j], dp1[i] + dp2[j])
-        def merge(dp1, dp2):
-            new_dp = [-float('inf')] * (budget + 1)
-            # Iterate over valid costs in dp1
-            for i in range(budget + 1):
-                if dp1[i] == -float('inf'): continue
-                v1 = dp1[i]
-                # Iterate over valid costs in dp2 such that total cost <= budget
-                for j in range(budget - i + 1):
-                    if dp2[j] == -float('inf'): continue
-                    s = v1 + dp2[j]
-                    if s > new_dp[i+j]:
-                        new_dp[i+j] = s
-            return new_dp
+            adj[u].append(v)
+            
+        # 1-indexed conversion for convenience
+        pres = [0] + present
+        fut = [0] + future
 
         def dfs(u):
-            # accum_buy: max profit from children subtrees given u buys (children get discount)
-            # accum_nobuy: max profit from children subtrees given u doesn't buy (children pay full)
+            # dp_bought[b]: max profit in subtree u if u's boss bought stock, with budget b
+            # dp_not_bought[b]: max profit in subtree u if u's boss did not buy stock, with budget b
+            dp_bought = [0] * (budget + 1)
+            dp_not_bought = [0] * (budget + 1)
             
-            # Base case: cost 0, profit 0
-            accum_buy = [-float('inf')] * (budget + 1)
-            accum_buy[0] = 0
+            # Scenario 1: u does not buy
+            # Scenario 2: u buys at full price
+            # Scenario 3: u buys at discount (only for dp_bought)
             
-            accum_nobuy = [-float('inf')] * (budget + 1)
-            accum_nobuy[0] = 0
+            # Initialize dp_not_bought with Scenario 1 & 2
+            # u does not buy: cost 0, profit 0 (already 0s)
+            # u buys full: cost pres[u], profit fut[u] - pres[u]
+            full_cost = pres[u]
+            full_profit = max(0, fut[u] - pres[u])
+            
+            # Initialize dp_bought with Scenario 1, 2 & 3
+            # u buys discount: cost pres[u]//2, profit fut[u] - pres[u]//2
+            disc_cost = pres[u] // 2
+            disc_profit = max(0, fut[u] - disc_cost)
+            
+            # Temporary arrays to handle initial state before merging children
+            base_not_bought = [0] * (budget + 1)
+            if full_cost <= budget:
+                for b in range(full_cost, budget + 1):
+                    base_not_bought[b] = full_profit
+            
+            base_bought = [0] * (budget + 1)
+            if full_cost <= budget:
+                for b in range(full_cost, budget + 1):
+                    base_bought[b] = max(base_bought[b], full_profit)
+            if disc_cost <= budget:
+                for b in range(disc_cost, budget + 1):
+                    base_bought[b] = max(base_bought[b], disc_profit)
+            
+            # We track whether u bought stock to decide child's discount
+            # If u bought, child gets dp_bought. If u didn't, child gets dp_not_bought.
+            
+            # To handle this correctly, we need two states for the subtree merge:
+            # f_bought[b]: max profit if u's boss bought, budget b
+            # f_not_bought[b]: max profit if u's boss didn't buy, budget b
+            
+            # dp_u_buys[b]: max profit of children given u buys
+            # dp_u_not_buys[b]: max profit of children given u doesn't buy
+            dp_u_buys = [0] * (budget + 1)
+            dp_u_not_buys = [0] * (budget + 1)
             
             for v in adj[u]:
-                child_res_parent_bought, child_res_parent_not_bought = dfs(v)
-                accum_buy = merge(accum_buy, child_res_parent_bought)
-                accum_nobuy = merge(accum_nobuy, child_res_parent_not_bought)
+                v_bought, v_not_bought = dfs(v)
+                for b in range(budget, -1, -1):
+                    for k in range(b + 1):
+                        dp_u_buys[b] = max(dp_u_buys[b], dp_u_buys[b-k] + v_bought[k])
+                        dp_u_not_buys[b] = max(dp_u_not_buys[b], dp_u_not_buys[b-k] + v_not_bought[k])
             
-            # Calculate the two result tables for u depending on u's parent's action
+            # Combine base state of u with child results
+            res_bought = [0] * (budget + 1)
+            res_not_bought = [0] * (budget + 1)
             
-            res_parent_bought = [-float('inf')] * (budget + 1)
-            res_parent_not_bought = [-float('inf')] * (budget + 1)
+            for b in range(budget + 1):
+                # boss bought: u can buy discounted, full, or not at all
+                # If u buys (full or discounted), children use dp_u_buys
+                # If u doesn't buy, children use dp_u_not_buys
+                
+                # u doesn't buy
+                res_bought[b] = max(res_bought[b], dp_u_not_buys[b])
+                res_not_bought[b] = max(res_not_bought[b], dp_u_not_buys[b])
+                
+                # u buys discounted (only if boss bought)
+                if b >= disc_cost:
+                    res_bought[b] = max(res_bought[b], disc_profit + dp_u_buys[b - disc_cost])
+                
+                # u buys full
+                if b >= full_cost:
+                    res_bought[b] = max(res_bought[b], full_profit + dp_u_buys[b - full_cost])
+                    res_not_bought[b] = max(res_not_bought[b], full_profit + dp_u_buys[b - full_cost])
             
-            # Precompute costs and profits for u
-            cost_discount = present[u] // 2
-            profit_discount = future[u] - cost_discount
-            
-            cost_full = present[u]
-            profit_full = future[u] - cost_full
-            
-            # --- Construct res_parent_bought (Parent of u bought) ---
-            # Option 1: u buys (gets discount). 
-            # We use accum_buy because u buying triggers discount for children.
-            if cost_discount <= budget:
-                for c in range(budget - cost_discount + 1):
-                    if accum_buy[c] > -float('inf'):
-                        val = accum_buy[c] + profit_discount
-                        if val > res_parent_bought[c + cost_discount]:
-                            res_parent_bought[c + cost_discount] = val
-                            
-            # Option 2: u doesn't buy.
-            # We use accum_nobuy because u not buying means no discount for children.
-            for c in range(budget + 1):
-                if accum_nobuy[c] > -float('inf'):
-                    if accum_nobuy[c] > res_parent_bought[c]:
-                        res_parent_bought[c] = accum_nobuy[c]
+            return res_bought, res_not_bought
 
-            # --- Construct res_parent_not_bought (Parent of u didn't buy) ---
-            # Option 1: u buys (pays full price).
-            # We use accum_buy because u buying triggers discount for children.
-            if cost_full <= budget:
-                for c in range(budget - cost_full + 1):
-                    if accum_buy[c] > -float('inf'):
-                        val = accum_buy[c] + profit_full
-                        if val > res_parent_not_bought[c + cost_full]:
-                            res_parent_not_bought[c + cost_full] = val
-            
-            # Option 2: u doesn't buy.
-            # We use accum_nobuy.
-            for c in range(budget + 1):
-                if accum_nobuy[c] > -float('inf'):
-                    if accum_nobuy[c] > res_parent_not_bought[c]:
-                        res_parent_not_bought[c] = accum_nobuy[c]
-                        
-            return res_parent_bought, res_parent_not_bought
-
-        # Employee 1 is root (index 0). Root has no parent, so we take the 'parent not bought' case.
-        _, root_res = dfs(0)
-        
-        return max(0, max(root_res))
+        res_bought, res_not_bought = dfs(1)
+        return res_not_bought[budget]
 # @lc code=end
