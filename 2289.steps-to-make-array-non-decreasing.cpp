@@ -3,31 +3,31 @@
 #
 # [2289] Steps to Make Array Non-decreasing
 #
-
 # @lc code=start
 class Solution {
 public:
     int totalSteps(vector<int>& nums) {
         int n = nums.size();
-        vector<int> steps(n);
-        stack<int> st;
-        const int INF = 2000000000;
-        int ans = 0;
-        for (int i = 0; i < n; ++i) {
-            int cur_max = 0;
-            while (!st.empty() && nums[st.top()] <= nums[i]) {
-                int k = st.top(); st.pop();
-                cur_max = max(cur_max, steps[k]);
+        vector<int> dp(n, 0);
+        stack<int> stk;
+        int result = 0;
+        
+        for (int i = 0; i < n; i++) {
+            int maxSteps = 0;
+            while (!stk.empty() && nums[stk.top()] <= nums[i]) {
+                maxSteps = max(maxSteps, dp[stk.top()]);
+                stk.pop();
             }
-            if (!st.empty()) {
-                steps[i] = 1 + cur_max;
-                ans = max(ans, steps[i]);
-            } else {
-                steps[i] = INF;
+            
+            if (!stk.empty()) {
+                dp[i] = maxSteps + 1;
+                result = max(result, dp[i]);
             }
-            st.push(i);
+            
+            stk.push(i);
         }
-        return ans;
+        
+        return result;
     }
 };
 # @lc code=end

@@ -6,85 +6,98 @@
 
 # @lc code=start
 class Skiplist {
-public:
+private:
     struct Node {
         int val;
-        Node* forward[17];
-        Node(int x) : val(x) {
-            for (int i = 0; i < 17; ++i) {
-                forward[i] = nullptr;
-            }
-        }
+        vector<Node*> forward;
+        Node(int v, int level) : val(v), forward(level, nullptr) {}
     };
-
+    
+    Node* head;
+    int maxLevel;
+    const int MAX_LEVEL = 16;
+    
+    int randomLevel() {
+        int level = 1;
+        while (rand() % 2 == 0 && level < MAX_LEVEL) {
+            level++;
+        }
+        return level;
+    }
+    
+public:
     Skiplist() {
-        head = new Node(-1);
-        level = 0;
+        maxLevel = 1;
+        head = new Node(-1, MAX_LEVEL);
     }
     
     bool search(int target) {
-        Node* cur = head;
-        for (int i = level; i >= 0; --i) {
-            while (cur->forward[i] != nullptr && cur->forward[i]->val < target) {
-                cur = cur->forward[i];
+        Node* curr = head;
+        for (int i = maxLevel - 1; i >= 0; i--) {
+            while (curr->forward[i] && curr->forward[i]->val < target) {
+                curr = curr->forward[i];
             }
         }
-        return cur->forward[0] != nullptr && cur->forward[0]->val == target;
+        curr = curr->forward[0];
+        return curr && curr->val == target;
     }
     
     void add(int num) {
-        Node* update[17];
-        Node* cur = head;
-        for (int i = level; i >= 0; --i) {
-            while (cur->forward[i] != nullptr && cur->forward[i]->val < num) {
-                cur = cur->forward[i];
+        vector<Node*> update(MAX_LEVEL, nullptr);
+        Node* curr = head;
+        
+        for (int i = maxLevel - 1; i >= 0; i--) {
+            while (curr->forward[i] && curr->forward[i]->val < num) {
+                curr = curr->forward[i];
             }
-            update[i] = cur;
+            update[i] = curr;
         }
-        Node* newnode = new Node(num);
-        int newlev = randomLevel();
-        if (newlev > level) {
-            for (int i = level + 1; i < newlev; ++i) {
+        
+        int level = randomLevel();
+        if (level > maxLevel) {
+            for (int i = maxLevel; i < level; i++) {
                 update[i] = head;
             }
-            level = newlev;
+            maxLevel = level;
         }
-        for (int i = 0; i < newlev; ++i) {
-            newnode->forward[i] = update[i]->forward[i];
-            update[i]->forward[i] = newnode;
+        
+        Node* newNode = new Node(num, level);
+        for (int i = 0; i < level; i++) {
+            newNode->forward[i] = update[i]->forward[i];
+            update[i]->forward[i] = newNode;
         }
     }
     
     bool erase(int num) {
-        Node* update[17];
-        Node* cur = head;
-        for (int i = level; i >= 0; --i) {
-            while (cur->forward[i] != nullptr && cur->forward[i]->val < num) {
-                cur = cur->forward[i];
+        vector<Node*> update(MAX_LEVEL, nullptr);
+        Node* curr = head;
+        
+        for (int i = maxLevel - 1; i >= 0; i--) {
+            while (curr->forward[i] && curr->forward[i]->val < num) {
+                curr = curr->forward[i];
             }
-            update[i] = cur;
+            update[i] = curr;
         }
-        Node* cand = update[0]->forward[0];
-        if (cand == nullptr || cand->val != num) {
+        
+        curr = curr->forward[0];
+        if (!curr || curr->val != num) {
             return false;
         }
-        for (int i = 0; i <= level; ++i) {
-            if (update[i]->forward[i] == cand) {
-                update[i]->forward[i] = cand->forward[i];
+        
+        for (int i = 0; i < maxLevel; i++) {
+            if (update[i]->forward[i] != curr) {
+                break;
             }
+            update[i]->forward[i] = curr->forward[i];
         }
+        
+        delete curr;
+        
+        while (maxLevel > 1 && !head->forward[maxLevel - 1]) {
+            maxLevel--;
+        }
+        
         return true;
-    }
-
-private:
-    Node* head;
-    int level;
-    int randomLevel() {
-        int res = 1;
-        while (res < 16 && rand() % 2 == 0) {
-            ++res;
-        }
-        return res;
     }
 };
 

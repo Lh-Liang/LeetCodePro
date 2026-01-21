@@ -5,64 +5,49 @@
 #
 
 # @lc code=start
-#include <deque>
-#include <string>
-#include <algorithm>
-
 class TextEditor {
+private:
+    string left;  // Characters to the left of cursor
+    string right; // Characters to the right of cursor
+    
 public:
     TextEditor() {
-
+        left = "";
+        right = "";
     }
     
-    void addText(std::string text) {
-        for (char c : text) {
-            left_.push_back(c);
-        }
+    void addText(string text) {
+        left += text;
     }
     
     int deleteText(int k) {
-        int deleted = 0;
-        while (deleted < k && !left_.empty()) {
-            left_.pop_back();
-            ++deleted;
-        }
+        int deleted = min(k, (int)left.size());
+        left.resize(left.size() - deleted);
         return deleted;
     }
     
-    std::string cursorLeft(int k) {
-        int steps = std::min(k, static_cast<int>(left_.size()));
-        for (int i = 0; i < steps; ++i) {
-            char c = left_.back();
-            left_.pop_back();
-            right_.push_front(c);
+    string cursorLeft(int k) {
+        int moves = min(k, (int)left.size());
+        for (int i = 0; i < moves; i++) {
+            right += left.back();
+            left.pop_back();
         }
-        return getLeftString();
+        return getLeftChars();
     }
     
-    std::string cursorRight(int k) {
-        int steps = std::min(k, static_cast<int>(right_.size()));
-        for (int i = 0; i < steps; ++i) {
-            char c = right_.front();
-            right_.pop_front();
-            left_.push_back(c);
+    string cursorRight(int k) {
+        int moves = min(k, (int)right.size());
+        for (int i = 0; i < moves; i++) {
+            left += right.back();
+            right.pop_back();
         }
-        return getLeftString();
+        return getLeftChars();
     }
-
+    
 private:
-    std::deque<char> left_;
-    std::deque<char> right_;
-    
-    std::string getLeftString() {
-        size_t len = left_.size();
-        size_t m = std::min(10UL, len);
-        std::string res;
-        res.reserve(m);
-        for (size_t i = len - m; i < len; ++i) {
-            res += left_[i];
-        }
-        return res;
+    string getLeftChars() {
+        int len = min(10, (int)left.size());
+        return left.substr(left.size() - len, len);
     }
 };
 

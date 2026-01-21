@@ -3,7 +3,6 @@
 #
 # [2816] Double a Number Represented as a Linked List
 #
-
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -17,46 +16,22 @@
  */
 class Solution {
 public:
+    int helper(ListNode* node) {
+        if (!node) return 0;
+        int carry = helper(node->next);
+        int doubled = node->val * 2 + carry;
+        node->val = doubled % 10;
+        return doubled / 10;
+    }
+    
     ListNode* doubleIt(ListNode* head) {
-        // Step 1: Reverse list (LSD now at head)
-        ListNode *prev = nullptr, *curr = head;
-        while (curr != nullptr) {
-            ListNode *next_node = curr->next;
-            curr->next = prev;
-            prev = curr;
-            curr = next_node;
+        int carry = helper(head);
+        if (carry) {
+            ListNode* newHead = new ListNode(carry);
+            newHead->next = head;
+            return newHead;
         }
-        ListNode *l1 = prev;
-
-        // Step 2: Double from LSD, propagate carry
-        int carry = 0;
-        ListNode *tail = nullptr;
-        curr = l1;
-        while (curr != nullptr) {
-            int temp = curr->val * 2 + carry;
-            curr->val = temp % 10;
-            carry = temp / 10;
-            tail = curr;
-            curr = curr->next;
-        }
-
-        // Step 3: Append new node if carry remains
-        if (carry != 0) {
-            ListNode *new_node = new ListNode(carry);
-            tail->next = new_node;
-        }
-
-        // Step 4: Reverse back (MSD now at head)
-        prev = nullptr;
-        curr = l1;
-        while (curr != nullptr) {
-            ListNode *next_node = curr->next;
-            curr->next = prev;
-            prev = curr;
-            curr = next_node;
-        }
-
-        return prev;
+        return head;
     }
 };
 # @lc code=end
