@@ -1,34 +1,33 @@
-#include <vector>
-#include <algorithm>
-using namespace std;
+#
+# @lc app=leetcode id=2289 lang=cpp
+#
+# [2289] Steps to Make Array Non-decreasing
+#
 
-/*
- * @lc app=leetcode id=2289 lang=cpp
- *
- * [2289] Steps to Make Array Non-decreasing
- */
-
-// @lc code=start
+# @lc code=start
 class Solution {
 public:
     int totalSteps(vector<int>& nums) {
-        // stack holds pairs: {value, stepsUntilRemoved}
-        vector<pair<int,int>> st;
-        st.reserve(nums.size());
-
+        int n = nums.size();
+        vector<int> steps(n);
+        stack<int> st;
+        const int INF = 2000000000;
         int ans = 0;
-        for (int x : nums) {
-            int cnt = 0;
-            while (!st.empty() && x >= st.back().first) {
-                cnt = max(cnt, st.back().second);
-                st.pop_back();
+        for (int i = 0; i < n; ++i) {
+            int cur_max = 0;
+            while (!st.empty() && nums[st.top()] <= nums[i]) {
+                int k = st.top(); st.pop();
+                cur_max = max(cur_max, steps[k]);
             }
-            int steps = 0;
-            if (!st.empty()) steps = cnt + 1;
-            ans = max(ans, steps);
-            st.push_back({x, steps});
+            if (!st.empty()) {
+                steps[i] = 1 + cur_max;
+                ans = max(ans, steps[i]);
+            } else {
+                steps[i] = INF;
+            }
+            st.push(i);
         }
         return ans;
     }
 };
-// @lc code=end
+# @lc code=end

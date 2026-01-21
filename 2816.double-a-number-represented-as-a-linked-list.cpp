@@ -3,6 +3,7 @@
 #
 # [2816] Double a Number Represented as a Linked List
 #
+
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -16,37 +17,46 @@
  */
 class Solution {
 public:
-    ListNode* reverseList(ListNode* head) {
-        ListNode* prev = nullptr;
-        while (head) {
-            ListNode* nxt = head->next;
-            head->next = prev;
-            prev = head;
-            head = nxt;
-        }
-        return prev;
-    }
-
     ListNode* doubleIt(ListNode* head) {
-        head = reverseList(head);
+        // Step 1: Reverse list (LSD now at head)
+        ListNode *prev = nullptr, *curr = head;
+        while (curr != nullptr) {
+            ListNode *next_node = curr->next;
+            curr->next = prev;
+            prev = curr;
+            curr = next_node;
+        }
+        ListNode *l1 = prev;
 
+        // Step 2: Double from LSD, propagate carry
         int carry = 0;
-        ListNode* cur = head;
-        ListNode* prev = nullptr;
-
-        while (cur) {
-            int v = cur->val * 2 + carry;
-            cur->val = v % 10;
-            carry = v / 10;
-            prev = cur;
-            cur = cur->next;
+        ListNode *tail = nullptr;
+        curr = l1;
+        while (curr != nullptr) {
+            int temp = curr->val * 2 + carry;
+            curr->val = temp % 10;
+            carry = temp / 10;
+            tail = curr;
+            curr = curr->next;
         }
 
-        if (carry) {
-            prev->next = new ListNode(carry);
+        // Step 3: Append new node if carry remains
+        if (carry != 0) {
+            ListNode *new_node = new ListNode(carry);
+            tail->next = new_node;
         }
 
-        return reverseList(head);
+        // Step 4: Reverse back (MSD now at head)
+        prev = nullptr;
+        curr = l1;
+        while (curr != nullptr) {
+            ListNode *next_node = curr->next;
+            curr->next = prev;
+            prev = curr;
+            curr = next_node;
+        }
+
+        return prev;
     }
 };
 # @lc code=end

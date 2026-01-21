@@ -3,55 +3,59 @@
 #
 # [3373] Maximize the Number of Target Nodes After Connecting Trees II
 #
+
+# @lc code=start
 #include <bits/stdc++.h>
 using namespace std;
 
-# @lc code=start
 class Solution {
-    pair<vector<int>, array<int,2>> colorTree(int N, const vector<vector<int>>& edges) {
-        vector<vector<int>> g(N);
-        g.reserve(N);
-        for (auto &e : edges) {
-            int u = e[0], v = e[1];
-            g[u].push_back(v);
-            g[v].push_back(u);
-        }
-
-        vector<int> color(N, -1);
-        array<int,2> cnt{0,0};
-
-        // Tree is connected; start from 0.
-        deque<int> dq;
-        color[0] = 0;
-        cnt[0] = 1;
-        dq.push_back(0);
-
-        while (!dq.empty()) {
-            int u = dq.front();
-            dq.pop_front();
-            for (int v : g[u]) {
-                if (color[v] == -1) {
-                    color[v] = color[u] ^ 1;
-                    cnt[color[v]]++;
-                    dq.push_back(v);
-                }
-            }
-        }
-        return {color, cnt};
-    }
-
 public:
     vector<int> maxTargetNodes(vector<vector<int>>& edges1, vector<vector<int>>& edges2) {
-        int n = (int)edges1.size() + 1;
-        int m = (int)edges2.size() + 1;
+        int n = edges1.size() + 1;
+        int m = edges2.size() + 1;
+        vector<vector<int>> adj1(n), adj2(m);
+        for (auto& e : edges1) {
+            int a = e[0], b = e[1];
+            adj1[a].push_back(b);
+            adj1[b].push_back(a);
+        }
+        for (auto& e : edges2) {
+            int a = e[0], b = e[1];
+            adj2[a].push_back(b);
+            adj2[b].push_back(a);
+        }
 
-        auto [c1, cnt1] = colorTree(n, edges1);
-        auto [c2, cnt2] = colorTree(m, edges2);
+        auto bfs_parity = [](const vector<vector<int>>& adj, int N) -> vector<int> {
+            vector<int> par(N, -1);
+            queue<int> q;
+            q.push(0);
+            par[0] = 0;
+            while (!q.empty()) {
+                int u = q.front(); q.pop();
+                for (int v : adj[u]) {
+                    if (par[v] == -1) {
+                        par[v] = par[u] ^ 1;
+                        q.push(v);
+                    }
+                }
+            }
+            return par;
+        };
 
-        int best2 = max(cnt2[0], cnt2[1]);
+        vector<int> par1 = bfs_parity(adj1, n);
+        vector<int> cnt1(2, 0);
+        for (int p : par1) cnt1[p]++;
+        int sz0 = cnt1[0], sz1 = cnt1[1];
+
+        vector<int> par2 = bfs_parity(adj2, m);
+        vector<int> cnt2(2, 0);
+        for (int p : par2) cnt2[p]++;
+        int max2 = max(cnt2[0], cnt2[1]);
+
         vector<int> ans(n);
-        for (int i = 0; i < n; i++) {
-            ans[i] = cnt1[c1[i]] + best2;
+        for (int i = 0; i < n; ++i) {
+            int sz = (par1[i] == 0 ? sz0 : sz1);
+            ans[i] = sz + max2;
         }
         return ans;
     }

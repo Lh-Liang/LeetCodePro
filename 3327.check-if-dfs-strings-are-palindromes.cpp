@@ -1,103 +1,100 @@
+#
+# @lc app=leetcode id=3327 lang=cpp
+#
+# [3327] Check if DFS Strings Are Palindromes
+#
+
+# @lc code=start
 #include <bits/stdc++.h>
 using namespace std;
 
-// @lc app=leetcode id=3327 lang=cpp
-//
-// [3327] Check if DFS Strings Are Palindromes
-//
-
-// @lc code=start
 class Solution {
 public:
-    static constexpr int MOD1 = 1000000007;
-    static constexpr int MOD2 = 1000000009;
-    static constexpr int BASE = 911382323; // < both MODs
-
-    static inline int addmod(long long a, int mod) {
-        a %= mod;
-        if (a < 0) a += mod;
-        return (int)a;
-    }
-
-    pair<int,int> getHash(const vector<int>& pref1, const vector<int>& pref2,
-                          const vector<int>& pow1, const vector<int>& pow2,
-                          int l, int r) {
-        // inclusive [l, r]
-        long long x1 = pref1[r+1] - (long long)pref1[l] * pow1[r-l+1];
-        long long x2 = pref2[r+1] - (long long)pref2[l] * pow2[r-l+1];
-        return {addmod(x1, MOD1), addmod(x2, MOD2)};
-    }
-
     vector<bool> findAnswer(vector<int>& parent, string s) {
-        int n = (int)parent.size();
-        vector<vector<int>> children(n);
-        for (int i = 1; i < n; i++) {
-            children[parent[i]].push_back(i);
+        int n = s.size();
+        vector<vector<int>> ch(n);
+        for (int i = 1; i < n; ++i) {
+            ch[parent[i]].push_back(i);
         }
-        // children lists are already in increasing order because i increases.
+        for (int i = 0; i < n; ++i) {
+            sort(ch[i].begin(), ch[i].end());
+        }
 
-        // Iterative postorder traversal from root 0.
-        vector<int> it(n, 0);
-        vector<int> st;
-        st.reserve(n);
-        st.push_back(0);
+        const long long MOD1 = 1000000007LL;
+        const long long MOD2 = 1000000009LL;
+        const long long B1 = 131LL;
+        const long long B2 = 137LL;
 
-        vector<int> sz(n, 0), L(n, 0), R(n, 0);
-        string post;
-        post.reserve(n);
+        vector<long long> pow1(n + 1, 1LL);
+        vector<long long> pow2(n + 1, 1LL);
+        auto modmul = [](long long a, long long b, long long mod) -> long long {
+            long long res = ((__int128)a * b) % mod;
+            if (res < 0) res += mod;
+            return res;
+        };
+        for (int i = 1; i <= n; ++i) {
+            pow1[i] = modmul(pow1[i - 1], B1, MOD1);
+            pow2[i] = modmul(pow2[i - 1], B2, MOD2);
+        }
 
-        while (!st.empty()) {
-            int x = st.back();
-            if (it[x] < (int)children[x].size()) {
-                int y = children[x][it[x]++];
-                st.push_back(y);
+        // Iterative post-order traversal to get processing order
+        vector<int> postorder;
+        stack<pair<int, int>> stk;
+        stk.push({0, 0});
+        while (!stk.empty()) {
+            auto& p = stk.top();
+            int u = p.first;
+            int& idx = p.second;
+            if (idx == (int)ch[u].size()) {
+                postorder.push_back(u);
+                stk.pop();
             } else {
-                st.pop_back();
-
-                int pos = (int)post.size();
-                post.push_back(s[x]);
-
-                int subtotal = 1;
-                for (int y : children[x]) subtotal += sz[y];
-                sz[x] = subtotal;
-
-                R[x] = pos;
-                L[x] = pos - sz[x] + 1;
+                int v = ch[u][idx];
+                ++idx;
+                stk.push({v, 0});
             }
         }
 
-        // Build rolling hashes for post and reversed(post)
-        string rev = post;
-        reverse(rev.begin(), rev.end());
+        vector<int> lens(n);
+        vector<long long> fwd1(n), fwd2(n), rev1(n), rev2(n);
 
-        vector<int> pow1(n+1, 1), pow2(n+1, 1);
-        for (int i = 1; i <= n; i++) {
-            pow1[i] = (long long)pow1[i-1] * BASE % MOD1;
-            pow2[i] = (long long)pow2[i-1] * BASE % MOD2;
+        for (int u : postorder) {
+            long long val = (s[u] - 'a' + 1LL);
+
+            // Forward hash
+            long long h1 = 0;
+            long long h2 = 0;
+            int tot_len = 1;
+            for (int v : ch[u]) {
+                int lv = lens[v];
+                h1 = (modmul(h1, pow1[lv], MOD1) + fwd1[v]) % MOD1;
+                h2 = (modmul(h2, pow2[lv], MOD2) + fwd2[v]) % MOD2;
+                tot_len += lv;
+            }
+            h1 = (modmul(h1, pow1[1], MOD1) + val) % MOD1;
+            h2 = (modmul(h2, pow2[1], MOD2) + val) % MOD2;
+            lens[u] = tot_len;
+            fwd1[u] = h1;
+            fwd2[u] = h2;
+
+            // Reverse hash
+            long long hr1 = val % MOD1;
+            long long hr2 = val % MOD2;
+            for (int i = (int)ch[u].size() - 1; i >= 0; --i) {
+                int v = ch[u][i];
+                int lv = lens[v];
+                hr1 = (modmul(hr1, pow1[lv], MOD1) + rev1[v]) % MOD1;
+                hr2 = (modmul(hr2, pow2[lv], MOD2) + rev2[v]) % MOD2;
+            }
+            rev1[u] = hr1;
+            rev2[u] = hr2;
         }
 
-        vector<int> pref1(n+1, 0), pref2(n+1, 0);
-        vector<int> rpref1(n+1, 0), rpref2(n+1, 0);
-        for (int i = 0; i < n; i++) {
-            int v1 = (post[i] - 'a' + 1);
-            pref1[i+1] = ((long long)pref1[i] * BASE + v1) % MOD1;
-            pref2[i+1] = ((long long)pref2[i] * BASE + v1) % MOD2;
-
-            int v2 = (rev[i] - 'a' + 1);
-            rpref1[i+1] = ((long long)rpref1[i] * BASE + v2) % MOD1;
-            rpref2[i+1] = ((long long)rpref2[i] * BASE + v2) % MOD2;
+        vector<bool> answer(n);
+        for (int i = 0; i < n; ++i) {
+            answer[i] = (fwd1[i] == rev1[i] && fwd2[i] == rev2[i]);
         }
-
-        vector<bool> ans(n, false);
-        for (int i = 0; i < n; i++) {
-            int l = L[i], r = R[i];
-            auto hF = getHash(pref1, pref2, pow1, pow2, l, r);
-            int rl = n - 1 - r;
-            int rr = n - 1 - l;
-            auto hR = getHash(rpref1, rpref2, pow1, pow2, rl, rr);
-            ans[i] = (hF == hR);
-        }
-        return ans;
+        return answer;
     }
 };
-// @lc code=end
+# @lc code=end
