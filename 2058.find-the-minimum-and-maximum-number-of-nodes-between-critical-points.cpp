@@ -17,25 +17,32 @@
 class Solution {
 public:
     vector<int> nodesBetweenCriticalPoints(ListNode* head) {
-        if (!head || !head->next || !head->next->next) return {-1, -1};
+        if (!head || !head->next) return {-1, -1};
 
         ListNode* prev = head;
         ListNode* cur = head->next;
         int idx = 2; // 1-based index of cur
 
-        int firstCrit = -1;
-        int prevCrit = -1;
+        int firstCritical = -1;
+        int lastCritical = -1;
+        int prevCritical = -1;
         int minDist = INT_MAX;
+        int criticalCount = 0;
 
         while (cur && cur->next) {
             ListNode* nxt = cur->next;
-            bool isMax = (cur->val > prev->val) && (cur->val > nxt->val);
-            bool isMin = (cur->val < prev->val) && (cur->val < nxt->val);
+            bool isMax = (cur->val > prev->val && cur->val > nxt->val);
+            bool isMin = (cur->val < prev->val && cur->val < nxt->val);
 
             if (isMax || isMin) {
-                if (firstCrit == -1) firstCrit = idx;
-                if (prevCrit != -1) minDist = min(minDist, idx - prevCrit);
-                prevCrit = idx;
+                criticalCount++;
+                if (firstCritical == -1) firstCritical = idx;
+                lastCritical = idx;
+
+                if (prevCritical != -1) {
+                    minDist = min(minDist, idx - prevCritical);
+                }
+                prevCritical = idx;
             }
 
             prev = cur;
@@ -43,9 +50,8 @@ public:
             idx++;
         }
 
-        if (firstCrit == -1 || prevCrit == firstCrit) return {-1, -1};
-        int maxDist = prevCrit - firstCrit;
-        return {minDist, maxDist};
+        if (criticalCount < 2) return {-1, -1};
+        return {minDist, lastCritical - firstCritical};
     }
 };
 # @lc code=end

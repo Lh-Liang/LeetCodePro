@@ -1,41 +1,44 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-#
-# @lc app=leetcode id=1206 lang=cpp
-#
-# [1206] Design Skiplist
-#
+/*
+ * @lc app=leetcode id=1206 lang=cpp
+ *
+ * [1206] Design Skiplist
+ */
 
-# @lc code=start
+// @lc code=start
 class Skiplist {
+    static constexpr int MAX_LEVEL = 16;
+
     struct Node {
         int val;
         vector<Node*> next;
         Node(int v, int level) : val(v), next(level, nullptr) {}
     };
 
-    static constexpr int MAX_LEVEL = 32;
-
     Node* head;
-    int level; // current highest level count (1..MAX_LEVEL)
+    int curLevel; // current maximum level in use (1..MAX_LEVEL)
 
-    mt19937 rng;
-    bernoulli_distribution coin;
+    // Simple deterministic RNG (good enough for skiplist leveling).
+    uint32_t seed;
+    uint32_t rng() {
+        seed = seed * 1103515245u + 12345u;
+        return seed;
+    }
 
     int randomLevel() {
         int lvl = 1;
-        while (lvl < MAX_LEVEL && coin(rng)) ++lvl;
+        while (lvl < MAX_LEVEL && (rng() & 1u)) ++lvl; // p=0.5 to go up
         return lvl;
     }
 
 public:
-    Skiplist() : head(new Node(INT_MIN, MAX_LEVEL)), level(1), rng((uint32_t)chrono::steady_clock::now().time_since_epoch().count()), coin(0.5) {
-    }
+    Skiplist() : head(new Node(-1, MAX_LEVEL)), curLevel(1), seed(712367u) {}
 
     bool search(int target) {
         Node* cur = head;
-        for (int i = level - 1; i >= 0; --i) {
+        for (int i = curLevel - 1; i >= 0; --i) {
             while (cur->next[i] && cur->next[i]->val < target) {
                 cur = cur->next[i];
             }
@@ -45,34 +48,34 @@ public:
     }
 
     void add(int num) {
-        vector<Node*> update(MAX_LEVEL, nullptr);
+        array<Node*, MAX_LEVEL> update{};
         Node* cur = head;
 
-        for (int i = level - 1; i >= 0; --i) {
+        for (int i = curLevel - 1; i >= 0; --i) {
             while (cur->next[i] && cur->next[i]->val < num) {
                 cur = cur->next[i];
             }
             update[i] = cur;
         }
 
-        int nodeLevel = randomLevel();
-        if (nodeLevel > level) {
-            for (int i = level; i < nodeLevel; ++i) update[i] = head;
-            level = nodeLevel;
+        int lvl = randomLevel();
+        if (lvl > curLevel) {
+            for (int i = curLevel; i < lvl; ++i) update[i] = head;
+            curLevel = lvl;
         }
 
-        Node* node = new Node(num, nodeLevel);
-        for (int i = 0; i < nodeLevel; ++i) {
+        Node* node = new Node(num, lvl);
+        for (int i = 0; i < lvl; ++i) {
             node->next[i] = update[i]->next[i];
             update[i]->next[i] = node;
         }
     }
 
     bool erase(int num) {
-        vector<Node*> update(MAX_LEVEL, nullptr);
+        array<Node*, MAX_LEVEL> update{};
         Node* cur = head;
 
-        for (int i = level - 1; i >= 0; --i) {
+        for (int i = curLevel - 1; i >= 0; --i) {
             while (cur->next[i] && cur->next[i]->val < num) {
                 cur = cur->next[i];
             }
@@ -82,13 +85,16 @@ public:
         Node* target = update[0]->next[0];
         if (!target || target->val != num) return false;
 
-        for (int i = 0; i < level; ++i) {
-            if (update[i]->next[i] != target) break;
-            update[i]->next[i] = target->next[i];
+        for (int i = 0; i < curLevel; ++i) {
+            if (update[i]->next[i] == target) {
+                update[i]->next[i] = target->next[i];
+            }
         }
         delete target;
 
-        while (level > 1 && head->next[level - 1] == nullptr) --level;
+        while (curLevel > 1 && head->next[curLevel - 1] == nullptr) {
+            --curLevel;
+        }
         return true;
     }
 };
@@ -100,4 +106,4 @@ public:
  * obj->add(num);
  * bool param_3 = obj->erase(num);
  */
-# @lc code=end
+// @lc code=end
