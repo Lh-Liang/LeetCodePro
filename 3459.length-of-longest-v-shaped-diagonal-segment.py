@@ -5,57 +5,49 @@
 #
 
 # @lc code=start
+import sys
+from functools import lru_cache
+
 class Solution:
     def lenOfVDiagonal(self, grid: List[List[int]]) -> int:
-        n, m = len(grid), len(grid[0])
+        n = len(grid)
+        m = len(grid[0])
         
         # Directions: 0: BR, 1: BL, 2: TL, 3: TR
-        # (row_change, col_change)
+        # Clockwise turn: (i + 1) % 4
         dirs = [(1, 1), (1, -1), (-1, -1), (-1, 1)]
         
-        # Memoization table: [row][col][direction_index][can_turn]
-        # Initialize with -1
-        memo = [[[[-1] * 2 for _ in range(4)] for _ in range(m)] for _ in range(n)]
-
-        def dfs(r, c, dir_idx, can_turn):
-            if memo[r][c][dir_idx][can_turn] != -1:
-                return memo[r][c][dir_idx][can_turn]
-            
-            current_val = grid[r][c]
-            target = 2 if current_val == 0 else 0
-            
-            max_len = 1 # Count current node
-            
-            # Option 1: Continue in same direction
-            dr, dc = dirs[dir_idx]
+        @lru_cache(None)
+        def solve(r, c, d_idx, turned, expected):
+            # Try continuing straight
+            dr, dc = dirs[d_idx]
             nr, nc = r + dr, c + dc
-            if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] == target:
-                max_len = max(max_len, 1 + dfs(nr, nc, dir_idx, can_turn))
             
-            # Option 2: Make a 90-degree clockwise turn if allowed
-            if can_turn:
-                new_dir_idx = (dir_idx + 1) % 4
-                dr_new, dc_new = dirs[new_dir_idx]
-                nr_new, nc_new = r + dr_new, c + dc_new
-                if 0 <= nr_new < n and 0 <= nc_new < m and grid[nr_new][nc_new] == target:
-                    max_len = max(max_len, 1 + dfs(nr_new, nc_new, new_dir_idx, 0))
+            res = 0
+            # Option 1: Continue straight
+            if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] == expected:
+                res = 1 + solve(nr, nc, d_idx, turned, 2 if expected == 0 else 0)
             
-            memo[r][c][dir_idx][can_turn] = max_len
-            return max_len
+            # Option 2: Turn clockwise (only if not turned yet)
+            if not turned:
+                nd_idx = (d_idx + 1) % 4
+                dr2, dc2 = dirs[nd_idx]
+                nr2, nc2 = r + dr2, c + dc2
+                if 0 <= nr2 < n and 0 <= nc2 < m and grid[nr2][nc2] == expected:
+                    res = max(res, 1 + solve(nr2, nc2, nd_idx, True, 2 if expected == 0 else 0))
+            
+            return res
 
         ans = 0
         for r in range(n):
             for c in range(m):
                 if grid[r][c] == 1:
                     ans = max(ans, 1)
-                    # Try moving in all 4 diagonal directions from the '1'
                     for i in range(4):
                         dr, dc = dirs[i]
                         nr, nc = r + dr, c + dc
                         if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] == 2:
-                            # From the neighbor (which is 2), we allow 1 turn.
-                            # The length is 1 (the '1' cell) + result of dfs from '2'
-                            ans = max(ans, 1 + dfs(nr, nc, i, 1))
-                            
+                            ans = max(ans, 1 + 1 + solve(nr, nc, i, False, 0))
+        
         return ans
 # @lc code=end
