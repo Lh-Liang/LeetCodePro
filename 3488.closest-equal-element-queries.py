@@ -5,49 +5,38 @@
 #
 
 # @lc code=start
-from collections import defaultdict
-from bisect import bisect_left
+import collections
+from typing import List
 
 class Solution:
     def solveQueries(self, nums: List[int], queries: List[int]) -> List[int]:
         n = len(nums)
-        positions = defaultdict(list)
+        val_to_indices = collections.defaultdict(list)
         
-        # Group indices by value
-        for i, num in enumerate(nums):
-            positions[num].append(i)
-            
-        results = []
+        # Group indices for each value. 
+        # Since we iterate from 0 to n-1, lists will be sorted.
+        for i, v in enumerate(nums):
+            val_to_indices[v].append(i)
         
-        for q_idx in queries:
-            val = nums[q_idx]
-            indices = positions[val]
+        # Precompute the minimum distance for every index
+        min_dist = [-1] * n
+        for indices in val_to_indices.values():
             k = len(indices)
-            
-            if k <= 1:
-                results.append(-1)
+            if k < 2:
                 continue
             
-            # Find the position of the current query index in the sorted list of indices
-            # Since we know q_idx is in indices, bisect_left will find it efficiently.
-            pos_in_list = bisect_left(indices, q_idx)
-            
-            # Identify left and right neighbors in the circular sense
-            # The list 'indices' is sorted.
-            # Left neighbor index in 'indices' list:
-            left_neighbor_idx = indices[(pos_in_list - 1 + k) % k]
-            # Right neighbor index in 'indices' list:
-            right_neighbor_idx = indices[(pos_in_list + 1) % k]
-            
-            # Calculate circular distance function
-            def dist(i, j):
-                d = abs(i - j)
-                return min(d, n - d)
-            
-            d1 = dist(q_idx, left_neighbor_idx)
-            d2 = dist(q_idx, right_neighbor_idx)
-            
-            results.append(min(d1, d2))
-            
-        return results
+            for i in range(k):
+                curr_idx = indices[i]
+                # Distance to the next neighbor in clockwise direction
+                # Python's modulo operator handles negative results correctly
+                d_next = (indices[(i + 1) % k] - curr_idx) % n
+                # Distance to the previous neighbor in counter-clockwise direction
+                # (which is the clockwise distance from the previous to current)
+                d_prev = (curr_idx - indices[i - 1]) % n
+                
+                min_dist[curr_idx] = min(d_next, d_prev)
+        
+        # Answer each query using the precomputed results
+        return [min_dist[q] for q in queries]
+
 # @lc code=end
