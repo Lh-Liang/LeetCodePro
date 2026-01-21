@@ -13,80 +13,65 @@ class Solution:
         n = len(nums)
         if n < 2:
             return 0
-            
-        # Doubly Linked List simulation arrays
-        # next_node[i] points to the index of the right neighbor of i
-        # prev_node[i] points to the index of the left neighbor of i
-        next_node = list(range(1, n + 1))
-        next_node[-1] = -1
-        prev_node = list(range(-1, n - 1))
         
-        # Current values of nodes
-        values = list(nums)
+        # Doubly linked list to track adjacent elements
+        L = [i - 1 for i in range(n)]
+        R = [i + 1 for i in range(n)]
+        val = list(nums)
+        version = [0] * n
         
-        # Validity flag to handle lazy deletion/updates
-        valid = [True] * n
-        
-        bad_count = 0
         pq = []
+        violations = 0
         
-        # Initial population of heap and bad_count
+        # Initialize violations and priority queue
         for i in range(n - 1):
-            if values[i] > values[i+1]:
-                bad_count += 1
-            # Heap stores (sum, left_index, right_index)
-            # Tie-breaking: min sum, then min left_index (leftmost)
-            heapq.heappush(pq, (values[i] + values[i+1], i, i+1))
+            if val[i] > val[i+1]:
+                violations += 1
+            heapq.heappush(pq, (val[i] + val[i+1], i, version[i], version[i+1]))
             
         ops = 0
-        
-        while bad_count > 0:
-            # Extract valid minimum pair
-            while True:
-                if not pq:
-                    return ops
-                s, u, v = heapq.heappop(pq)
-                # Check if nodes are still valid and adjacent
-                if valid[u] and valid[v] and next_node[u] == v:
-                    # Check if the sum is current (handles stale entries)
-                    if values[u] + values[v] == s:
-                        break
+        while violations > 0 and pq:
+            s, i, v_i, v_j = heapq.heappop(pq)
+            
+            # Check if this pair is still valid
+            j = R[i]
+            if j == n or version[i] != v_i or version[j] != v_j:
+                continue
             
             # Perform merge operation
             ops += 1
+            h = L[i]
+            k = R[j]
             
-            p = prev_node[u]
-            nxt = next_node[v]
+            # Remove violations involving the nodes being merged
+            if h != -1 and val[h] > val[i]:
+                violations -= 1
+            if val[i] > val[j]:
+                violations -= 1
+            if k != n and val[j] > val[k]:
+                violations -= 1
             
-            # 1. Remove contribution of old edges to bad_count
-            if p != -1 and values[p] > values[u]:
-                bad_count -= 1
-            if values[u] > values[v]:
-                bad_count -= 1
-            if nxt != -1 and values[v] > values[nxt]:
-                bad_count -= 1
-                
-            # 2. Update structure (merge v into u)
-            new_val = values[u] + values[v]
-            values[u] = new_val
-            valid[v] = False
+            # Update value and versions
+            val[i] = val[i] + val[j]
+            version[i] += 1
+            version[j] += 1 # Effectively invalidates pairs involving j
             
-            next_node[u] = nxt
-            if nxt != -1:
-                prev_node[nxt] = u
-            # prev_node[u] remains p
+            # Update linked list pointers
+            R[i] = k
+            if k != n:
+                L[k] = i
             
-            # 3. Add contribution of new edges to bad_count
-            if p != -1 and values[p] > values[u]:
-                bad_count += 1
-            if nxt != -1 and values[u] > values[nxt]:
-                bad_count += 1
-                
-            # 4. Push new adjacent sums to heap
-            if p != -1:
-                heapq.heappush(pq, (values[p] + values[u], p, u))
-            if nxt != -1:
-                heapq.heappush(pq, (values[u] + values[nxt], u, nxt))
+            # Add new violations
+            if h != -1 and val[h] > val[i]:
+                violations += 1
+            if k != n and val[i] > val[k]:
+                violations += 1
+            
+            # Push new potential pairs to the heap
+            if h != -1:
+                heapq.heappush(pq, (val[h] + val[i], h, version[h], version[i]))
+            if k != n:
+                heapq.heappush(pq, (val[i] + val[k], i, version[i], version[k]))
                 
         return ops
 # @lc code=end
