@@ -5,77 +5,60 @@
 #
 
 # @lc code=start
-from functools import lru_cache
-from typing import List
+from collections import deque
 
 class Solution:
-    def maxLen(self, n: int, edges: List[List[int]], label: str) -> int:
-        # Build adjacency list
+    def maxLen(self, n: int, edges: list[list[int]], label: str) -> int:
+        if n == 0:
+            return 0
+        
         adj = [[] for _ in range(n)]
+        adj_by_char = [[[] for _ in range(26)] for _ in range(n)]
         for u, v in edges:
             adj[u].append(v)
             adj[v].append(u)
+            adj_by_char[u][ord(label[v]) - 97].append(v)
+            adj_by_char[v][ord(label[u]) - 97].append(u)
             
-        # Precompute neighbors grouped by their character label for faster lookup
-        # neighbors[u][char_code] will store a list of neighbors of u that have that label
-        neighbors = [[[] for _ in range(26)] for _ in range(n)]
-        for u in range(n):
-            for v in adj[u]:
-                char_idx = ord(label[v]) - ord('a')
-                neighbors[u][char_idx].append(v)
+        # visited[u][v] stores sets of masks for a palindromic path between u and v
+        visited = [[set() for _ in range(n)] for _ in range(n)]
+        states = [[] for _ in range(n + 1)]
         
-        # DFS with memoization to find the longest extension
-        # State: (u, v, mask)
-        # u, v: current endpoints of the path (u <= v enforced for uniqueness)
-        # mask: bitmask of visited nodes
-        @lru_cache(None)
-        def dfs(u, v, mask):
-            max_extension = 0
-            
-            # Try to extend from u to nu and v to nv such that label[nu] == label[nv]
-            # Iterate through all possible characters 'a'...'z'
-            for char_idx in range(26):
-                u_candidates = neighbors[u][char_idx]
-                if not u_candidates: continue
-                
-                v_candidates = neighbors[v][char_idx]
-                if not v_candidates: continue
-                
-                for nu in u_candidates:
-                    # If nu is already visited, skip
-                    if (mask >> nu) & 1:
-                        continue
-                    
-                    for nv in v_candidates:
-                        # If nv is already visited, skip
-                        if (mask >> nv) & 1:
-                            continue
-                        
-                        # Cannot extend to the same node from both ends (unless it's the center, handled separately)
-                        if nu == nv:
-                            continue
-                            
-                        # Determine next state, ensuring first endpoint index < second endpoint index
-                        next_u, next_v = (nu, nv) if nu < nv else (nv, nu)
-                        new_mask = mask | (1 << nu) | (1 << nv)
-                        
-                        max_extension = max(max_extension, 2 + dfs(next_u, next_v, new_mask))
-            
-            return max_extension
-
-        ans = 1
+        max_len = 1
         
-        # 1. Try odd-length palindromes centered at each node
+        # Base Case: Length 1
         for i in range(n):
-            # Path starts at i, length 1. Try to extend.
-            ans = max(ans, 1 + dfs(i, i, 1 << i))
+            mask = 1 << i
+            states[1].append((mask, i, i))
+            visited[i][i].add(mask)
             
-        # 2. Try even-length palindromes centered at each edge with matching labels
+        # Base Case: Length 2
         for u, v in edges:
             if label[u] == label[v]:
-                # Path starts at u-v, length 2. Try to extend.
-                u_sorted, v_sorted = (u, v) if u < v else (v, u)
-                ans = max(ans, 2 + dfs(u_sorted, v_sorted, (1 << u) | (1 << v)))
-                
-        return ans
+                mask = (1 << u) | (1 << v)
+                if mask not in visited[u][v]:
+                    states[2].append((mask, u, v))
+                    visited[u][v].add(mask)
+                    visited[v][u].add(mask)
+                    max_len = 2
+        
+        # Expand from length L to L+2
+        for L in range(1, n - 1):
+            if not states[L]:
+                continue
+            for mask, u, v in states[L]:
+                for x in adj[u]:
+                    if not (mask & (1 << x)):
+                        char_idx = ord(label[x]) - 97
+                        for y in adj_by_char[v][char_idx]:
+                            if x != y and not (mask & (1 << y)):
+                                new_mask = mask | (1 << x) | (1 << y)
+                                if new_mask not in visited[x][y]:
+                                    visited[x][y].add(new_mask)
+                                    visited[y][x].add(new_mask)
+                                    states[L + 2].append((new_mask, x, y))
+                                    if L + 2 > max_len:
+                                        max_len = L + 2
+                                        
+        return max_len
 # @lc code=end
