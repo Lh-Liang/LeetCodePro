@@ -7,33 +7,30 @@
 # @lc code=start
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        # Stack stores tuples of (value, steps)
-        # steps = number of steps it took to remove this value
-        # If a value is never removed, steps is 0 (though we only care about max steps)
+        # stack will store pairs of (value, steps_to_be_removed)
         stack = []
-        ans = 0
+        max_steps = 0
         
-        for num in nums:
+        for x in nums:
             current_steps = 0
-            # We need to remove all elements smaller than or equal to current num 
-            # that are to the left, because they would have been removed by 
-            # the 'killer' (an element larger than num) to the left of them 
-            # before the killer reaches num (or num reaches the killer).
-            while stack and stack[-1][0] <= num:
-                current_steps = max(current_steps, stack.pop()[1])
+            # While the current element x is greater than or equal to the stack top,
+            # x cannot be removed by the stack top. It must wait for the elements
+            # that were being removed by the stack top's 'remover'.
+            while stack and stack[-1][0] <= x:
+                current_steps = max(current_steps, stack[-1][1])
+                stack.pop()
             
-            # If the stack is not empty, it means there is a number larger than 'num'
-            # to its left. This larger number will eventually remove 'num'.
-            # The time it takes is max(steps of elements between them) + 1.
-            if stack:
-                current_steps += 1
-                stack.append((num, current_steps))
-                ans = max(ans, current_steps)
+            # If stack is empty, x is the largest element seen so far (or equal to it).
+            # It will never be removed.
+            if not stack:
+                current_steps = 0
             else:
-                # If stack is empty, 'num' is the largest seen so far in the current
-                # non-decreasing prefix logic, so it won't be removed.
-                stack.append((num, 0))
-                
-        return ans
-
+                # If stack is not empty, the current stack top is strictly greater than x.
+                # x will be removed 1 step after all elements between the stack top and x are gone.
+                current_steps += 1
+            
+            max_steps = max(max_steps, current_steps)
+            stack.append((x, current_steps))
+            
+        return max_steps
 # @lc code=end
