@@ -1,62 +1,60 @@
-#include <bits/stdc++.h>
-using namespace std;
+#
+# @lc app=leetcode id=3725 lang=cpp
+#
+# [3725] Count Ways to Choose Coprime Integers from Rows
+#
 
-// @lc app=leetcode id=3725 lang=cpp
-//
-// [3725] Count Ways to Choose Coprime Integers from Rows
-//
-
-// @lc code=start
+# @lc code=start
 class Solution {
 public:
     int countCoprime(vector<vector<int>>& mat) {
-        static const int V = 150;
-        static const int MOD = 1000000007;
-
-        // Compute Mobius function mu[1..V] using linear sieve
-        vector<int> mu(V + 1, 0), primes;
-        vector<int> isComp(V + 1, 0);
+        const int MOD = 1000000007;
+        const int MAXV = 150;
+        vector<int> mu(MAXV + 1, 0);
+        vector<bool> iscomp(MAXV + 1, false);
+        vector<int> primes;
         mu[1] = 1;
-        for (int i = 2; i <= V; i++) {
-            if (!isComp[i]) {
+        for (int i = 2; i <= MAXV; ++i) {
+            if (!iscomp[i]) {
                 primes.push_back(i);
                 mu[i] = -1;
             }
-            for (int p : primes) {
-                long long x = 1LL * i * p;
-                if (x > V) break;
-                isComp[(int)x] = 1;
+            for (size_t j = 0; j < primes.size() && 1LL * i * primes[j] <= MAXV; ++j) {
+                int p = primes[j];
+                iscomp[i * p] = true;
                 if (i % p == 0) {
-                    mu[(int)x] = 0;
+                    mu[i * p] = 0;
                     break;
                 } else {
-                    mu[(int)x] = -mu[i];
+                    mu[i * p] = -mu[i];
                 }
             }
         }
-
-        // prod[d] = product over rows of count of elements divisible by d
-        vector<long long> prod(V + 1, 1);
-
-        vector<int> freq(V + 1);
-        for (auto &row : mat) {
-            fill(freq.begin(), freq.end(), 0);
-            for (int x : row) freq[x]++;
-
-            for (int d = 1; d <= V; d++) {
-                int cnt = 0;
-                for (int k = d; k <= V; k += d) cnt += freq[k];
-                prod[d] = (prod[d] * cnt) % MOD;
+        int m = mat.size();
+        vector<vector<int>> cnt(m, vector<int>(MAXV + 1, 0));
+        for (int r = 0; r < m; ++r) {
+            for (int val : mat[r]) {
+                for (int d = 1; d * d <= val; ++d) {
+                    if (val % d == 0) {
+                        cnt[r][d]++;
+                        if (d != val / d) {
+                            cnt[r][val / d]++;
+                        }
+                    }
+                }
             }
         }
-
         long long ans = 0;
-        for (int d = 1; d <= V; d++) {
+        for (int d = 1; d <= MAXV; ++d) {
             if (mu[d] == 0) continue;
-            ans = (ans + (long long)mu[d] * prod[d]) % MOD;
+            long long ways = 1;
+            for (int r = 0; r < m; ++r) {
+                ways = ways * cnt[r][d] % MOD;
+            }
+            long long contrib = (mu[d] == 1 ? ways : (MOD - ways) % MOD);
+            ans = (ans + contrib) % MOD;
         }
-        if (ans < 0) ans += MOD;
-        return (int)ans;
+        return ans;
     }
 };
-// @lc code=end
+# @lc code=end

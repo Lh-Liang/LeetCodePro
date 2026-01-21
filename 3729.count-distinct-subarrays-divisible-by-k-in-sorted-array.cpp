@@ -1,63 +1,76 @@
+#
+# @lc app=leetcode id=3729 lang=cpp
+#
+# [3729] Count Distinct Subarrays Divisible by K in Sorted Array
+#
+
+# @lc code=start
 #include <bits/stdc++.h>
 using namespace std;
+using ll = long long;
 
-// @lc code=start
 class Solution {
 public:
-    long long numGoodSubarrays(vector<int>& nums, int k) {
-        int n = (int)nums.size();
-        // Compress into runs
-        vector<long long> vals;
-        vector<int> cnt;
-        vals.reserve(n);
-        cnt.reserve(n);
+    ll gcd(ll a, ll b) {
+        while (b != 0) {
+            ll t = b;
+            b = a % b;
+            a = t;
+        }
+        return a;
+    }
+
+    long long numGoodSubarrays(vector<int>& nums, int k_) {
+        ll K = k_;
+        int n = nums.size();
+        vector<ll> val, cntt;
         for (int i = 0; i < n; ) {
+            ll v = nums[i];
             int j = i;
-            while (j < n && nums[j] == nums[i]) j++;
-            vals.push_back(nums[i]);
-            cnt.push_back(j - i);
+            while (j < n && nums[j] == v) ++j;
+            val.push_back(v);
+            cntt.push_back(j - i);
             i = j;
         }
-
-        unordered_map<long long, long long> freq;
-        freq.reserve((size_t)n * 2);
-        freq.max_load_factor(0.7f);
-
-        long long ans = 0;
-        long long prefixMod = 0; // sum of all previous runs modulo k
-
-        for (int idx = 0; idx < (int)vals.size(); idx++) {
-            long long v = vals[idx];
-            int c = cnt[idx];
-
-            // 1) within-run distinct good subarrays (lengths only)
-            long long g = std::gcd((long long)k, v);
-            long long d = (long long)k / g; // t must be multiple of d
-            ans += (long long)c / d;
-
-            // If k==1, v%k==0; in general keep vmod
-            long long vmod = v % k;
-
-            // 2) count multi-run subarrays ending in this run
-            // end residues for t = 1..c
-            for (int t = 1; t <= c; t++) {
-                long long r = (prefixMod + ( (__int128)t * vmod) % k) % k;
-                auto it = freq.find(r);
-                if (it != freq.end()) ans += it->second;
-            }
-
-            // 3) add start residues from this run for future runs
-            // start residues correspond to x=0..c-1 (exclude boundary after the run)
-            for (int x = 0; x <= c - 1; x++) {
-                long long r = (prefixMod + ( (__int128)x * vmod) % k) % k;
-                freq[r] += 1;
-            }
-
-            // 4) advance prefixMod by full run sum
-            prefixMod = (prefixMod + ( (__int128)c * vmod) % k) % k;
+        int m = val.size();
+        if (m == 0) return 0;
+        vector<ll> pre(m + 1, 0);
+        for (int j = 0; j < m; ++j) {
+            ll contrib = cntt[j] * (val[j] % K) % K;
+            pre[j + 1] = (pre[j] + contrib) % K;
         }
-
+        map<ll, ll> freq;
+        ll ans = 0;
+        for (int e = 0; e < m; ++e) {
+            // multi-group ending at e
+            ll ve = val[e] % K;
+            ll ce = cntt[e];
+            ll target = (K - pre[e]) % K;
+            for (ll b = 1; b <= ce; ++b) {
+                ll rmod = b * ve % K;
+                ll needed = (target - rmod + K) % K;
+                auto it = freq.find(needed);
+                if (it != freq.end()) {
+                    ans += it->second;
+                }
+            }
+            // single group
+            ll vv = val[e] % K;
+            ll g = gcd(vv, K);
+            ll k2 = K / g;
+            ll num_single = cntt[e] / k2;
+            ans += num_single;
+            // add lefts from this e
+            ll vs = val[e] % K;
+            ll cs = cntt[e];
+            ll psp1 = pre[e + 1];
+            for (ll a = 1; a <= cs; ++a) {
+                ll lmod = a * vs % K;
+                ll effective = (lmod - psp1 + K) % K;
+                ++freq[effective];
+            }
+        }
         return ans;
     }
 };
-// @lc code=end
+# @lc code=end

@@ -1,76 +1,50 @@
+#
+# @lc app=leetcode id=3704 lang=cpp
+#
+# [3704] Count No-Zero Pairs That Sum to N
+#
+# @lc code=start
 #include <bits/stdc++.h>
 using namespace std;
-
-/*
- * @lc app=leetcode id=3704 lang=cpp
- *
- * [3704] Count No-Zero Pairs That Sum to N
- */
-
-// @lc code=start
 class Solution {
 public:
     long long countNoZeroPairs(long long n) {
-        vector<int> dig;
-        while (n > 0) {
-            dig.push_back((int)(n % 10));
-            n /= 10;
-        }
-        int L = (int)dig.size();
-
-        long long memo[20][2][2][2];
-        for (int i = 0; i < 20; i++)
-            for (int c = 0; c < 2; c++)
-                for (int ea = 0; ea < 2; ea++)
-                    for (int eb = 0; eb < 2; eb++)
-                        memo[i][c][ea][eb] = -1;
-
-        function<long long(int,int,int,int)> dfs = [&](int i, int carry, int endedA, int endedB) -> long long {
-            if (i == L) return (carry == 0) ? 1LL : 0LL;
-            long long &res = memo[i][carry][endedA][endedB];
-            if (res != -1) return res;
-            res = 0;
-
-            int nd = dig[i];
-
-            auto digitsFor = [&](int i, int ended) {
-                vector<int> v;
-                if (i == 0) {
-                    // least significant digit must exist and cannot be 0
-                    for (int d = 1; d <= 9; d++) v.push_back(d);
-                } else {
-                    if (ended) {
-                        v.push_back(0);
-                    } else {
-                        // continue with 1..9, or choose 0 to end here (and all higher digits will be 0)
-                        v.push_back(0);
-                        for (int d = 1; d <= 9; d++) v.push_back(d);
+        vector<int> dn;
+        long long nn = n;
+        do {
+            dn.push_back(nn % 10);
+            nn /= 10;
+        } while (nn > 0);
+        int L = dn.size();
+        long long mem[17][2][2][2][2][2];
+        memset(mem, -1, sizeof(mem));
+        auto dfs = [&](auto&& self, int pos, int carry, int fa, int ha, int fb, int hb) -> long long {
+            if (pos == L) {
+                return (carry == 0 && ha == 1 && hb == 1) ? 1LL : 0LL;
+            }
+            if (mem[pos][carry][fa][ha][fb][hb] != -1) {
+                return mem[pos][carry][fa][ha][fb][hb];
+            }
+            long long res = 0;
+            for (int da = 0; da < 10; ++da) {
+                if (fa && da != 0) continue;
+                int nfa = (da == 0);
+                int nha = ha || (da != 0);
+                for (int db = 0; db < 10; ++db) {
+                    if (fb && db != 0) continue;
+                    int nfb = (db == 0);
+                    int nhb = hb || (db != 0);
+                    int tot = da + db + carry;
+                    if (tot % 10 == dn[pos]) {
+                        int nc = tot / 10;
+                        res += self(self, pos + 1, nc, nfa, nha, nfb, nhb);
                     }
                 }
-                return v;
-            };
-
-            vector<int> A = digitsFor(i, endedA);
-            vector<int> B = digitsFor(i, endedB);
-
-            for (int da : A) {
-                int nEndedA = endedA;
-                if (i > 0 && endedA == 0 && da == 0) nEndedA = 1;
-                for (int db : B) {
-                    int nEndedB = endedB;
-                    if (i > 0 && endedB == 0 && db == 0) nEndedB = 1;
-
-                    int total = da + db + carry;
-                    if (total % 10 != nd) continue;
-                    int ncarry = total / 10;
-                    res += dfs(i + 1, ncarry, nEndedA, nEndedB);
-                }
             }
-
+            mem[pos][carry][fa][ha][fb][hb] = res;
             return res;
         };
-
-        return dfs(0, 0, 0, 0);
+        return dfs(dfs, 0, 0, 0, 0, 0, 0);
     }
 };
-// @lc code=end
+# @lc code=end

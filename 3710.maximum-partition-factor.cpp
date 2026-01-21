@@ -3,51 +3,38 @@
 #
 # [3710] Maximum Partition Factor
 #
-#include <bits/stdc++.h>
-using namespace std;
 
 # @lc code=start
 class Solution {
 public:
     int maxPartitionFactor(vector<vector<int>>& points) {
-        int n = (int)points.size();
-        if (n == 2) return 0; // per statement definition
-
-        auto dist = [&](int i, int j) -> long long {
-            return llabs((long long)points[i][0] - points[j][0]) +
-                   llabs((long long)points[i][1] - points[j][1]);
-        };
-
-        long long maxD = 0;
-        for (int i = 0; i < n; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                maxD = max(maxD, dist(i, j));
-            }
-        }
-
-        auto feasible = [&](long long D) -> bool {
+        int n = points.size();
+        auto can = [&](int k) -> bool {
+            if (k == 0) return true;
+            if (n == 2) return false;
             vector<vector<int>> adj(n);
-            adj.assign(n, {});
             for (int i = 0; i < n; ++i) {
                 for (int j = i + 1; j < n; ++j) {
-                    if (dist(i, j) < D) {
+                    long long dx = abs((long long)points[i][0] - points[j][0]);
+                    long long dy = abs((long long)points[i][1] - points[j][1]);
+                    long long dist = dx + dy;
+                    if (dist < k) {
                         adj[i].push_back(j);
                         adj[j].push_back(i);
                     }
                 }
             }
-
             vector<int> color(n, -1);
-            queue<int> q;
             for (int i = 0; i < n; ++i) {
                 if (color[i] != -1) continue;
+                queue<int> q;
                 color[i] = 0;
                 q.push(i);
                 while (!q.empty()) {
                     int u = q.front(); q.pop();
                     for (int v : adj[u]) {
                         if (color[v] == -1) {
-                            color[v] = color[u] ^ 1;
+                            color[v] = 1 - color[u];
                             q.push(v);
                         } else if (color[v] == color[u]) {
                             return false;
@@ -57,14 +44,17 @@ public:
             }
             return true;
         };
-
-        long long lo = 0, hi = maxD + 1; // hi is infeasible upper bound
-        while (lo + 1 < hi) {
-            long long mid = lo + (hi - lo) / 2;
-            if (feasible(mid)) lo = mid;
-            else hi = mid;
+        int left = 0;
+        int right = 400000001;
+        while (left < right) {
+            int mid = left + (right - left + 1) / 2;
+            if (can(mid)) {
+                left = mid;
+            } else {
+                right = mid - 1;
+            }
         }
-        return (int)lo;
+        return left;
     }
 };
 # @lc code=end
