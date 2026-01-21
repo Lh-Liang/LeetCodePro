@@ -5,106 +5,97 @@
 #
 
 # @lc code=start
+#include <bits/stdc++.h>
+using namespace std;
+
 class Solution {
 public:
     string lexPalindromicPermutation(string s, string target) {
-        int n = s.length();
-        vector<int> count(26, 0);
-        for (char c : s) count[c - 'a']++;
+        int n = (int)s.size();
+        vector<int> cnt(26, 0);
+        for (char ch : s) cnt[ch - 'a']++;
 
-        int oddCount = 0;
-        int oddCharIdx = -1;
-        for (int i = 0; i < 26; ++i) {
-            if (count[i] % 2 != 0) {
-                oddCount++;
-                oddCharIdx = i;
+        int odd = 0, midIdx = -1;
+        for (int c = 0; c < 26; c++) {
+            if (cnt[c] % 2) {
+                odd++;
+                midIdx = c;
             }
         }
-
-        if (oddCount > 1) return "";
-
-        string mid = "";
-        if (n % 2 == 1) {
-            mid += (char)('a' + oddCharIdx);
-            count[oddCharIdx]--;
+        if (odd > 1) return "";
+        if (n % 2 == 0) {
+            if (odd != 0) return "";
+        } else {
+            // total length is odd => must have exactly one odd count
+            if (odd != 1) return "";
         }
 
-        // half_counts for the first n/2 characters
-        vector<int> half_counts(26);
-        for (int i = 0; i < 26; ++i) half_counts[i] = count[i] / 2;
+        string mid;
+        if (midIdx != -1) mid.push_back(char('a' + midIdx));
 
         int m = n / 2;
-        
-        // Helper to construct palindrome from left half
-        auto construct = [&](string left) {
-            string right = left;
-            reverse(right.begin(), right.end());
-            return left + mid + right;
+        vector<int> half(26, 0);
+        for (int c = 0; c < 26; c++) half[c] = cnt[c] / 2;
+
+        string A = target.substr(0, m);
+
+        // Check if A itself can be the left half.
+        {
+            vector<int> cntA(26, 0);
+            for (char ch : A) cntA[ch - 'a']++;
+            bool ok = true;
+            for (int c = 0; c < 26; c++) {
+                if (cntA[c] != half[c]) { ok = false; break; }
+            }
+            if (ok) {
+                string rev = A;
+                reverse(rev.begin(), rev.end());
+                string P0 = A + mid + rev;
+                if (P0 > target) return P0;
+            }
+        }
+
+        // Precompute prefix counts of A.
+        vector<array<int, 26>> pref(m + 1);
+        pref[0].fill(0);
+        for (int i = 0; i < m; i++) {
+            pref[i + 1] = pref[i];
+            pref[i + 1][A[i] - 'a']++;
+        }
+
+        auto prefixFeasible = [&](int p) -> bool {
+            for (int c = 0; c < 26; c++) {
+                if (pref[p][c] > half[c]) return false;
+            }
+            return true;
         };
 
-        // 1. Try to match the full left half (prefix length m)
-        bool possible = true;
-        vector<int> current_counts = half_counts;
-        string current_prefix = "";
-        for (int i = 0; i < m; ++i) {
-            int charIdx = target[i] - 'a';
-            if (current_counts[charIdx] > 0) {
-                current_counts[charIdx]--;
-                current_prefix += target[i];
-            } else {
-                possible = false;
-                break;
-            }
-        }
+        // Find the smallest multiset permutation H such that H > A.
+        for (int p = m - 1; p >= 0; --p) {
+            if (!prefixFeasible(p)) continue;
 
-        if (possible) {
-            string cand = construct(current_prefix);
-            if (cand > target) return cand;
-        }
+            array<int, 26> rem;
+            for (int c = 0; c < 26; c++) rem[c] = half[c] - pref[p][c];
 
-        // 2. Iterate backwards to find the latest divergence point
-        // We try to match target[0...i-1] and then place c > target[i] at position i
-        // Since we want the smallest result, we want the longest matching prefix.
-        // So we iterate i from m-1 down to 0.
-        
-        // We need to maintain the counts available for the prefix 0...i-1.
-        // Re-calculating prefix validity every time is O(N^2), which is fine for N=300.
-        
-        for (int i = m - 1; i >= 0; --i) {
-            // Check if prefix 0...i-1 is valid
-            vector<int> temp_counts = half_counts;
-            string prefix = "";
-            bool prefix_valid = true;
-            for (int j = 0; j < i; ++j) {
-                int c = target[j] - 'a';
-                if (temp_counts[c] > 0) {
-                    temp_counts[c]--;
-                    prefix += target[j];
-                } else {
-                    prefix_valid = false;
-                    break;
+            int a = A[p] - 'a';
+            for (int d = a + 1; d < 26; d++) {
+                if (rem[d] == 0) continue;
+
+                rem[d]--;
+                int L = m - p - 1;
+                string suf;
+                suf.reserve(L);
+                for (int c = 0; c < 26; c++) {
+                    if (rem[c] > 0) suf.append(rem[c], char('a' + c));
                 }
-            }
-            
-            if (!prefix_valid) continue;
 
-            // Try to place smallest character c > target[i]
-            for (int c = target[i] - 'a' + 1; c < 26; ++c) {
-                if (temp_counts[c] > 0) {
-                    // Found the divergence point!
-                    temp_counts[c]--;
-                    prefix += (char)('a' + c);
-                    
-                    // Fill the rest (i+1 to m-1) with smallest available characters
-                    for (int k = 0; k < 26; ++k) {
-                        while (temp_counts[k] > 0) {
-                            prefix += (char)('a' + k);
-                            temp_counts[k]--;
-                        }
-                    }
-                    
-                    return construct(prefix);
-                }
+                string H = A.substr(0, p);
+                H.push_back(char('a' + d));
+                H += suf;
+
+                string rev = H;
+                reverse(rev.begin(), rev.end());
+                return H + mid + rev;
             }
         }
 

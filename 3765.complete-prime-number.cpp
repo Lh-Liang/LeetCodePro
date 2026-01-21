@@ -1,44 +1,29 @@
-#
-# @lc app=leetcode id=3765 lang=cpp
-#
-# [3765] Complete Prime Number
-#
+#include <bits/stdc++.h>
+using namespace std;
 
-# @lc code=start
+// @lc code=start
 class Solution {
 public:
     bool isPrime(int n) {
-        if (n <= 1) return false;
-        for (int i = 2; i * i <= n; ++i) {
-            if (n % i == 0) return false;
+        if (n < 2) return false;
+        if (n % 2 == 0) return n == 2;
+        if (n % 3 == 0) return n == 3;
+        for (long long i = 5; i * i <= n; i += 6) {
+            if (n % i == 0 || n % (i + 2) == 0) return false;
         }
         return true;
     }
 
     bool completePrime(int num) {
-        // Check prefixes
-        int temp = num;
-        while (temp > 0) {
-            if (!isPrime(temp)) {
-                return false;
-            }
-            temp /= 10;
-        }
+        string s = to_string(num);
+        int n = (int)s.size();
 
-        // Check suffixes
-        // We need to check num % 10, num % 100, num % 1000 ... until the suffix is the number itself
-        long long mod = 10;
-        while (true) {
-            int suffix = num % mod;
-            if (!isPrime(suffix)) {
-                return false;
-            }
-            // If the suffix is the number itself, we are done checking suffixes
-            if (suffix == num) break;
-            mod *= 10;
+        for (int k = 1; k <= n; k++) {
+            int prefix = stoi(s.substr(0, k));
+            int suffix = stoi(s.substr(n - k, k));
+            if (!isPrime(prefix) || !isPrime(suffix)) return false;
         }
-
         return true;
     }
 };
-# @lc code=end
+// @lc code=end
