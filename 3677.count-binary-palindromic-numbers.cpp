@@ -3,51 +3,55 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
-
 # @lc code=start
 class Solution {
 public:
     int countBinaryPalindromes(long long n) {
-        std::string S;
+        if (n == 0) return 1;
+        
+        // Find bit length of n
+        int bitLen = 0;
         long long temp = n;
-        if (temp == 0) {
-            S = "0";
-        } else {
-            while (temp > 0) {
-                S = char('0' + (temp & 1)) + S;
-                temp >>= 1;
+        while (temp > 0) {
+            bitLen++;
+            temp >>= 1;
+        }
+        
+        int count = 1; // Count 0
+        
+        // Count palindromes with length < bitLen
+        for (int len = 1; len < bitLen; len++) {
+            if (len == 1) {
+                count += 1; // Only "1"
+            } else if (len % 2 == 1) {
+                count += (1 << ((len - 1) / 2));
+            } else {
+                count += (1 << (len / 2 - 1));
             }
         }
-        int Len = S.size();
-        long long ans = 1;  // for 0
-        for (int L = 1; L < Len; ++L) {
-            int exp = (L - 1) / 2;
-            ans += (1LL << exp);
-        }
-        // Now for length Len
-        int half_len = (Len + 1) / 2;
-        int free_bits = half_len - 1;
-        long long num_masks = free_bits >= 0 ? (1LL << free_bits) : 0;
-        for (long long mask = 0; mask < num_masks; ++mask) {
-            long long num = 0;
-            // Set s[0] = 1
-            num |= (1LL << (Len - 1));
-            // Set s[Len-1] = 1
-            num |= 1LL;
-            for (int j = 0; j < free_bits; ++j) {
-                int bit = (mask >> j) & 1;
-                int pos = j + 1;
-                // Set s[pos]
-                num |= ((long long)bit << (Len - 1 - pos));
-                // Set mirror s[Len-1-pos]
-                int mir_pos = Len - 1 - pos;
-                num |= ((long long)bit << (Len - 1 - mir_pos));
+        
+        // Count palindromes with length = bitLen that are <= n
+        int halfLen = (bitLen + 1) / 2;
+        
+        for (long long i = 0; i < (1LL << (halfLen - 1)); i++) {
+            long long half = (1LL << (halfLen - 1)) | i;
+            long long num = half;
+            long long mirror = (bitLen % 2 == 1) ? (half >> 1) : half;
+            
+            int shiftCount = (bitLen % 2 == 1) ? (halfLen - 1) : halfLen;
+            for (int j = 0; j < shiftCount; j++) {
+                num = (num << 1) | (mirror & 1);
+                mirror >>= 1;
             }
+            
             if (num <= n) {
-                ++ans;
+                count++;
+            } else {
+                break;
             }
         }
-        return static_cast<int>(ans);
+        
+        return count;
     }
 };
 # @lc code=end

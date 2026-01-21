@@ -3,49 +3,80 @@
 #
 # [3695] Maximize Alternating Sum Using Swaps
 #
-
 # @lc code=start
 class Solution {
 public:
+    vector<int> parent;
+    
+    int find(int x) {
+        if (parent[x] != x) {
+            parent[x] = find(parent[x]);
+        }
+        return parent[x];
+    }
+    
+    void unite(int x, int y) {
+        int px = find(x);
+        int py = find(y);
+        if (px != py) {
+            parent[px] = py;
+        }
+    }
+    
     long long maxAlternatingSum(vector<int>& nums, vector<vector<int>>& swaps) {
         int n = nums.size();
-        vector<int> par(n), rnk(n, 0);
-        for (int i = 0; i < n; ++i) par[i] = i;
-        auto find = [&](auto&& self, int x) -> int {
-            return par[x] != x ? par[x] = self(self, par[x]) : x;
-        };
-        auto union_sets = [&](int a, int b) {
-            a = find(find, a);
-            b = find(find, b);
-            if (a == b) return;
-            if (rnk[a] < rnk[b]) swap(a, b);
-            par[b] = a;
-            if (rnk[a] == rnk[b]) ++rnk[a];
-        };
-        for (auto& sw : swaps) {
-            union_sets(sw[0], sw[1]);
+        parent.resize(n);
+        for (int i = 0; i < n; i++) {
+            parent[i] = i;
         }
-        vector<vector<int>> comp(n);
-        for (int i = 0; i < n; ++i) {
-            int r = find(find, i);
-            comp[r].push_back(i);
+        
+        // Build union-find structure
+        for (const auto& swap : swaps) {
+            unite(swap[0], swap[1]);
         }
-        long long ans = 0;
-        for (int r = 0; r < n; ++r) {
-            if (comp[r].empty()) continue;
-            vector<long long> vals;
-            int A = 0, B = 0;
-            for (int idx : comp[r]) {
-                vals.push_back(nums[idx]);
-                if ((idx & 1) == 0) ++A;
-                else ++B;
+        
+        // Group indices by their root
+        unordered_map<int, vector<int>> components;
+        for (int i = 0; i < n; i++) {
+            components[find(i)].push_back(i);
+        }
+        
+        // For each component, optimize assignment
+        vector<int> result(n);
+        for (auto& [root, indices] : components) {
+            // Collect values
+            vector<int> values;
+            for (int idx : indices) {
+                values.push_back(nums[idx]);
             }
-            sort(vals.rbegin(), vals.rend());
-            int sz = vals.size();
-            for (int j = 0; j < A; ++j) ans += vals[j];
-            for (int j = A; j < sz; ++j) ans -= vals[j];
+            
+            // Sort indices by coefficient (even = +1, odd = -1) in descending order
+            sort(indices.begin(), indices.end(), [](int a, int b) {
+                int coefA = (a % 2 == 0) ? 1 : -1;
+                int coefB = (b % 2 == 0) ? 1 : -1;
+                return coefA > coefB;
+            });
+            
+            // Sort values in descending order
+            sort(values.begin(), values.end(), greater<int>());
+            
+            // Assign values
+            for (int i = 0; i < indices.size(); i++) {
+                result[indices[i]] = values[i];
+            }
         }
-        return ans;
+        
+        // Calculate alternating sum
+        long long sum = 0;
+        for (int i = 0; i < n; i++) {
+            if (i % 2 == 0) {
+                sum += result[i];
+            } else {
+                sum -= result[i];
+            }
+        }
+        
+        return sum;
     }
 };
 # @lc code=end
