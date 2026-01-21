@@ -6,46 +6,43 @@
 
 # @lc code=start
 import heapq
+from typing import List
 
 class Solution:
     def minTimeToReach(self, moveTime: List[List[int]]) -> int:
-        n = len(moveTime)
-        m = len(moveTime[0])
+        n, m = len(moveTime), len(moveTime[0])
         
-        # Priority queue stores tuples of (time, row, col)
-        # Start at (0, 0) with time 0
+        # dist[i][j] will store the minimum time to reach room (i, j)
+        dist = [[float('inf')] * m for _ in range(n)]
+        dist[0][0] = 0
+        
+        # Priority queue stores (current_time, row, col)
         pq = [(0, 0, 0)]
-        
-        # Distance matrix to keep track of minimum time to reach each cell
-        min_time = [[float('inf')] * m for _ in range(n)]
-        min_time[0][0] = 0
-        
-        directions = [(0, 1), (0, -1), (1, 0), (-1, 0)]
         
         while pq:
             t, r, c = heapq.heappop(pq)
             
-            # If we reached the destination
+            # If we already found a shorter path to this room, skip it
+            if t > dist[r][c]:
+                continue
+            
+            # If we reached the target room, return the time
             if r == n - 1 and c == m - 1:
                 return t
             
-            # If we found a faster way to this cell already, skip
-            if t > min_time[r][c]:
-                continue
-            
-            for dr, dc in directions:
+            # Check all 4 adjacent rooms
+            for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
                 nr, nc = r + dr, c + dc
                 
                 if 0 <= nr < n and 0 <= nc < m:
-                    # The time to arrive at the next cell is:
-                    # max(current_time, time_needed_for_next_cell_to_open) + 1 second to move
-                    # We wait at current cell until moveTime[nr][nc] if necessary, 
-                    # effectively leaving at max(t, moveTime[nr][nc])
+                    # The room (nr, nc) opens at moveTime[nr][nc].
+                    # We can only start moving to it at max(t, moveTime[nr][nc]).
+                    # The move itself takes exactly 1 second.
                     new_time = max(t, moveTime[nr][nc]) + 1
                     
-                    if new_time < min_time[nr][nc]:
-                        min_time[nr][nc] = new_time
+                    if new_time < dist[nr][nc]:
+                        dist[nr][nc] = new_time
                         heapq.heappush(pq, (new_time, nr, nc))
-                        
-        return -1 # Should not be reached given constraints
+        
+        return -1
 # @lc code=end
