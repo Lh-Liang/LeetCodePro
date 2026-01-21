@@ -1,87 +1,138 @@
-#
-# @lc app=leetcode id=3459 lang=cpp
-#
-# [3459] Length of Longest V-Shaped Diagonal Segment
-#
+#include <bits/stdc++.h>
+using namespace std;
 
-# @lc code=start
+// @lc app=leetcode id=3459 lang=cpp
+//
+// [3459] Length of Longest V-Shaped Diagonal Segment
+//
+
+// @lc code=start
 class Solution {
 public:
-    int n, m;
-    int memo[505][505][4][2];
-    // Directions: 0: SE, 1: SW, 2: NW, 3: NE (Clockwise order)
-    int dr[4] = {1, 1, -1, -1};
-    int dc[4] = {1, -1, -1, 1};
+    int lenOfVDiagonal(vector<vector<int>>& grid) {
+        int n = (int)grid.size();
+        int m = (int)grid[0].size();
+        auto id = [m](int i, int j) { return i * m + j; };
+        auto inside = [n, m](int i, int j) {
+            return i >= 0 && i < n && j >= 0 && j < m;
+        };
 
-    // Check if coordinates are within grid bounds
-    bool isValid(int r, int c) {
-        return r >= 0 && r < n && c >= 0 && c < m;
-    }
+        // Clockwise order: NE -> SE -> SW -> NW
+        const int D = 4;
+        int dx[D] = {-1,  1,  1, -1};
+        int dy[D] = { 1,  1, -1, -1};
 
-    int dfs(vector<vector<int>>& grid, int r, int c, int dir, int turned) {
-        if (memo[r][c][dir][turned] != -1) {
-            return memo[r][c][dir][turned];
-        }
+        int N = n * m;
 
-        int currentVal = grid[r][c];
-        int targetNext = (currentVal == 2) ? 0 : 2;
-        
-        int maxLength = 0;
+        // dpFrom1: for each direction, store best odd/even length ending at cell.
+        vector<vector<int>> endOdd(D, vector<int>(N, 0));
+        vector<vector<int>> endEven(D, vector<int>(N, 0));
 
-        // Option 1: Continue in the same direction
-        int nr = r + dr[dir];
-        int nc = c + dc[dir];
-        
-        if (isValid(nr, nc) && grid[nr][nc] == targetNext) {
-            maxLength = max(maxLength, 1 + dfs(grid, nr, nc, dir, turned));
-        }
+        int ans = 0;
 
-        // Option 2: Turn 90 degrees clockwise (only if haven't turned yet)
-        if (turned == 0) {
-            int newDir = (dir + 1) % 4;
-            int tr = r + dr[newDir];
-            int tc = c + dc[newDir];
-            
-            if (isValid(tr, tc) && grid[tr][tc] == targetNext) {
-                maxLength = max(maxLength, 1 + dfs(grid, tr, tc, newDir, 1));
+        // Build dpFrom1 for each direction
+        for (int d = 0; d < D; d++) {
+            // To use prev = (i - dx, j - dy), we need prev row computed before.
+            // If dx==1 => prev row is i-1 => traverse i increasing.
+            // If dx==-1 => prev row is i+1 => traverse i decreasing.
+            int istart = (dx[d] == 1 ? 0 : n - 1);
+            int iend   = (dx[d] == 1 ? n : -1);
+            int istep  = (dx[d] == 1 ? 1 : -1);
+
+            for (int i = istart; i != iend; i += istep) {
+                for (int j = 0; j < m; j++) {
+                    int cur = id(i, j);
+                    int odd = 0, even = 0;
+                    int val = grid[i][j];
+
+                    if (val == 1) {
+                        odd = 1;
+                    }
+
+                    int pi = i - dx[d];
+                    int pj = j - dy[d];
+                    if (inside(pi, pj)) {
+                        int prev = id(pi, pj);
+                        int pOdd = endOdd[d][prev];
+                        int pEven = endEven[d][prev];
+                        if (val == 2 && pOdd > 0) {
+                            even = max(even, pOdd + 1);
+                        }
+                        if (val == 0 && pEven > 0) {
+                            odd = max(odd, pEven + 1);
+                        }
+                    }
+
+                    endOdd[d][cur] = odd;
+                    endEven[d][cur] = even;
+                    ans = max(ans, max(odd, even));
+                }
             }
         }
 
-        return memo[r][c][dir][turned] = maxLength;
-    }
+        // altStart[d][t][cell]: longest alt 0/2 sequence along dir d starting at cell
+        // with expected value t (0->0, 1->2).
+        vector<vector<vector<int>>> altStart(D, vector<vector<int>>(2, vector<int>(N, 0)));
 
-    int lenOfVDiagonal(vector<vector<int>>& grid) {
-        n = grid.size();
-        m = grid[0].size();
-        
-        // Initialize memoization table with -1
-        // Using memset is faster/easier for C-style arrays
-        // Size: 505 * 505 * 4 * 2 * sizeof(int) is roughly 8MB, perfectly fine.
-        memset(memo, -1, sizeof(memo));
+        for (int d = 0; d < D; d++) {
+            // Transition uses next = (i + dx, j + dy). We need next computed before.
+            // If dx==1 => next row is i+1 => traverse i decreasing.
+            // If dx==-1 => next row is i-1 => traverse i increasing.
+            int istart = (dx[d] == 1 ? n - 1 : 0);
+            int iend   = (dx[d] == 1 ? -1 : n);
+            int istep  = (dx[d] == 1 ? -1 : 1);
 
-        int maxLen = 0;
+            for (int i = istart; i != iend; i += istep) {
+                for (int j = 0; j < m; j++) {
+                    int cur = id(i, j);
+                    int ni = i + dx[d];
+                    int nj = j + dy[d];
+                    int nxt = inside(ni, nj) ? id(ni, nj) : -1;
 
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < m; ++j) {
-                if (grid[i][j] == 1) {
-                    // A segment of length at least 1 exists.
-                    maxLen = max(maxLen, 1);
-                    
-                    // Try starting in all 4 diagonal directions looking for the next '2'
-                    for (int d = 0; d < 4; ++d) {
-                        int ni = i + dr[d];
-                        int nj = j + dc[d];
-                        
-                        if (isValid(ni, nj) && grid[ni][nj] == 2) {
-                            // Length is 1 (current '1') + 1 (next '2') + whatever follows
-                            maxLen = max(maxLen, 2 + dfs(grid, ni, nj, d, 0));
+                    for (int t = 0; t <= 1; t++) {
+                        int expected = (t == 0 ? 0 : 2);
+                        if (grid[i][j] != expected) {
+                            altStart[d][t][cur] = 0;
+                        } else {
+                            int add = 0;
+                            if (nxt != -1) add = altStart[d][1 - t][nxt];
+                            altStart[d][t][cur] = 1 + add;
                         }
                     }
                 }
             }
         }
 
-        return maxLen;
+        // Combine for V-shapes: first leg in d, second in clockwise(d)
+        for (int d = 0; d < D; d++) {
+            int d2 = (d + 1) % D;
+            int dx2 = dx[d2], dy2 = dy[d2];
+
+            for (int i = 0; i < n; i++) {
+                for (int j = 0; j < m; j++) {
+                    int cur = id(i, j);
+                    int ni = i + dx2;
+                    int nj = j + dy2;
+                    int nxt = inside(ni, nj) ? id(ni, nj) : -1;
+
+                    int Lodd = endOdd[d][cur];
+                    if (Lodd > 0) {
+                        // Next expected after odd length is 2
+                        int L2 = (nxt == -1 ? 0 : altStart[d2][1][nxt]);
+                        ans = max(ans, Lodd + L2);
+                    }
+
+                    int Leven = endEven[d][cur];
+                    if (Leven > 0) {
+                        // Next expected after even length is 0
+                        int L2 = (nxt == -1 ? 0 : altStart[d2][0][nxt]);
+                        ans = max(ans, Leven + L2);
+                    }
+                }
+            }
+        }
+
+        return ans;
     }
 };
-# @lc code=end
+// @lc code=end

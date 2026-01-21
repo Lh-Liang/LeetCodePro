@@ -1,86 +1,57 @@
-#
-# @lc app=leetcode id=3493 lang=cpp
-#
-# [3493] Properties Graph
-#
-
-# @lc code=start
-#include <vector>
-#include <algorithm>
-#include <numeric>
-#include <set>
-
+#include <bits/stdc++.h>
 using namespace std;
 
+/*
+ * @lc app=leetcode id=3493 lang=cpp
+ *
+ * [3493] Properties Graph
+ */
+
+// @lc code=start
 class Solution {
-public:
-    // Standard DSU implementation
     struct DSU {
-        vector<int> parent;
-        int count;
-        
-        DSU(int n) : count(n) {
-            parent.resize(n);
-            iota(parent.begin(), parent.end(), 0);
+        vector<int> p, r;
+        DSU(int n) : p(n), r(n, 0) {
+            iota(p.begin(), p.end(), 0);
         }
-        
         int find(int x) {
-            if (parent[x] != x) {
-                parent[x] = find(parent[x]);
-            }
-            return parent[x];
+            if (p[x] == x) return x;
+            return p[x] = find(p[x]);
         }
-        
-        void unite(int x, int y) {
-            int rootX = find(x);
-            int rootY = find(y);
-            if (rootX != rootY) {
-                parent[rootX] = rootY;
-                count--;
-            }
+        void unite(int a, int b) {
+            a = find(a); b = find(b);
+            if (a == b) return;
+            if (r[a] < r[b]) swap(a, b);
+            p[b] = a;
+            if (r[a] == r[b]) r[a]++;
         }
     };
 
+public:
     int numberOfComponents(vector<vector<int>>& properties, int k) {
-        int n = properties.size();
-        
-        // Preprocess: sort and unique each property list to handle "distinct integers"
-        // and make intersection checks efficient.
-        for (int i = 0; i < n; ++i) {
-            sort(properties[i].begin(), properties[i].end());
-            properties[i].erase(unique(properties[i].begin(), properties[i].end()), properties[i].end());
+        int n = (int)properties.size();
+        vector<bitset<101>> mask(n);
+
+        for (int i = 0; i < n; i++) {
+            for (int v : properties[i]) {
+                if (1 <= v && v <= 100) mask[i].set(v);
+            }
         }
-        
+
         DSU dsu(n);
-        
-        // Check every pair
-        for (int i = 0; i < n; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                // Calculate intersection size of two sorted unique vectors
-                int common = 0;
-                int idx1 = 0, idx2 = 0;
-                int size1 = properties[i].size();
-                int size2 = properties[j].size();
-                
-                while (idx1 < size1 && idx2 < size2) {
-                    if (properties[i][idx1] < properties[j][idx2]) {
-                        idx1++;
-                    } else if (properties[i][idx1] > properties[j][idx2]) {
-                        idx2++;
-                    } else {
-                        common++;
-                        idx1++;
-                        idx2++;
-                    }
-                }
-                
-                if (common >= k) {
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (((mask[i] & mask[j]).count()) >= (size_t)k) {
                     dsu.unite(i, j);
                 }
             }
         }
-        
-        return dsu.count;
+
+        int components = 0;
+        for (int i = 0; i < n; i++) {
+            if (dsu.find(i) == i) components++;
+        }
+        return components;
     }
 };
-# @lc code=end
+// @lc code=end

@@ -1,58 +1,42 @@
-#
-# @lc app=leetcode id=3488 lang=cpp
-#
-# [3488] Closest Equal Element Queries
-#
+#include <bits/stdc++.h>
+using namespace std;
 
-# @lc code=start
+// @lc code=start
 class Solution {
 public:
     vector<int> solveQueries(vector<int>& nums, vector<int>& queries) {
-        int n = nums.size();
-        // Map to store sorted indices for each number
-        unordered_map<int, vector<int>> positions;
+        int n = (int)nums.size();
+        unordered_map<int, vector<int>> pos;
+        pos.reserve(n * 2);
+
         for (int i = 0; i < n; ++i) {
-            positions[nums[i]].push_back(i);
+            pos[nums[i]].push_back(i);
         }
 
-        vector<int> result;
-        result.reserve(queries.size());
+        vector<int> best(n, -1);
+        for (auto &kv : pos) {
+            vector<int> &v = kv.second;
+            int m = (int)v.size();
+            if (m <= 1) continue;
 
-        for (int q : queries) {
-            int val = nums[q];
-            const vector<int>& pos = positions[val];
-            int k = pos.size();
+            for (int i = 0; i < m; ++i) {
+                int p = v[i];
+                int prev = v[(i - 1 + m) % m];
+                int nxt  = v[(i + 1) % m];
 
-            if (k <= 1) {
-                result.push_back(-1);
-                continue;
+                int d1 = abs(p - prev);
+                d1 = min(d1, n - d1);
+                int d2 = abs(p - nxt);
+                d2 = min(d2, n - d2);
+
+                best[p] = min(d1, d2);
             }
-
-            // Find the position of the current query index 'q' in the sorted list 'pos'
-            // Since 'q' is guaranteed to be in 'pos', lower_bound will find it.
-            auto it = lower_bound(pos.begin(), pos.end(), q);
-            int idx_in_pos = distance(pos.begin(), it);
-
-            // Identify the indices of the neighbors in the circular manner
-            int left_neighbor_idx_in_pos = (idx_in_pos - 1 + k) % k;
-            int right_neighbor_idx_in_pos = (idx_in_pos + 1) % k;
-
-            int left_target_idx = pos[left_neighbor_idx_in_pos];
-            int right_target_idx = pos[right_neighbor_idx_in_pos];
-
-            // Helper lambda to calculate circular distance
-            auto dist = [&](int i, int j) {
-                int d = abs(i - j);
-                return min(d, n - d);
-            };
-
-            int d1 = dist(q, left_target_idx);
-            int d2 = dist(q, right_target_idx);
-
-            result.push_back(min(d1, d2));
         }
 
-        return result;
+        vector<int> ans;
+        ans.reserve(queries.size());
+        for (int q : queries) ans.push_back(best[q]);
+        return ans;
     }
 };
-# @lc code=end
+// @lc code=end
