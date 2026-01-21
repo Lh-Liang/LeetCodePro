@@ -6,47 +6,47 @@
 
 # @lc code=start
 #include <deque>
-
 class FrontMiddleBackQueue {
-    std::deque<int> dq;
 public:
+    std::deque<int> q;
     FrontMiddleBackQueue() {
         
     }
     
     void pushFront(int val) {
-        dq.push_front(val);
+        q.push_front(val);
     }
     
     void pushMiddle(int val) {
-        size_t pos = dq.size() / 2;
-        dq.insert(dq.begin() + pos, val);
+        size_t n = q.size();
+        size_t idx = n / 2;
+        q.insert(q.begin() + idx, val);
     }
     
     void pushBack(int val) {
-        dq.push_back(val);
+        q.push_back(val);
     }
     
     int popFront() {
-        if (dq.empty()) return -1;
-        int val = dq.front();
-        dq.pop_front();
+        if (q.empty()) return -1;
+        int val = q.front();
+        q.pop_front();
         return val;
     }
     
     int popMiddle() {
-        if (dq.empty()) return -1;
-        size_t n = dq.size();
-        size_t pos = (n - 1) / 2;
-        int val = dq[pos];
-        dq.erase(dq.begin() + pos);
+        if (q.empty()) return -1;
+        size_t n = q.size();
+        size_t idx = (n - 1) / 2;
+        int val = q[idx];
+        q.erase(q.begin() + idx);
         return val;
     }
     
     int popBack() {
-        if (dq.empty()) return -1;
-        int val = dq.back();
-        dq.pop_back();
+        if (q.empty()) return -1;
+        int val = q.back();
+        q.pop_back();
         return val;
     }
 };

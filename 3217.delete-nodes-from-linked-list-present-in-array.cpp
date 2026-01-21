@@ -1,7 +1,11 @@
-#include <bits/stdc++.h>
-using namespace std;
+#
+# @lc app=leetcode id=3217 lang=cpp
+#
+# [3217] Delete Nodes From Linked List Present in Array
+#
 
-/*
+# @lc code=start
+/**
  * Definition for singly-linked list.
  * struct ListNode {
  *     int val;
@@ -14,25 +18,16 @@ using namespace std;
 class Solution {
 public:
     ListNode* modifiedList(vector<int>& nums, ListNode* head) {
-        // Values are within [1, 1e5]
-        vector<char> del(100001, 0);
-        for (int x : nums) del[x] = 1;
-
-        ListNode dummy(0, head);
-        ListNode* prev = &dummy;
-        ListNode* cur = head;
-
-        while (cur) {
-            if (del[cur->val]) {
-                prev->next = cur->next;
-                ListNode* toDelete = cur;
-                cur = cur->next;
-                delete toDelete; // optional
+        unordered_set<int> s(nums.begin(), nums.end());
+        ListNode** cur = &head;
+        while (*cur) {
+            if (s.count((*cur)->val)) {
+                *cur = (*cur)->next;
             } else {
-                prev = cur;
-                cur = cur->next;
+                cur = &((*cur)->next);
             }
         }
-        return dummy.next;
+        return head;
     }
 };
+# @lc code=end
