@@ -8,58 +8,50 @@
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-        
-        def check(limit):
-            if limit == 1:
-                # Special case for limit = 1: target is alternating string
-                # Pattern 1: 010101...
-                # Pattern 2: 101010...
-                ops1 = 0
-                ops2 = 0
-                for i, char in enumerate(s):
-                    # Expected for pattern 1: '0' if i even, '1' if i odd
-                    expected1 = '0' if i % 2 == 0 else '1'
-                    if char != expected1:
-                        ops1 += 1
-                    
-                    # Expected for pattern 2: '1' if i even, '0' if i odd
-                    expected2 = '1' if i % 2 == 0 else '0'
-                    if char != expected2:
-                        ops2 += 1
-                return min(ops1, ops2) <= numOps
-            
-            # General case for limit > 1
-            ops = 0
-            current_len = 0
-            last_char = ''
-            
-            for i, char in enumerate(s):
-                if char == last_char:
-                    current_len += 1
-                else:
-                    # Process the previous segment
-                    if current_len > 0:
-                        ops += current_len // (limit + 1)
-                    current_len = 1
-                    last_char = char
-            
-            # Process the last segment
-            if current_len > 0:
-                ops += current_len // (limit + 1)
-                
-            return ops <= numOps
 
-        left, right = 1, n
+        # Pre-calculate blocks of identical characters
+        blocks = []
+        if n > 0:
+            count = 1
+            for i in range(1, n):
+                if s[i] == s[i - 1]:
+                    count += 1
+                else:
+                    blocks.append(count)
+                    count = 1
+            blocks.append(count)
+
+        def check(L):
+            if L == 1:
+                # For L=1, the string must become alternating.
+                # Option 1: 010101...
+                # Option 2: 101010...
+                ops1 = 0
+                for i in range(n):
+                    expected = '0' if i % 2 == 0 else '1'
+                    if s[i] != expected:
+                        ops1 += 1
+                ops2 = n - ops1
+                return min(ops1, ops2) <= numOps
+            else:
+                # For L > 1, use the block formula: sum of floor(len / (L+1))
+                total_ops = 0
+                for b in blocks:
+                    total_ops += b // (L + 1)
+                return total_ops <= numOps
+
+        # Binary search for the minimum max length L
+        low = 1
+        high = n
         ans = n
-        
-        while left <= right:
-            mid = (left + right) // 2
+        while low <= high:
+            mid = (low + high) // 2
             if check(mid):
                 ans = mid
-                right = mid - 1
+                high = mid - 1
             else:
-                left = mid + 1
-                
+                low = mid + 1
+        
         return ans
 
 # @lc code=end
