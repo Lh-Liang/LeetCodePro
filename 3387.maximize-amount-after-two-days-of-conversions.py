@@ -5,56 +5,51 @@
 #
 
 # @lc code=start
-from collections import defaultdict, deque
+import collections
 from typing import List
 
 class Solution:
     def maxAmount(self, initialCurrency: str, pairs1: List[List[str]], rates1: List[float], pairs2: List[List[str]], rates2: List[float]) -> float:
-        
-        def get_reachable_rates(pairs: List[List[str]], rates: List[float], start_node: str):
-            adj = defaultdict(list)
-            for (u, v), r in zip(pairs, rates):
+        def get_reachable_rates(start_currency: str, pairs: List[List[str]], rates: List[float]) -> dict:
+            # Build an adjacency list representing the conversion graph for the day
+            adj = collections.defaultdict(list)
+            for i in range(len(pairs)):
+                u, v = pairs[i]
+                r = rates[i]
                 adj[u].append((v, r))
                 adj[v].append((u, 1.0 / r))
             
-            rates_map = {}
-            rates_map[start_node] = 1.0
-            queue = deque([start_node])
-            
+            # Use BFS to find the conversion rate from start_currency to all reachable currencies
+            # Since there are no contradictions, the first time we visit a node, we find the unique rate.
+            rates_from_start = {start_currency: 1.0}
+            queue = collections.deque([start_currency])
             while queue:
-                curr = queue.popleft()
-                curr_rate = rates_map[curr]
-                
-                for neighbor, rate in adj[curr]:
-                    if neighbor not in rates_map:
-                        rates_map[neighbor] = curr_rate * rate
-                        queue.append(neighbor)
-            return rates_map
+                u = queue.popleft()
+                for v, r in adj[u]:
+                    if v not in rates_from_start:
+                        rates_from_start[v] = rates_from_start[u] * r
+                        queue.append(v)
+            return rates_from_start
 
-        # Calculate rates on Day 1 starting from initialCurrency
-        # rates_day1[C] will be the amount of currency C we get for 1 unit of initialCurrency
-        rates_day1 = get_reachable_rates(pairs1, rates1, initialCurrency)
+        # Step 1: Calculate the amount of every possible currency we can have after Day 1.
+        # dist1[C] is the amount of currency C we have per 1.0 unit of initialCurrency.
+        dist1 = get_reachable_rates(initialCurrency, pairs1, rates1)
         
-        # Calculate rates on Day 2 starting from initialCurrency
-        # rates_day2[C] will be the amount of currency C we get for 1 unit of initialCurrency
-        # Consequently, 1 unit of C converts back to (1 / rates_day2[C]) units of initialCurrency
-        rates_day2 = get_reachable_rates(pairs2, rates2, initialCurrency)
+        # Step 2: Calculate the conversion rates from initialCurrency to others on Day 2.
+        # dist2[C] is the amount of currency C we get per 1.0 unit of initialCurrency on Day 2.
+        # The rate to convert C back to initialCurrency is therefore 1.0 / dist2[C].
+        dist2 = get_reachable_rates(initialCurrency, pairs2, rates2)
+
+        # Step 3: Maximize the final amount of initialCurrency.
+        # We can always choose to do nothing and keep 1.0 unit of initialCurrency.
+        max_amt = 1.0
+        for currency, amount_after_day1 in dist1.items():
+            # If we can convert this currency back to initialCurrency on Day 2
+            if currency in dist2:
+                # Final amount = (amount of currency C) * (rate C -> initialCurrency on Day 2)
+                final_amount = amount_after_day1 / dist2[currency]
+                if final_amount > max_amt:
+                    max_amt = final_amount
         
-        max_val = 0.0
-        
-        # Iterate over all currencies reachable on Day 1
-        for currency, amount_day1 in rates_day1.items():
-            # Check if this currency can be converted back to initialCurrency on Day 2
-            # This implies it must be reachable from initialCurrency in the Day 2 graph
-            if currency in rates_day2:
-                rate_day2 = rates_day2[currency]
-                # Calculate the final amount after converting back
-                # amount_day1 is (initial -> currency)
-                # rate_day2 is (initial -> currency) on day 2
-                # The reverse conversion (currency -> initial) is 1 / rate_day2
-                final_amount = amount_day1 / rate_day2
-                if final_amount > max_val:
-                    max_val = final_amount
-                    
-        return max_val
+        return max_amt
 # @lc code=end
