@@ -1,32 +1,39 @@
-#include <bits/stdc++.h>
+#
+# @lc app=leetcode id=3779 lang=cpp
+#
+# [3779] Minimum Number of Operations to Have Distinct Elements
+#
+
+# @lc code=start
+#include <vector>
+#include <algorithm>
 using namespace std;
 
-/*
- * @lc app=leetcode id=3779 lang=cpp
- *
- * [3779] Minimum Number of Operations to Have Distinct Elements
- */
-
-// @lc code=start
 class Solution {
 public:
     int minOperations(vector<int>& nums) {
-        int n = (int)nums.size();
-        // nums[i] <= 1e5 per constraints
-        static const int MAXV = 100000;
-        vector<char> seen(MAXV + 1, 0);
-
-        int t = 0; // earliest index from which suffix can be all distinct
-        for (int i = n - 1; i >= 0; --i) {
-            int x = nums[i];
-            if (seen[x]) {
-                t = max(t, i + 1);
-            } else {
-                seen[x] = 1;
+        int n = nums.size();
+        vector<int> prev(n, -1);
+        vector<int> last_pos(100010, -1);
+        for (int i = 0; i < n; ++i) {
+            int val = nums[i];
+            if (last_pos[val] != -1) {
+                prev[i] = last_pos[val];
             }
+            last_pos[val] = i;
         }
-
-        return (t + 2) / 3; // ceil(t/3)
+        vector<int> max_prev(n + 1, -1);
+        for (int j = n - 1; j >= 0; --j) {
+            max_prev[j] = max(prev[j], max_prev[j + 1]);
+        }
+        int k = 0;
+        while (true) {
+            int s = min(3 * k, n);
+            if (s == n || max_prev[s] < s) {
+                return k;
+            }
+            ++k;
+        }
     }
 };
-// @lc code=end
+# @lc code=end

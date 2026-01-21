@@ -1,62 +1,42 @@
-#include <bits/stdc++.h>
-using namespace std;
+#
+# @lc app=leetcode id=3776 lang=cpp
+#
+# [3776] Minimum Moves to Balance Circular Array
+#
 
-#// @lc app=leetcode id=3776 lang=cpp
-#//
-#// [3776] Minimum Moves to Balance Circular Array
-#//
-
-#// @lc code=start
+# @lc code=start
 class Solution {
 public:
     long long minMoves(vector<int>& balance) {
-        int n = (int)balance.size();
-        if (n == 1) return balance[0] >= 0 ? 0LL : -1LL;
-
-        int negIdx = -1;
-        for (int i = 0; i < n; i++) {
+        int n = balance.size();
+        int k = -1;
+        long long total = 0;
+        long long deficit = 0;
+        for (int i = 0; i < n; ++i) {
+            total += balance[i];
             if (balance[i] < 0) {
-                if (negIdx != -1) return -1; // safety (though problem says at most one)
-                negIdx = i;
+                k = i;
+                deficit = - (long long)balance[i];
             }
         }
-        if (negIdx == -1) return 0LL;
-
-        long long total = 0;
-        for (int x : balance) total += (long long)x;
-        if (total < 0) return -1LL;
-
-        long long deficit = -(long long)balance[negIdx];
-        vector<pair<int,long long>> sources; // (distance to negIdx, supply)
-        sources.reserve(n - 1);
-
-        for (int i = 0; i < n; i++) {
-            if (i == negIdx) continue;
-            long long supply = (long long)balance[i];
-            if (supply <= 0) continue;
-            int cw = (i - negIdx + n) % n;
-            int ccw = (negIdx - i + n) % n;
-            int d = min(cw, ccw);
-            sources.push_back({d, supply});
+        if (k == -1) return 0;
+        if (total < 0) return -1;
+        vector<long long> cap(n + 1, 0LL);
+        for (int i = 0; i < n; ++i) {
+            if (i == k) continue;
+            int diff = abs(i - k);
+            int d = min(diff, n - diff);
+            cap[d] += (long long)balance[i];
         }
-
-        sort(sources.begin(), sources.end(), [](const auto& a, const auto& b){
-            return a.first < b.first;
-        });
-
-        long long moves = 0;
-        long long need = deficit;
-        for (auto &p : sources) {
-            if (need == 0) break;
-            int d = p.first;
-            long long can = p.second;
-            long long take = min(need, can);
-            moves += take * (long long)d;
-            need -= take;
+        long long ans = 0;
+        long long rem = deficit;
+        for (int d = 1; d < n; ++d) {
+            if (cap[d] == 0 || rem == 0) continue;
+            long long take = min(rem, cap[d]);
+            ans += take * d;
+            rem -= take;
         }
-
-        // If total >= 0 and only one negative exists, need must be 0.
-        return need == 0 ? moves : -1LL;
+        return ans;
     }
 };
-#// @lc code=end
+# @lc code=end

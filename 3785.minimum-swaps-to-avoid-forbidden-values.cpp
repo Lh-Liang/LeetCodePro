@@ -1,51 +1,42 @@
-#include <bits/stdc++.h>
-using namespace std;
-
-/*
- * @lc app=leetcode id=3785 lang=cpp
- *
- * [3785] Minimum Swaps to Avoid Forbidden Values
- */
-
-// @lc code=start
+#
+# @lc app=leetcode id=3785 lang=cpp
+#
+# [3785] Minimum Swaps to Avoid Forbidden Values
+#
+# @lc code=start
 class Solution {
 public:
     int minSwaps(vector<int>& nums, vector<int>& forbidden) {
-        int n = (int)nums.size();
-
-        unordered_map<long long, int> cntNums, cntForb, badCnt;
-        cntNums.reserve(n * 2);
-        cntForb.reserve(n * 2);
-        badCnt.reserve(n * 2);
-
-        int m = 0;      // number of bad indices
-        int mx = 0;     // maximum bad count for any value
-
-        for (int i = 0; i < n; i++) {
-            long long a = nums[i];
-            long long b = forbidden[i];
-            cntNums[a]++;
-            cntForb[b]++;
-            if (a == b) {
-                m++;
-                int cur = ++badCnt[a];
-                if (cur > mx) mx = cur;
+        int n = nums.size();
+        unordered_map<int, int> num_count;
+        unordered_map<int, int> t_count;
+        unordered_map<int, int> conflict_count;
+        int total_bad = 0;
+        int max_conflict = 0;
+        for (int i = 0; i < n; ++i) {
+            num_count[nums[i]]++;
+            t_count[forbidden[i]]++;
+            if (nums[i] == forbidden[i]) {
+                total_bad++;
+                conflict_count[nums[i]]++;
             }
         }
-
-        // Feasibility check: for every value v, occurrences of v must fit into allowed positions.
-        for (auto &p : cntNums) {
-            long long v = p.first;
-            int c = p.second;
-            int forb = 0;
-            auto it = cntForb.find(v);
-            if (it != cntForb.end()) forb = it->second;
-            if (c > n - forb) return -1;
+        for (auto& p : t_count) {
+            int v = p.first;
+            int tv = p.second;
+            int cv = num_count[v];
+            if (tv > n - cv) {
+                return -1;
+            }
         }
-
-        if (m == 0) return 0;
-        int ans = max((m + 1) / 2, mx);
-        return ans;
+        for (auto& p : conflict_count) {
+            max_conflict = max(max_conflict, p.second);
+        }
+        if (total_bad == 0) {
+            return 0;
+        }
+        int mm = min(total_bad / 2, total_bad - max_conflict);
+        return total_bad - mm;
     }
 };
-// @lc code=end
+# @lc code=end
