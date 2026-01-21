@@ -8,86 +8,94 @@ using namespace std;
 
 // @lc code=start
 class Solution {
-    struct RH {
-        long long mod, base;
-        vector<long long> pwr, pref;
-
-        RH(long long mod_, long long base_, const string &t) : mod(mod_), base(base_) {
-            int n = (int)t.size();
-            pwr.assign(n + 1, 1);
-            pref.assign(n + 1, 0);
-            for (int i = 0; i < n; i++) {
-                pwr[i + 1] = (long long)((__int128)pwr[i] * base % mod);
-                long long v = (t[i] - 'a' + 1);
-                pref[i + 1] = (long long)((((__int128)pref[i] * base) + v) % mod);
-            }
-        }
-
-        long long get(int l, int r) const { // inclusive
-            long long res = (pref[r + 1] - (long long)((__int128)pref[l] * pwr[r - l + 1] % mod)) % mod;
-            if (res < 0) res += mod;
-            return res;
-        }
-    };
-
 public:
+    static constexpr int MOD1 = 1000000007;
+    static constexpr int MOD2 = 1000000009;
+    static constexpr int BASE = 911382323; // < both MODs
+
+    static inline int addmod(long long a, int mod) {
+        a %= mod;
+        if (a < 0) a += mod;
+        return (int)a;
+    }
+
+    pair<int,int> getHash(const vector<int>& pref1, const vector<int>& pref2,
+                          const vector<int>& pow1, const vector<int>& pow2,
+                          int l, int r) {
+        // inclusive [l, r]
+        long long x1 = pref1[r+1] - (long long)pref1[l] * pow1[r-l+1];
+        long long x2 = pref2[r+1] - (long long)pref2[l] * pow2[r-l+1];
+        return {addmod(x1, MOD1), addmod(x2, MOD2)};
+    }
+
     vector<bool> findAnswer(vector<int>& parent, string s) {
         int n = (int)parent.size();
         vector<vector<int>> children(n);
-        for (int i = 1; i < n; i++) children[parent[i]].push_back(i);
-        for (int i = 0; i < n; i++) sort(children[i].begin(), children[i].end());
+        for (int i = 1; i < n; i++) {
+            children[parent[i]].push_back(i);
+        }
+        // children lists are already in increasing order because i increases.
 
-        // Iterative postorder DFS from root=0.
-        vector<int> sub(n, 0), tout(n, -1);
-        vector<int> order; order.reserve(n);
-
-        struct Frame { int x; int idx; };
-        vector<Frame> st;
+        // Iterative postorder traversal from root 0.
+        vector<int> it(n, 0);
+        vector<int> st;
         st.reserve(n);
-        st.push_back({0, 0});
-        sub[0] = 1;
+        st.push_back(0);
+
+        vector<int> sz(n, 0), L(n, 0), R(n, 0);
+        string post;
+        post.reserve(n);
 
         while (!st.empty()) {
-            auto &f = st.back();
-            int x = f.x;
-            if (f.idx < (int)children[x].size()) {
-                int y = children[x][f.idx++];
-                st.push_back({y, 0});
-                sub[y] = 1;
+            int x = st.back();
+            if (it[x] < (int)children[x].size()) {
+                int y = children[x][it[x]++];
+                st.push_back(y);
             } else {
                 st.pop_back();
-                tout[x] = (int)order.size();
-                order.push_back(x);
-                if (!st.empty()) {
-                    sub[st.back().x] += sub[x];
-                }
+
+                int pos = (int)post.size();
+                post.push_back(s[x]);
+
+                int subtotal = 1;
+                for (int y : children[x]) subtotal += sz[y];
+                sz[x] = subtotal;
+
+                R[x] = pos;
+                L[x] = pos - sz[x] + 1;
             }
         }
 
-        // Build postorder string T
-        string T; T.resize(n);
-        for (int i = 0; i < n; i++) T[i] = s[order[i]];
-        string R = T;
-        reverse(R.begin(), R.end());
+        // Build rolling hashes for post and reversed(post)
+        string rev = post;
+        reverse(rev.begin(), rev.end());
 
-        const long long MOD1 = 1000000007LL;
-        const long long MOD2 = 1000000009LL;
-        const long long BASE = 911382323LL;
+        vector<int> pow1(n+1, 1), pow2(n+1, 1);
+        for (int i = 1; i <= n; i++) {
+            pow1[i] = (long long)pow1[i-1] * BASE % MOD1;
+            pow2[i] = (long long)pow2[i-1] * BASE % MOD2;
+        }
 
-        RH h1(MOD1, BASE, T), h2(MOD2, BASE, T);
-        RH rh1(MOD1, BASE, R), rh2(MOD2, BASE, R);
+        vector<int> pref1(n+1, 0), pref2(n+1, 0);
+        vector<int> rpref1(n+1, 0), rpref2(n+1, 0);
+        for (int i = 0; i < n; i++) {
+            int v1 = (post[i] - 'a' + 1);
+            pref1[i+1] = ((long long)pref1[i] * BASE + v1) % MOD1;
+            pref2[i+1] = ((long long)pref2[i] * BASE + v1) % MOD2;
+
+            int v2 = (rev[i] - 'a' + 1);
+            rpref1[i+1] = ((long long)rpref1[i] * BASE + v2) % MOD1;
+            rpref2[i+1] = ((long long)rpref2[i] * BASE + v2) % MOD2;
+        }
 
         vector<bool> ans(n, false);
         for (int i = 0; i < n; i++) {
-            int r = tout[i];
-            int len = sub[i];
-            int l = r - len + 1;
-
+            int l = L[i], r = R[i];
+            auto hF = getHash(pref1, pref2, pow1, pow2, l, r);
             int rl = n - 1 - r;
             int rr = n - 1 - l;
-
-            bool ok = (h1.get(l, r) == rh1.get(rl, rr)) && (h2.get(l, r) == rh2.get(rl, rr));
-            ans[i] = ok;
+            auto hR = getHash(rpref1, rpref2, pow1, pow2, rl, rr);
+            ans[i] = (hF == hR);
         }
         return ans;
     }
