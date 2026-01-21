@@ -1,133 +1,122 @@
-#include <vector>
-#include <numeric>
-#include <algorithm>
-#include <cstdlib>
-
+#
+# @lc app=leetcode id=3625 lang=cpp
+#
+# [3625] Count Number of Trapezoids II
+#
+#include <bits/stdc++.h>
 using namespace std;
 
+# @lc code=start
 class Solution {
 public:
-    int gcd(int a, int b) {
-        return b == 0 ? a : gcd(b, a % b);
-    }
-
-    struct Segment {
+    struct SegEntry {
         int dx, dy;
-        long long c;
-        
-        bool operator<(const Segment& other) const {
+        long long k;
+        bool operator<(SegEntry const& other) const {
             if (dx != other.dx) return dx < other.dx;
             if (dy != other.dy) return dy < other.dy;
-            return c < other.c;
+            return k < other.k;
         }
     };
 
-    struct MidPair {
-        long long mx, my;
+    struct MidEntry {
+        int mx, my;
         int dx, dy;
-
-        bool operator<(const MidPair& other) const {
-            if (mx != other.mx) return mx < other.mx;
-            if (my != other.my) return my < other.my;
-            if (dx != other.dx) return dx < other.dx;
-            return dy < other.dy;
+        bool operator<(MidEntry const& o) const {
+            if (mx != o.mx) return mx < o.mx;
+            if (my != o.my) return my < o.my;
+            if (dx != o.dx) return dx < o.dx;
+            return dy < o.dy;
         }
     };
+
+    static pair<int,int> normDir(int dx, int dy) {
+        if (dx == 0) {
+            dy = 1;
+        } else if (dy == 0) {
+            dx = 1;
+        } else {
+            int g = std::gcd(abs(dx), abs(dy));
+            dx /= g;
+            dy /= g;
+        }
+        if (dx < 0 || (dx == 0 && dy < 0)) {
+            dx = -dx;
+            dy = -dy;
+        }
+        return {dx, dy};
+    }
 
     int countTrapezoids(vector<vector<int>>& points) {
-        int n = points.size();
-        if (n < 4) return 0;
+        int n = (int)points.size();
+        long long m = 1LL * n * (n - 1) / 2;
+        vector<SegEntry> segs;
+        vector<MidEntry> mids;
+        segs.reserve(m);
+        mids.reserve(m);
 
-        vector<Segment> segments;
-        segments.reserve(n * (n - 1) / 2);
-        
-        vector<MidPair> midPairs;
-        midPairs.reserve(n * (n - 1) / 2);
+        for (int i = 0; i < n; i++) {
+            int xi = points[i][0], yi = points[i][1];
+            for (int j = i + 1; j < n; j++) {
+                int xj = points[j][0], yj = points[j][1];
+                int dx = xj - xi;
+                int dy = yj - yi;
+                auto [ndx, ndy] = normDir(dx, dy);
 
-        for (int i = 0; i < n; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                int dx = points[j][0] - points[i][0];
-                int dy = points[j][1] - points[i][1];
-                
-                int g = gcd(abs(dx), abs(dy));
-                dx /= g;
-                dy /= g;
-                
-                if (dx < 0 || (dx == 0 && dy < 0)) {
-                    dx = -dx;
-                    dy = -dy;
-                }
+                long long k = 1LL * ndy * xi - 1LL * ndx * yi;
+                segs.push_back({ndx, ndy, k});
 
-                long long c = (long long)dx * points[i][1] - (long long)dy * points[i][0];
-                segments.push_back({dx, dy, c});
-
-                long long mx = points[i][0] + points[j][0];
-                long long my = points[i][1] + points[j][1];
-                midPairs.push_back({mx, my, dx, dy});
+                int mx = xi + xj;
+                int my = yi + yj;
+                mids.push_back({mx, my, ndx, ndy});
             }
         }
 
-        sort(segments.begin(), segments.end());
-        sort(midPairs.begin(), midPairs.end());
-
-        long long total_count = 0;
-        
-        // Step 2: Count trapezoids based on parallel sides
-        int m = segments.size();
-        for (int i = 0; i < m; ) {
-            int j = i;
-            // Identify range with same slope
-            while (j < m && segments[j].dx == segments[i].dx && segments[j].dy == segments[i].dy) {
-                j++;
-            }
-            
-            // Inside this range, group by line constant c
-            long long sum_cnt = 0;
-            long long sum_sq_cnt = 0;
-            
-            for (int k = i; k < j; ) {
-                int l = k;
-                while (l < j && segments[l].c == segments[k].c) {
-                    l++;
+        // Step 2+3: sum over directions of sum_{lines i<j} seg_i * seg_j
+        sort(segs.begin(), segs.end());
+        long long totalByDirections = 0;
+        int i = 0;
+        while (i < (int)segs.size()) {
+            int dx = segs[i].dx, dy = segs[i].dy;
+            long long S = 0, sumsq = 0;
+            while (i < (int)segs.size() && segs[i].dx == dx && segs[i].dy == dy) {
+                long long k = segs[i].k;
+                long long cnt = 0;
+                while (i < (int)segs.size() && segs[i].dx == dx && segs[i].dy == dy && segs[i].k == k) {
+                    cnt++;
+                    i++;
                 }
-                long long cnt = l - k;
-                sum_cnt += cnt;
-                sum_sq_cnt += cnt * cnt;
-                k = l;
+                S += cnt;
+                sumsq += cnt * cnt;
             }
-            
-            total_count += (sum_cnt * sum_cnt - sum_sq_cnt) / 2;
-            i = j;
+            totalByDirections += (S * S - sumsq) / 2;
         }
 
+        // Step 5: count non-degenerate parallelograms
+        sort(mids.begin(), mids.end());
         long long parallelograms = 0;
-        
-        // Step 3: Count parallelograms
-        for (int i = 0; i < m; ) {
-            int j = i;
-            // Identify range with same midpoint
-            while (j < m && midPairs[j].mx == midPairs[i].mx && midPairs[j].my == midPairs[i].my) {
-                j++;
-            }
-            
-            long long total_pairs = j - i;
-            if (total_pairs >= 2) {
-                long long bad_combos = 0;
-                for (int k = i; k < j; ) {
-                    int l = k;
-                    while (l < j && midPairs[l].dx == midPairs[k].dx && midPairs[l].dy == midPairs[k].dy) {
-                        l++;
-                    }
-                    long long cnt = l - k;
-                    bad_combos += cnt * (cnt - 1) / 2;
-                    k = l;
+        int p = 0;
+        while (p < (int)mids.size()) {
+            int mx = mids[p].mx, my = mids[p].my;
+            long long total = 0;
+            long long degenerate = 0;
+            while (p < (int)mids.size() && mids[p].mx == mx && mids[p].my == my) {
+                int dx = mids[p].dx, dy = mids[p].dy;
+                long long cntDir = 0;
+                while (p < (int)mids.size() && mids[p].mx == mx && mids[p].my == my &&
+                       mids[p].dx == dx && mids[p].dy == dy) {
+                    cntDir++;
+                    p++;
                 }
-                parallelograms += total_pairs * (total_pairs - 1) / 2 - bad_combos;
+                degenerate += cntDir * (cntDir - 1) / 2;
+                total += cntDir;
             }
-            
-            i = j;
+            parallelograms += total * (total - 1) / 2 - degenerate;
         }
 
-        return (int)(total_count - parallelograms);
+        long long ans = totalByDirections - parallelograms;
+        // LeetCode's template uses int; cast at the end.
+        return (int)ans;
     }
 };
+# @lc code=end

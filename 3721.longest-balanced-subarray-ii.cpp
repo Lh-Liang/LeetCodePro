@@ -3,123 +3,135 @@
 #
 # [3721] Longest Balanced Subarray II
 #
-
-# @lc code=start
-#include <vector>
-#include <algorithm>
-#include <map>
-
+#include <bits/stdc++.h>
 using namespace std;
 
-class SegmentTree {
-    int n;
-    vector<int> min_val;
-    vector<int> max_val;
-    vector<int> lazy;
-
-public:
-    SegmentTree(int size) {
-        n = size;
-        min_val.resize(4 * n, 0);
-        max_val.resize(4 * n, 0);
-        lazy.resize(4 * n, 0);
-    }
-
-    void push(int node) {
-        if (lazy[node] != 0) {
-            lazy[2 * node] += lazy[node];
-            min_val[2 * node] += lazy[node];
-            max_val[2 * node] += lazy[node];
-
-            lazy[2 * node + 1] += lazy[node];
-            min_val[2 * node + 1] += lazy[node];
-            max_val[2 * node + 1] += lazy[node];
-
-            lazy[node] = 0;
-        }
-    }
-
-    void update(int node, int start, int end, int l, int r, int val) {
-        if (l > end || r < start) return;
-        if (l <= start && end <= r) {
-            lazy[node] += val;
-            min_val[node] += val;
-            max_val[node] += val;
-            return;
-        }
-        push(node);
-        int mid = (start + end) / 2;
-        update(2 * node, start, mid, l, r, val);
-        update(2 * node + 1, mid + 1, end, l, r, val);
-        min_val[node] = min(min_val[2 * node], min_val[2 * node + 1]);
-        max_val[node] = max(max_val[2 * node], max_val[2 * node + 1]);
-    }
-
-    // Find the leftmost index in [qL, qR] that has value 0
-    int findFirstZero(int node, int start, int end, int qL, int qR) {
-        if (start > qR || end < qL) return -1;
-        
-        // Optimization: if 0 is not in the range of values for this node, return -1
-        if (min_val[node] > 0 || max_val[node] < 0) return -1;
-
-        if (start == end) {
-            return (min_val[node] == 0) ? start : -1;
-        }
-
-        push(node);
-        int mid = (start + end) / 2;
-        int res = findFirstZero(2 * node, start, mid, qL, qR);
-        if (res != -1) return res;
-        return findFirstZero(2 * node + 1, mid + 1, end, qL, qR);
-    }
-
-    void updateRange(int l, int r, int val) {
-        if (l > r) return;
-        update(1, 0, n - 1, l, r, val);
-    }
-
-    int queryLeftmostZero(int l, int r) {
-        if (l > r) return -1;
-        return findFirstZero(1, 0, n - 1, l, r);
-    }
-};
-
+# @lc code=start
 class Solution {
+    struct Node {
+        int sum;      // total sum in segment
+        int minPref;  // min prefix sum over non-empty prefixes
+        int maxPref;  // max prefix sum over non-empty prefixes
+    };
+
+    struct SegTree {
+        int n;
+        vector<Node> st;
+
+        SegTree(int n_) : n(n_), st(4 * n_ + 4) {
+            build(1, 1, n);
+        }
+
+        static Node mergeNode(const Node &L, const Node &R) {
+            Node res;
+            res.sum = L.sum + R.sum;
+            // prefixes either fully in L, or span L and into R
+            res.minPref = min(L.minPref, L.sum + R.minPref);
+            res.maxPref = max(L.maxPref, L.sum + R.maxPref);
+            return res;
+        }
+
+        void build(int p, int l, int r) {
+            if (l == r) {
+                st[p] = {0, 0, 0};
+                return;
+            }
+            int m = (l + r) >> 1;
+            build(p << 1, l, m);
+            build(p << 1 | 1, m + 1, r);
+            st[p] = mergeNode(st[p << 1], st[p << 1 | 1]);
+        }
+
+        void update(int idx, int val) { update(1, 1, n, idx, val); }
+
+        void update(int p, int l, int r, int idx, int val) {
+            if (l == r) {
+                st[p] = {val, val, val};
+                return;
+            }
+            int m = (l + r) >> 1;
+            if (idx <= m) update(p << 1, l, m, idx, val);
+            else update(p << 1 | 1, m + 1, r, idx, val);
+            st[p] = mergeNode(st[p << 1], st[p << 1 | 1]);
+        }
+
+        // Find the smallest index pos in [1..limit] such that prefixSum(pos) == target.
+        // Returns INF if not found.
+        int findFirst(int limit, int target) {
+            if (limit <= 0) return (int)1e9;
+            return findFirst(1, 1, n, 0LL, limit, target);
+        }
+
+        int findFirst(int p, int l, int r, long long pre, int limit, int target) {
+            if (l > limit) return (int)1e9;
+
+            if (r <= limit) {
+                long long lo = pre + st[p].minPref;
+                long long hi = pre + st[p].maxPref;
+                if (target < lo || target > hi) return (int)1e9;
+                if (l == r) {
+                    // only non-empty prefix is the leaf itself
+                    return l;
+                }
+                int m = (l + r) >> 1;
+                int lc = p << 1, rc = p << 1 | 1;
+                long long llo = pre + st[lc].minPref;
+                long long lhi = pre + st[lc].maxPref;
+                if (target >= llo && target <= lhi) {
+                    return findFirst(lc, l, m, pre, limit, target);
+                }
+                return findFirst(rc, m + 1, r, pre + st[lc].sum, limit, target);
+            }
+
+            int m = (l + r) >> 1;
+            int lc = p << 1, rc = p << 1 | 1;
+            int leftRes = findFirst(lc, l, m, pre, limit, target);
+            if (leftRes != (int)1e9) return leftRes;
+            return findFirst(rc, m + 1, r, pre + st[lc].sum, limit, target);
+        }
+    };
+
 public:
     int longestBalanced(vector<int>& nums) {
-        int n = nums.size();
-        // The segment tree covers indices 0 to n. 
-        // Index i in segment tree corresponds to subarrays starting at i.
-        // We need size n + 1 because we conceptually might query up to n (though loop goes to n-1, range updates use arrays).
-        // Actually, for a current ending j, valid start indices are 0..j.
-        // So size n is sufficient for indices 0..n-1.
-        // BUT, we need to handle the update logic carefully.
-        
-        SegmentTree st(n);
-        vector<int> last_pos(100005, -1);
-        int max_len = 0;
+        int n = (int)nums.size();
+        SegTree seg(n);
 
-        for (int j = 0; j < n; ++j) {
-            int val = nums[j];
-            int prev = last_pos[val];
-            
-            // Determine if we add 1 or subtract 1
-            int delta = (val % 2 != 0) ? -1 : 1;
-            
-            // Update range (prev + 1, j)
-            st.updateRange(prev + 1, j, delta);
-            
-            // Find the smallest index k in [0, j] such that value is 0
-            int k = st.queryLeftmostZero(0, j);
-            
-            if (k != -1) {
-                max_len = max(max_len, j - k + 1);
+        const int MAXV = 100000;
+        vector<int> last(MAXV + 1, 0);
+
+        int diff = 0; // totalDistinctEven - totalDistinctOdd among values seen so far
+        int ans = 0;
+
+        for (int i = 1; i <= n; i++) {
+            int x = nums[i - 1];
+            int sign = (x % 2 == 0) ? 1 : -1;
+
+            if (last[x] != 0) {
+                seg.update(last[x], 0); // remove old last occurrence marker
+            } else {
+                diff += sign; // new distinct value affects totals
             }
-            
-            last_pos[val] = j;
+
+            seg.update(i, sign); // add new last occurrence marker
+            last[x] = i;
+
+            int target = diff;
+            int limit = i - 1;
+
+            int k = -1; // k = l-1
+            if (target == 0) {
+                k = 0; // prefixSum(0) == 0
+            } else {
+                int idx = seg.findFirst(limit, target);
+                if (idx != (int)1e9) k = idx;
+            }
+
+            if (k != -1) {
+                ans = max(ans, i - k);
+            }
         }
 
-        return max_len;
+        return ans;
     }
 };
 # @lc code=end
