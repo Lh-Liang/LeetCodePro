@@ -3,58 +3,39 @@
 #
 # [3725] Count Ways to Choose Coprime Integers from Rows
 #
-
 # @lc code=start
 class Solution {
 public:
     int countCoprime(vector<vector<int>>& mat) {
-        const int MOD = 1000000007;
-        const int MAXV = 150;
-        vector<int> mu(MAXV + 1, 0);
-        vector<bool> iscomp(MAXV + 1, false);
-        vector<int> primes;
-        mu[1] = 1;
-        for (int i = 2; i <= MAXV; ++i) {
-            if (!iscomp[i]) {
-                primes.push_back(i);
-                mu[i] = -1;
-            }
-            for (size_t j = 0; j < primes.size() && 1LL * i * primes[j] <= MAXV; ++j) {
-                int p = primes[j];
-                iscomp[i * p] = true;
-                if (i % p == 0) {
-                    mu[i * p] = 0;
-                    break;
-                } else {
-                    mu[i * p] = -mu[i];
-                }
-            }
-        }
+        const int MOD = 1e9 + 7;
+        const int MAX_VAL = 150;
         int m = mat.size();
-        vector<vector<int>> cnt(m, vector<int>(MAXV + 1, 0));
-        for (int r = 0; r < m; ++r) {
-            for (int val : mat[r]) {
-                for (int d = 1; d * d <= val; ++d) {
-                    if (val % d == 0) {
-                        cnt[r][d]++;
-                        if (d != val / d) {
-                            cnt[r][val / d]++;
-                        }
+        
+        // dp[g] = number of ways to get GCD = g after processing current rows
+        vector<long long> dp(MAX_VAL + 1, 0);
+        
+        // Initialize with first row
+        for (int num : mat[0]) {
+            dp[num] = (dp[num] + 1) % MOD;
+        }
+        
+        // Process remaining rows
+        for (int i = 1; i < m; i++) {
+            vector<long long> new_dp(MAX_VAL + 1, 0);
+            
+            for (int num : mat[i]) {
+                for (int g = 1; g <= MAX_VAL; g++) {
+                    if (dp[g] > 0) {
+                        int new_gcd = __gcd(g, num);
+                        new_dp[new_gcd] = (new_dp[new_gcd] + dp[g]) % MOD;
                     }
                 }
             }
+            
+            dp = new_dp;
         }
-        long long ans = 0;
-        for (int d = 1; d <= MAXV; ++d) {
-            if (mu[d] == 0) continue;
-            long long ways = 1;
-            for (int r = 0; r < m; ++r) {
-                ways = ways * cnt[r][d] % MOD;
-            }
-            long long contrib = (mu[d] == 1 ? ways : (MOD - ways) % MOD);
-            ans = (ans + contrib) % MOD;
-        }
-        return ans;
+        
+        return dp[1];
     }
 };
 # @lc code=end
