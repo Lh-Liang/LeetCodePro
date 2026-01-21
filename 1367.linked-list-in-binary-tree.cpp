@@ -3,7 +3,6 @@
 #
 # [1367] Linked List in Binary Tree
 #
-
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -28,18 +27,22 @@
  */
 class Solution {
 public:
+    // Helper function to check if linked list starting from head matches
+    // the downward path starting from root
+    bool dfs(ListNode* head, TreeNode* root) {
+        if (!head) return true;  // Matched all nodes in linked list
+        if (!root) return false; // Tree ended but linked list didn't
+        if (root->val != head->val) return false; // Values don't match
+        
+        // Check if rest of linked list matches left or right subtree
+        return dfs(head->next, root->left) || dfs(head->next, root->right);
+    }
+    
     bool isSubPath(ListNode* head, TreeNode* root) {
-        auto match = [&](auto&& self, ListNode* list, TreeNode* tree) -> bool {
-            if (!list) return true;
-            if (!tree || list->val != tree->val) return false;
-            return self(self, list->next, tree->left) || self(self, list->next, tree->right);
-        };
-        auto traverse = [&](auto&& self, TreeNode* node, ListNode* listHead) -> bool {
-            if (!node) return false;
-            if (match(match, listHead, node)) return true;
-            return self(self, node->left, listHead) || self(self, node->right, listHead);
-        };
-        return traverse(traverse, root, head);
+        if (!root) return false; // Empty tree
+        
+        // Check if path starts from current root, or from left/right subtree
+        return dfs(head, root) || isSubPath(head, root->left) || isSubPath(head, root->right);
     }
 };
 # @lc code=end

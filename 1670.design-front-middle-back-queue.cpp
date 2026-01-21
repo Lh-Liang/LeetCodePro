@@ -1,14 +1,15 @@
-#
-# @lc app=leetcode id=1670 lang=cpp
-#
-# [1670] Design Front Middle Back Queue
-#
+//
+// @lc app=leetcode id=1670 lang=cpp
+//
+// [1670] Design Front Middle Back Queue
+//
 
-# @lc code=start
-#include <deque>
+// @lc code=start
 class FrontMiddleBackQueue {
+private:
+    deque<int> q;
+    
 public:
-    std::deque<int> q;
     FrontMiddleBackQueue() {
         
     }
@@ -18,9 +19,8 @@ public:
     }
     
     void pushMiddle(int val) {
-        size_t n = q.size();
-        size_t idx = n / 2;
-        q.insert(q.begin() + idx, val);
+        int mid = q.size() / 2;
+        q.insert(q.begin() + mid, val);
     }
     
     void pushBack(int val) {
@@ -36,10 +36,9 @@ public:
     
     int popMiddle() {
         if (q.empty()) return -1;
-        size_t n = q.size();
-        size_t idx = (n - 1) / 2;
-        int val = q[idx];
-        q.erase(q.begin() + idx);
+        int mid = (q.size() - 1) / 2;
+        int val = q[mid];
+        q.erase(q.begin() + mid);
         return val;
     }
     
@@ -61,4 +60,4 @@ public:
  * int param_5 = obj->popMiddle();
  * int param_6 = obj->popBack();
  */
-# @lc code=end
+// @lc code=end
