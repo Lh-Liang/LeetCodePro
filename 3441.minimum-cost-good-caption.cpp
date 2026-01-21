@@ -1,132 +1,109 @@
+#
+# @lc app=leetcode id=3441 lang=cpp
+#
+# [3441] Minimum Cost Good Caption
+#
 #include <bits/stdc++.h>
 using namespace std;
 
-// @lc app=leetcode id=3441 lang=cpp
-//
-// [3441] Minimum Cost Good Caption
-//
-
-// @lc code=start
+# @lc code=start
 class Solution {
 public:
     string minCostGoodCaption(string caption) {
         int n = (int)caption.size();
-        if (n < 3) return "";
-
+        const int START = 26;
         const int INF = 1e9;
-        const int ALPHA = 26;
-        const int STATES = ALPHA * 3 + 1; // (letter,cat=1..3) + START
-        const int START = ALPHA * 3;
 
-        auto idx = [&](int letter, int cat) { // cat in {1,2,3}
-            return letter * 3 + (cat - 1);
+        // dp indexed by (pos, prevChar in [0..26], len in [0..3])
+        auto idx = [&](int pos, int prev, int len) -> int {
+            return ((pos * 27 + prev) * 4 + len);
         };
+        vector<int> dp((n + 1) * 27 * 4, INF);
 
-        // dp[(i*STATES)+s]
-        vector<int> dp((n + 1) * STATES, INF);
-
-        // base at i=n
-        for (int l = 0; l < ALPHA; ++l) {
-            dp[n * STATES + idx(l, 3)] = 0;
-            dp[n * STATES + idx(l, 1)] = INF;
-            dp[n * STATES + idx(l, 2)] = INF;
-        }
-        dp[n * STATES + START] = INF;
-
-        // fill from back
-        vector<int> switchCost(ALPHA);
-        for (int i = n - 1; i >= 0; --i) {
-            int a = caption[i] - 'a';
-
-            // Precompute switchCost[y] = cost of placing y here and starting/being in run length 1.
-            int best1 = INF, best2 = INF;
-            int best1Letter = -1;
-            for (int y = 0; y < ALPHA; ++y) {
-                int cost = abs(a - y) + dp[(i + 1) * STATES + idx(y, 1)];
-                switchCost[y] = cost;
-                if (cost < best1 || (cost == best1 && y < best1Letter)) {
-                    best2 = best1;
-                    best1 = cost;
-                    best1Letter = y;
-                } else if (cost < best2) {
-                    best2 = cost;
+        // base at pos == n
+        for (int prev = 0; prev <= 26; ++prev) {
+            for (int len = 0; len <= 3; ++len) {
+                if (prev == START) {
+                    dp[idx(n, prev, len)] = (len == 0 ? 0 : INF);
+                } else {
+                    dp[idx(n, prev, len)] = (len == 3 ? 0 : INF);
                 }
             }
+        }
 
-            // START state: choose any letter -> (y,1)
-            dp[i * STATES + START] = best1;
+        // fill backwards
+        for (int pos = n - 1; pos >= 0; --pos) {
+            int orig = caption[pos] - 'a';
 
-            for (int l = 0; l < ALPHA; ++l) {
-                // cat=1: must continue same letter -> cat=2
-                dp[i * STATES + idx(l, 1)] = abs(a - l) + dp[(i + 1) * STATES + idx(l, 2)];
+            // START state only valid with len==0
+            {
+                int best = INF;
+                for (int x = 0; x < 26; ++x) {
+                    int cost = abs(orig - x);
+                    int val = cost + dp[idx(pos + 1, x, 1)];
+                    if (val < best) best = val;
+                }
+                dp[idx(pos, START, 0)] = best;
+                for (int len = 1; len <= 3; ++len) dp[idx(pos, START, len)] = INF;
+            }
 
-                // cat=2: must continue same letter -> cat=3
-                dp[i * STATES + idx(l, 2)] = abs(a - l) + dp[(i + 1) * STATES + idx(l, 3)];
-
-                // cat=3: can continue (l,3) or switch to y!=l (y,1)
-                int cont = abs(a - l) + dp[(i + 1) * STATES + idx(l, 3)];
-                int sw = (best1Letter != l ? best1 : best2);
-                dp[i * STATES + idx(l, 3)] = min(cont, sw);
+            // normal prev chars
+            for (int prev = 0; prev < 26; ++prev) {
+                dp[idx(pos, prev, 0)] = INF; // invalid
+                for (int len = 1; len <= 3; ++len) {
+                    int best = INF;
+                    for (int x = 0; x < 26; ++x) {
+                        int nlen;
+                        if (x == prev) {
+                            nlen = (len == 3 ? 3 : len + 1);
+                        } else {
+                            if (len < 3) continue; // cannot switch before having 3
+                            nlen = 1;
+                        }
+                        int cost = abs(orig - x);
+                        int val = cost + dp[idx(pos + 1, x, nlen)];
+                        if (val < best) best = val;
+                    }
+                    dp[idx(pos, prev, len)] = best;
+                }
             }
         }
 
-        if (dp[0 * STATES + START] >= INF) return "";
+        if (dp[idx(0, START, 0)] >= INF) return "";
 
-        // Reconstruct lexicographically smallest optimal answer.
+        // reconstruct lexicographically smallest among min-cost
         string ans;
         ans.reserve(n);
-        int prevState = START;
-        for (int i = 0; i < n; ++i) {
-            int a = caption[i] - 'a';
-            int targetCost = dp[i * STATES + prevState];
-
-            int prevLetter = -1, prevCat = 0;
-            if (prevState != START) {
-                prevLetter = prevState / 3;
-                prevCat = (prevState % 3) + 1;
-            }
-
-            bool placed = false;
-            if (prevState != START && prevCat < 3) {
-                // Forced to continue the same letter.
-                int y = prevLetter;
-                int newCat = prevCat + 1;
-                int newState = idx(y, newCat);
-                int total = abs(a - y) + dp[(i + 1) * STATES + newState];
-                if (total == targetCost) {
-                    ans.push_back(char('a' + y));
-                    prevState = newState;
-                    placed = true;
+        int pos = 0, prev = START, len = 0;
+        while (pos < n) {
+            int orig = caption[pos] - 'a';
+            int curBest = dp[idx(pos, prev, len)];
+            bool picked = false;
+            for (int x = 0; x < 26; ++x) {
+                int nprev = x;
+                int nlen;
+                if (prev == START) {
+                    nlen = 1;
+                } else if (x == prev) {
+                    nlen = (len == 3 ? 3 : len + 1);
+                } else {
+                    if (len < 3) continue;
+                    nlen = 1;
                 }
-            } else {
-                // Can choose any letter (START or prevCat==3).
-                for (int y = 0; y < ALPHA; ++y) {
-                    int newState;
-                    if (prevState == START) {
-                        newState = idx(y, 1);
-                    } else {
-                        if (y == prevLetter) newState = idx(y, 3); // continue
-                        else newState = idx(y, 1);                 // switch
-                    }
-                    int total = abs(a - y) + dp[(i + 1) * STATES + newState];
-                    if (total == targetCost) {
-                        ans.push_back(char('a' + y));
-                        prevState = newState;
-                        placed = true;
-                        break;
-                    }
+                int val = abs(orig - x) + dp[idx(pos + 1, nprev, nlen)];
+                if (val == curBest) {
+                    ans.push_back(char('a' + x));
+                    prev = nprev;
+                    len = nlen;
+                    picked = true;
+                    break;
                 }
             }
-
-            if (!placed) return ""; // should not happen
+            if (!picked) return ""; // should not happen
+            ++pos;
         }
-
-        // Ensure last run length >= 3
-        if (prevState == START) return "";
-        int finalCat = (prevState % 3) + 1;
-        if (finalCat != 3) return "";
 
         return ans;
     }
 };
-// @lc code=end
+# @lc code=end

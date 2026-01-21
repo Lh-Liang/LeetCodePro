@@ -1,71 +1,82 @@
-#
-# @lc app=leetcode id=3445 lang=cpp
-#
-# [3445] Maximum Difference Between Even and Odd Frequency II
-#
 #include <bits/stdc++.h>
 using namespace std;
 
-# @lc code=start
+// @lc code=start
 class Solution {
+    struct FenwickMin {
+        int n;
+        int INF;
+        vector<int> bit;
+        FenwickMin() : n(0), INF(1e9) {}
+        FenwickMin(int n_) { init(n_); }
+        void init(int n_) {
+            n = n_;
+            INF = 1000000000;
+            bit.assign(n + 1, INF);
+        }
+        // point update: bit[pos] = min(bit[pos], val)
+        void update(int pos, int val) {
+            for (int i = pos + 1; i <= n; i += i & -i)
+                bit[i] = min(bit[i], val);
+        }
+        // query min over [0..pos]
+        int query(int pos) const {
+            if (pos < 0) return INF;
+            int res = INF;
+            for (int i = pos + 1; i > 0; i -= i & -i)
+                res = min(res, bit[i]);
+            return res;
+        }
+    };
+
 public:
     int maxDifference(string s, int k) {
-        const int INF = 1e9;
         int n = (int)s.size();
+        const int SIG = 5;
 
-        // prefix[d][i] = count of digit d in s[0..i)
-        vector<array<int, 5>> prefix(n + 1);
-        prefix[0].fill(0);
+        // pref[c][i] = count of digit c in s[0..i-1]
+        vector<vector<int>> pref(SIG, vector<int>(n + 1, 0));
         for (int i = 0; i < n; i++) {
-            prefix[i + 1] = prefix[i];
             int d = s[i] - '0';
-            prefix[i + 1][d]++;
+            for (int c = 0; c < SIG; c++) pref[c][i + 1] = pref[c][i];
+            pref[d][i + 1]++;
         }
-
-        auto bitUpdate = [&](vector<int>& bit, int idx, int val) {
-            int m = (int)bit.size() - 1;
-            for (int i = idx; i <= m; i += i & -i) bit[i] = min(bit[i], val);
-        };
-        auto bitQuery = [&](const vector<int>& bit, int idx) {
-            int res = INF;
-            for (int i = idx; i > 0; i -= i & -i) res = min(res, bit[i]);
-            return res;
-        };
 
         int ans = INT_MIN;
 
-        for (int a = 0; a < 5; a++) {
-            for (int b = 0; b < 5; b++) if (a != b) {
-                int totalB = prefix[n][b];
-                int m = totalB + 1; // PB values are in [0..totalB]
+        for (int a = 0; a < SIG; a++) {
+            for (int b = 0; b < SIG; b++) {
+                if (a == b) continue;
+                int totalB = pref[b][n];
+                if (totalB < 2) continue; // cannot have positive even frequency for b in any substring
 
-                // 4 BITs: paParity (0/1) x pbParity (0/1)
-                vector<int> bit[2][2];
-                for (int p1 = 0; p1 < 2; p1++)
-                    for (int p2 = 0; p2 < 2; p2++)
-                        bit[p1][p2].assign(m + 1, INF); // 1-based fenwick
+                // 4 parity states: (pa%2, pb%2) => idx = (pa%2)*2 + (pb%2)
+                FenwickMin fw[4];
+                for (int t = 0; t < 4; t++) fw[t].init(totalB + 1);
 
                 for (int r = k; r <= n; r++) {
                     int l = r - k;
 
-                    int paL = prefix[l][a];
-                    int pbL = prefix[l][b];
-                    int valL = paL - pbL;
-                    bitUpdate(bit[paL & 1][pbL & 1], pbL + 1, valL);
+                    // insert prefix at l
+                    int pa_l = pref[a][l];
+                    int pb_l = pref[b][l];
+                    int pr_l = pa_l - pb_l;
+                    int idx_l = ((pa_l & 1) << 1) | (pb_l & 1);
+                    fw[idx_l].update(pb_l, pr_l);
 
-                    int paR = prefix[r][a];
-                    int pbR = prefix[r][b];
-                    int valR = paR - pbR;
+                    // query for r
+                    int pa_r = pref[a][r];
+                    int pb_r = pref[b][r];
+                    if (pb_r == 0) continue; // cannot make pb_r - pb_l > 0
 
-                    int wantPa = 1 - (paR & 1);
-                    int wantPb = (pbR & 1);
+                    int pr_r = pa_r - pb_r;
+                    int need_pa_par = (pa_r & 1) ^ 1;
+                    int need_pb_par = (pb_r & 1);
+                    int idx_need = (need_pa_par << 1) | need_pb_par;
 
-                    int limit = pbR - 2; // enforce PB[r] - PB[l] >= 2
-                    if (limit >= 0) {
-                        int minVal = bitQuery(bit[wantPa][wantPb], limit + 1);
-                        if (minVal < INF) {
-                            ans = max(ans, valR - minVal);
-                        }
+                    int bestMin = fw[idx_need].query(pb_r - 1); // enforce pb_l < pb_r
+                    if (bestMin != fw[idx_need].INF) {
+                        ans = max(ans, pr_r - bestMin);
                     }
                 }
             }
@@ -74,4 +85,4 @@ public:
         return ans;
     }
 };
-# @lc code=end
+// @lc code=end

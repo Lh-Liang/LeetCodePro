@@ -1,93 +1,120 @@
 #include <bits/stdc++.h>
 using namespace std;
 
-//
-// @lc app=leetcode id=3435 lang=cpp
-//
-// [3435] Frequencies of Shortest Supersequences
-//
-
 // @lc code=start
 class Solution {
-    static bool isDAG(int subset, const vector<int>& inMask, int n) {
-        int rem = subset;
-        while (rem) {
-            bool progress = false;
-            for (int i = 0; i < n; i++) {
-                if (rem & (1 << i)) {
-                    // indegree within remaining nodes is 0
-                    if ((inMask[i] & rem) == 0) {
-                        rem &= ~(1 << i);
-                        progress = true;
+public:
+    vector<vector<int>> supersequences(vector<string>& words) {
+        // Collect distinct letters
+        bool used[26] = {false};
+        for (auto &w : words) {
+            used[w[0] - 'a'] = true;
+            used[w[1] - 'a'] = true;
+        }
+        vector<int> letters;
+        letters.reserve(26);
+        for (int c = 0; c < 26; c++) if (used[c]) letters.push_back(c);
+        int m = (int)letters.size();
+
+        // Map letter -> compact index [0..m)
+        int id[26];
+        memset(id, -1, sizeof(id));
+        for (int i = 0; i < m; i++) id[letters[i]] = i;
+
+        // Required duplicates from "xx"
+        int reqMask = 0;
+        // Directed edges between distinct letters
+        vector<pair<int,int>> edges;
+        edges.reserve(words.size());
+        {
+            vector<vector<char>> seen(m, vector<char>(m, 0));
+            for (auto &w : words) {
+                int a = id[w[0] - 'a'];
+                int b = id[w[1] - 'a'];
+                if (a == b) {
+                    reqMask |= (1 << a);
+                } else {
+                    if (!seen[a][b]) {
+                        seen[a][b] = 1;
+                        edges.push_back({a, b});
                     }
                 }
             }
-            if (!progress) return false; // cycle exists
-        }
-        return true;
-    }
-
-public:
-    vector<vector<int>> supersequences(vector<string>& words) {
-        bool present[26] = {};
-        for (auto &w : words) {
-            present[w[0] - 'a'] = true;
-            present[w[1] - 'a'] = true;
         }
 
-        vector<int> letters;
-        letters.reserve(16);
-        for (int c = 0; c < 26; c++) if (present[c]) letters.push_back(c);
-        int n = (int)letters.size();
+        auto isDup = [&](int mask, int i) -> bool {
+            return (mask >> i) & 1;
+        };
 
-        int id[26];
-        fill(begin(id), end(id), -1);
-        for (int i = 0; i < n; i++) id[letters[i]] = i;
+        auto acyclic = [&](int mask) -> bool {
+            int N = 2 * m;
+            uint32_t adj[32];
+            int indeg[32];
+            for (int i = 0; i < N; i++) {
+                adj[i] = 0;
+                indeg[i] = 0;
+            }
 
-        vector<int> outMask(n, 0), inMask(n, 0);
-        int reqDup = 0;
+            auto addEdge = [&](int u, int v) {
+                if (((adj[u] >> v) & 1u) == 0u) {
+                    adj[u] |= (1u << v);
+                    indeg[v]++;
+                }
+            };
 
-        for (auto &w : words) {
-            int a = id[w[0] - 'a'];
-            int b = id[w[1] - 'a'];
-            if (a == b) {
-                reqDup |= (1 << a);
-            } else {
-                if (((outMask[a] >> b) & 1) == 0) {
-                    outMask[a] |= (1 << b);
-                    inMask[b] |= (1 << a);
+            // Duplicate constraint: first -> last
+            for (int i = 0; i < m; i++) {
+                if (isDup(mask, i)) {
+                    addEdge(2*i, 2*i + 1);
                 }
             }
-        }
 
-        int allMask = (n == 32 ? -1 : ((1 << n) - 1));
-        int allowed = allMask & ~reqDup; // only these can be kept non-duplicated
-
-        int bestSize = -1;
-        vector<int> bestU;
-
-        // Enumerate all subsets U of allowed.
-        for (int U = allowed;; U = (U - 1) & allowed) {
-            if (isDAG(U, inMask, n)) {
-                int sz = __builtin_popcount((unsigned)U);
-                if (sz > bestSize) {
-                    bestSize = sz;
-                    bestU.clear();
-                }
-                if (sz == bestSize) bestU.push_back(U);
+            // word constraints: first(x) -> last(y)
+            for (auto [x, y] : edges) {
+                int from = 2 * x; // first(x) always even
+                int to = isDup(mask, y) ? (2 * y + 1) : (2 * y);
+                addEdge(from, to);
             }
-            if (U == 0) break;
+
+            // Kahn's algorithm
+            deque<int> dq;
+            for (int i = 0; i < N; i++) if (indeg[i] == 0) dq.push_back(i);
+            int popped = 0;
+            while (!dq.empty()) {
+                int u = dq.front(); dq.pop_front();
+                popped++;
+                uint32_t out = adj[u];
+                while (out) {
+                    int v = __builtin_ctz(out);
+                    out &= (out - 1);
+                    if (--indeg[v] == 0) dq.push_back(v);
+                }
+            }
+            return popped == N;
+        };
+
+        int best = INT_MAX;
+        vector<int> bestMasks;
+        int totalMasks = 1 << m;
+        for (int mask = 0; mask < totalMasks; mask++) {
+            if ((mask & reqMask) != reqMask) continue; // must include required duplicates
+            int dupCnt = __builtin_popcount((unsigned)mask);
+            if (dupCnt > best) continue;
+            if (!acyclic(mask)) continue;
+            if (dupCnt < best) {
+                best = dupCnt;
+                bestMasks.clear();
+            }
+            bestMasks.push_back(mask);
         }
 
         vector<vector<int>> ans;
-        ans.reserve(bestU.size());
-
-        for (int U : bestU) {
-            int D = allMask ^ U; // duplicated letters
+        ans.reserve(bestMasks.size());
+        for (int mask : bestMasks) {
             vector<int> freq(26, 0);
-            for (int i = 0; i < n; i++) {
+            for (int i = 0; i < m; i++) {
                 int ch = letters[i];
-                freq[ch] = 1 + ((D >> i) & 1);
+                freq[ch] = 1 + ((mask >> i) & 1);
             }
             ans.push_back(std::move(freq));
         }
