@@ -27,21 +27,28 @@
  */
 class Solution {
 public:
-    // Helper function to check if linked list starting from head matches
-    // the downward path starting from root
+    // Check if linked list matches a path starting from current tree node
     bool dfs(ListNode* head, TreeNode* root) {
-        if (!head) return true;  // Matched all nodes in linked list
-        if (!root) return false; // Tree ended but linked list didn't
-        if (root->val != head->val) return false; // Values don't match
+        // If we've matched all nodes in the linked list
+        if (head == nullptr) return true;
         
-        // Check if rest of linked list matches left or right subtree
+        // If tree node is null but list still has nodes
+        if (root == nullptr) return false;
+        
+        // If values don't match
+        if (head->val != root->val) return false;
+        
+        // Continue matching in left or right subtree
         return dfs(head->next, root->left) || dfs(head->next, root->right);
     }
     
     bool isSubPath(ListNode* head, TreeNode* root) {
-        if (!root) return false; // Empty tree
+        // If tree is empty
+        if (root == nullptr) return false;
         
-        // Check if path starts from current root, or from left/right subtree
+        // Try to match starting from current root,
+        // or try starting from left subtree,
+        // or try starting from right subtree
         return dfs(head, root) || isSubPath(head, root->left) || isSubPath(head, root->right);
     }
 };

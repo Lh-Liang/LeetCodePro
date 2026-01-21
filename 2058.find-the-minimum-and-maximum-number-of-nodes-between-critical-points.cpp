@@ -17,46 +17,46 @@
 class Solution {
 public:
     vector<int> nodesBetweenCriticalPoints(ListNode* head) {
+        // Need at least 3 nodes for any critical point to exist
         if (!head || !head->next || !head->next->next) {
             return {-1, -1};
         }
         
         int firstCritical = -1;
-        int prevCritical = -1;
+        int lastCritical = -1;
         int minDistance = INT_MAX;
         
         ListNode* prev = head;
         ListNode* curr = head->next;
-        int position = 1;
+        int index = 1;
         
         while (curr->next) {
-            ListNode* next = curr->next;
+            int prevVal = prev->val;
+            int currVal = curr->val;
+            int nextVal = curr->next->val;
             
-            // Check if current node is a critical point
-            if ((curr->val > prev->val && curr->val > next->val) ||
-                (curr->val < prev->val && curr->val < next->val)) {
-                
+            // Check if current node is a critical point (local maxima or minima)
+            if ((currVal > prevVal && currVal > nextVal) || 
+                (currVal < prevVal && currVal < nextVal)) {
                 if (firstCritical == -1) {
-                    firstCritical = position;
+                    firstCritical = index;
                 } else {
-                    minDistance = min(minDistance, position - prevCritical);
+                    minDistance = min(minDistance, index - lastCritical);
                 }
-                prevCritical = position;
+                lastCritical = index;
             }
             
             prev = curr;
-            curr = next;
-            position++;
+            curr = curr->next;
+            index++;
         }
         
         // If fewer than 2 critical points
-        if (firstCritical == -1 || prevCritical == firstCritical) {
+        if (firstCritical == lastCritical) {
             return {-1, -1};
         }
         
-        int maxDistance = prevCritical - firstCritical;
-        
-        return {minDistance, maxDistance};
+        return {minDistance, lastCritical - firstCritical};
     }
 };
 # @lc code=end
