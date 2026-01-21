@@ -7,62 +7,57 @@
 class Solution {
 public:
     int maxDifference(string s, int k) {
-        int n = s.size();
-        int ans = INT_MIN;
+        int n = s.length();
+        int result = INT_MIN;
         
-        for (char a = '0'; a <= '4'; a++) {
-            for (char b = '0'; b <= '4'; b++) {
+        for (int a = 0; a < 5; a++) {
+            for (int b = 0; b < 5; b++) {
                 if (a == b) continue;
                 
+                char charA = '0' + a;
+                char charB = '0' + b;
+                
                 // Compute prefix sums
-                vector<int> prefix_a(n + 1, 0), prefix_b(n + 1, 0);
+                vector<int> prefixA(n + 1, 0), prefixB(n + 1, 0);
                 for (int i = 0; i < n; i++) {
-                    prefix_a[i + 1] = prefix_a[i] + (s[i] == a ? 1 : 0);
-                    prefix_b[i + 1] = prefix_b[i] + (s[i] == b ? 1 : 0);
+                    prefixA[i + 1] = prefixA[i] + (s[i] == charA);
+                    prefixB[i + 1] = prefixB[i] + (s[i] == charB);
                 }
                 
-                // min_diff[pa][pb] = minimum (prefix_a - prefix_b) for valid positions
-                vector<vector<int>> min_diff(2, vector<int>(2, INT_MAX));
-                vector<tuple<int, int, int>> pending; // waiting for a 'b' to appear
+                int maxPB = prefixB[n];
+                if (maxPB == 0) continue;  // Character b doesn't appear
+                
+                // BIT for minimum, 4 parity states
+                vector<vector<int>> bit(4, vector<int>(maxPB + 2, INT_MAX));
                 
                 for (int r = k; r <= n; r++) {
-                    // Flush pending if we just saw a 'b'
-                    if (s[r - 1] == b) {
-                        for (auto& [d, pa, pb] : pending) {
-                            min_diff[pa][pb] = min(min_diff[pa][pb], d);
-                        }
-                        pending.clear();
-                    }
-                    
-                    // Add l = r - k
                     int l = r - k;
-                    int diff_l = prefix_a[l] - prefix_b[l];
-                    int pa_l = prefix_a[l] % 2;
-                    int pb_l = prefix_b[l] % 2;
+                    int diffL = prefixA[l] - prefixB[l];
+                    int stateL = (prefixA[l] % 2) * 2 + (prefixB[l] % 2);
                     
-                    if (prefix_b[r] > prefix_b[l]) {
-                        // Already have a 'b' between l and r, add directly
-                        min_diff[pa_l][pb_l] = min(min_diff[pa_l][pb_l], diff_l);
-                    } else {
-                        // Wait for a 'b' to appear
-                        pending.push_back({diff_l, pa_l, pb_l});
+                    // Update BIT at position prefixB[l]
+                    for (int i = prefixB[l] + 1; i <= maxPB + 1; i += i & (-i)) {
+                        bit[stateL][i] = min(bit[stateL][i], diffL);
                     }
                     
-                    // Query for current r
-                    int diff_r = prefix_a[r] - prefix_b[r];
-                    int pa_r = prefix_a[r] % 2;
-                    int pb_r = prefix_b[r] % 2;
-                    int target_pa = 1 - pa_r;  // opposite parity for odd freq_a
-                    int target_pb = pb_r;      // same parity for even freq_b
+                    // Query: need prefixA[l] with opposite parity, prefixB[l] with same parity and < prefixB[r]
+                    int diffR = prefixA[r] - prefixB[r];
+                    int targetState = (1 - prefixA[r] % 2) * 2 + (prefixB[r] % 2);
                     
-                    if (min_diff[target_pa][target_pb] != INT_MAX) {
-                        ans = max(ans, diff_r - min_diff[target_pa][target_pb]);
+                    if (prefixB[r] > 0) {
+                        int minDiffL = INT_MAX;
+                        for (int i = prefixB[r]; i > 0; i -= i & (-i)) {
+                            minDiffL = min(minDiffL, bit[targetState][i]);
+                        }
+                        if (minDiffL != INT_MAX) {
+                            result = max(result, diffR - minDiffL);
+                        }
                     }
                 }
             }
         }
         
-        return ans;
+        return result;
     }
 };
 # @lc code=end
