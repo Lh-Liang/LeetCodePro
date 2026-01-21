@@ -6,46 +6,48 @@
 
 # @lc code=start
 import heapq
+from typing import List
 
 class Solution:
     def minTime(self, n: int, edges: List[List[int]]) -> int:
-        # Adjacency list to store graph: u -> [(v, start, end)]
-        graph = [[] for _ in range(n)]
-        for u, v, start, end in edges:
-            graph[u].append((v, start, end))
+        # Adjacency list to store edges: node -> [(neighbor, start, end)]
+        adj = [[] for _ in range(n)]
+        for u, v, s, e in edges:
+            adj[u].append((v, s, e))
         
-        # Priority queue for Dijkstra: (current_time, node)
+        # Standard Dijkstra's algorithm to find the minimum time to reach each node
+        # dist[i] will store the earliest time we can reach node i
+        dist = [float('inf')] * n
+        dist[0] = 0
+        
+        # Priority queue stores (time, current_node)
         pq = [(0, 0)]
         
-        # Min time to reach each node, initialized to infinity
-        min_arrival = [float('inf')] * n
-        min_arrival[0] = 0
-        
         while pq:
-            curr_time, u = heapq.heappop(pq)
+            t, u = heapq.heappop(pq)
             
-            # If we reached the destination, return the time
-            if u == n - 1:
-                return curr_time
-            
-            # If we found a faster way to u already, skip
-            if curr_time > min_arrival[u]:
+            # If we found a shorter path to u already, skip this
+            if t > dist[u]:
                 continue
             
-            for v, start, end in graph[u]:
-                # Calculate the earliest time we can take this edge
-                # We must wait until at least 'start'.
-                # If we arrive after 'start', we can take it immediately (wait time = 0).
-                departure_time = max(curr_time, start)
+            # If we reached the destination node, return the time
+            if u == n - 1:
+                return t
+            
+            for v, s, e in adj[u]:
+                # To use edge (u, v) with window [s, e], we must be at u at some time T
+                # such that s <= T <= e. Since we are at u at time t, the earliest
+                # we can use the edge is at time T = max(t, s).
+                start_time = max(t, s)
                 
-                # Check if the departure time is within the valid window [start, end]
-                if departure_time <= end:
-                    arrival_time = departure_time + 1
-                    
-                    # If this path is faster than any previous path to v
-                    if arrival_time < min_arrival[v]:
-                        min_arrival[v] = arrival_time
+                # If the earliest possible start time is within the window [s, e]
+                if start_time <= e:
+                    # We arrive at node v at time T + 1
+                    arrival_time = start_time + 1
+                    if arrival_time < dist[v]:
+                        dist[v] = arrival_time
                         heapq.heappush(pq, (arrival_time, v))
-                        
+        
+        # If the destination node is unreachable
         return -1
 # @lc code=end
