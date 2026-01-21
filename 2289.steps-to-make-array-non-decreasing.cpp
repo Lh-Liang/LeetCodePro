@@ -8,23 +8,24 @@ class Solution {
 public:
     int totalSteps(vector<int>& nums) {
         int n = nums.size();
-        vector<int> dp(n, 0);
-        stack<int> stk;
+        stack<pair<int, int>> st; // (value, steps to be removed)
         int result = 0;
         
         for (int i = 0; i < n; i++) {
-            int maxSteps = 0;
-            while (!stk.empty() && nums[stk.top()] <= nums[i]) {
-                maxSteps = max(maxSteps, dp[stk.top()]);
-                stk.pop();
+            int steps = 0;
+            // Pop all elements <= current element
+            while (!st.empty() && st.top().first <= nums[i]) {
+                steps = max(steps, st.top().second);
+                st.pop();
             }
-            
-            if (!stk.empty()) {
-                dp[i] = maxSteps + 1;
-                result = max(result, dp[i]);
+            // If there's still an element in stack, current element will be removed
+            if (!st.empty()) {
+                steps++;
+            } else {
+                steps = 0;
             }
-            
-            stk.push(i);
+            result = max(result, steps);
+            st.push({nums[i], steps});
         }
         
         return result;

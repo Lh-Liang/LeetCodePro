@@ -13,16 +13,16 @@ public:
             graph[inv[0]].push_back(inv[1]);
         }
         
-        // Find all suspicious methods using BFS from k
+        // Find all suspicious methods (reachable from k)
         vector<bool> suspicious(n, false);
         queue<int> q;
         q.push(k);
         suspicious[k] = true;
         
         while (!q.empty()) {
-            int curr = q.front();
+            int method = q.front();
             q.pop();
-            for (int next : graph[curr]) {
+            for (int next : graph[method]) {
                 if (!suspicious[next]) {
                     suspicious[next] = true;
                     q.push(next);
@@ -30,30 +30,27 @@ public:
             }
         }
         
-        // Check if we can remove suspicious methods
-        bool canRemove = true;
+        // Check if any non-suspicious method invokes a suspicious method
         for (auto& inv : invocations) {
-            int a = inv[0], b = inv[1];
-            if (!suspicious[a] && suspicious[b]) {
-                canRemove = false;
-                break;
+            int from = inv[0];
+            int to = inv[1];
+            if (!suspicious[from] && suspicious[to]) {
+                // Cannot remove suspicious methods
+                vector<int> result;
+                for (int i = 0; i < n; i++) {
+                    result.push_back(i);
+                }
+                return result;
             }
         }
         
-        // Return result
+        // Can remove suspicious methods
         vector<int> result;
-        if (canRemove) {
-            for (int i = 0; i < n; i++) {
-                if (!suspicious[i]) {
-                    result.push_back(i);
-                }
-            }
-        } else {
-            for (int i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
+            if (!suspicious[i]) {
                 result.push_back(i);
             }
         }
-        
         return result;
     }
 };

@@ -16,21 +16,24 @@
  */
 class Solution {
 public:
-    int helper(ListNode* node) {
+    int doubleHelper(ListNode* node) {
         if (!node) return 0;
-        int carry = helper(node->next);
+        
+        int carry = doubleHelper(node->next);
         int doubled = node->val * 2 + carry;
         node->val = doubled % 10;
         return doubled / 10;
     }
     
     ListNode* doubleIt(ListNode* head) {
-        int carry = helper(head);
-        if (carry) {
+        int carry = doubleHelper(head);
+        
+        if (carry > 0) {
             ListNode* newHead = new ListNode(carry);
             newHead->next = head;
             return newHead;
         }
+        
         return head;
     }
 };

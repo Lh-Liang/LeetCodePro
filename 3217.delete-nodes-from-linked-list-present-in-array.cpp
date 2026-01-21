@@ -3,7 +3,6 @@
 #
 # [3217] Delete Nodes From Linked List Present in Array
 #
-
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -18,16 +17,24 @@
 class Solution {
 public:
     ListNode* modifiedList(vector<int>& nums, ListNode* head) {
-        unordered_set<int> s(nums.begin(), nums.end());
-        ListNode** cur = &head;
-        while (*cur) {
-            if (s.count((*cur)->val)) {
-                *cur = (*cur)->next;
+        unordered_set<int> toRemove(nums.begin(), nums.end());
+        
+        ListNode* dummy = new ListNode(0);
+        dummy->next = head;
+        
+        ListNode* prev = dummy;
+        ListNode* curr = head;
+        
+        while (curr != nullptr) {
+            if (toRemove.find(curr->val) != toRemove.end()) {
+                prev->next = curr->next;
             } else {
-                cur = &((*cur)->next);
+                prev = curr;
             }
+            curr = curr->next;
         }
-        return head;
+        
+        return dummy->next;
     }
 };
 # @lc code=end
