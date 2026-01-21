@@ -3,76 +3,103 @@
 #
 # [3470] Permutations IV
 #
-
 # @lc code=start
-#include <vector>
-using namespace std;
-
 class Solution {
 public:
     vector<int> permute(int n, long long k) {
-        using ll = long long;
-        const ll LMAX = 9223372036854775807LL;
-        auto safe_fact = [&](int nn) -> ll {
-            if (nn <= 1) return 1LL;
-            ll res = 1LL;
-            for (int i = 2; i <= nn; ++i) {
-                if (res > LMAX / i) return LMAX;
+        const long long MAX_K = 1000000000000000LL;
+        
+        vector<int> result;
+        vector<int> available;
+        for (int i = 1; i <= n; i++) {
+            available.push_back(i);
+        }
+        
+        auto factorial = [&](int x) -> long long {
+            long long res = 1;
+            for (int i = 1; i <= x; i++) {
                 res *= i;
+                if (res > MAX_K) return MAX_K + 1;
             }
             return res;
         };
-        auto get_count = [&](int ao, int ae) -> ll {
-            ll f1 = safe_fact(ao);
-            ll f2 = safe_fact(ae);
-            if (f1 > LMAX / f2) return LMAX;
-            return f1 * f2;
+        
+        auto countPerms = [&](const vector<int>& nums, bool needOdd) -> long long {
+            if (nums.empty()) return 1;
+            
+            int oddCount = 0, evenCount = 0;
+            for (int num : nums) {
+                if (num % 2 == 1) oddCount++;
+                else evenCount++;
+            }
+            
+            int len = nums.size();
+            int oddPosCount = 0, evenPosCount = 0;
+            bool currentNeedOdd = needOdd;
+            for (int i = 0; i < len; i++) {
+                if (currentNeedOdd) oddPosCount++;
+                else evenPosCount++;
+                currentNeedOdd = !currentNeedOdd;
+            }
+            
+            if (oddPosCount != oddCount || evenPosCount != evenCount) {
+                return 0;
+            }
+            
+            long long oddFact = factorial(oddCount);
+            long long evenFact = factorial(evenCount);
+            if (oddFact > MAX_K || evenFact > MAX_K) return MAX_K + 1;
+            if (oddFact > MAX_K / evenFact) return MAX_K + 1;
+            return oddFact * evenFact;
         };
-        vector<int> res(n);
-        vector<bool> used(n + 1, false);
-        int cur_ao = (n + 1) / 2;
-        int cur_ae = n / 2;
-        int pos = 0;
-        ll kk = k;
-        int last_p = -1;
-        while (pos < n) {
-            int req_p = (pos == 0 ? -1 : 1 ^ last_p);
-            bool found = false;
-            for (int num = 1; num <= n; ++num) {
-                if (used[num]) continue;
-                int p = num % 2;
-                if (pos > 0 && p != req_p) continue;
-                int ao_a = cur_ao - (p == 1);
-                int ae_a = cur_ae - (p == 0);
-                int m_a = n - pos - 1;
-                int r_odd;
-                if (m_a == 0) {
-                    r_odd = 0;
-                } else {
-                    int r_p_next = 1 ^ p;
-                    r_odd = (r_p_next == 1 ? (m_a + 1) / 2 : m_a / 2);
+        
+        bool needOdd = false;
+        
+        for (int pos = 0; pos < n; pos++) {
+            vector<int> validChoices;
+            
+            if (pos == 0) {
+                for (int num : available) {
+                    validChoices.push_back(num);
                 }
-                int r_even = m_a - r_odd;
-                if (ao_a != r_odd || ae_a != r_even) continue;
-                ll cnt = get_count(ao_a, ae_a);
-                if (kk <= cnt) {
-                    res[pos] = num;
-                    used[num] = true;
-                    cur_ao = ao_a;
-                    cur_ae = ae_a;
-                    last_p = p;
+            } else {
+                for (int num : available) {
+                    bool isOdd = (num % 2 == 1);
+                    if ((needOdd && isOdd) || (!needOdd && !isOdd)) {
+                        validChoices.push_back(num);
+                    }
+                }
+            }
+            
+            bool found = false;
+            for (int choice : validChoices) {
+                vector<int> remaining;
+                for (int num : available) {
+                    if (num != choice) remaining.push_back(num);
+                }
+                
+                bool nextNeedOdd = !(choice % 2 == 1);
+                long long count = countPerms(remaining, nextNeedOdd);
+                
+                if (count == 0) continue;
+                
+                if (k <= count) {
+                    result.push_back(choice);
+                    available = remaining;
+                    needOdd = nextNeedOdd;
                     found = true;
                     break;
                 } else {
-                    kk -= cnt;
+                    k -= count;
                 }
             }
+            
             if (!found) {
                 return {};
             }
-            ++pos;
         }
-        return res;
+        
+        return result;
     }
 };
 # @lc code=end
