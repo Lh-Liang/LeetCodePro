@@ -1,54 +1,45 @@
-#
-# @lc app=leetcode id=3462 lang=cpp
-#
-# [3462] Maximum Sum With at Most K Elements
-#
-# @lc code=start
-#include <vector>
-#include <algorithm>
-#include <numeric>
+#include <bits/stdc++.h>
 using namespace std;
 
+/*
+ * @lc app=leetcode id=3462 lang=cpp
+ *
+ * [3462] Maximum Sum With at Most K Elements
+ */
+
+// @lc code=start
 class Solution {
 public:
     long long maxSum(vector<vector<int>>& grid, vector<int>& limits, int k) {
         if (k == 0) return 0LL;
 
         int n = (int)grid.size();
-        long long totalCap = 0;
-        for (int i = 0; i < n; i++) {
-            totalCap += min(limits[i], (int)grid[i].size());
-        }
-
-        vector<int> cand;
-        cand.reserve((size_t)totalCap);
+        vector<int> candidates;
+        candidates.reserve((size_t)min<long long>((long long)n * (long long)grid[0].size(),
+                                                 accumulate(limits.begin(), limits.end(), 0LL)));
 
         for (int i = 0; i < n; i++) {
-            int m = (int)grid[i].size();
-            int t = min(limits[i], m);
-            if (t <= 0) continue;
+            int take = min<int>(limits[i], (int)grid[i].size());
+            if (take <= 0) continue;
 
-            auto &row = grid[i];
-            if (t == m) {
-                cand.insert(cand.end(), row.begin(), row.end());
-            } else {
-                nth_element(row.begin(), row.begin() + t, row.end(), greater<int>());
-                for (int j = 0; j < t; j++) cand.push_back(row[j]);
-            }
+            auto row = grid[i];
+            sort(row.begin(), row.end(), greater<int>());
+            for (int j = 0; j < take; j++) candidates.push_back(row[j]);
         }
 
-        if (cand.empty()) return 0LL;
+        if (candidates.empty()) return 0LL;
 
-        if (k >= (int)cand.size()) {
+        int kk = min<int>(k, (int)candidates.size());
+        if (kk == (int)candidates.size()) {
             long long ans = 0;
-            for (int v : cand) ans += v;
+            for (int x : candidates) ans += x;
             return ans;
         }
 
-        nth_element(cand.begin(), cand.begin() + k, cand.end(), greater<int>());
+        nth_element(candidates.begin(), candidates.begin() + kk, candidates.end(), greater<int>());
         long long ans = 0;
-        for (int i = 0; i < k; i++) ans += cand[i];
+        for (int i = 0; i < kk; i++) ans += candidates[i];
         return ans;
     }
 };
-# @lc code=end
+// @lc code=end
