@@ -1,37 +1,48 @@
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
+        # A critical point needs at least 3 nodes to exist
         if not head or not head.next or not head.next.next:
             return [-1, -1]
         
-        first_cp_idx = -1
-        prev_cp_idx = -1
+        first_cp_index = -1
+        last_cp_index = -1
         min_dist = float('inf')
         
-        prev = head
-        curr = head.next
-        idx = 1
+        # Initialize pointers and index tracking
+        prev_val = head.val
+        curr_node = head.next
+        curr_index = 1
         
-        while curr.next:
-            nxt = curr.next
+        # Iterate through the list until the second-to-last node
+        while curr_node.next:
+            next_val = curr_node.next.val
+            curr_val = curr_node.val
             
-            # Check if curr is a local maxima or minima
-            is_critical = (curr.val > prev.val and curr.val > nxt.val) or \
-                          (curr.val < prev.val and curr.val < nxt.val)
+            # Check if current node is a local maxima or local minima
+            is_critical = (curr_val > prev_val and curr_val > next_val) or \
+                          (curr_val < prev_val and curr_val < next_val)
             
             if is_critical:
-                if first_cp_idx == -1:
-                    first_cp_idx = idx
+                if first_cp_index == -1:
+                    # Record the first critical point found
+                    first_cp_index = curr_index
                 else:
-                    min_dist = min(min_dist, idx - prev_cp_idx)
+                    # Update minimum distance between adjacent critical points
+                    min_dist = min(min_dist, curr_index - last_cp_index)
                 
-                prev_cp_idx = idx
+                # Update the index of the most recent critical point
+                last_cp_index = curr_index
             
-            prev = curr
-            curr = nxt
-            idx += 1
+            # Move pointers forward
+            prev_val = curr_val
+            curr_node = curr_node.next
+            curr_index += 1
             
-        if first_cp_idx == -1 or prev_cp_idx == first_cp_idx:
+        # If fewer than two critical points were found, return [-1, -1]
+        if min_dist == float('inf'):
             return [-1, -1]
-            
-        max_dist = prev_cp_idx - first_cp_idx
-        return [min_dist, max_dist]
+        
+        # Maximum distance is the distance between the first and last critical points
+        max_dist = last_cp_index - first_cp_index
+        
+        return [int(min_dist), max_dist]
