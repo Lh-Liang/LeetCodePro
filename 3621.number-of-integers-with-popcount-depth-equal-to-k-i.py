@@ -10,81 +10,51 @@ import math
 class Solution:
     def popcountDepth(self, n: int, k: int) -> int:
         if k == 0:
-            # The only number with depth 0 is 1.
-            # Since range is [1, n] and n >= 1, the answer is 1.
             return 1
-
-        # Precompute depths for small numbers.
-        # Max n is 10^15, which is less than 2^50.
-        # The maximum popcount for a number <= 10^15 is roughly 50.
-        # We can compute depths up to 60 to be safe.
         
-        depth_map = {}
-        depth_map[1] = 0
-        
-        # Function to get depth for small numbers recursively
-        def get_depth(val):
-            if val in depth_map:
-                return depth_map[val]
-            # Recursive step: depth(x) = 1 + depth(popcount(x))
-            # popcount(val) will be strictly less than val for val > 1
-            d = 1 + get_depth(val.bit_count())
-            depth_map[val] = d
-            return d
-
-        # Fill depth map for possible popcounts (1 to 60)
-        for i in range(1, 61):
-            get_depth(i)
+        # Precompute depth for values 1 to 64
+        depths = [0] * 65
+        depths[1] = 0
+        for i in range(2, 65):
+            pop = bin(i).count('1')
+            depths[i] = 1 + depths[pop]
             
-        # We are looking for x in [1, n] such that depth(x) == k.
-        # This is equivalent to depth(popcount(x)) == k - 1.
-        # Let c = popcount(x). Then we need depth(c) == k - 1.
-        # Since x <= n < 2^60, c will be between 1 and 60.
+        # Find all target popcounts c such that depth(c) == k-1
+        targets = []
+        for c in range(1, 65):
+            if depths[c] == k - 1:
+                targets.append(c)
         
-        target_popcounts = []
-        for c in range(1, 61):
-            if depth_map[c] == k - 1:
-                target_popcounts.append(c)
-        
-        if not target_popcounts:
+        if not targets:
             return 0
             
-        # Function to count integers in [1, num] with exactly `cnt` set bits.
-        # Using combinatorics logic (Digit DP style without memoization table).
-        def count_with_bits(num, cnt):
-            if cnt < 0:
+        def countWithPopcount(limit, target_c):
+            if target_c < 0:
                 return 0
-            if num == 0:
-                return 0
-            
-            s = bin(num)[2:]
-            length = len(s)
+            s = bin(limit)[2:]
+            L = len(s)
             res = 0
-            current_bits = 0
-            
-            for i in range(length):
+            current_c = 0
+            for i in range(L):
                 if s[i] == '1':
-                    # If we put '0' at this position:
-                    # Remaining positions: length - 1 - i
-                    # Bits needed: cnt - current_bits
-                    remaining_len = length - 1 - i
-                    needed = cnt - current_bits
-                    if 0 <= needed <= remaining_len:
-                        res += math.comb(remaining_len, needed)
-                    
-                    # Now assume we put '1' at this position and continue
-                    current_bits += 1
-            
-            # Check the number itself
-            if current_bits == cnt:
+                    # If we pick '0' at this position
+                    remaining_positions = L - 1 - i
+                    needed_c = target_c - current_c
+                    if 0 <= needed_c <= remaining_positions:
+                        res += math.comb(remaining_positions, needed_c)
+                    current_c += 1
+            if current_c == target_c:
                 res += 1
-            
             return res
 
         total_count = 0
-        for c in target_popcounts:
-            total_count += count_with_bits(n, c)
+        for c in targets:
+            total_count += countWithPopcount(n, c)
+            
+        # Special case: if k=1, targets includes c=1. 
+        # countWithPopcount(n, 1) includes x=1, but d(1)=0, not 1.
+        if k == 1:
+            total_count -= 1
             
         return total_count
-
 # @lc code=end
