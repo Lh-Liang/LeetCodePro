@@ -21,20 +21,24 @@ class Solution:
         if not root:
             return False
         
-        # Check if the path starts at the current root, or in the left subtree, or in the right subtree
-        return self.checkPath(head, root) or self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
-    
+        # Check if the path starts at the current root
+        if self.checkPath(head, root):
+            return True
+        
+        # Otherwise, try starting from the left or right child
+        return self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
+
     def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
         # If we reached the end of the linked list, we found a match
         if not head:
             return True
-        # If we reached the end of the tree path but the list still has nodes, no match
+        # If the tree node is null but the linked list isn't, no match
         if not node:
             return False
-        # If values don't match, this path is invalid
+        # If values don't match, return False
         if head.val != node.val:
             return False
         
-        # Continue checking the next list node against left or right children
+        # Recursively check the next list node in the left and right subtrees
         return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
 # @lc code=end
