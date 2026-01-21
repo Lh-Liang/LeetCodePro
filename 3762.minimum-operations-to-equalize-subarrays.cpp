@@ -1,158 +1,192 @@
-#
-# @lc app=leetcode id=3762 lang=cpp
-#
-# [3762] Minimum Operations to Equalize Subarrays
-#
-
-# @lc code=start
-#include <vector>
-#include <algorithm>
-#include <map>
-
+#include <bits/stdc++.h>
 using namespace std;
 
+// @lc app=leetcode id=3762 lang=cpp
+//
+// [3762] Minimum Operations to Equalize Subarrays
+//
+
+// @lc code=start
 class Solution {
-    struct Node {
-        int count;
-        long long sum;
-        int left;
-        int right;
-    };
+    struct WaveletTree {
+        int lo, hi;
+        WaveletTree *l = nullptr, *r = nullptr;
+        vector<int> b;              // prefix count going to left
+        vector<long long> sLeft;    // prefix sum of values going to left
+        vector<long long> prefAll;  // prefix sum of all values at this node
 
-    vector<Node> tree;
-    vector<int> roots;
-    int num_nodes = 0;
-    int n_distinct;
+        WaveletTree(const vector<int>& arr, int _lo, int _hi) : lo(_lo), hi(_hi) {
+            int n = (int)arr.size();
+            b.assign(n + 1, 0);
+            sLeft.assign(n + 1, 0);
+            prefAll.assign(n + 1, 0);
+            if (n == 0) return;
+            if (lo == hi) {
+                for (int i = 0; i < n; i++) {
+                    prefAll[i + 1] = prefAll[i] + arr[i];
+                }
+                return;
+            }
+            int mid = lo + (hi - lo) / 2;
+            vector<int> leftArr; leftArr.reserve(n);
+            vector<int> rightArr; rightArr.reserve(n);
 
-    int build(int l, int r) {
-        int node = num_nodes++;
-        tree.push_back({0, 0, -1, -1});
-        if (l == r) return node;
-        int mid = l + (r - l) / 2;
-        tree[node].left = build(l, mid);
-        tree[node].right = build(mid + 1, r);
-        return node;
-    }
+            for (int i = 0; i < n; i++) {
+                int x = arr[i];
+                prefAll[i + 1] = prefAll[i] + x;
+                if (x <= mid) {
+                    leftArr.push_back(x);
+                    b[i + 1] = b[i] + 1;
+                    sLeft[i + 1] = sLeft[i] + x;
+                } else {
+                    rightArr.push_back(x);
+                    b[i + 1] = b[i];
+                    sLeft[i + 1] = sLeft[i];
+                }
+            }
 
-    int update(int prev_node, int l, int r, int idx, long long val) {
-        int node = num_nodes++;
-        tree.push_back(tree[prev_node]); // Copy previous node
-        tree[node].count++;
-        tree[node].sum += val;
-        
-        if (l == r) return node;
-        
-        int mid = l + (r - l) / 2;
-        if (idx <= mid) {
-            tree[node].left = update(tree[prev_node].left, l, mid, idx, val);
-        } else {
-            tree[node].right = update(tree[prev_node].right, mid + 1, r, idx, val);
-        }
-        return node;
-    }
-
-    // Returns sum of smallest k elements in the range defined by roots[R] and roots[L-1]
-    long long querySum(int node_l, int node_r, int l, int r, int k) {
-        if (k <= 0) return 0;
-        if (l == r) {
-            // All elements in this leaf are the same value.
-            // We need k of them.
-            // Calculate value from sum/count of the diff (or just store value in leaf, but sum/count works)
-            long long val = (tree[node_r].sum - tree[node_l].sum) / (tree[node_r].count - tree[node_l].count);
-            return val * k;
+            if (!leftArr.empty()) l = new WaveletTree(leftArr, lo, mid);
+            if (!rightArr.empty()) r = new WaveletTree(rightArr, mid + 1, hi);
         }
 
-        int mid = l + (r - l) / 2;
-        int left_count = tree[tree[node_r].left].count - tree[tree[node_l].left].count;
-        
-        if (k <= left_count) {
-            return querySum(tree[node_l].left, tree[node_r].left, l, mid, k);
-        } else {
-            long long left_sum = tree[tree[node_r].left].sum - tree[tree[node_l].left].sum;
-            return left_sum + querySum(tree[node_l].right, tree[node_r].right, mid + 1, r, k - left_count);
+        ~WaveletTree() {
+            delete l;
+            delete r;
         }
-    }
 
-public:
-    vector<long long> minOperations(vector<int>& nums, int k, vector<vector<int>>& queries) {
-        int n = nums.size();
-        
-        // 1. Precompute modulo validity
-        vector<int> bad_indices;
-        for (int i = 0; i < n - 1; ++i) {
-            if (nums[i] % k != nums[i+1] % k) {
-                bad_indices.push_back(i);
+        // kth smallest in positions [L,R] (1-indexed), k is 1-indexed
+        int kth(int L, int R, int k) const {
+            if (L > R) return 0;
+            if (lo == hi) return lo;
+            int inLeft = b[R] - b[L - 1];
+            if (k <= inLeft) {
+                if (!l) return lo; // should not happen if counts consistent
+                int nL = b[L - 1] + 1;
+                int nR = b[R];
+                return l->kth(nL, nR, k);
+            } else {
+                if (!r) return hi;
+                int nL = L - b[L - 1];
+                int nR = R - b[R];
+                return r->kth(nL, nR, k - inLeft);
             }
         }
 
-        // 2. Prepare values for PST
-        vector<long long> vals(n);
-        vector<long long> distinct_vals;
-        for (int i = 0; i < n; ++i) {
-            vals[i] = (long long)nums[i] / k;
-            distinct_vals.push_back(vals[i]);
+        // returns {count, sum} of values <= x in positions [L,R] (1-indexed)
+        pair<long long,long long> lteCountSum(int L, int R, int x) const {
+            if (L > R || x < lo) return {0LL, 0LL};
+            if (hi <= x) {
+                long long cnt = R - L + 1LL;
+                long long sum = prefAll[R] - prefAll[L - 1];
+                return {cnt, sum};
+            }
+            if (lo == hi) {
+                // here lo==hi>x cannot happen due to previous checks
+                long long cnt = R - L + 1LL;
+                long long sum = prefAll[R] - prefAll[L - 1];
+                return {cnt, sum};
+            }
+            int mid = lo + (hi - lo) / 2;
+            int leftCount = b[R] - b[L - 1];
+            long long leftSum = sLeft[R] - sLeft[L - 1];
+            if (x <= mid) {
+                if (!l) return {0LL, 0LL};
+                int nL = b[L - 1] + 1;
+                int nR = b[R];
+                return l->lteCountSum(nL, nR, x);
+            } else {
+                pair<long long,long long> resL = {leftCount, leftSum};
+                if (!r) return resL;
+                int nL = L - b[L - 1];
+                int nR = R - b[R];
+                auto resR = r->lteCountSum(nL, nR, x);
+                return {resL.first + resR.first, resL.second + resR.second};
+            }
         }
-        
-        sort(distinct_vals.begin(), distinct_vals.end());
-        distinct_vals.erase(unique(distinct_vals.begin(), distinct_vals.end()), distinct_vals.end());
-        n_distinct = distinct_vals.size();
+    };
 
-        auto get_rank = [&](long long val) {
-            return lower_bound(distinct_vals.begin(), distinct_vals.end(), val) - distinct_vals.begin();
-        };
+    struct SparseMinMax {
+        int n = 0;
+        int LG = 0;
+        vector<int> lg;
+        vector<vector<int>> stMin, stMax;
 
-        // 3. Build PST
-        // Reserve memory to prevent reallocation invalidating pointers/indices if we used pointers,
-        // but we use indices so it's safer, though resizing is still costly. Estimate size.
-        // N updates, each adds ~logN nodes. 40000 * 16 approx 640000.
-        tree.reserve(n * 20);
-        roots.resize(n + 1);
-        roots[0] = build(0, n_distinct - 1);
+        SparseMinMax() {}
+        SparseMinMax(const vector<int>& a) { build(a); }
 
-        for (int i = 0; i < n; ++i) {
-            int rank = get_rank(vals[i]);
-            roots[i + 1] = update(roots[i], 0, n_distinct - 1, rank, vals[i]);
+        void build(const vector<int>& a) {
+            n = (int)a.size();
+            LG = 1;
+            while ((1 << LG) <= n) LG++;
+            stMin.assign(LG, vector<int>(n));
+            stMax.assign(LG, vector<int>(n));
+            stMin[0] = a;
+            stMax[0] = a;
+            for (int j = 1; j < LG; j++) {
+                int len = 1 << j;
+                int half = len >> 1;
+                for (int i = 0; i + len <= n; i++) {
+                    stMin[j][i] = min(stMin[j-1][i], stMin[j-1][i+half]);
+                    stMax[j][i] = max(stMax[j-1][i], stMax[j-1][i+half]);
+                }
+            }
+            lg.assign(n + 1, 0);
+            for (int i = 2; i <= n; i++) lg[i] = lg[i/2] + 1;
         }
 
-        // 4. Prefix sums for O(1) total range sum
-        vector<long long> prefix_sum_vals(n + 1, 0);
-        for (int i = 0; i < n; ++i) {
-            prefix_sum_vals[i + 1] = prefix_sum_vals[i] + vals[i];
+        pair<int,int> query(int l, int r) const {
+            int len = r - l + 1;
+            int p = lg[len];
+            int span = 1 << p;
+            int mn = min(stMin[p][l], stMin[p][r - span + 1]);
+            int mx = max(stMax[p][l], stMax[p][r - span + 1]);
+            return {mn, mx};
         }
+    };
+
+public:
+    vector<long long> minOperations(vector<int>& nums, int k, vector<vector<int>>& queries) {
+        int n = (int)nums.size();
+        vector<int> rem(n), b(n);
+        for (int i = 0; i < n; i++) {
+            rem[i] = nums[i] % k;
+            b[i] = nums[i] / k;
+        }
+
+        SparseMinMax rmq(rem);
+
+        int mnB = *min_element(b.begin(), b.end());
+        int mxB = *max_element(b.begin(), b.end());
+        WaveletTree wt(b, mnB, mxB);
+
+        vector<long long> pref(n + 1, 0);
+        for (int i = 0; i < n; i++) pref[i + 1] = pref[i] + (long long)b[i];
 
         vector<long long> ans;
         ans.reserve(queries.size());
 
-        for (const auto& q : queries) {
-            int l = q[0];
-            int r = q[1];
-
-            // Check modulo validity
-            // We need to check if there is any bad index in [l, r-1]
-            auto it = lower_bound(bad_indices.begin(), bad_indices.end(), l);
-            if (it != bad_indices.end() && *it < r) {
+        for (auto &q : queries) {
+            int l = q[0], r = q[1];
+            auto [mnR, mxR] = rmq.query(l, r);
+            if (mnR != mxR) {
                 ans.push_back(-1);
                 continue;
             }
-
             int len = r - l + 1;
-            int mid_idx = len / 2; // Number of elements strictly smaller than median in sorted order to consider
-            
-            // We need sum of smallest `mid_idx` elements
-            long long sum_small = querySum(roots[l], roots[r + 1], 0, n_distinct - 1, mid_idx);
-            
-            // We need the median value, which is the (mid_idx + 1)-th element
-            long long sum_small_plus_1 = querySum(roots[l], roots[r + 1], 0, n_distinct - 1, mid_idx + 1);
-            long long median = sum_small_plus_1 - sum_small;
-
-            long long total_sum = prefix_sum_vals[r + 1] - prefix_sum_vals[l];
-            long long sum_rest = total_sum - sum_small - median;
-
-            long long cost = (median * mid_idx - sum_small) + (sum_rest - median * (len - mid_idx - 1));
-            ans.push_back(cost);
+            if (len == 1) {
+                ans.push_back(0);
+                continue;
+            }
+            int L = l + 1, R = r + 1; // wavelet tree uses 1-indexed positions
+            int med = wt.kth(L, R, (len + 1) / 2);
+            auto [cntL, sumL] = wt.lteCountSum(L, R, med);
+            long long total = pref[r + 1] - pref[l];
+            long long sumR = total - sumL;
+            long long cntR = len - cntL;
+            long long ops = 1LL * med * cntL - sumL + (sumR - 1LL * med * cntR);
+            ans.push_back(ops);
         }
-
         return ans;
     }
 };
-# @lc code=end
+// @lc code=end
