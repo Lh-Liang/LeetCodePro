@@ -3,76 +3,81 @@
 #
 # [3474] Lexicographically Smallest Generated String
 #
+
 # @lc code=start
 class Solution {
 public:
     string generateString(string str1, string str2) {
         int n = str1.length();
         int m = str2.length();
-        string result(n + m - 1, ' ');
+        int len = n + m - 1;
         
-        if (backtrack(0, n, m, str1, str2, result)) {
-            return result;
-        }
-        return "";
-    }
-    
-private:
-    bool backtrack(int pos, int n, int m, const string& str1, const string& str2, string& result) {
-        if (pos == n + m - 1) {
-            return true;
-        }
+        string word(len, '?');
         
-        for (char c = 'a'; c <= 'z'; c++) {
-            result[pos] = c;
-            
-            if (isValid(pos, n, m, str1, str2, result)) {
-                if (backtrack(pos + 1, n, m, str1, str2, result)) {
-                    return true;
-                }
-            }
-        }
-        
-        return false;
-    }
-    
-    bool isValid(int pos, int n, int m, const string& str1, const string& str2, const string& result) {
-        for (int i = max(0, pos - m + 1); i <= min(pos, n - 1); i++) {
-            int windowEnd = i + m - 1;
-            
-            if (windowEnd == pos) {
-                bool match = true;
+        // Process 'T' constraints
+        for (int i = 0; i < n; i++) {
+            if (str1[i] == 'T') {
                 for (int j = 0; j < m; j++) {
-                    if (result[i + j] != str2[j]) {
-                        match = false;
-                        break;
-                    }
-                }
-                
-                if (str1[i] == 'T' && !match) return false;
-                if (str1[i] == 'F' && match) return false;
-            } else {
-                int offset = pos - i;
-                
-                if (str1[i] == 'T') {
-                    if (result[pos] != str2[offset]) return false;
-                } else {
-                    bool allPrevMatch = true;
-                    for (int j = i; j < pos; j++) {
-                        if (result[j] != str2[j - i]) {
-                            allPrevMatch = false;
-                            break;
-                        }
-                    }
-                    
-                    if (allPrevMatch && offset == m - 1) {
-                        if (result[pos] == str2[offset]) return false;
+                    if (word[i + j] == '?') {
+                        word[i + j] = str2[j];
+                    } else if (word[i + j] != str2[j]) {
+                        return "";  // Conflict
                     }
                 }
             }
         }
         
-        return true;
+        // Check 'F' constraints and identify "at risk" ones
+        vector<int> atRisk;
+        for (int i = 0; i < n; i++) {
+            if (str1[i] == 'F') {
+                bool allFixed = true;
+                bool allMatch = true;
+                for (int j = 0; j < m; j++) {
+                    if (word[i + j] == '?') {
+                        allFixed = false;
+                        if (str2[j] != 'a') {
+                            allMatch = false;
+                        }
+                    } else if (word[i + j] != str2[j]) {
+                        allMatch = false;
+                    }
+                }
+                if (allMatch) {
+                    if (allFixed) {
+                        return "";  // Impossible
+                    }
+                    atRisk.push_back(i);
+                }
+            }
+        }
+        
+        // Greedy: cover at-risk constraints
+        vector<bool> mustChange(len, false);
+        int lastChange = -1;
+        for (int i : atRisk) {
+            if (lastChange >= i && lastChange < i + m) {
+                // Already covered by a previous change
+                continue;
+            }
+            // Find rightmost unfixed position in [i, i+m-1]
+            for (int j = m - 1; j >= 0; j--) {
+                if (word[i + j] == '?') {
+                    mustChange[i + j] = true;
+                    lastChange = i + j;
+                    break;
+                }
+            }
+        }
+        
+        // Fill in the word
+        for (int k = 0; k < len; k++) {
+            if (word[k] == '?') {
+                word[k] = mustChange[k] ? 'b' : 'a';
+            }
+        }
+        
+        return word;
     }
 };
 # @lc code=end

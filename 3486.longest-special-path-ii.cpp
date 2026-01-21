@@ -8,80 +8,91 @@ class Solution {
 public:
     vector<int> longestSpecialPath(vector<vector<int>>& edges, vector<int>& nums) {
         int n = nums.size();
-        vector<vector<pair<int, int>>> graph(n);
+        vector<vector<pair<int, int>>> adj(n);
         
         for (auto& e : edges) {
-            graph[e[0]].push_back({e[1], e[2]});
-            graph[e[1]].push_back({e[0], e[2]});
+            int u = e[0], v = e[1], w = e[2];
+            adj[u].push_back({v, w});
+            adj[v].push_back({u, w});
         }
         
-        vector<vector<pair<int, int>>> children(n);
-        buildTree(0, -1, graph, children);
+        vector<long long> prefix;
+        unordered_map<int, vector<int>> positions;
         
-        int maxLength = 0;
+        multiset<int, greater<int>> hardBounds;
+        multiset<int, greater<int>> softBounds;
+        
+        long long maxLen = 0;
         int minNodes = INT_MAX;
         
-        for (int i = 0; i < n; i++) {
-            unordered_map<int, int> freq;
-            explorePaths(i, children, nums, freq, 0, false, 1, maxLength, minNodes);
-        }
-        
-        return {maxLength, minNodes};
-    }
-    
-private:
-    void buildTree(int node, int parent, 
-                   vector<vector<pair<int, int>>>& graph,
-                   vector<vector<pair<int, int>>>& children) {
-        for (auto [neighbor, length] : graph[node]) {
-            if (neighbor != parent) {
-                children[node].push_back({neighbor, length});
-                buildTree(neighbor, node, graph, children);
+        function<void(int, int, long long)> dfs = [&](int u, int par, long long dist) {
+            int idx = prefix.size();
+            prefix.push_back(dist);
+            
+            int v = nums[u];
+            auto& pos = positions[v];
+            int m = pos.size();
+            
+            if (m == 1) {
+                softBounds.insert(pos[0]);
+            } else if (m == 2) {
+                softBounds.erase(softBounds.find(pos[0]));
+                softBounds.insert(pos[1]);
+                hardBounds.insert(pos[0]);
+            } else if (m >= 3) {
+                hardBounds.erase(hardBounds.find(pos[m-3]));
+                hardBounds.insert(pos[m-2]);
+                softBounds.erase(softBounds.find(pos[m-2]));
+                softBounds.insert(pos[m-1]);
             }
-        }
-    }
-    
-    void explorePaths(int node, vector<vector<pair<int, int>>>& children,
-                     vector<int>& nums, unordered_map<int, int>& freq,
-                     int length, bool hasDup, int nodeCount,
-                     int& maxLen, int& minNodes) {
-        
-        int val = nums[node];
-        freq[val]++;
-        
-        bool newHasDup = hasDup;
-        bool valid = true;
-        
-        if (freq[val] == 2) {
-            if (hasDup) {
-                valid = false;
-            } else {
-                newHasDup = true;
+            
+            pos.push_back(idx);
+            
+            int hardMax = hardBounds.empty() ? -1 : *hardBounds.begin();
+            int soft2 = -1;
+            if (softBounds.size() >= 2) {
+                auto it = softBounds.begin();
+                ++it;
+                soft2 = *it;
             }
-        } else if (freq[val] > 2) {
-            valid = false;
-        }
-        
-        if (valid) {
-            if (nodeCount >= 2) {
-                if (length > maxLen) {
-                    maxLen = length;
-                    minNodes = nodeCount;
-                } else if (length == maxLen) {
-                    minNodes = min(minNodes, nodeCount);
+            
+            int minStart = max(hardMax, soft2) + 1;
+            
+            long long len = dist - prefix[minStart];
+            int numNodes = idx - minStart + 1;
+            
+            if (len > maxLen || (len == maxLen && numNodes < minNodes)) {
+                maxLen = len;
+                minNodes = numNodes;
+            }
+            
+            for (auto& [child, w] : adj[u]) {
+                if (child != par) {
+                    dfs(child, u, dist + w);
                 }
             }
             
-            for (auto [child, edgeLen] : children[node]) {
-                explorePaths(child, children, nums, freq, length + edgeLen,
-                           newHasDup, nodeCount + 1, maxLen, minNodes);
+            pos.pop_back();
+            
+            if (m == 1) {
+                softBounds.erase(softBounds.find(pos[0]));
+            } else if (m == 2) {
+                softBounds.erase(softBounds.find(pos[1]));
+                softBounds.insert(pos[0]);
+                hardBounds.erase(hardBounds.find(pos[0]));
+            } else if (m >= 3) {
+                hardBounds.erase(hardBounds.find(pos[m-2]));
+                hardBounds.insert(pos[m-3]);
+                softBounds.erase(softBounds.find(pos[m-1]));
+                softBounds.insert(pos[m-2]);
             }
-        }
+            
+            prefix.pop_back();
+        };
         
-        freq[val]--;
-        if (freq[val] == 0) {
-            freq.erase(val);
-        }
+        dfs(0, -1, 0);
+        
+        return {(int)maxLen, minNodes};
     }
 };
 # @lc code=end

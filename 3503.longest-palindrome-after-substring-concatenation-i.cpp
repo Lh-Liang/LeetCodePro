@@ -3,46 +3,42 @@
 #
 # [3503] Longest Palindrome After Substring Concatenation I
 #
+
 # @lc code=start
 class Solution {
 public:
     int longestPalindrome(string s, string t) {
         int maxLen = 0;
-        int n = s.length();
-        int m = t.length();
+        int n = s.length(), m = t.length();
         
-        // Try all possible substrings from s and t
         for (int i = 0; i <= n; i++) {
             for (int j = i; j <= n; j++) {
                 for (int k = 0; k <= m; k++) {
                     for (int l = k; l <= m; l++) {
-                        string sub1 = s.substr(i, j - i);
-                        string sub2 = t.substr(k, l - k);
-                        string combined = sub1 + sub2;
+                        int sLen = j - i;
+                        int tLen = l - k;
+                        int totalLen = sLen + tLen;
                         
-                        if (isPalindrome(combined)) {
-                            maxLen = max(maxLen, (int)combined.length());
+                        if (totalLen <= maxLen) continue;
+                        
+                        bool valid = true;
+                        for (int p = 0; p < totalLen / 2 && valid; p++) {
+                            int left = p;
+                            int right = totalLen - 1 - p;
+                            
+                            char charLeft = (left < sLen) ? s[i + left] : t[k + left - sLen];
+                            char charRight = (right < sLen) ? s[i + right] : t[k + right - sLen];
+                            
+                            if (charLeft != charRight) valid = false;
                         }
+                        
+                        if (valid) maxLen = totalLen;
                     }
                 }
             }
         }
         
         return maxLen;
-    }
-    
-private:
-    bool isPalindrome(const string& str) {
-        int left = 0;
-        int right = str.length() - 1;
-        while (left < right) {
-            if (str[left] != str[right]) {
-                return false;
-            }
-            left++;
-            right--;
-        }
-        return true;
     }
 };
 # @lc code=end
