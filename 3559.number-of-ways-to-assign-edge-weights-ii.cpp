@@ -1,94 +1,91 @@
-#
-# @lc app=leetcode id=3559 lang=cpp
-#
-# [3559] Number of Ways to Assign Edge Weights II
-#
+#include <bits/stdc++.h>
+using namespace std;
 
-# @lc code=start
+/*
+ * @lc app=leetcode id=3559 lang=cpp
+ *
+ * [3559] Number of Ways to Assign Edge Weights II
+ */
+
+// @lc code=start
 class Solution {
 public:
-    vector<vector<int>> adj;
-    vector<vector<int>> up;
-    vector<int> depth;
-    vector<int> pow2;
-    int LOG;
-    const int MOD = 1e9 + 7;
-
-    void dfs(int u, int p, int d) {
-        depth[u] = d;
-        up[u][0] = p;
-        for (int i = 1; i < LOG; i++) {
-            if (up[u][i-1] != -1)
-                up[u][i] = up[up[u][i-1]][i-1];
-            else
-                up[u][i] = -1;
-        }
-        for (int v : adj[u]) {
-            if (v != p) {
-                dfs(v, u, d + 1);
-            }
-        }
-    }
-
-    int get_lca(int u, int v) {
-        if (depth[u] < depth[v]) swap(u, v);
-        for (int i = LOG - 1; i >= 0; i--) {
-            if (depth[u] - (1 << i) >= depth[v]) {
-                u = up[u][i];
-            }
-        }
-        if (u == v) return u;
-        for (int i = LOG - 1; i >= 0; i--) {
-            if (up[u][i] != up[v][i]) {
-                u = up[u][i];
-                v = up[v][i];
-            }
-        }
-        return up[u][0];
-    }
-
     vector<int> assignEdgeWeights(vector<vector<int>>& edges, vector<vector<int>>& queries) {
-        int n = edges.size() + 1;
-        adj.assign(n + 1, vector<int>());
-        for (const auto& e : edges) {
-            adj[e[0]].push_back(e[1]);
-            adj[e[1]].push_back(e[0]);
+        const int MOD = 1'000'000'007;
+        int n = (int)edges.size() + 1;
+
+        vector<vector<int>> g(n + 1);
+        g.reserve(n + 1);
+        for (auto &e : edges) {
+            int u = e[0], v = e[1];
+            g[u].push_back(v);
+            g[v].push_back(u);
         }
 
-        LOG = 0;
+        int LOG = 1;
         while ((1 << LOG) <= n) LOG++;
-        
-        up.assign(n + 1, vector<int>(LOG, -1));
-        depth.assign(n + 1, 0);
+        vector<vector<int>> up(LOG, vector<int>(n + 1, 0));
+        vector<int> depth(n + 1, 0);
 
-        dfs(1, -1, 0);
+        // Iterative DFS from root=1 to fill depth and up[0]
+        vector<int> parent(n + 1, 0);
+        stack<int> st;
+        st.push(1);
+        parent[1] = 0;
+        depth[1] = 0;
+
+        while (!st.empty()) {
+            int v = st.top();
+            st.pop();
+            up[0][v] = parent[v];
+            for (int nei : g[v]) {
+                if (nei == parent[v]) continue;
+                parent[nei] = v;
+                depth[nei] = depth[v] + 1;
+                st.push(nei);
+            }
+        }
+
+        // Build binary lifting table
+        for (int k = 1; k < LOG; k++) {
+            for (int v = 1; v <= n; v++) {
+                int mid = up[k - 1][v];
+                up[k][v] = mid ? up[k - 1][mid] : 0;
+            }
+        }
+
+        auto lca = [&](int a, int b) {
+            if (depth[a] < depth[b]) swap(a, b);
+            int diff = depth[a] - depth[b];
+            for (int k = 0; k < LOG; k++) {
+                if (diff & (1 << k)) a = up[k][a];
+            }
+            if (a == b) return a;
+            for (int k = LOG - 1; k >= 0; k--) {
+                if (up[k][a] != up[k][b]) {
+                    a = up[k][a];
+                    b = up[k][b];
+                }
+            }
+            return up[0][a];
+        };
 
         // Precompute powers of 2
-        // Max path length is n-1, so we need up to 2^(n-2)
-        pow2.assign(n + 1, 1);
+        vector<int> pow2(n + 1, 1);
         for (int i = 1; i <= n; i++) {
-            pow2[i] = (1LL * pow2[i-1] * 2) % MOD;
+            pow2[i] = (int)((2LL * pow2[i - 1]) % MOD);
         }
 
         vector<int> ans;
         ans.reserve(queries.size());
-
-        for (const auto& q : queries) {
-            int u = q[0];
-            int v = q[1];
-            if (u == v) {
-                ans.push_back(0);
-                continue;
-            }
-            int lca = get_lca(u, v);
-            int dist = depth[u] + depth[v] - 2 * depth[lca];
-            
-            // If path length is L, number of ways is 2^(L-1)
-            // dist is guaranteed > 0 here
-            ans.push_back(pow2[dist - 1]);
+        for (auto &q : queries) {
+            int u = q[0], v = q[1];
+            int w = lca(u, v);
+            int L = depth[u] + depth[v] - 2 * depth[w]; // number of edges on path
+            if (L == 0) ans.push_back(0);
+            else ans.push_back(pow2[L - 1]);
         }
-
         return ans;
     }
 };
-# @lc code=end
+// @lc code=end

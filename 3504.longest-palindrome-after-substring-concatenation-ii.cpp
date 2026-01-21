@@ -1,92 +1,102 @@
-#
-# @lc app=leetcode id=3504 lang=cpp
-#
-# [3504] Longest Palindrome After Substring Concatenation II
-#
-# @lc code=start
+#include <bits/stdc++.h>
+using namespace std;
+
+// @lc code=start
 class Solution {
+    struct PalInfo {
+        vector<int> start; // longest palindrome starting at i
+        vector<int> end;   // longest palindrome ending at i
+        int best;
+    };
+
+    PalInfo computePalStartEnd(const string& a) {
+        int n = (int)a.size();
+        vector<int> palStart(n, 1), palEnd(n, 1);
+        int best = 1;
+
+        auto expand = [&](int l, int r) {
+            while (l >= 0 && r < n && a[l] == a[r]) {
+                int len = r - l + 1;
+                palStart[l] = max(palStart[l], len);
+                palEnd[r] = max(palEnd[r], len);
+                best = max(best, len);
+                --l; ++r;
+            }
+        };
+
+        for (int c = 0; c < n; ++c) {
+            expand(c, c);     // odd
+            expand(c, c + 1); // even
+        }
+        return {palStart, palEnd, best};
+    }
+
+    struct MatchInfo {
+        vector<int> bestEndA; // best common-substring length ending at each i in A
+        vector<int> bestEndB; // best common-substring length ending at each j in B
+        int maxCommon;
+    };
+
+    MatchInfo commonSubstringEnds(const string& A, const string& B) {
+        int n = (int)A.size(), m = (int)B.size();
+        vector<int> bestEndA(n, 0), bestEndB(m, 0);
+        vector<int> prev(m, 0), cur(m, 0);
+        int maxCommon = 0;
+
+        for (int i = 0; i < n; ++i) {
+            fill(cur.begin(), cur.end(), 0);
+            for (int j = 0; j < m; ++j) {
+                if (A[i] == B[j]) {
+                    cur[j] = (j ? prev[j - 1] : 0) + 1;
+                    bestEndA[i] = max(bestEndA[i], cur[j]);
+                    bestEndB[j] = max(bestEndB[j], cur[j]);
+                    maxCommon = max(maxCommon, cur[j]);
+                }
+            }
+            swap(prev, cur);
+        }
+        return {bestEndA, bestEndB, maxCommon};
+    }
+
 public:
     int longestPalindrome(string s, string t) {
-        // We need to check two cases:
-        // 1. The center of the palindrome is within the substring from s.
-        // 2. The center of the palindrome is within the substring from t.
-        // The second case is symmetric to the first if we swap s and t.
-        return max(solve(s, t), solve(t, s));
-    }
+        int n = (int)s.size(), m = (int)t.size();
+        string rt = t;
+        reverse(rt.begin(), rt.end());
 
-private:
-    // Solves the problem assuming the center of the palindrome is in s (or at the boundary)
-    int solve(const string& s, const string& t) {
-        int n = s.length();
-        int m = t.length();
-        string tr = t;
-        reverse(tr.begin(), tr.end());
+        // Inside-string palindromes
+        PalInfo ps = computePalStartEnd(s);
+        PalInfo pt = computePalStartEnd(t);
 
-        // dp[i][j] stores the length of the longest common suffix 
-        // of s[0...i-1] and tr[0...j-1].
-        // This effectively finds the longest suffix of s[0...i-1] that matches a suffix of tr[0...j-1].
-        vector<vector<int>> dp(n + 1, vector<int>(m + 1, 0));
-        
-        // match_s[i] stores the maximum length of a suffix of s[0...i-1]
-        // that appears as a substring in tr (which is t reversed).
-        // This corresponds to finding the longest P such that P is a suffix of s[0...i-1]
-        // and P^R is a substring of t.
-        vector<int> match_s(n + 1, 0);
+        // Cross matching between s and reverse(t)
+        MatchInfo mi = commonSubstringEnds(s, rt);
+        const vector<int>& bestEndS = mi.bestEndA;
+        const vector<int>& bestEndRT = mi.bestEndB;
 
-        for (int i = 1; i <= n; ++i) {
-            for (int j = 1; j <= m; ++j) {
-                if (s[i - 1] == tr[j - 1]) {
-                    dp[i][j] = dp[i - 1][j - 1] + 1;
-                } else {
-                    dp[i][j] = 0;
-                }
-                match_s[i] = max(match_s[i], dp[i][j]);
-            }
+        int ans = max(ps.best, pt.best); // taking substring from only one string
+
+        // Pure mirrored halves (even length)
+        ans = max(ans, 2 * mi.maxCommon);
+
+        // Middle in s: palindrome starts at p, t part fully paired
+        for (int p = 0; p < n; ++p) {
+            int x = (p > 0 ? bestEndS[p - 1] : 0);
+            ans = max(ans, ps.start[p] + 2 * x);
         }
 
-        int max_len = 0;
-
-        // Case 1: The palindrome center is exactly at the concatenation boundary.
-        // This means A = P and B = P^R. Length is 2 * |P|.
-        // P is a suffix of some prefix of s (i.e., a substring ending at some i).
-        // P^R must be in t. This is exactly what match_s[i] computes.
-        for (int i = 0; i <= n; ++i) {
-            max_len = max(max_len, 2 * match_s[i]);
+        // Middle in t: matched part starts at r, s part fully paired
+        // r in [1..m], middle palindrome ends at r-1
+        for (int r = 1; r <= m; ++r) {
+            int midLen = pt.end[r - 1];
+            int x = 0;
+            if (r < m) {
+                int idxInRT = m - r - 1; // end position in rt corresponding to t[r..]
+                x = bestEndRT[idxInRT];
+            }
+            ans = max(ans, midLen + 2 * x);
         }
 
-        // Case 2: The palindrome center is inside s.
-        // We iterate over all possible centers in s.
-        for (int i = 0; i < n; ++i) {
-            // Odd length palindrome centered at s[i]
-            int l = i, r = i;
-            while (l >= 0 && r < n && s[l] == s[r]) {
-                l--;
-                r++;
-            }
-            // The maximal palindrome in s centered at i is s[l+1 ... r-1].
-            // Its length is (r - 1) - (l + 1) + 1 = r - l - 1.
-            // The part of s to the left of this palindrome ends at index l.
-            // We can extend this palindrome by P if P is a suffix of s[...l] and P^R is in t.
-            int pal_len = r - l - 1;
-            int p_len = match_s[l + 1]; // match_s is 1-based size, so index l+1 corresponds to prefix length l+1
-            max_len = max(max_len, pal_len + 2 * p_len);
-
-            // Even length palindrome centered between s[i] and s[i+1]
-            l = i;
-            r = i + 1;
-            while (l >= 0 && r < n && s[l] == s[r]) {
-                l--;
-                r++;
-            }
-            // Palindrome s[l+1 ... r-1]
-            pal_len = r - l - 1;
-            if (pal_len > 0) {
-                 p_len = match_s[l + 1];
-                 max_len = max(max_len, pal_len + 2 * p_len);
-            }
-        }
-
-        return max_len;
+        return ans;
     }
 };
-# @lc code=end
+// @lc code=end
