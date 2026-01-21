@@ -1,97 +1,73 @@
-#include <bits/stdc++.h>
-using namespace std;
+#
+# @lc app=leetcode id=3553 lang=cpp
+#
+# [3553] Minimum Weighted Subgraph With the Required Paths II
+#
 
-/*
- * @lc app=leetcode id=3553 lang=cpp
- *
- * [3553] Minimum Weighted Subgraph With the Required Paths II
- */
-
-// @lc code=start
+# @lc code=start
 class Solution {
 public:
     vector<int> minimumWeight(vector<vector<int>>& edges, vector<vector<int>>& queries) {
-        int n = (int)edges.size() + 1;
-        vector<vector<pair<int,int>>> g(n);
-        g.reserve(n);
-        for (auto &e : edges) {
+        int n = edges.size() + 1;
+        vector<vector<pair<int, int>>> adj(n);
+        for (auto& e : edges) {
             int u = e[0], v = e[1], w = e[2];
-            g[u].push_back({v, w});
-            g[v].push_back({u, w});
+            adj[u].emplace_back(v, w);
+            adj[v].emplace_back(u, w);
         }
-
-        int LOG = 1;
-        while ((1 << LOG) <= n) LOG++;
-
-        vector<int> depth(n, 0), parent(n, 0);
-        vector<long long> distRoot(n, 0);
-
-        // Iterative DFS to compute parent, depth, distRoot
-        vector<int> st;
-        st.reserve(n);
-        st.push_back(0);
-        parent[0] = 0;
-        depth[0] = 0;
-        distRoot[0] = 0;
-
-        // Need an explicit stack with iterator via parent check
-        // We'll do classic stack of (u, p)
-        vector<pair<int,int>> stack2;
-        stack2.reserve(n);
-        stack2.push_back({0, 0});
-
-        while (!stack2.empty()) {
-            auto [u, p] = stack2.back();
-            stack2.pop_back();
-            parent[u] = p;
-            for (auto [v, w] : g[u]) {
-                if (v == p) continue;
-                depth[v] = depth[u] + 1;
-                distRoot[v] = distRoot[u] + (long long)w;
-                stack2.push_back({v, u});
-            }
-        }
-
-        vector<vector<int>> up(LOG, vector<int>(n, 0));
-        for (int i = 0; i < n; i++) up[0][i] = parent[i];
-        for (int k = 1; k < LOG; k++) {
-            for (int i = 0; i < n; i++) {
-                up[k][i] = up[k-1][ up[k-1][i] ];
-            }
-        }
-
-        auto lca = [&](int a, int b) -> int {
-            if (depth[a] < depth[b]) swap(a, b);
-            int diff = depth[a] - depth[b];
-            for (int k = 0; k < LOG; k++) {
-                if (diff & (1 << k)) a = up[k][a];
-            }
-            if (a == b) return a;
-            for (int k = LOG - 1; k >= 0; k--) {
-                if (up[k][a] != up[k][b]) {
-                    a = up[k][a];
-                    b = up[k][b];
+        const int LOG = 18;
+        vector<vector<int>> up(n, vector<int>(LOG, -1));
+        vector<long long> dep(n, 0);
+        vector<int> level(n, 0);
+        auto dfs = [&](auto&& self, int u, int p, long long d, int lev) -> void {
+            up[u][0] = p;
+            dep[u] = d;
+            level[u] = lev;
+            for (auto [v, w] : adj[u]) {
+                if (v != p) {
+                    self(self, v, u, d + w, lev + 1);
                 }
             }
-            return up[0][a];
         };
-
-        auto dist = [&](int a, int b) -> long long {
-            int c = lca(a, b);
-            return distRoot[a] + distRoot[b] - 2LL * distRoot[c];
+        dfs(dfs, 0, -1, 0LL, 0);
+        for (int j = 1; j < LOG; ++j) {
+            for (int i = 0; i < n; ++i) {
+                int anc = up[i][j - 1];
+                if (anc != -1) {
+                    up[i][j] = up[anc][j - 1];
+                }
+            }
+        }
+        auto get_lca = [&](int u, int v) -> int {
+            if (level[u] > level[v]) std::swap(u, v);
+            int diff = level[v] - level[u];
+            for (int j = 0; j < LOG; ++j) {
+                if ((diff >> j) & 1) {
+                    v = up[v][j];
+                }
+            }
+            if (u == v) return u;
+            for (int j = LOG - 1; j >= 0; --j) {
+                if (up[u][j] != up[v][j]) {
+                    u = up[u][j];
+                    v = up[v][j];
+                }
+            }
+            return up[u][0];
         };
-
         vector<int> ans;
-        ans.reserve(queries.size());
-        for (auto &q : queries) {
+        for (auto& q : queries) {
             int a = q[0], b = q[1], c = q[2];
-            long long dab = dist(a, b);
-            long long dbc = dist(b, c);
-            long long dca = dist(c, a);
-            long long res = (dab + dbc + dca) / 2LL;
-            ans.push_back((int)res);
+            int lab = get_lca(a, b);
+            long long dab = dep[a] + dep[b] - 2LL * dep[lab];
+            int lac = get_lca(a, c);
+            long long dac = dep[a] + dep[c] - 2LL * dep[lac];
+            int lbc = get_lca(b, c);
+            long long dbc = dep[b] + dep[c] - 2LL * dep[lbc];
+            long long total = dab + dac + dbc;
+            ans.push_back(total / 2);
         }
         return ans;
     }
 };
-// @lc code=end
+# @lc code=end
