@@ -1,36 +1,27 @@
-#
-# @lc app=leetcode id=3457 lang=python3
-#
-# [3457] Eat Pizzas!
-#
-
-# @lc code=start
 class Solution:
     def maxWeight(self, pizzas: List[int]) -> int:
-        pizzas.sort()
+        # Sort pizzas in descending order to prioritize larger weights
+        pizzas.sort(reverse=True)
+        
         n = len(pizzas)
         days = n // 4
-        odd_days = (days + 1) // 2
-        even_days = days // 2
         
-        total_weight = 0
+        # Calculate number of odd and even days
+        # Day 1 is odd, Day 2 is even, Day 3 is odd, etc.
+        n_odd = (days + 1) // 2
+        n_even = days // 2
         
-        # Use the largest pizzas for the odd days
-        # We take the top 'odd_days' elements from the end
-        # Current index pointer starts at the last element
-        idx = n - 1
-        for _ in range(odd_days):
-            total_weight += pizzas[idx]
-            idx -= 1
-            
-        # Use the next largest pizzas for the even days
-        # For even days, we need pairs (Y, Z) where we get Y.
-        # To maximize Y, we take the largest available pair and the second largest is Y.
-        # So we skip one (the Z) and take the next (the Y).
-        for _ in range(even_days):
-            idx -= 1 # This is the Z (sacrifice)
-            total_weight += pizzas[idx] # This is the Y (gain)
-            idx -= 1
-            
+        # On odd days, we gain the heaviest pizza (Z) in the group of 4.
+        # To maximize this, we take the absolute largest pizzas.
+        total_weight = sum(pizzas[:n_odd])
+        
+        # On even days, we gain the second heaviest pizza (Y) in the group.
+        # This requires one pizza in the group to be larger than the gain (Z >= Y).
+        # We use the next largest available pizzas to fill these roles.
+        # For each even day, we skip one pizza (Z) and take the next (Y).
+        # Start index is n_odd, skip index n_odd, take index n_odd + 1, and so on.
+        even_gains_start = n_odd + 1
+        even_gains_end = n_odd + 2 * n_even
+        total_weight += sum(pizzas[even_gains_start : even_gains_end : 2])
+        
         return total_weight
-# @lc code=end
