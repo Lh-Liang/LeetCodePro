@@ -1,40 +1,30 @@
-#include <bits/stdc++.h>
-using namespace std;
+#
+# @lc app=leetcode id=3457 lang=cpp
+#
+# [3457] Eat Pizzas!
+#
 
-/*
- * @lc app=leetcode id=3457 lang=cpp
- *
- * [3457] Eat Pizzas!
- */
-
-// @lc code=start
+# @lc code=start
 class Solution {
 public:
     long long maxWeight(vector<int>& pizzas) {
-        int n = (int)pizzas.size();
+        int n = pizzas.size();
         sort(pizzas.begin(), pizzas.end());
-
-        int m = n / 4;
-        int oddDays = (m + 1) / 2;
-        int evenDays = m / 2;
-
-        long long ans = 0;
-        int l = 0, r = n - 1;
-
-        // Odd days: gain Z (maximum). Use 3 smallest as fillers.
-        for (int i = 0; i < oddDays; i++) {
-            ans += pizzas[r--];
-            l += 3;
+        int days = n / 4;
+        int odd_days = (days + 1) / 2;
+        int even_days = days / 2;
+        long long sum = 0;
+        // Sum the largest odd_days pizzas
+        for (int i = 0; i < odd_days; ++i) {
+            sum += pizzas[n - 1 - i];
         }
-
-        // Even days: gain Y (second maximum). Use largest as Z (wasted), next as Y (gained), 2 smallest as fillers.
-        for (int i = 0; i < evenDays; i++) {
-            r--;                // take Z (wasted)
-            ans += pizzas[r--]; // take Y (gained)
-            l += 2;
+        // For even days, sum the mins of pairs from next 2*even_days
+        int end_pair = n - odd_days - 1;
+        for (int j = 0; j < even_days; ++j) {
+            int offset = 1 + 2 * j;
+            sum += pizzas[end_pair - offset];
         }
-
-        return ans;
+        return sum;
     }
 };
-// @lc code=end
+# @lc code=end

@@ -1,124 +1,101 @@
+#
+# @lc app=leetcode id=3435 lang=cpp
+#
+# [3435] Frequencies of Shortest Supersequences
+#
+
+# @lc code=start
 #include <bits/stdc++.h>
 using namespace std;
 
-// @lc code=start
 class Solution {
 public:
     vector<vector<int>> supersequences(vector<string>& words) {
-        // Collect distinct letters
-        bool used[26] = {false};
-        for (auto &w : words) {
-            used[w[0] - 'a'] = true;
-            used[w[1] - 'a'] = true;
+        set<char> uniq;
+        for (const auto& w : words) {
+            uniq.insert(w[0]);
+            uniq.insert(w[1]);
         }
-        vector<int> letters;
-        letters.reserve(26);
-        for (int c = 0; c < 26; c++) if (used[c]) letters.push_back(c);
-        int m = (int)letters.size();
-
-        // Map letter -> compact index [0..m)
-        int id[26];
-        memset(id, -1, sizeof(id));
-        for (int i = 0; i < m; i++) id[letters[i]] = i;
-
-        // Required duplicates from "xx"
-        int reqMask = 0;
-        // Directed edges between distinct letters
-        vector<pair<int,int>> edges;
-        edges.reserve(words.size());
-        {
-            vector<vector<char>> seen(m, vector<char>(m, 0));
-            for (auto &w : words) {
-                int a = id[w[0] - 'a'];
-                int b = id[w[1] - 'a'];
-                if (a == b) {
-                    reqMask |= (1 << a);
-                } else {
-                    if (!seen[a][b]) {
-                        seen[a][b] = 1;
-                        edges.push_back({a, b});
+        vector<char> lets(uniq.begin(), uniq.end());
+        int m = lets.size();
+        if (m == 0) return {};
+        unordered_map<char, int> id_map;
+        for (int i = 0; i < m; ++i) {
+            id_map[lets[i]] = i;
+        }
+        vector<vector<bool>> adj(m, vector<bool>(m, false));
+        vector<bool> has_self(m, false);
+        for (const auto& w : words) {
+            int u = id_map[w[0]];
+            int v = id_map[w[1]];
+            adj[u][v] = true;
+            if (u == v) has_self[u] = true;
+        }
+        vector<int> cand;
+        for (int i = 0; i < m; ++i) {
+            if (!has_self[i]) cand.push_back(i);
+        }
+        int kk = cand.size();
+        int max_safe = -1;
+        vector<int> optimal_masks;
+        for (int mask = 0; mask < (1 << kk); ++mask) {
+            int ps = __builtin_popcount(mask);
+            // build constraint graph
+            vector<vector<int>> g(m);
+            vector<int> indeg(m, 0);
+            for (int j = 0; j < kk; ++j) {
+                if (mask & (1 << j)) {
+                    int v = cand[j];
+                    for (int u = 0; u < m; ++u) {
+                        if (adj[u][v]) {
+                            g[u].push_back(v);
+                            ++indeg[v];
+                        }
                     }
                 }
             }
-        }
-
-        auto isDup = [&](int mask, int i) -> bool {
-            return (mask >> i) & 1;
-        };
-
-        auto acyclic = [&](int mask) -> bool {
-            int N = 2 * m;
-            uint32_t adj[32];
-            int indeg[32];
-            for (int i = 0; i < N; i++) {
-                adj[i] = 0;
-                indeg[i] = 0;
-            }
-
-            auto addEdge = [&](int u, int v) {
-                if (((adj[u] >> v) & 1u) == 0u) {
-                    adj[u] |= (1u << v);
-                    indeg[v]++;
-                }
-            };
-
-            // Duplicate constraint: first -> last
-            for (int i = 0; i < m; i++) {
-                if (isDup(mask, i)) {
-                    addEdge(2*i, 2*i + 1);
-                }
-            }
-
-            // word constraints: first(x) -> last(y)
-            for (auto [x, y] : edges) {
-                int from = 2 * x; // first(x) always even
-                int to = isDup(mask, y) ? (2 * y + 1) : (2 * y);
-                addEdge(from, to);
-            }
-
             // Kahn's algorithm
-            deque<int> dq;
-            for (int i = 0; i < N; i++) if (indeg[i] == 0) dq.push_back(i);
-            int popped = 0;
-            while (!dq.empty()) {
-                int u = dq.front(); dq.pop_front();
-                popped++;
-                uint32_t out = adj[u];
-                while (out) {
-                    int v = __builtin_ctz(out);
-                    out &= (out - 1);
-                    if (--indeg[v] == 0) dq.push_back(v);
+            vector<int> temp_indeg = indeg;
+            queue<int> q;
+            for (int i = 0; i < m; ++i) {
+                if (temp_indeg[i] == 0) q.push(i);
+            }
+            int cnt = 0;
+            while (!q.empty()) {
+                int u = q.front(); q.pop();
+                ++cnt;
+                for (int nei : g[u]) {
+                    if (--temp_indeg[nei] == 0) {
+                        q.push(nei);
+                    }
                 }
             }
-            return popped == N;
-        };
-
-        int best = INT_MAX;
-        vector<int> bestMasks;
-        int totalMasks = 1 << m;
-        for (int mask = 0; mask < totalMasks; mask++) {
-            if ((mask & reqMask) != reqMask) continue; // must include required duplicates
-            int dupCnt = __builtin_popcount((unsigned)mask);
-            if (dupCnt > best) continue;
-            if (!acyclic(mask)) continue;
-            if (dupCnt < best) {
-                best = dupCnt;
-                bestMasks.clear();
+            bool acyc = (cnt == m);
+            if (acyc) {
+                if (ps > max_safe) {
+                    max_safe = ps;
+                    optimal_masks = {mask};
+                } else if (ps == max_safe) {
+                    optimal_masks.push_back(mask);
+                }
             }
-            bestMasks.push_back(mask);
         }
-
-        vector<vector<int>> ans;
-        ans.reserve(bestMasks.size());
-        for (int mask : bestMasks) {
-            vector<int> freq(26, 0);
-            for (int i = 0; i < m; i++) {
-                int ch = letters[i];
-                freq[ch] = 1 + ((mask >> i) & 1);
+        set<vector<int>> freq_set;
+        for (int mask : optimal_masks) {
+            vector<bool> is_safe(m, false);
+            for (int j = 0; j < kk; ++j) {
+                if (mask & (1 << j)) {
+                    is_safe[cand[j]] = true;
+                }
             }
-            ans.push_back(std::move(freq));
+            vector<int> f(26, 0);
+            for (int i = 0; i < m; ++i) {
+                int cnt = is_safe[i] ? 1 : 2;
+                f[lets[i] - 'a'] = cnt;
+            }
+            freq_set.insert(f);
         }
-        return ans;
+        return {freq_set.begin(), freq_set.end()};
     }
 };
-// @lc code=end
+# @lc code=end
