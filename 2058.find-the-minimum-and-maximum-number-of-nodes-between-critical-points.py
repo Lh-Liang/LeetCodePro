@@ -15,32 +15,36 @@ class Solution:
         if not head or not head.next or not head.next.next:
             return [-1, -1]
         
-        prev = head
-        curr = head.next
-        index = 1  # 0-based index, head is 0, curr starts at 1
-        
-        first_critical_idx = -1
-        last_critical_idx = -1
+        first_idx = -1
+        prev_idx = -1
         min_dist = float('inf')
         
+        curr_idx = 1
+        prev_val = head.val
+        curr = head.next
+        
         while curr.next:
-            # Check for local maxima or minima
-            if (curr.val > prev.val and curr.val > curr.next.val) or \
-               (curr.val < prev.val and curr.val < curr.next.val):
-                
-                if first_critical_idx == -1:
-                    first_critical_idx = index
+            next_val = curr.next.val
+            # Check if current node is a critical point
+            is_max = curr.val > prev_val and curr.val > next_val
+            is_min = curr.val < prev_val and curr.val < next_val
+            
+            if is_max or is_min:
+                if first_idx == -1:
+                    first_idx = curr_idx
                 else:
-                    min_dist = min(min_dist, index - last_critical_idx)
-                
-                last_critical_idx = index
+                    min_dist = min(min_dist, curr_idx - prev_idx)
+                prev_idx = curr_idx
             
-            prev = curr
+            # Move to the next node
+            prev_val = curr.val
             curr = curr.next
-            index += 1
+            curr_idx += 1
             
-        if min_dist == float('inf'):
+        # If we found fewer than 2 critical points
+        if first_idx == prev_idx:
             return [-1, -1]
             
-        return [min_dist, last_critical_idx - first_critical_idx]
+        return [int(min_dist), prev_idx - first_idx]
+
 # @lc code=end
