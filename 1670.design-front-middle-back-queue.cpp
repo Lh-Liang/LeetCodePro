@@ -3,74 +3,80 @@
 #
 # [1670] Design Front Middle Back Queue
 #
-#include <deque>
-using namespace std;
 
 # @lc code=start
-class FrontMiddleBackQueue {
-    deque<int> L, R; // queue = L + R
+#include <deque>
 
-    void rebalance() {
-        while (L.size() > R.size() + 1) {
-            R.push_front(L.back());
-            L.pop_back();
-        }
-        while (L.size() < R.size()) {
-            L.push_back(R.front());
-            R.pop_front();
+class FrontMiddleBackQueue {
+private:
+    std::deque<int> left;
+    std::deque<int> right;
+
+    // Maintains the invariant: left.size() == right.size() or left.size() == right.size() + 1
+    void balance() {
+        if (left.size() > right.size() + 1) {
+            right.push_front(left.back());
+            left.pop_back();
+        } else if (right.size() > left.size()) {
+            left.push_back(right.front());
+            right.pop_front();
         }
     }
 
 public:
-    FrontMiddleBackQueue() {}
-
+    FrontMiddleBackQueue() {
+        
+    }
+    
     void pushFront(int val) {
-        L.push_front(val);
-        rebalance();
+        left.push_front(val);
+        balance();
     }
-
+    
     void pushMiddle(int val) {
-        if (L.size() > R.size()) {
-            R.push_front(L.back());
-            L.pop_back();
+        if (left.size() > right.size()) {
+            right.push_front(left.back());
+            left.pop_back();
         }
-        L.push_back(val);
-        rebalance();
+        left.push_back(val);
+        // No balance needed theoretically, but safe to call or rely on logic
+        // If L=k+1, R=k -> move -> L=k, R=k+1 -> push -> L=k+1, R=k+1. Balanced.
+        // If L=k, R=k -> push -> L=k+1, R=k. Balanced.
     }
-
+    
     void pushBack(int val) {
-        R.push_back(val);
-        rebalance();
+        right.push_back(val);
+        balance();
     }
-
+    
     int popFront() {
-        if (L.empty() && R.empty()) return -1;
-        int ans = L.front();
-        L.pop_front();
-        rebalance();
-        return ans;
+        if (left.empty()) return -1;
+        int val = left.front();
+        left.pop_front();
+        balance();
+        return val;
     }
-
+    
     int popMiddle() {
-        if (L.empty() && R.empty()) return -1;
-        int ans = L.back();
-        L.pop_back();
-        rebalance();
-        return ans;
+        if (left.empty()) return -1;
+        int val = left.back();
+        left.pop_back();
+        balance();
+        return val;
     }
-
+    
     int popBack() {
-        if (L.empty() && R.empty()) return -1;
-        int ans;
-        if (!R.empty()) {
-            ans = R.back();
-            R.pop_back();
-        } else {
-            ans = L.back();
-            L.pop_back();
+        if (left.empty()) return -1;
+        // If right is empty, then left must have exactly 1 element (due to invariant)
+        if (right.empty()) {
+            int val = left.back();
+            left.pop_back();
+            return val;
         }
-        rebalance();
-        return ans;
+        int val = right.back();
+        right.pop_back();
+        balance();
+        return val;
     }
 };
 
