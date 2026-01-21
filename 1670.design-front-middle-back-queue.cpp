@@ -3,16 +3,18 @@
 #
 # [1670] Design Front Middle Back Queue
 #
-# @lc code=start
+
+// @lc code=start
 class FrontMiddleBackQueue {
 private:
     deque<int> left, right;
     
     void balance() {
-        if (left.size() > right.size()) {
+        // Maintain: left.size() == right.size() OR left.size() == right.size() + 1
+        if (left.size() > right.size() + 1) {
             right.push_front(left.back());
             left.pop_back();
-        } else if (right.size() > left.size() + 1) {
+        } else if (right.size() > left.size()) {
             left.push_back(right.front());
             right.pop_front();
         }
@@ -20,7 +22,6 @@ private:
     
 public:
     FrontMiddleBackQueue() {
-        
     }
     
     void pushFront(int val) {
@@ -29,11 +30,12 @@ public:
     }
     
     void pushMiddle(int val) {
-        if (left.size() == right.size()) {
-            right.push_front(val);
-        } else {
-            left.push_back(val);
+        if (left.size() > right.size()) {
+            // Odd total: move current middle to right, then add new middle
+            right.push_front(left.back());
+            left.pop_back();
         }
+        left.push_back(val);
     }
     
     void pushBack(int val) {
@@ -42,35 +44,23 @@ public:
     }
     
     int popFront() {
-        if (left.empty() && right.empty()) return -1;
-        int val;
-        if (left.empty()) {
-            val = right.front();
-            right.pop_front();
-        } else {
-            val = left.front();
-            left.pop_front();
-        }
+        if (left.empty()) return -1;
+        int val = left.front();
+        left.pop_front();
         balance();
         return val;
     }
     
     int popMiddle() {
-        if (left.empty() && right.empty()) return -1;
-        int val;
-        if (left.size() == right.size()) {
-            val = left.back();
-            left.pop_back();
-        } else {
-            val = right.front();
-            right.pop_front();
-        }
+        if (left.empty()) return -1;
+        int val = left.back();
+        left.pop_back();
         balance();
         return val;
     }
     
     int popBack() {
-        if (left.empty() && right.empty()) return -1;
+        if (left.empty()) return -1;
         int val;
         if (right.empty()) {
             val = left.back();
@@ -94,4 +84,4 @@ public:
  * int param_5 = obj->popMiddle();
  * int param_6 = obj->popBack();
  */
-# @lc code=end
+// @lc code=end

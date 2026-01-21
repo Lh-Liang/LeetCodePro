@@ -16,22 +16,23 @@
  */
 class Solution {
 public:
-    int doubleHelper(ListNode* node) {
-        if (node == nullptr) return 0;
-        
-        int carry = doubleHelper(node->next);
-        int val = node->val * 2 + carry;
-        node->val = val % 10;
-        return val / 10;
-    }
-    
     ListNode* doubleIt(ListNode* head) {
-        int carry = doubleHelper(head);
-        if (carry > 0) {
-            ListNode* newHead = new ListNode(carry);
-            newHead->next = head;
-            head = newHead;
+        // If the first digit >= 5, when doubled it becomes >= 10, so need a new head
+        if (head->val >= 5) {
+            head = new ListNode(0, head);
         }
+        
+        ListNode* curr = head;
+        while (curr) {
+            // Double current value and take mod 10
+            curr->val = (curr->val * 2) % 10;
+            // If next node's value >= 5, it will generate a carry when doubled
+            if (curr->next && curr->next->val >= 5) {
+                curr->val += 1;
+            }
+            curr = curr->next;
+        }
+        
         return head;
     }
 };

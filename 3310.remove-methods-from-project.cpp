@@ -1,31 +1,31 @@
-#
-# @lc app=leetcode id=3310 lang=cpp
-#
-# [3310] Remove Methods From Project
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3310 lang=cpp
+//
+// [3310] Remove Methods From Project
+//
+
+// @lc code=start
 class Solution {
 public:
     vector<int> remainingMethods(int n, int k, vector<vector<int>>& invocations) {
         // Build adjacency list
-        vector<vector<int>> graph(n);
+        vector<vector<int>> adj(n);
         for (auto& inv : invocations) {
-            graph[inv[0]].push_back(inv[1]);
+            adj[inv[0]].push_back(inv[1]);
         }
         
         // Find all suspicious methods using BFS from k
-        unordered_set<int> suspicious;
+        vector<bool> suspicious(n, false);
         queue<int> q;
         q.push(k);
-        suspicious.insert(k);
+        suspicious[k] = true;
         
         while (!q.empty()) {
             int curr = q.front();
             q.pop();
-            
-            for (int next : graph[curr]) {
-                if (suspicious.find(next) == suspicious.end()) {
-                    suspicious.insert(next);
+            for (int next : adj[curr]) {
+                if (!suspicious[next]) {
+                    suspicious[next] = true;
                     q.push(next);
                 }
             }
@@ -34,9 +34,7 @@ public:
         // Check if any non-suspicious method invokes a suspicious method
         bool canRemove = true;
         for (auto& inv : invocations) {
-            int from = inv[0];
-            int to = inv[1];
-            if (suspicious.find(from) == suspicious.end() && suspicious.find(to) != suspicious.end()) {
+            if (!suspicious[inv[0]] && suspicious[inv[1]]) {
                 canRemove = false;
                 break;
             }
@@ -46,7 +44,7 @@ public:
         vector<int> result;
         if (canRemove) {
             for (int i = 0; i < n; i++) {
-                if (suspicious.find(i) == suspicious.end()) {
+                if (!suspicious[i]) {
                     result.push_back(i);
                 }
             }
@@ -59,4 +57,4 @@ public:
         return result;
     }
 };
-# @lc code=end
+// @lc code=end
