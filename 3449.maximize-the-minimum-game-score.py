@@ -13,57 +13,49 @@ class Solution:
             if target == 0:
                 return True
             
-            cur_moves = 0
-            # extra_visits_next tracks the number of times we visit the *next* index (i+1)
-            # as a side effect of performing back-and-forth moves at the current index i
-            # to satisfy the target score at i.
-            extra_visits_next = 0 
+            moves_used = 0
+            v = [0] * n
+            needed = [(target + p - 1) // p for p in points]
             
             for i in range(n):
-                # Every step i takes at least 1 move to reach from i-1 (or start)
-                cur_moves += 1
+                # Move from i-1 to i
+                moves_used += 1
+                v[i] += 1
                 
-                # Base visits is 1 (arrival from left) + side-effect visits from i-1
-                visits = 1 + extra_visits_next
-                
-                current_score = visits * points[i]
-                needed_cycles = 0
-                
-                if current_score < target:
-                    deficit = target - current_score
-                    # Ceiling division to find how many more visits we need
-                    needed_cycles = (deficit + points[i] - 1) // points[i]
-                    
-                    # Each cycle (i -> i+1 -> i) costs 2 moves
-                    cur_moves += 2 * needed_cycles
-                
-                # If we are not at the last element, the cycles i -> i+1 -> i 
-                # contribute 'needed_cycles' visits to i+1.
-                # If we are at the last element, the cycles are (n-1) -> (n-2) -> (n-1),
-                # which do not affect any 'next' element. 
-                # Since the loop ends after this, updating extra_visits_next is harmless but unused.
-                extra_visits_next = needed_cycles
-                
-                if cur_moves > m:
+                if moves_used > m:
                     return False
+                
+                # Satisfy index i if needed
+                if v[i] < needed[i]:
+                    k = needed[i] - v[i]
+                    moves_used += 2 * k
+                    v[i] += k
+                    if i < n - 1:
+                        v[i+1] += k
+                
+                if moves_used > m:
+                    return False
+                
+                # Check if we can stop here: i must be the last element to satisfy
+                # or i is n-2 and n-1 is already satisfied.
+                if i == n - 1:
+                    return True
+                if i == n - 2 and v[n-1] >= needed[n-1]:
+                    return True
             
-            return True
+            return False
 
-        # Binary Search for the maximum minimum score
-        # Lower bound is 0.
-        # Upper bound estimation: Max points is 10^6, max moves 10^9.
-        # In the best case, we dump all moves on the largest point -> 10^15.
-        # We use a safe upper bound.
-        left, right = 0, 2 * 10**15 
+        low = 0
+        high = 10**15 # Max possible m * max points
         ans = 0
         
-        while left <= right:
-            mid = (left + right) // 2
+        while low <= high:
+            mid = (low + high) // 2
             if check(mid):
                 ans = mid
-                left = mid + 1
+                low = mid + 1
             else:
-                right = mid - 1
+                high = mid - 1
         
         return ans
 # @lc code=end
