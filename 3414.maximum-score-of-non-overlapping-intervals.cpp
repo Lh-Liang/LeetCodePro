@@ -10,102 +10,91 @@ using namespace std;
 
 class Solution {
 public:
-    struct State {
-        long long score;
-        int len;
-        int idx[4];
-    };
-
-    static constexpr long long NEG = -(1LL<<60);
-
-    static State invalidState() {
-        State s;
-        s.score = NEG;
-        s.len = 0;
-        for (int i = 0; i < 4; i++) s.idx[i] = 0;
-        return s;
-    }
-
-    static bool lexLess(const State& a, const State& b) {
-        int m = min(a.len, b.len);
-        for (int i = 0; i < m; i++) {
-            if (a.idx[i] != b.idx[i]) return a.idx[i] < b.idx[i];
-        }
-        return a.len < b.len; // shorter (prefix) is lexicographically smaller
-    }
-
-    static State better(const State& a, const State& b) {
-        if (a.score == NEG) return b;
-        if (b.score == NEG) return a;
-        if (a.score != b.score) return (a.score > b.score) ? a : b;
-        return lexLess(a, b) ? a : b;
-    }
-
-    static State addInterval(const State& base, int originalIdx, long long w) {
-        if (base.score == NEG) return invalidState();
-        State res = base;
-        res.score += w;
-        // insert originalIdx into res.idx keeping sorted
-        int pos = res.len;
-        while (pos > 0 && res.idx[pos - 1] > originalIdx) {
-            res.idx[pos] = res.idx[pos - 1];
-            pos--;
-        }
-        res.idx[pos] = originalIdx;
-        res.len++;
-        return res;
-    }
-
     vector<int> maximumWeight(vector<vector<int>>& intervals) {
-        int n = (int)intervals.size();
-        struct Item { long long l, r, w; int idx; };
-        vector<Item> a;
-        a.reserve(n);
-        for (int i = 0; i < n; i++) {
-            a.push_back({(long long)intervals[i][0], (long long)intervals[i][1], (long long)intervals[i][2], i});
+        int n = intervals.size();
+        if (n == 0) return {};
+        struct Interval {
+            int l, r, w, idx;
+        };
+        vector<Interval> ints(n);
+        for (int i = 0; i < n; ++i) {
+            ints[i].l = intervals[i][0];
+            ints[i].r = intervals[i][1];
+            ints[i].w = intervals[i][2];
+            ints[i].idx = i;
         }
-        sort(a.begin(), a.end(), [](const Item& x, const Item& y) {
-            if (x.r != y.r) return x.r < y.r;
-            if (x.l != y.l) return x.l < y.l;
-            return x.idx < y.idx;
+        sort(ints.begin(), ints.end(), [](const Interval& a, const Interval& b) {
+            if (a.r != b.r) return a.r < b.r;
+            return a.idx < b.idx;
         });
-
-        // 1-based for convenience
-        vector<long long> ends(n + 1, LLONG_MIN);
-        vector<Item> items(n + 1);
-        for (int i = 1; i <= n; i++) {
-            items[i] = a[i - 1];
-            ends[i] = items[i].r;
-        }
-
-        // dp[i][j]: best using first i intervals (sorted by r), choosing exactly j
-        vector<array<State, 5>> dp(n + 1);
-        for (int j = 0; j <= 4; j++) dp[0][j] = invalidState();
-        dp[0][0].score = 0;
-        dp[0][0].len = 0;
-
-        for (int i = 1; i <= n; i++) {
-            // find p(i): last index < i with end < l_i
-            long long target = items[i].l - 1; // end <= l-1
-            int p = (int)(upper_bound(ends.begin() + 1, ends.begin() + i, target) - ends.begin()) - 1;
-
-            for (int j = 0; j <= 4; j++) {
-                State bestSkip = dp[i - 1][j];
-                State bestTake = invalidState();
-                if (j > 0) {
-                    bestTake = addInterval(dp[p][j - 1], items[i].idx, items[i].w);
+        vector<int> pre(n, -1);
+        for (int i = 0; i < n; ++i) {
+            int target = ints[i].l;
+            int low = 0, high = i - 1;
+            int ans = -1;
+            while (low <= high) {
+                int mid = low + (high - low) / 2;
+                if (ints[mid].r < target) {
+                    ans = mid;
+                    low = mid + 1;
+                } else {
+                    high = mid - 1;
                 }
-                dp[i][j] = better(bestSkip, bestTake);
+            }
+            pre[i] = ans;
+        }
+        using ll = long long;
+        vector<vector<ll>> dp(5, vector<ll>(n, LLONG_MIN / 2));
+        vector<vector<vector<int>>> best_path(5, vector<vector<int>>(n));
+        for (int i = 0; i < n; ++i) {
+            dp[1][i] = ints[i].w;
+            best_path[1][i] = {ints[i].idx};
+        }
+        for (int jj = 2; jj <= 4; ++jj) {
+            vector<ll> prefix_score(n);
+            vector<vector<int>> prefix_best(n);
+            prefix_score[0] = dp[jj - 1][0];
+            prefix_best[0] = best_path[jj - 1][0];
+            for (int m = 1; m < n; ++m) {
+                prefix_score[m] = prefix_score[m - 1];
+                prefix_best[m] = prefix_best[m - 1];
+                if (dp[jj - 1][m] > prefix_score[m]) {
+                    prefix_score[m] = dp[jj - 1][m];
+                    prefix_best[m] = best_path[jj - 1][m];
+                } else if (dp[jj - 1][m] == prefix_score[m]) {
+                    vector<int> cand = best_path[jj - 1][m];
+                    if (cand < prefix_best[m]) {
+                        prefix_best[m] = cand;
+                    }
+                }
+            }
+            for (int i = 0; i < n; ++i) {
+                int p = pre[i];
+                if (p >= 0) {
+                    ll prev_s = prefix_score[p];
+                    vector<int> prev_list = prefix_best[p];
+                    prev_list.push_back(ints[i].idx);
+                    sort(prev_list.begin(), prev_list.end());
+                    dp[jj][i] = prev_s + (ll)ints[i].w;
+                    best_path[jj][i] = move(prev_list);
+                }
             }
         }
-
-        State ans = invalidState();
-        for (int j = 0; j <= 4; j++) ans = better(ans, dp[n][j]);
-
-        vector<int> res;
-        res.reserve(ans.len);
-        for (int i = 0; i < ans.len; i++) res.push_back(ans.idx[i]);
-        return res;
+        ll max_score = 0;
+        vector<int> result;
+        for (int j = 1; j <= 4; ++j) {
+            for (int i = 0; i < n; ++i) {
+                if (dp[j][i] > max_score) {
+                    max_score = dp[j][i];
+                    result = best_path[j][i];
+                } else if (dp[j][i] == max_score) {
+                    if (best_path[j][i] < result) {
+                        result = best_path[j][i];
+                    }
+                }
+            }
+        }
+        return result;
     }
 };
 # @lc code=end

@@ -1,77 +1,67 @@
+#
+# @lc app=leetcode id=3413 lang=cpp
+#
+# [3413] Maximum Coins From K Consecutive Bags
+#
+
+# @lc code=start
 #include <bits/stdc++.h>
 using namespace std;
 
-/*
- * @lc app=leetcode id=3413 lang=cpp
- *
- * [3413] Maximum Coins From K Consecutive Bags
- */
-
-// @lc code=start
 class Solution {
-    using ll = long long;
-
-    static ll solveLeftAnchored(vector<array<ll,3>> segs, ll k) {
-        // seg: [l, r, c], inclusive, non-overlapping
-        sort(segs.begin(), segs.end(), [](const auto& a, const auto& b){
-            return a[0] < b[0];
-        });
-
-        int n = (int)segs.size();
-        vector<ll> l(n), r(n), c(n);
-        for (int i = 0; i < n; i++) {
-            l[i] = segs[i][0];
-            r[i] = segs[i][1];
-            c[i] = segs[i][2];
-        }
-
-        vector<ll> pre(n + 1, 0); // pre[i] = total coins in segments [0..i-1]
-        for (int i = 0; i < n; i++) {
-            pre[i + 1] = pre[i] + (r[i] - l[i] + 1) * c[i];
-        }
-
-        ll best = 0;
-        int j = 0;
-        for (int i = 0; i < n; i++) {
-            if (j < i) j = i;
-            ll start = l[i];
-            ll end = start + k - 1;
-
-            while (j < n && r[j] <= end) j++;
-
-            ll sum = pre[j] - pre[i];
-            if (j < n && l[j] <= end) {
-                sum += (end - l[j] + 1) * c[j];
-            }
-            best = max(best, sum);
-        }
-        return best;
-    }
-
 public:
     long long maximumCoins(vector<vector<int>>& coins, int k) {
-        ll K = (ll)k;
-        int n = (int)coins.size();
+        int n = coins.size();
+        vector<pair<long long, int>> sorter(n);
+        for (int i = 0; i < n; ++i) {
+            sorter[i] = {coins[i][0], i};
+        }
+        sort(sorter.begin(), sorter.end());
 
-        vector<array<ll,3>> segs;
-        segs.reserve(n);
-        for (auto &v : coins) {
-            ll l = v[0], r = v[1], c = v[2];
-            segs.push_back({l, r, c});
+        vector<long long> leftp(n), rightp(n), cp(n), lenp(n);
+        vector<long long> pre(n + 1, 0);
+        for (int ii = 0; ii < n; ++ii) {
+            int i = sorter[ii].second;
+            leftp[ii] = coins[i][0];
+            rightp[ii] = coins[i][1];
+            cp[ii] = coins[i][2];
+            lenp[ii] = rightp[ii] - leftp[ii] + 1;
+            pre[ii + 1] = pre[ii] + cp[ii] * lenp[ii];
         }
 
-        ll ans = solveLeftAnchored(segs, K);
+        auto compute_prefix = [&](long long x) -> long long {
+            if (x < 1) return 0;
+            auto it = lower_bound(leftp.begin(), leftp.end(), x + 1);
+            int idx = it - leftp.begin();
+            long long res = (idx == 0 ? 0LL : pre[idx - 1]);
+            if (idx > 0) {
+                long long st = leftp[idx - 1];
+                if (st <= x) {
+                    long long en = min(x, rightp[idx - 1]);
+                    long long plen = en - st + 1;
+                    res += cp[idx - 1] * plen;
+                }
+            }
+            return res;
+        };
 
-        // Transform for right-anchored windows: [l, r] -> [-r, -l]
-        vector<array<ll,3>> segs2;
-        segs2.reserve(n);
-        for (auto &s : segs) {
-            ll l = s[0], r = s[1], c = s[2];
-            segs2.push_back({-r, -l, c});
+        vector<long long> cands;
+        long long kk = k;
+        for (int i = 0; i < n; ++i) {
+            cands.push_back(leftp[i]);
+            cands.push_back(rightp[i]);
+            cands.push_back(leftp[i] - kk + 1);
+            cands.push_back(rightp[i] - kk + 1);
         }
-        ans = max(ans, solveLeftAnchored(segs2, K));
 
+        long long ans = 0;
+        for (auto s : cands) {
+            long long rgt = s + kk - 1;
+            long long su = compute_prefix(rgt);
+            long long sv = (s <= 1 ? 0LL : compute_prefix(s - 1));
+            ans = max(ans, su - sv);
+        }
         return ans;
     }
 };
-// @lc code=end
+# @lc code=end
