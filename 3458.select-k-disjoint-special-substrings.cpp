@@ -1,60 +1,45 @@
-#include <bits/stdc++.h>
-using namespace std;
+#
+# @lc app=leetcode id=3458 lang=cpp
+#
+# [3458] Select K Disjoint Special Substrings
+#
 
-/*
- * @lc app=leetcode id=3458 lang=cpp
- *
- * [3458] Select K Disjoint Special Substrings
- */
-
-// @lc code=start
+# @lc code=start
 class Solution {
 public:
     bool maxSubstringLength(string s, int k) {
-        if (k == 0) return true;
-        int n = (int)s.size();
-
-        vector<int> first(26, n), last(26, -1);
+        int n = s.size();
+        vector<int> minpos(26, n);
+        vector<int> maxpos(26, -1);
         for (int i = 0; i < n; ++i) {
             int c = s[i] - 'a';
-            first[c] = min(first[c], i);
-            last[c] = i;
+            minpos[c] = min(minpos[c], i);
+            maxpos[c] = max(maxpos[c], i);
         }
-
-        vector<pair<int,int>> intervals;
-        intervals.reserve(26);
-
-        for (int c = 0; c < 26; ++c) {
-            if (first[c] == n) continue; // not present
-            int l = first[c];
-            int r = last[c];
-            bool ok = true;
-            for (int j = l; j <= r; ++j) {
-                int d = s[j] - 'a';
-                if (first[d] < l) { // appears outside on the left
-                    ok = false;
-                    break;
+        vector<int> Left(n), Right(n);
+        for (int i = 0; i < n; ++i) {
+            int c = s[i] - 'a';
+            Left[i] = minpos[c];
+            Right[i] = maxpos[c];
+        }
+        vector<int> dp(n + 1, 0);
+        for (int i = n - 1; i >= 0; --i) {
+            int fb = i;
+            while (fb < n && Left[fb] >= i) ++fb;
+            int endd = fb - 1;
+            int best = 0;
+            if (endd >= i) {
+                int cur_maxr = -1;
+                for (int j = i; j <= endd; ++j) {
+                    cur_maxr = max(cur_maxr, Right[j]);
+                    if (cur_maxr <= j && !(i == 0 && j == n - 1)) {
+                        best = max(best, 1 + dp[j + 1]);
+                    }
                 }
-                r = max(r, last[d]);
             }
-            if (ok) intervals.push_back({l, r});
+            dp[i] = max(dp[i + 1], best);
         }
-
-        sort(intervals.begin(), intervals.end(), [](const auto& a, const auto& b) {
-            if (a.second != b.second) return a.second < b.second;
-            return a.first > b.first; // tie-break (not strictly necessary)
-        });
-
-        int cnt = 0;
-        int end = -1;
-        for (auto [l, r] : intervals) {
-            if (l <= end) continue;
-            if (l == 0 && r == n - 1) continue; // cannot pick the entire string
-            ++cnt;
-            end = r;
-            if (cnt >= k) return true;
-        }
-        return false;
+        return dp[0] >= k;
     }
 };
-// @lc code=end
+# @lc code=end

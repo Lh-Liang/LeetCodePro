@@ -1,89 +1,78 @@
-#include <bits/stdc++.h>
+#
+# @lc app=leetcode id=3470 lang=cpp
+#
+# [3470] Permutations IV
+#
+
+# @lc code=start
+#include <vector>
 using namespace std;
 
-/*
- * @lc app=leetcode id=3470 lang=cpp
- *
- * [3470] Permutations IV
- */
-
-// @lc code=start
 class Solution {
 public:
     vector<int> permute(int n, long long k) {
-        const long long INF = 1000000000000000LL + 1; // 1e15 + 1
-
-        int totalOdd = (n + 1) / 2;
-        int totalEven = n / 2;
-
-        // factorials up to 50 (max possible odd/even count when n<=100)
-        int maxF = 50;
-        vector<long long> fact(maxF + 1, 1);
-        for (int i = 1; i <= maxF; i++) {
-            __int128 v = (__int128)fact[i - 1] * i;
-            fact[i] = (v >= INF) ? INF : (long long)v;
-        }
-
-        auto mulCap = [&](long long a, long long b) -> long long {
-            __int128 v = (__int128)a * b;
-            return (v >= INF) ? INF : (long long)v;
-        };
-
-        // startParity: 1 for odd, 0 for even, indicates parity required at next position
-        auto ways = [&](int o, int e, int len, int startParity) -> long long {
-            if (len == 0) return 1;
-            int oddSlots, evenSlots;
-            if (startParity == 1) {
-                oddSlots = (len + 1) / 2;
-                evenSlots = len / 2;
-            } else {
-                oddSlots = len / 2;
-                evenSlots = (len + 1) / 2;
+        using ll = long long;
+        const ll LMAX = 9223372036854775807LL;
+        auto safe_fact = [&](int nn) -> ll {
+            if (nn <= 1) return 1LL;
+            ll res = 1LL;
+            for (int i = 2; i <= nn; ++i) {
+                if (res > LMAX / i) return LMAX;
+                res *= i;
             }
-            if (o != oddSlots || e != evenSlots) return 0;
-            return mulCap(fact[o], fact[e]);
+            return res;
         };
-
-        vector<char> used(n + 1, 0);
-        vector<int> ans;
-        ans.reserve(n);
-
-        int o = totalOdd, e = totalEven;
-        int prevParity = -1; // unknown for first position
-
-        for (int pos = 0; pos < n; pos++) {
-            bool picked = false;
-            for (int x = 1; x <= n; x++) {
-                if (used[x]) continue;
-                int px = (x & 1); // 1 odd, 0 even
-                if (prevParity != -1 && px == prevParity) continue;
-
-                int o2 = o - (px == 1);
-                int e2 = e - (px == 0);
-                int remLen = n - pos - 1;
-
-                long long cnt;
-                if (remLen == 0) {
-                    cnt = 1;
+        auto get_count = [&](int ao, int ae) -> ll {
+            ll f1 = safe_fact(ao);
+            ll f2 = safe_fact(ae);
+            if (f1 > LMAX / f2) return LMAX;
+            return f1 * f2;
+        };
+        vector<int> res(n);
+        vector<bool> used(n + 1, false);
+        int cur_ao = (n + 1) / 2;
+        int cur_ae = n / 2;
+        int pos = 0;
+        ll kk = k;
+        int last_p = -1;
+        while (pos < n) {
+            int req_p = (pos == 0 ? -1 : 1 ^ last_p);
+            bool found = false;
+            for (int num = 1; num <= n; ++num) {
+                if (used[num]) continue;
+                int p = num % 2;
+                if (pos > 0 && p != req_p) continue;
+                int ao_a = cur_ao - (p == 1);
+                int ae_a = cur_ae - (p == 0);
+                int m_a = n - pos - 1;
+                int r_odd;
+                if (m_a == 0) {
+                    r_odd = 0;
                 } else {
-                    int nextParity = 1 - px;
-                    cnt = ways(o2, e2, remLen, nextParity);
+                    int r_p_next = 1 ^ p;
+                    r_odd = (r_p_next == 1 ? (m_a + 1) / 2 : m_a / 2);
                 }
-
-                if (k > cnt) {
-                    k -= cnt;
-                } else {
-                    used[x] = 1;
-                    ans.push_back(x);
-                    prevParity = px;
-                    o = o2; e = e2;
-                    picked = true;
+                int r_even = m_a - r_odd;
+                if (ao_a != r_odd || ae_a != r_even) continue;
+                ll cnt = get_count(ao_a, ae_a);
+                if (kk <= cnt) {
+                    res[pos] = num;
+                    used[num] = true;
+                    cur_ao = ao_a;
+                    cur_ae = ae_a;
+                    last_p = p;
+                    found = true;
                     break;
+                } else {
+                    kk -= cnt;
                 }
             }
-            if (!picked) return {};
+            if (!found) {
+                return {};
+            }
+            ++pos;
         }
-        return ans;
+        return res;
     }
 };
-// @lc code=end
+# @lc code=end
