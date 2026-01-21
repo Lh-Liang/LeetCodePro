@@ -1,50 +1,37 @@
-#
-# @lc app=leetcode id=2058 lang=python3
-#
-# [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
-#
-
-# @lc code=start
-# Definition for singly-linked list.
-# class ListNode:
-#     def __init__(self, val=0, next=None):
-#         self.val = val
-#         self.next = next
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
         if not head or not head.next or not head.next.next:
             return [-1, -1]
         
-        first_idx = -1
-        prev_idx = -1
+        first_cp_idx = -1
+        prev_cp_idx = -1
         min_dist = float('inf')
         
-        curr_idx = 1
-        prev_val = head.val
+        prev = head
         curr = head.next
+        idx = 1
         
         while curr.next:
-            next_val = curr.next.val
-            # Check if current node is a critical point
-            is_max = curr.val > prev_val and curr.val > next_val
-            is_min = curr.val < prev_val and curr.val < next_val
+            nxt = curr.next
             
-            if is_max or is_min:
-                if first_idx == -1:
-                    first_idx = curr_idx
+            # Check if curr is a local maxima or minima
+            is_critical = (curr.val > prev.val and curr.val > nxt.val) or \
+                          (curr.val < prev.val and curr.val < nxt.val)
+            
+            if is_critical:
+                if first_cp_idx == -1:
+                    first_cp_idx = idx
                 else:
-                    min_dist = min(min_dist, curr_idx - prev_idx)
-                prev_idx = curr_idx
+                    min_dist = min(min_dist, idx - prev_cp_idx)
+                
+                prev_cp_idx = idx
             
-            # Move to the next node
-            prev_val = curr.val
-            curr = curr.next
-            curr_idx += 1
+            prev = curr
+            curr = nxt
+            idx += 1
             
-        # If we found fewer than 2 critical points
-        if first_idx == prev_idx:
+        if first_cp_idx == -1 or prev_cp_idx == first_cp_idx:
             return [-1, -1]
             
-        return [int(min_dist), prev_idx - first_idx]
-
-# @lc code=end
+        max_dist = prev_cp_idx - first_cp_idx
+        return [min_dist, max_dist]
