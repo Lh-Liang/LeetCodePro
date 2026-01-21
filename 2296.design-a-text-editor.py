@@ -1,52 +1,38 @@
-#
-# @lc app=leetcode id=2296 lang=python3
-#
-# [2296] Design a Text Editor
-#
-
-# @lc code=start
 class TextEditor:
 
     def __init__(self):
-        # Stores characters to the left of the cursor
-        self.left_stack = []
-        # Stores characters to the right of the cursor in reverse order
-        # Example: if text is "abc|def", left=['a','b','c'], right=['f','e','d']
-        self.right_stack = []
+        # Characters to the left of the cursor
+        self.left = []
+        # Characters to the right of the cursor (top of stack is closest to cursor)
+        self.right = []
 
     def addText(self, text: str) -> None:
         # Add characters to the left stack
-        for char in text:
-            self.left_stack.append(char)
+        self.left.extend(text)
 
     def deleteText(self, k: int) -> int:
-        # Delete up to k characters from the left stack
-        count = 0
-        while k > 0 and self.left_stack:
-            self.left_stack.pop()
-            count += 1
-            k -= 1
-        return count
+        # Delete characters to the left of the cursor
+        num_to_delete = min(k, len(self.left))
+        for _ in range(num_to_delete):
+            self.left.pop()
+        return num_to_delete
 
     def cursorLeft(self, k: int) -> str:
-        # Move k characters from left stack to right stack
-        while k > 0 and self.left_stack:
-            self.right_stack.append(self.left_stack.pop())
-            k -= 1
-        return self._get_last_10()
+        # Move cursor left: move characters from left stack to right stack
+        num_to_move = min(k, len(self.left))
+        for _ in range(num_to_move):
+            self.right.append(self.left.pop())
+        # Return the last 10 characters to the left of the cursor
+        return "".join(self.left[-10:])
 
     def cursorRight(self, k: int) -> str:
-        # Move k characters from right stack to left stack
-        while k > 0 and self.right_stack:
-            self.left_stack.append(self.right_stack.pop())
-            k -= 1
-        return self._get_last_10()
+        # Move cursor right: move characters from right stack to left stack
+        num_to_move = min(k, len(self.right))
+        for _ in range(num_to_move):
+            self.left.append(self.right.pop())
+        # Return the last 10 characters to the left of the cursor
+        return "".join(self.left[-10:])
 
-    def _get_last_10(self) -> str:
-        # Helper to return the last min(10, len) characters from left stack
-        # Since slicing handles out of bounds gracefully, we can just slice.
-        # The slice [-10:] takes the last 10 elements. If fewer than 10, it takes all.
-        return "".join(self.left_stack[-10:])
 
 # Your TextEditor object will be instantiated and called as such:
 # obj = TextEditor()
@@ -54,4 +40,3 @@ class TextEditor:
 # param_2 = obj.deleteText(k)
 # param_3 = obj.cursorLeft(k)
 # param_4 = obj.cursorRight(k)
-# @lc code=end
