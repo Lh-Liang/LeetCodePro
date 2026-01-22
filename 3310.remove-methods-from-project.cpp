@@ -1,60 +1,61 @@
-//
-// @lc app=leetcode id=3310 lang=cpp
-//
-// [3310] Remove Methods From Project
-//
+#
+# @lc app=leetcode id=3310 lang=cpp
+#
+# [3310] Remove Methods From Project
+#
 
-// @lc code=start
+# @lc code=start
 class Solution {
 public:
     vector<int> remainingMethods(int n, int k, vector<vector<int>>& invocations) {
         // Build adjacency list
         vector<vector<int>> adj(n);
-        for (auto& inv : invocations) {
-            adj[inv[0]].push_back(inv[1]);
+        for (const auto& inv : invocations) {
+            int a = inv[0], b = inv[1];
+            adj[a].push_back(b);
         }
         
-        // Find all suspicious methods using BFS from k
+        // Mark all methods reachable from k as suspicious using BFS
         vector<bool> suspicious(n, false);
         queue<int> q;
         q.push(k);
         suspicious[k] = true;
-        
         while (!q.empty()) {
-            int curr = q.front();
+            int u = q.front();
             q.pop();
-            for (int next : adj[curr]) {
-                if (!suspicious[next]) {
-                    suspicious[next] = true;
-                    q.push(next);
+            for (int v : adj[u]) {
+                if (!suspicious[v]) {
+                    suspicious[v] = true;
+                    q.push(v);
                 }
             }
         }
         
-        // Check if any non-suspicious method invokes a suspicious method
+        // Check if any method outside the suspicious set invokes a method inside
         bool canRemove = true;
-        for (auto& inv : invocations) {
-            if (!suspicious[inv[0]] && suspicious[inv[1]]) {
+        for (const auto& inv : invocations) {
+            int a = inv[0], b = inv[1];
+            if (suspicious[b] && !suspicious[a]) {
                 canRemove = false;
                 break;
             }
         }
         
-        // Build result
-        vector<int> result;
-        if (canRemove) {
-            for (int i = 0; i < n; i++) {
+        if (!canRemove) {
+            // Cannot remove any; return all methods
+            vector<int> res(n);
+            iota(res.begin(), res.end(), 0);
+            return res;
+        } else {
+            // Remove all suspicious methods
+            vector<int> res;
+            for (int i = 0; i < n; ++i) {
                 if (!suspicious[i]) {
-                    result.push_back(i);
+                    res.push_back(i);
                 }
             }
-        } else {
-            for (int i = 0; i < n; i++) {
-                result.push_back(i);
-            }
+            return res;
         }
-        
-        return result;
     }
 };
-// @lc code=end
+# @lc code=end
