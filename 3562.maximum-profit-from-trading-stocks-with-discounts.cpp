@@ -1,70 +1,88 @@
-#
-# @lc app=leetcode id=3562 lang=cpp
-#
-# [3562] Maximum Profit from Trading Stocks with Discounts
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3562 lang=cpp
+//
+// [3562] Maximum Profit from Trading Stocks with Discounts
+//
+
+// @lc code=start
 class Solution {
 public:
     int maxProfit(int n, vector<int>& present, vector<int>& future, vector<vector<int>>& hierarchy, int budget) {
         vector<vector<int>> children(n + 1);
-        for (const auto& h : hierarchy) {
+        for (auto& h : hierarchy) {
             children[h[0]].push_back(h[1]);
         }
         
-        map<tuple<int, int, int>, int> memo;
+        const int NEG_INF = -100000000;
         
-        function<int(int, int, bool)> dfs = [&](int node, int remaining_budget, bool parent_bought) -> int {
-            auto key = make_tuple(node, remaining_budget, parent_bought);
-            if (memo.count(key)) return memo[key];
+        // dfs returns {dp0, dp1} where:
+        // dp0[b] = max profit when node doesn't buy, using budget b
+        // dp1[b] = max profit when node buys at full price, using budget b
+        function<pair<vector<int>, vector<int>>(int)> dfs = [&](int node) -> pair<vector<int>, vector<int>> {
+            vector<int> dp0(budget + 1, NEG_INF);
+            vector<int> dp1(budget + 1, NEG_INF);
             
-            int cost = parent_bought ? present[node - 1] / 2 : present[node - 1];
-            int local_profit = future[node - 1] - cost;
-            
-            if (children[node].empty()) {
-                int result = 0;
-                if (cost <= remaining_budget && local_profit > 0) {
-                    result = local_profit;
-                }
-                return memo[key] = result;
+            // Initialize with just the current node
+            dp0[0] = 0;
+            int cost = present[node - 1];
+            if (cost <= budget) {
+                dp1[cost] = future[node - 1] - cost;
             }
             
-            int num_children = children[node].size();
-            
-            vector<vector<int>> dp_without(num_children + 1, vector<int>(remaining_budget + 1, 0));
-            for (int i = 0; i < num_children; i++) {
-                int child = children[node][i];
-                for (int b = 0; b <= remaining_budget; b++) {
-                    dp_without[i + 1][b] = dp_without[i][b];
-                    for (int b2 = 0; b2 <= b; b2++) {
-                        dp_without[i + 1][b] = max(dp_without[i + 1][b], 
-                                                    dp_without[i][b - b2] + dfs(child, b2, false));
-                    }
-                }
-            }
-            int max_profit = dp_without[num_children][remaining_budget];
-            
-            if (cost <= remaining_budget) {
-                int new_budget = remaining_budget - cost;
-                vector<vector<int>> dp_with(num_children + 1, vector<int>(new_budget + 1, 0));
-                for (int i = 0; i < num_children; i++) {
-                    int child = children[node][i];
-                    for (int b = 0; b <= new_budget; b++) {
-                        dp_with[i + 1][b] = dp_with[i][b];
-                        for (int b2 = 0; b2 <= b; b2++) {
-                            dp_with[i + 1][b] = max(dp_with[i + 1][b], 
-                                                     dp_with[i][b - b2] + dfs(child, b2, true));
+            for (int child : children[node]) {
+                auto [cdp0, cdp1] = dfs(child);
+                
+                int discount = present[child - 1] - present[child - 1] / 2;
+                
+                vector<int> new_dp0(budget + 1, NEG_INF);
+                vector<int> new_dp1(budget + 1, NEG_INF);
+                
+                // Combine dp0 with child's dp (child pays full price)
+                for (int b0 = 0; b0 <= budget; b0++) {
+                    if (dp0[b0] == NEG_INF) continue;
+                    for (int bc = 0; b0 + bc <= budget; bc++) {
+                        if (cdp0[bc] > NEG_INF) {
+                            new_dp0[b0 + bc] = max(new_dp0[b0 + bc], dp0[b0] + cdp0[bc]);
+                        }
+                        if (cdp1[bc] > NEG_INF) {
+                            new_dp0[b0 + bc] = max(new_dp0[b0 + bc], dp0[b0] + cdp1[bc]);
                         }
                     }
                 }
-                int total_with_buy = local_profit + dp_with[num_children][new_budget];
-                max_profit = max(max_profit, total_with_buy);
+                
+                // Combine dp1 with child's dp (child gets discount if buying)
+                for (int b1 = 0; b1 <= budget; b1++) {
+                    if (dp1[b1] == NEG_INF) continue;
+                    for (int bc = 0; bc <= budget; bc++) {
+                        // Child doesn't buy
+                        if (cdp0[bc] > NEG_INF && b1 + bc <= budget) {
+                            new_dp1[b1 + bc] = max(new_dp1[b1 + bc], dp1[b1] + cdp0[bc]);
+                        }
+                        // Child buys with discount
+                        if (cdp1[bc] > NEG_INF) {
+                            int new_cost = b1 + bc - discount;
+                            if (new_cost >= 0 && new_cost <= budget) {
+                                new_dp1[new_cost] = max(new_dp1[new_cost], dp1[b1] + cdp1[bc] + discount);
+                            }
+                        }
+                    }
+                }
+                
+                dp0 = move(new_dp0);
+                dp1 = move(new_dp1);
             }
             
-            return memo[key] = max_profit;
+            return {dp0, dp1};
         };
         
-        return dfs(1, budget, false);
+        auto [dp0, dp1] = dfs(1);
+        
+        int ans = 0;
+        for (int b = 0; b <= budget; b++) {
+            ans = max(ans, max(dp0[b], dp1[b]));
+        }
+        
+        return ans;
     }
 };
-# @lc code=end
+// @lc code=end
