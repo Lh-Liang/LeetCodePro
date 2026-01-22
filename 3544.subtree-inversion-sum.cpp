@@ -3,57 +3,80 @@
 #
 # [3544] Subtree Inversion Sum
 #
-
 # @lc code=start
 class Solution {
 public:
     long long subtreeInversionSum(vector<vector<int>>& edges, vector<int>& nums, int k) {
         int n = nums.size();
         vector<vector<int>> adj(n);
-        
-        // Build adjacency list
-        for (const auto& edge : edges) {
-            adj[edge[0]].push_back(edge[1]);
-            adj[edge[1]].push_back(edge[0]);
+        for (auto& e : edges) {
+            adj[e[0]].push_back(e[1]);
+            adj[e[1]].push_back(e[0]);
         }
         
-        // Memoization: memo[node][dist][parity]
-        const long long NEG_INF = LLONG_MIN / 2;
-        vector<vector<vector<long long>>> memo(n, vector<vector<long long>>(k + 1, vector<long long>(2, NEG_INF)));
+        // dp[node][d][p] = max sum from subtree of node
+        // d = distance from nearest inverted ancestor (k means >= k, can invert)
+        // p = parity of inversions (0 = even, 1 = odd)
+        vector<vector<vector<long long>>> dp(n, vector<vector<long long>>(k + 1, vector<long long>(2, 0)));
         
-        function<long long(int, int, int, int)> dfs = [&](int node, int parent, int dist, int parity) -> long long {
-            // Check memoization
-            if (memo[node][dist][parity] != NEG_INF) {
-                return memo[node][dist][parity];
-            }
-            
-            long long result = NEG_INF;
-            
-            // Option 1: Don't invert this node
-            long long sum = (parity == 0) ? nums[node] : -nums[node];
-            for (int child : adj[node]) {
-                if (child != parent) {
-                    sum += dfs(child, node, min(dist + 1, k), parity);
+        vector<int> parent(n, -1);
+        vector<int> order;
+        queue<int> q;
+        vector<bool> visited(n, false);
+        
+        q.push(0);
+        visited[0] = true;
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            order.push_back(u);
+            for (int v : adj[u]) {
+                if (!visited[v]) {
+                    visited[v] = true;
+                    parent[v] = u;
+                    q.push(v);
                 }
             }
-            result = max(result, sum);
-            
-            // Option 2: Invert this node (only if dist >= k)
-            if (dist >= k) {
-                sum = (parity == 1) ? nums[node] : -nums[node];
-                for (int child : adj[node]) {
-                    if (child != parent) {
-                        sum += dfs(child, node, 1, 1 - parity);
+        }
+        
+        // Reverse to process children before parents
+        reverse(order.begin(), order.end());
+        
+        for (int u : order) {
+            int par = parent[u];
+            for (int d = 0; d <= k; d++) {
+                for (int p = 0; p <= 1; p++) {
+                    long long val = (p == 0) ? (long long)nums[u] : -(long long)nums[u];
+                    
+                    if (d < k) {
+                        // Cannot invert at this node
+                        long long sum = val;
+                        for (int v : adj[u]) {
+                            if (v == par) continue;
+                            sum += dp[v][min(d + 1, k)][p];
+                        }
+                        dp[u][d][p] = sum;
+                    } else {
+                        // Can choose to invert or not
+                        long long noInvert = val;
+                        for (int v : adj[u]) {
+                            if (v == par) continue;
+                            noInvert += dp[v][k][p];
+                        }
+                        
+                        long long doInvert = -val;
+                        for (int v : adj[u]) {
+                            if (v == par) continue;
+                            doInvert += dp[v][1][1 - p];
+                        }
+                        
+                        dp[u][d][p] = max(noInvert, doInvert);
                     }
                 }
-                result = max(result, sum);
             }
-            
-            memo[node][dist][parity] = result;
-            return result;
-        };
+        }
         
-        return dfs(0, -1, k, 0);
+        return dp[0][k][0];
     }
 };
 # @lc code=end

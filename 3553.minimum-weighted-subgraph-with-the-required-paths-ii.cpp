@@ -1,57 +1,93 @@
-#
-# @lc app=leetcode id=3553 lang=cpp
-#
-# [3553] Minimum Weighted Subgraph With the Required Paths II
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3553 lang=cpp
+//
+// [3553] Minimum Weighted Subgraph With the Required Paths II
+//
+
+// @lc code=start
 class Solution {
 public:
     vector<int> minimumWeight(vector<vector<int>>& edges, vector<vector<int>>& queries) {
         int n = edges.size() + 1;
+        const int LOG = 17;
         
-        // Build adjacency list
-        vector<vector<pair<int, int>>> graph(n);
-        for (auto& e : edges) {
+        vector<vector<pair<int, int>>> adj(n);
+        for (const auto& e : edges) {
             int u = e[0], v = e[1], w = e[2];
-            graph[u].push_back({v, w});
-            graph[v].push_back({u, w});
+            adj[u].push_back({v, w});
+            adj[v].push_back({u, w});
         }
         
-        // Function to compute distances from a source node to all other nodes using DFS
-        auto computeDistances = [&](int src) {
-            vector<long long> dist(n, -1);
-            function<void(int, int, long long)> dfs = [&](int u, int parent, long long d) {
-                dist[u] = d;
-                for (auto [v, w] : graph[u]) {
-                    if (v != parent) {
-                        dfs(v, u, d + w);
-                    }
+        vector<long long> dist(n, 0);
+        vector<int> dep(n, 0);
+        vector<vector<int>> parent(n, vector<int>(LOG, -1));
+        
+        // BFS to compute dist, dep, and parent[i][0]
+        queue<int> que;
+        que.push(0);
+        vector<bool> visited(n, false);
+        visited[0] = true;
+        
+        while (!que.empty()) {
+            int u = que.front();
+            que.pop();
+            for (const auto& p : adj[u]) {
+                int v = p.first, w = p.second;
+                if (!visited[v]) {
+                    visited[v] = true;
+                    dist[v] = dist[u] + w;
+                    dep[v] = dep[u] + 1;
+                    parent[v][0] = u;
+                    que.push(v);
                 }
-            };
-            dfs(src, -1, 0);
-            return dist;
+            }
+        }
+        
+        // Build sparse table for LCA
+        for (int j = 1; j < LOG; j++) {
+            for (int i = 0; i < n; i++) {
+                if (parent[i][j-1] != -1) {
+                    parent[i][j] = parent[parent[i][j-1]][j-1];
+                }
+            }
+        }
+        
+        // LCA function using binary lifting
+        auto lca = [&](int u, int v) -> int {
+            if (dep[u] < dep[v]) swap(u, v);
+            int diff = dep[u] - dep[v];
+            for (int j = 0; j < LOG; j++) {
+                if ((diff >> j) & 1) {
+                    u = parent[u][j];
+                }
+            }
+            if (u == v) return u;
+            for (int j = LOG - 1; j >= 0; j--) {
+                if (parent[u][j] != parent[v][j]) {
+                    u = parent[u][j];
+                    v = parent[v][j];
+                }
+            }
+            return parent[u][0];
         };
         
-        vector<int> result;
+        // Distance function
+        auto getDist = [&](int u, int v) -> long long {
+            int l = lca(u, v);
+            return dist[u] + dist[v] - 2 * dist[l];
+        };
         
-        for (auto& query : queries) {
-            int src1 = query[0], src2 = query[1], dest = query[2];
-            
-            // Compute distances from src1, src2, and dest to all nodes
-            vector<long long> dist1 = computeDistances(src1);
-            vector<long long> dist2 = computeDistances(src2);
-            vector<long long> distDest = computeDistances(dest);
-            
-            // Find the Steiner point that minimizes the sum
-            long long minWeight = LLONG_MAX;
-            for (int i = 0; i < n; i++) {
-                minWeight = min(minWeight, dist1[i] + dist2[i] + distDest[i]);
-            }
-            
-            result.push_back((int)minWeight);
+        vector<int> answer;
+        for (const auto& q : queries) {
+            int src1 = q[0], src2 = q[1], dest = q[2];
+            long long d12 = getDist(src1, src2);
+            long long d2d = getDist(src2, dest);
+            long long d1d = getDist(src1, dest);
+            // Steiner tree formula: (d12 + d2d + d1d) / 2
+            answer.push_back((int)((d12 + d2d + d1d) / 2));
         }
         
-        return result;
+        return answer;
     }
 };
-# @lc code=end
+// @lc code=end
