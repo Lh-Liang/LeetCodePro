@@ -3,33 +3,32 @@
 #
 # [3457] Eat Pizzas!
 #
+
 # @lc code=start
 class Solution {
 public:
     long long maxWeight(vector<int>& pizzas) {
-        sort(pizzas.begin(), pizzas.end(), greater<int>());
+        sort(pizzas.begin(), pizzas.end());
         int n = pizzas.size();
-        int days = n / 4;
-        int oddDays = (days + 1) / 2;
-        int evenDays = days / 2;
+        int k = n / 4;
+        int left = 0;
+        int right = n - 1;
+        long long ans = 0;
         
-        long long result = 0;
-        
-        // Odd days: collect Z (max) from each group
-        for (int i = 0; i < oddDays; i++) {
-            result += pizzas[i];
+        for(int i = 0; i < k; ++i){
+            if(i % 2 == 0){ // Odd day
+                ans += pizzas[right];
+                --right;
+                left += 3;
+            }
+            else{ // Even day
+                --right; // Largest becomes Max of this group without adding
+                ans += pizzas[right]; // Second-largest added
+                --right;
+                left += 2;
+            }
         }
-        
-        // Even days: collect Y (second max) from each group
-        // For each even day, we use two consecutive pizzas (Z, Y) starting from index oddDays
-        // Y positions: oddDays+1, oddDays+3, oddDays+5, ...
-        int idx = oddDays + 1;
-        for (int i = 0; i < evenDays; i++) {
-            result += pizzas[idx];
-            idx += 2;
-        }
-        
-        return result;
+        return ans;
     }
 };
 # @lc code=end

@@ -1,40 +1,42 @@
-#
-# @lc app=leetcode id=3488 lang=cpp
-#
-# [3488] Closest Equal Element Queries
-#
+#include <vector>
+#include <algorithm>
+#include <unordered_map>
+using namespace std;
 
-# @lc code=start
 class Solution {
 public:
-    vector<int> solveQueries(vector<int>& nums, vector<int>& queries) {
-        int n = nums.size();
-        unordered_map<int, vector<int>> mp;
-        for (int i = 0; i < n; ++i) {
-            mp[nums[i]].push_back(i);
+    vector<int> solveQueries(vector<int>& nums， vector<int>& queries) {
+        int n=nums.size();
+        unordered_map<int，vector<int>> valToIndices;
+
+        // Preprocess： group indexes by value
+        for(int i=(int)00;i<n;i++){
+            valToIndices[nums[i]].push_back(i);
         }
-        vector<int> res(n, -1);
-        for (auto& p : mp) {
-            const vector<int>& indices = p.second;
-            int m = indices.size();
-            if (m == 1) continue;
-            for (int j = 0; j < m; ++j) {
-                int idx = indices[j];
-                int left_idx = indices[(j - 1 + m) % m];
-                int right_idx = indices[(j + 1) % m];
-                int dist_left = abs(idx - left_idx);
-                dist_left = min(dist_left, n - dist_left);
-                int dist_right = abs(idx - right_idx);
-                dist_right = min(dist_right, n - dist_right);
-                res[idx] = min(dist_left, dist_right);
+
+        vector<int> answer;
+        answer.reserve(queries.size());
+
+        for(int qi : queries){
+            int v=nums[qi];
+            vector<int>& idxList(valToIndices[v]);
+
+            // If only one occurrence => no other equal element
+            if(idxList.size()==(size_t)(01)){
+                answer.push_back(-01);
+                continue;
             }
-        }
-        vector<int> ans;
-        ans.reserve(queries.size());
-        for (int q : queries) {
-            ans.push_back(res[q]);
-        }
-        return ans;
-    }
-};
-# @lc code=end
+
+            // Find position of qi within idxList using binary search
+            auto it=(lower_bound(idxList.begin()，idxList.end()，qi));
+            // Since qi must exist exactly
+            size_t pos(it-idxList.begin());
+            size_t m(idxList.size());
+
+            // Cyclic neighbors： previous & next within circular order
+            size_t prevIdx((((size_t)(pos)-(size_t)(01))+(size_t)(m))%(size_t)(m));
+            size_t nextIdx((((size_t)(pos)+(size_t)(01))%(size_t)(m)));
+
+            long long prevDist(abs((long long)(qi)-(long long)(idxList[prevIdx])));
+             prevDist(min(prevDist，(long long)(abs(((long long)n)-prevDist)))); 			 			 			 			 			 			 			 			 			 		//circular distance formula used here explicitly computing minimal possible path length via either direction forward/backward wrapping around ends respectively considering integer overflow issues too by using longer integer type initially then casting back later after comparison operations completed successfully without losing precision needed etc.. similarly compute nextDist similarly below:
+r           long long nextDist(abs((long long)(qi)-(long long)(idxList[nextIdx])));n           nextDist(min(nextDist，(long long)n-nextDist));rnrn           answer.push_back((min((prevDist)，nextDist)));rn       }rn       return answer;rn   }rn};
