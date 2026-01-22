@@ -3,47 +3,52 @@
 #
 # [3776] Minimum Moves to Balance Circular Array
 #
+
 # @lc code=start
 class Solution {
 public:
     long long minMoves(vector<int>& balance) {
         int n = balance.size();
-        long long total = 0;
-        int neg_idx = -1;
-        long long deficit = 0;
+        long long sum = 0;
+        for (int x : balance) sum += x;
+        if (sum < 0) return -1;
         
+        // Find deficit position
+        int deficitPos = -1;
+        long long D = 0;
         for (int i = 0; i < n; i++) {
-            total += balance[i];
             if (balance[i] < 0) {
-                neg_idx = i;
-                deficit = -(long long)balance[i];
+                deficitPos = i;
+                D = -(long long)balance[i];
+                break;
             }
         }
         
-        if (total < 0) return -1;
-        if (neg_idx == -1) return 0;
+        if (deficitPos == -1) return 0; // No deficit
         
+        // Greedy fill by distance
         long long cost = 0;
-        vector<pair<int, long long>> sources;
+        long long filled = 0;
         
-        for (int i = 0; i < n; i++) {
-            if (i != neg_idx && balance[i] > 0) {
-                int clockwise = (neg_idx - i + n) % n;
-                int counterclockwise = (i - neg_idx + n) % n;
-                int dist = min(clockwise, counterclockwise);
-                sources.push_back({dist, (long long)balance[i]});
+        for (int d = 1; d <= n / 2 && filled < D; d++) {
+            int pos1 = (deficitPos + d) % n;
+            int pos2 = (deficitPos - d + n) % n;
+            
+            if (pos1 == pos2) {
+                long long take = min((long long)balance[pos1], D - filled);
+                cost += (long long)d * take;
+                filled += take;
+            } else {
+                long long take1 = min((long long)balance[pos1], D - filled);
+                cost += (long long)d * take1;
+                filled += take1;
+                
+                if (filled < D) {
+                    long long take2 = min((long long)balance[pos2], D - filled);
+                    cost += (long long)d * take2;
+                    filled += take2;
+                }
             }
-        }
-        
-        sort(sources.begin(), sources.end());
-        
-        for (const auto& p : sources) {
-            int dist = p.first;
-            long long value = p.second;
-            long long units = min(value, deficit);
-            cost += (long long)units * dist;
-            deficit -= units;
-            if (deficit == 0) break;
         }
         
         return cost;

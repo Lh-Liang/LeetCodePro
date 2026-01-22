@@ -5,44 +5,44 @@
 #
 # @lc code=start
 class Solution {
-private:
-    void dfs(int node, int parent, vector<vector<int>>& adj, vector<int>& group, vector<int>& countV, vector<bool>& visited) {
-        visited[node] = true;
-        countV[group[node]]++;
-        for (int neighbor : adj[node]) {
-            if (neighbor != parent && !visited[neighbor]) {
-                dfs(neighbor, node, adj, group, countV, visited);
-            }
-        }
-    }
-    
 public:
     long long interactionCosts(int n, vector<vector<int>>& edges, vector<int>& group) {
         vector<vector<int>> adj(n);
-        for (auto& edge : edges) {
-            adj[edge[0]].push_back(edge[1]);
-            adj[edge[1]].push_back(edge[0]);
+        for (auto& e : edges) {
+            adj[e[0]].push_back(e[1]);
+            adj[e[1]].push_back(e[0]);
         }
         
-        long long totalCost = 0;
         vector<int> totalCount(21, 0);
         for (int i = 0; i < n; i++) {
             totalCount[group[i]]++;
         }
         
-        for (auto& edge : edges) {
-            int u = edge[0], v = edge[1];
-            vector<int> countV(21, 0);
-            vector<bool> visited(n, false);
-            dfs(v, u, adj, group, countV, visited);
-            
-            for (int g = 1; g <= 20; g++) {
-                int countU = totalCount[g] - countV[g];
-                totalCost += (long long)countU * countV[g];
-            }
-        }
+        vector<vector<int>> subtreeCount(n, vector<int>(21, 0));
+        long long result = 0;
         
-        return totalCost;
+        function<void(int, int)> dfs = [&](int node, int parent) {
+            subtreeCount[node][group[node]] = 1;
+            
+            for (int child : adj[node]) {
+                if (child == parent) continue;
+                dfs(child, node);
+                
+                for (int g = 1; g <= 20; g++) {
+                    long long inSubtree = subtreeCount[child][g];
+                    long long outside = totalCount[g] - inSubtree;
+                    result += inSubtree * outside;
+                }
+                
+                for (int g = 1; g <= 20; g++) {
+                    subtreeCount[node][g] += subtreeCount[child][g];
+                }
+            }
+        };
+        
+        dfs(0, -1);
+        
+        return result;
     }
 };
 # @lc code=end
