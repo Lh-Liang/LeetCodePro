@@ -1,44 +1,15 @@
-#
-# @lc app=leetcode id=3217 lang=cpp
-#
-# [3217] Delete Nodes From Linked List Present in Array
-#
-# @lc code=start
-/**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int x) : val(x), next(nullptr) {}
- *     ListNode(int x, ListNode *next) : val(x), next(next) {}
- * };
- */
-class Solution {
-public:
-    ListNode* modifiedList(vector<int>& nums, ListNode* head) {
-        // Convert nums to a set for O(1) lookup
-        unordered_set<int> toRemove(nums.begin(), nums.end());
-        
-        // Create a dummy node to handle edge cases
-        ListNode dummy(0);
-        dummy.next = head;
-        
-        ListNode* prev = &dummy;
-        ListNode* curr = head;
-        
-        while (curr != nullptr) {
-            if (toRemove.count(curr->val)) {
-                // Remove this node
-                prev->next = curr->next;
-            } else {
-                // Keep this node, move prev forward
-                prev = curr;
-            }
-            curr = curr->next;
-        }
-        
-        return dummy.next;
-    }
-};
-# @lc code=end
+#\n# @lc app=leetcode id=3217 lang=cpp\n#\n# [3217] Delete Nodes From Linked List Present in Array\n#\n\n/**\n * Definition for singly-linked list.\n */\n/*\nstruct ListNode {\n    int val;\n    ListNode *ne xt;\n};\n*/\nclass Solution {\npublic:\n    ListNode* modifiedList(std::vector<int>& nums, ListNode* head) {\n        constexpr int MAX_VAL = 100000; \// constraint max val <=10^5\n        std::vector<bool> present(MAX_VAL + 1, false);\n        \// mark values existing in nums\n        for(int num : nums){\n            present[num] true;\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\nl}\\\\\nl
+
+
+
+
+
+
+
+
+
+
+
+
+
+

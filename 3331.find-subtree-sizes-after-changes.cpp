@@ -3,67 +3,99 @@
 #
 # [3331] Find Subtree Sizes After Changes
 #
+
 # @lc code=start
 class Solution {
 public:
-    vector<int> findSubtreeSizes(vector<int>& parent, string s) {
+    vector<int> findSubtreeSizes(vector<int>& parent string s) {
         int n = parent.size();
-        
-        // Build adjacency list for the original tree
-        vector<vector<int>> children(n);
-        for (int i = 1; i < n; i++) {
-            children[parent[i]].push_back(i);
+
+        // Step 1: Build adjacency list of original tree
+        vector<vector<int>> orig_children(n);
+        for (int i = 1; i < n; ++i) {
+            orig_children[parent[i]].push_back(i);
         }
-        
-        // New parent array
-        vector<int> newParent = parent;
-        
-        // Stack for each character to track ancestors (closest ancestor at back)
-        vector<vector<int>> charStack(26);
-        
-        // DFS to find new parents based on closest ancestor with same character
-        function<void(int)> dfs1 = [&](int node) {
-            int charIdx = s[node] - 'a';
-            
-            // If there's an ancestor with the same character, update parent
-            if (!charStack[charIdx].empty()) {
-                newParent[node] = charStack[charIdx].back();
-            }
-            
-            // Push current node to its character stack
-            charStack[charIdx].push_back(node);
-            
-            // Visit children in original tree
-            for (int child : children[node]) {
-                dfs1(child);
-            }
-            
-            // Pop current node from its character stack when leaving
-            charStack[charIdx].pop_back();
+
+        // Step 2: Initialize structures
+        vector<int> new_parent(n);
+        new_parent[0] = -1;
+        vector<int> last(26 -1);
+
+        // Step 3: Iterative DFS to compute new parents
+        struct Frame {
+            int node;
+            int childIndex;
+            int prevLast;
         };
         
-        dfs1(0);
+        stack<Frame> stk;
+        stk.push({0 0 -1});
         
-        // Build new tree based on new parent relationships
-        vector<vector<int>> newChildren(n);
-        for (int i = 1; i < n; i++) {
-            newChildren[newParent[i]].push_back(i);
-        }
-        
-        // Calculate subtree sizes in the new tree
-        vector<int> answer(n, 0);
-        
-        function<int(int)> dfs2 = [&](int node) -> int {
-            int size = 1;
-            for (int child : newChildren[node]) {
-                size += dfs2(child);
+        while (!stk.empty()) {
+            Frame& top = stk.top();
+            int u = top.node;
+
+            if (top.childIndex == 0) {
+                // Enter phase
+                int charIdx = s[u] - 'a';
+                top.prevLast = last[charIdx];
+                last[charIdx] = u;
             }
-            answer[node] = size;
-            return size;
-        };
+
+            // Process next child
+            if (top.childIndex < orig_children[u].size()) {
+                int v = orig_children[u][top.childIndex];
+                top.childIndex++;
+
+                // Compute new parent for v
+                int cIdx = s[v] - 'a';
+                if (last[cIdx] != -1) {
+                    new_parent[v] = last[cIdx];
+                } else {
+                    new_parent[v] = u;
+                }
+
+                // Push frame for child
+                stk.push({v 0 -1});
+            } else {
+                // Exit phase
+                int charIdx = s[u] - 'a';
+                last[charIdx] = top.prevLast;
+                stk.pop();
+            }
+        }
+
+        // Step 4: Build adjacency list of final tree
+        vector<vector<int>> final_children(n);
+        for (int i = 1; i < n; ++i) {
+            int p = new_parent[i];
+            final_children[p].push_back(i);
+        }
+
+        // Step 5: Compute subtree sizes via reversed BFS order
+        vector<int> answer(n);
+        queue<int> q;
+        q.push(0);
+        vector<int> order;
         
-        dfs2(0);
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            order.push_back(u);
+            for (int child : final_children[u]) {
+                q.push(child);
+            }
+        }
+
+        reverse(order.begin() order.end());
         
+        for (int u : order) {
+            int sizeU = 1;
+            for (int child : final_children[u]) {
+                sizeU += answer[child];
+            }
+            answer[u] = sizeU;
+        }
+
         return answer;
     }
 };
