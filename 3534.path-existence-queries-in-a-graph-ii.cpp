@@ -7,67 +7,77 @@
 class Solution {
 public:
     vector<int> pathExistenceQueries(int n, vector<int>& nums, int maxDiff, vector<vector<int>>& queries) {
-        // Build adjacency list
-        vector<vector<int>> adj(n);
+        // Sort indices by nums value
+        vector<int> sorted_idx(n);
+        iota(sorted_idx.begin(), sorted_idx.end(), 0);
+        sort(sorted_idx.begin(), sorted_idx.end(), [&](int a, int b) {
+            return nums[a] < nums[b];
+        });
         
-        // Sort nodes by their values to efficiently find edges
-        vector<pair<int, int>> sorted_nodes;
+        // Position of each node in sorted order
+        vector<int> pos(n);
         for (int i = 0; i < n; i++) {
-            sorted_nodes.push_back({nums[i], i});
+            pos[sorted_idx[i]] = i;
         }
-        sort(sorted_nodes.begin(), sorted_nodes.end());
         
-        // For each node, find all nodes within maxDiff
+        // Sorted values
+        vector<int> sorted_vals(n);
         for (int i = 0; i < n; i++) {
-            int idx1 = sorted_nodes[i].second;
-            int val1 = sorted_nodes[i].first;
-            
-            for (int j = i + 1; j < n; j++) {
-                int idx2 = sorted_nodes[j].second;
-                int val2 = sorted_nodes[j].first;
-                
-                if (val2 - val1 > maxDiff) break;
-                
-                adj[idx1].push_back(idx2);
-                adj[idx2].push_back(idx1);
+            sorted_vals[i] = nums[sorted_idx[i]];
+        }
+        
+        // For each position, compute rightmost reachable position
+        vector<int> reach(n);
+        for (int i = 0; i < n; i++) {
+            auto it = upper_bound(sorted_vals.begin(), sorted_vals.end(), sorted_vals[i] + maxDiff);
+            reach[i] = (int)(it - sorted_vals.begin()) - 1;
+        }
+        
+        // Binary lifting
+        const int LOG = 17; // log2(10^5) < 17
+        vector<vector<int>> jump(LOG, vector<int>(n));
+        
+        // Base case: one jump goes to reach[i]
+        for (int i = 0; i < n; i++) {
+            jump[0][i] = reach[i];
+        }
+        
+        // Build table
+        for (int k = 1; k < LOG; k++) {
+            for (int i = 0; i < n; i++) {
+                jump[k][i] = jump[k-1][jump[k-1][i]];
             }
         }
         
-        // Process queries
-        vector<int> result;
-        for (const auto& query : queries) {
-            int u = query[0];
-            int v = query[1];
+        vector<int> answer;
+        for (const auto& q : queries) {
+            int u = q[0], v = q[1];
+            int pu = pos[u], pv = pos[v];
             
-            if (u == v) {
-                result.push_back(0);
+            if (pu == pv) {
+                answer.push_back(0);
                 continue;
             }
             
-            // BFS to find shortest path
-            queue<int> q;
-            vector<int> dist(n, -1);
-            q.push(u);
-            dist[u] = 0;
+            if (pu > pv) swap(pu, pv);
             
-            while (!q.empty()) {
-                int curr = q.front();
-                q.pop();
-                
-                if (curr == v) break;
-                
-                for (int neighbor : adj[curr]) {
-                    if (dist[neighbor] == -1) {
-                        dist[neighbor] = dist[curr] + 1;
-                        q.push(neighbor);
-                    }
+            int current = pu;
+            int jumps = 0;
+            for (int k = LOG - 1; k >= 0; k--) {
+                if (jump[k][current] < pv && jump[k][current] > current) {
+                    current = jump[k][current];
+                    jumps += (1 << k);
                 }
             }
             
-            result.push_back(dist[v]);
+            if (reach[current] < pv) {
+                answer.push_back(-1);
+            } else {
+                answer.push_back(jumps + 1);
+            }
         }
         
-        return result;
+        return answer;
     }
 };
 # @lc code=end
