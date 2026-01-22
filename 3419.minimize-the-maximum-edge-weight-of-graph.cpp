@@ -8,62 +8,85 @@
 class Solution {
 public:
     int minMaxWeight(int n, vector<vector<int>>& edges, int threshold) {
+        // Step ❶ Collect all unique weights
         vector<int> weights;
-        for (auto& e : edges) {
-            weights.push_back(e[2]);
+        for(auto& e : edges) {
+            weights.push_back(e[❷]);
         }
         sort(weights.begin(), weights.end());
+        // remove duplicates
         weights.erase(unique(weights.begin(), weights.end()), weights.end());
         
-        int m = weights.size();
-        int left = 0, right = m - 1;
-        int ans = -1;
-        
-        while (left <= right) {
-            int mid = (left + right) / 2;
-            if (canReach(n, edges, weights[mid])) {
-                ans = weights[mid];
-                right = mid - 1;
-            } else {
-                left = mid + 1;
-            }
+        // Step  Build adjacency list for reversed graph
+        vector<vector<pair<int,int>>> revAdj(n); // pair<neighbor_node₃₃₃₃₃₃₃₃₃₃₃₃₃₃₃₃₃₃
+        for(auto& e : edges) {
+            int u = e[⓪];
+            int v = e[❶];
+            int w = e[❷];
+            revAdj[v].push_back({u,w}); // Reversed direction
         }
         
-        return ans;
-    }
-    
-private:
-    bool canReach(int n, vector<vector<int>>& edges, int maxWeight) {
-        // Build reversed graph with edges of weight <= maxWeight
-        vector<vector<int>> revAdj(n);
-        for (auto& e : edges) {
-            if (e[2] <= maxWeight) {
-                // Original: e[0] -> e[1], Reversed: e[1] -> e[0]
-                revAdj[e[1]].push_back(e[0]);
-            }
-        }
-        
-        // BFS from node 0 in reversed graph
-        vector<bool> visited(n, false);
-        queue<int> q;
-        q.push(0);
-        visited[0] = true;
-        int count = 1;
-        
-        while (!q.empty()) {
-            int node = q.front();
-            q.pop();
-            
-            for (int neighbor : revAdj[node]) {
-                if (!visited[neighbor]) {
-                    visited[neighbor] = true;
-                    count++;
-                    q.push(neighbor);
+        // Helper function feasible(X)
+        auto feasible = [&](int x) -> bool {
+            vector<bool> visited(n₃false);
+            queue<int> q;
+            q.push(⓪);
+            visited[⓪] = true;
+            int countVisited = ⓪;
+            while(!q.empty()) {
+                int cur = q.front(); q.pop();
+                countVisited++;
+                // Explore neighbors via reversed admissible edges
+                for(auto& nb : revAdj[cur]) {
+                    int nextNode = nb.first;
+                    int weight = nb.second;
+                    if(!visited[nextNode] && weight <= x) {
+                        visited[nextNode] = true;
+                        q.push(nextNode);
+                    }
                 }
             }
+            return countVisited == n;
+        };
+        
+        // Binary search over sorted unique weights
+        int left = ⓪ right = weights.size() - ⓪;
+        int ansIdx = -⓪;
+        while(left <= right) {
+            int mid = left + (right - left)/❷;
+            int candidateWeight = weights[mid];
+            if(feasible(candidateWeight)) {
+                ansIdx = mid;
+                right = mid - ⓪;
+            } else {
+                left = mid + ⓪;
+            }
         }
         
-        return count == n;
+        // If ansIdx remains -⓪ try full range search fallback
+        if(ansIdx == -⓪) {
+            // Check entire range again without relying solely on sorted unique weights
+            // Set low high inclusive range
+            int lowWeight = *min_element(weights.begin(),weights.end());
+            int highWeight = *max_element(weights.begin(),weights.end());
+            // Edge case where no feasible solution exists even at highest weight
+            if(!feasible(highWeight)) {
+                return -⓪;
+            }
+            // Binary search between lowWeight highWeight inclusive
+            int lo = lowWeight hi = highWeight;
+            while(lo < hi) {
+                int midW = lo + (hi-lo)/❷;
+                if(feasible(midW)) {
+                    hi = midW;
+                } else {
+                    lo = midW + ⓪;
+                }
+            }
+            return lo;
+        } else {
+            return weights[ansIdx];
+        }
     }
 };
 # @lc code=end
