@@ -10,44 +10,43 @@ public:
         int n = nums.size();
         unordered_map<int, vector<int>> valueToIndices;
         
-        // Group indices by their values
+        // Group indices by value
         for (int i = 0; i < n; i++) {
             valueToIndices[nums[i]].push_back(i);
         }
         
-        // Precompute minimum distances for each index
+        // Precompute minimum distance for each index
         vector<int> minDist(n, -1);
         
-        for (auto& [val, indices] : valueToIndices) {
-            int k = indices.size();
-            if (k == 1) continue; // Only one occurrence, no other index with same value
+        for (auto& p : valueToIndices) {
+            vector<int>& indices = p.second;
+            int m = indices.size();
+            if (m == 1) continue; // Only one occurrence, distance is -1
             
-            // Indices are already sorted since we iterate from 0 to n-1
-            for (int j = 0; j < k; j++) {
-                int curr = indices[j];
-                int prev = indices[(j - 1 + k) % k];
-                int next = indices[(j + 1) % k];
+            for (int i = 0; i < m; i++) {
+                // Get left and right neighbors (with circular wraparound in the indices list)
+                int left = (i - 1 + m) % m;
+                int right = (i + 1) % m;
                 
-                // Distance to previous neighbor (circular distance)
-                int directPrev = abs(curr - prev);
-                int distPrev = min(directPrev, n - directPrev);
+                // Calculate circular distances in the original array
+                int d1 = abs(indices[i] - indices[left]);
+                int d2 = abs(indices[i] - indices[right]);
                 
-                // Distance to next neighbor (circular distance)
-                int directNext = abs(next - curr);
-                int distNext = min(directNext, n - directNext);
+                // Circular distance = min(direct, wraparound)
+                int leftDist = min(d1, n - d1);
+                int rightDist = min(d2, n - d2);
                 
-                minDist[curr] = min(distPrev, distNext);
+                minDist[indices[i]] = min(leftDist, rightDist);
             }
         }
         
         // Answer queries
-        vector<int> answer;
-        answer.reserve(queries.size());
+        vector<int> result;
         for (int q : queries) {
-            answer.push_back(minDist[q]);
+            result.push_back(minDist[q]);
         }
         
-        return answer;
+        return result;
     }
 };
 # @lc code=end

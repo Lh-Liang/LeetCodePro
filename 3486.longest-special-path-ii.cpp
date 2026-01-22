@@ -9,88 +9,92 @@ public:
     vector<int> longestSpecialPath(vector<vector<int>>& edges, vector<int>& nums) {
         int n = nums.size();
         vector<vector<pair<int, int>>> adj(n);
-        
         for (auto& e : edges) {
-            int u = e[0], v = e[1], w = e[2];
-            adj[u].push_back({v, w});
-            adj[v].push_back({u, w});
+            adj[e[0]].push_back({e[1], e[2]});
+            adj[e[1]].push_back({e[0], e[2]});
         }
         
-        vector<long long> prefix;
-        unordered_map<int, vector<int>> positions;
-        
-        multiset<int, greater<int>> hardBounds;
-        multiset<int, greater<int>> softBounds;
+        vector<long long> dist = {0};
+        unordered_map<int, int> last;
+        unordered_map<int, int> secondLast;
         
         long long maxLen = 0;
-        int minNodes = INT_MAX;
+        int minNodes = 1;
         
-        function<void(int, int, long long)> dfs = [&](int u, int par, long long dist) {
-            int idx = prefix.size();
-            prefix.push_back(dist);
-            
+        function<void(int, int, long long, int, int)> dfs = [&](int u, int parent, long long d, int left, int boundary) {
+            int idx = dist.size() - 1;
             int v = nums[u];
-            auto& pos = positions[v];
-            int m = pos.size();
             
-            if (m == 1) {
-                softBounds.insert(pos[0]);
-            } else if (m == 2) {
-                softBounds.erase(softBounds.find(pos[0]));
-                softBounds.insert(pos[1]);
-                hardBounds.insert(pos[0]);
-            } else if (m >= 3) {
-                hardBounds.erase(hardBounds.find(pos[m-3]));
-                hardBounds.insert(pos[m-2]);
-                softBounds.erase(softBounds.find(pos[m-2]));
-                softBounds.insert(pos[m-1]);
+            int oldLast = last.count(v) ? last[v] : -1;
+            int oldSecondLast = secondLast.count(v) ? secondLast[v] : -1;
+            
+            int prevOcc = oldLast;
+            int secondPrevOcc = oldSecondLast;
+            
+            // Handle "3 occurrences" constraint
+            if (secondPrevOcc >= left) {
+                left = secondPrevOcc + 1;
             }
             
-            pos.push_back(idx);
-            
-            int hardMax = hardBounds.empty() ? -1 : *hardBounds.begin();
-            int soft2 = -1;
-            if (softBounds.size() >= 2) {
-                auto it = softBounds.begin();
-                ++it;
-                soft2 = *it;
+            // Recheck boundary validity
+            if (boundary < left) {
+                boundary = -1;
             }
             
-            int minStart = max(hardMax, soft2) + 1;
-            
-            long long len = dist - prefix[minStart];
-            int numNodes = idx - minStart + 1;
-            
-            if (len > maxLen || (len == maxLen && numNodes < minNodes)) {
-                maxLen = len;
-                minNodes = numNodes;
-            }
-            
-            for (auto& [child, w] : adj[u]) {
-                if (child != par) {
-                    dfs(child, u, dist + w);
+            // Handle "at most one duplicate" constraint
+            if (prevOcc >= left) {
+                if (boundary >= left) {
+                    // Two duplicates, remove the older one
+                    if (boundary < prevOcc) {
+                        left = max(left, boundary + 1);
+                        boundary = (prevOcc >= left) ? prevOcc : -1;
+                    } else {
+                        left = max(left, prevOcc + 1);
+                        boundary = (boundary >= left) ? boundary : -1;
+                    }
+                } else {
+                    boundary = prevOcc;
                 }
             }
             
-            pos.pop_back();
+            // Update tracking
+            if (oldLast >= 0) {
+                secondLast[v] = oldLast;
+            }
+            last[v] = idx;
             
-            if (m == 1) {
-                softBounds.erase(softBounds.find(pos[0]));
-            } else if (m == 2) {
-                softBounds.erase(softBounds.find(pos[1]));
-                softBounds.insert(pos[0]);
-                hardBounds.erase(hardBounds.find(pos[0]));
-            } else if (m >= 3) {
-                hardBounds.erase(hardBounds.find(pos[m-2]));
-                hardBounds.insert(pos[m-3]);
-                softBounds.erase(softBounds.find(pos[m-1]));
-                softBounds.insert(pos[m-2]);
+            // Update answer
+            long long pathLen = d - dist[left];
+            int nodeCount = idx - left + 1;
+            if (pathLen > maxLen || (pathLen == maxLen && nodeCount < minNodes)) {
+                maxLen = pathLen;
+                minNodes = nodeCount;
             }
             
-            prefix.pop_back();
+            // Recurse
+            for (auto& [next, w] : adj[u]) {
+                if (next != parent) {
+                    dist.push_back(d + w);
+                    dfs(next, u, d + w, left, boundary);
+                    dist.pop_back();
+                }
+            }
+            
+            // Backtrack
+            if (oldLast >= 0) {
+                last[v] = oldLast;
+            } else {
+                last.erase(v);
+            }
+            
+            if (oldSecondLast >= 0) {
+                secondLast[v] = oldSecondLast;
+            } else {
+                secondLast.erase(v);
+            }
         };
         
-        dfs(0, -1, 0);
+        dfs(0, -1, 0, 0, -1);
         
         return {(int)maxLen, minNodes};
     }

@@ -7,32 +7,28 @@
 # @lc code=start
 class Solution {
 public:
+    bool isPalindrome(const string& str) {
+        int n = str.size();
+        for (int i = 0; i < n / 2; i++) {
+            if (str[i] != str[n - 1 - i]) return false;
+        }
+        return true;
+    }
+    
     int longestPalindrome(string s, string t) {
+        int n = s.size(), m = t.size();
         int maxLen = 0;
-        int n = s.length(), m = t.length();
         
+        // Iterate through all substrings of s (including empty)
         for (int i = 0; i <= n; i++) {
             for (int j = i; j <= n; j++) {
+                // Iterate through all substrings of t (including empty)
                 for (int k = 0; k <= m; k++) {
                     for (int l = k; l <= m; l++) {
-                        int sLen = j - i;
-                        int tLen = l - k;
-                        int totalLen = sLen + tLen;
-                        
-                        if (totalLen <= maxLen) continue;
-                        
-                        bool valid = true;
-                        for (int p = 0; p < totalLen / 2 && valid; p++) {
-                            int left = p;
-                            int right = totalLen - 1 - p;
-                            
-                            char charLeft = (left < sLen) ? s[i + left] : t[k + left - sLen];
-                            char charRight = (right < sLen) ? s[i + right] : t[k + right - sLen];
-                            
-                            if (charLeft != charRight) valid = false;
+                        string combined = s.substr(i, j - i) + t.substr(k, l - k);
+                        if (!combined.empty() && isPalindrome(combined)) {
+                            maxLen = max(maxLen, (int)combined.size());
                         }
-                        
-                        if (valid) maxLen = totalLen;
                     }
                 }
             }

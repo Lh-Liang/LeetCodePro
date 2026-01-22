@@ -1,12 +1,13 @@
-#
-# @lc app=leetcode id=3493 lang=cpp
-#
-# [3493] Properties Graph
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3493 lang=cpp
+//
+// [3493] Properties Graph
+//
+
+// @lc code=start
 class Solution {
-public:
-    vector<int> parent, rnk;
+private:
+    vector<int> parent;
     
     int find(int x) {
         if (parent[x] != x) {
@@ -16,29 +17,32 @@ public:
     }
     
     void unite(int x, int y) {
-        int px = find(x), py = find(y);
-        if (px == py) return;
-        if (rnk[px] < rnk[py]) swap(px, py);
-        parent[py] = px;
-        if (rnk[px] == rnk[py]) rnk[px]++;
+        int px = find(x);
+        int py = find(y);
+        if (px != py) {
+            parent[px] = py;
+        }
     }
     
+public:
     int numberOfComponents(vector<vector<int>>& properties, int k) {
         int n = properties.size();
         
-        parent.resize(n);
-        rnk.resize(n, 0);
-        for (int i = 0; i < n; i++) parent[i] = i;
-        
-        // Convert each property array to a set for distinct values
-        vector<unordered_set<int>> sets(n);
+        // Convert each properties[i] to a set for distinct values
+        vector<set<int>> sets(n);
         for (int i = 0; i < n; i++) {
             for (int val : properties[i]) {
                 sets[i].insert(val);
             }
         }
         
-        // Check pairs and union if intersection >= k
+        // Union-Find initialization
+        parent.resize(n);
+        for (int i = 0; i < n; i++) {
+            parent[i] = i;
+        }
+        
+        // Check all pairs
         for (int i = 0; i < n; i++) {
             for (int j = i + 1; j < n; j++) {
                 // Count intersection
@@ -57,10 +61,12 @@ public:
         // Count connected components
         int components = 0;
         for (int i = 0; i < n; i++) {
-            if (find(i) == i) components++;
+            if (find(i) == i) {
+                components++;
+            }
         }
         
         return components;
     }
 };
-# @lc code=end
+// @lc code=end
