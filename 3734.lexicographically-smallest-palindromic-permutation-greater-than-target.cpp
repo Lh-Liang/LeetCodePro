@@ -1,62 +1,96 @@
-#
-# @lc app=leetcode id=3734 lang=cpp
-#
-# [3734] Lexicographically Smallest Palindromic Permutation Greater Than Target
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3734 lang=cpp
+//
+// [3734] Lexicographically Smallest Palindromic Permutation Greater Than Target
+//
+
+// @lc code=start
 class Solution {
 public:
     string lexPalindromicPermutation(string s, string target) {
         int n = s.length();
         
-        // Count frequencies
-        unordered_map<char, int> freq;
-        for (char c : s) {
-            freq[c]++;
+        vector<int> freq(26, 0);
+        for (char c : s) freq[c - 'a']++;
+        
+        int oddCount = 0;
+        char middleChar = '\0';
+        for (int i = 0; i < 26; i++) {
+            if (freq[i] % 2 == 1) {
+                oddCount++;
+                middleChar = 'a' + i;
+            }
         }
         
         // Check if palindrome is possible
-        int oddCount = 0;
-        char oddChar = '\0';
-        for (auto& [ch, count] : freq) {
-            if (count % 2 == 1) {
-                oddCount++;
-                oddChar = ch;
-            }
+        if ((n % 2 == 0 && oddCount > 0) || (n % 2 == 1 && oddCount != 1)) {
+            return "";
         }
         
-        if (oddCount > 1) return "";
-        
-        int half = n / 2;
-        
-        // Collect characters for the first half
-        vector<char> chars;
-        for (auto& [ch, count] : freq) {
-            for (int i = 0; i < count / 2; i++) {
-                chars.push_back(ch);
-            }
+        int halfLen = n / 2;
+        vector<int> halfFreq(26, 0);
+        for (int i = 0; i < 26; i++) {
+            halfFreq[i] = freq[i] / 2;
         }
-        sort(chars.begin(), chars.end());
         
-        // Try all permutations of the first half
-        do {
-            string palindrome = "";
-            for (int i = 0; i < half; i++) {
-                palindrome += chars[i];
-            }
-            if (n % 2 == 1) {
-                palindrome += oddChar;
-            }
-            for (int i = half - 1; i >= 0; i--) {
-                palindrome += chars[i];
+        string half(halfLen, ' ');
+        
+        function<string(int, bool)> solve = [&](int pos, bool mustBeGreater) -> string {
+            if (pos == halfLen) {
+                string palindrome = half;
+                if (n % 2 == 1) palindrome += middleChar;
+                for (int i = halfLen - 1; i >= 0; i--) {
+                    palindrome += half[i];
+                }
+                if (mustBeGreater || palindrome > target) {
+                    return palindrome;
+                }
+                return "";
             }
             
-            if (palindrome > target) {
+            if (mustBeGreater) {
+                // Fill remaining with smallest characters
+                for (int i = pos; i < halfLen; i++) {
+                    for (int c = 0; c < 26; c++) {
+                        if (halfFreq[c] > 0) {
+                            half[i] = 'a' + c;
+                            halfFreq[c]--;
+                            break;
+                        }
+                    }
+                }
+                string palindrome = half;
+                if (n % 2 == 1) palindrome += middleChar;
+                for (int i = halfLen - 1; i >= 0; i--) {
+                    palindrome += half[i];
+                }
                 return palindrome;
             }
-        } while (next_permutation(chars.begin(), chars.end()));
+            
+            // Try each character >= target[pos]
+            for (int c = 0; c < 26; c++) {
+                if (halfFreq[c] > 0) {
+                    char ch = 'a' + c;
+                    if (ch < target[pos]) continue;
+                    
+                    halfFreq[c]--;
+                    half[pos] = ch;
+                    
+                    bool newMustBeGreater = (ch > target[pos]);
+                    string result = solve(pos + 1, newMustBeGreater);
+                    
+                    if (!result.empty()) {
+                        return result;
+                    }
+                    
+                    halfFreq[c]++;
+                }
+            }
+            
+            return "";
+        };
         
-        return "";
+        return solve(0, false);
     }
 };
-# @lc code=end
+// @lc code=end

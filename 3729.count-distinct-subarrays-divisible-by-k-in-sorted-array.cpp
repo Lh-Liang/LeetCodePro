@@ -8,20 +8,41 @@ class Solution {
 public:
     long long numGoodSubarrays(vector<int>& nums, int k) {
         int n = nums.size();
-        set<vector<int>> distinctSubarrays;
+        
+        // Step 1: Count all good subarrays using prefix sum
+        unordered_map<long long, long long> prefixCount;
+        prefixCount[0] = 1;
+        long long prefix = 0;
+        long long totalGood = 0;
         
         for (int i = 0; i < n; i++) {
-            long long sum = 0;
-            for (int j = i; j < n; j++) {
-                sum += nums[j];
-                if (sum % k == 0) {
-                    vector<int> subarray(nums.begin() + i, nums.begin() + j + 1);
-                    distinctSubarrays.insert(subarray);
-                }
-            }
+            prefix += nums[i];
+            long long rem = prefix % k;
+            totalGood += prefixCount[rem];
+            prefixCount[rem]++;
         }
         
-        return distinctSubarrays.size();
+        // Step 2: Find runs of equal elements and compute duplicates
+        long long duplicates = 0;
+        int i = 0;
+        while (i < n) {
+            int j = i;
+            while (j < n && nums[j] == nums[i]) {
+                j++;
+            }
+            // Run from index i to j-1 with value nums[i]
+            long long L_run = j - i;
+            long long v = nums[i];
+            long long g = __gcd(v, (long long)k);
+            long long step = (long long)k / g;
+            if (step <= L_run) {
+                long long M = L_run / step;
+                duplicates += M * L_run - step * M * (M + 1) / 2;
+            }
+            i = j;
+        }
+        
+        return totalGood - duplicates;
     }
 };
 # @lc code=end
