@@ -3,6 +3,7 @@
 #
 # [3441] Minimum Cost Good Caption
 #
+
 # @lc code=start
 class Solution {
 public:
@@ -10,107 +11,97 @@ public:
         int n = caption.size();
         if (n < 3) return "";
         
-        vector<vector<long long>> prefix(n + 1, vector<long long>(26, 0));
+        const int INF = 1e9;
+        
+        // Forward DP: dp[i][k][c] - k=0,1,2 for 1,2,>=3 chars in group with char c
+        vector<vector<vector<int>>> dp(n + 1, vector<vector<int>>(3, vector<int>(26, INF)));
+        vector<int> dpB(n + 1, INF);
+        dpB[0] = 0;
+        
         for (int i = 0; i < n; i++) {
+            int ch = caption[i] - 'a';
+            int minValid = *min_element(dp[i][2].begin(), dp[i][2].end());
+            
             for (int c = 0; c < 26; c++) {
-                prefix[i + 1][c] = prefix[i][c] + abs((caption[i] - 'a') - c);
+                int cost = abs(ch - c);
+                dp[i + 1][0][c] = min({dp[i + 1][0][c], dpB[i] + cost, minValid + cost});
+                dp[i + 1][1][c] = min(dp[i + 1][1][c], dp[i][0][c] + cost);
+                dp[i + 1][2][c] = min({dp[i + 1][2][c], dp[i][1][c] + cost, dp[i][2][c] + cost});
+            }
+            dpB[i + 1] = *min_element(dp[i + 1][2].begin(), dp[i + 1][2].end());
+        }
+        
+        int minCost = dpB[n];
+        if (minCost >= INF) return "";
+        
+        // Backward DP for reconstruction
+        vector<vector<vector<int>>> dp2(n + 1, vector<vector<int>>(3, vector<int>(26, INF)));
+        for (int c = 0; c < 26; c++) dp2[n][2][c] = 0;
+        
+        for (int i = n - 1; i >= 0; i--) {
+            int ch = caption[i] - 'a';
+            int minStart = *min_element(dp2[i + 1][0].begin(), dp2[i + 1][0].end());
+            
+            for (int c = 0; c < 26; c++) {
+                int cost = abs(ch - c);
+                dp2[i][0][c] = min(dp2[i][0][c], dp2[i + 1][1][c] + cost);
+                dp2[i][1][c] = min(dp2[i][1][c], dp2[i + 1][2][c] + cost);
+                dp2[i][2][c] = min({dp2[i][2][c], dp2[i + 1][2][c] + cost, minStart + cost});
             }
         }
         
-        auto segmentCost = [&](int i, int j, int c) -> long long {
-            return prefix[j][c] - prefix[i][c];
-        };
+        // Greedy reconstruction
+        string result;
+        int state = -1, curChar = -1;
         
-        const long long INF = 1e18;
-        vector<long long> dp(n + 1, INF);
-        dp[n] = 0;
-        
-        for (int i = n - 1; i >= 0; i--) {
-            int remaining = n - i;
-            if (remaining < 3) continue;
+        for (int i = 0; i < n; i++) {
+            int ch = caption[i] - 'a';
             
-            if (remaining <= 5) {
+            if (state == -1) {
+                int baseVal = dpB[i];
                 for (int c = 0; c < 26; c++) {
-                    dp[i] = min(dp[i], segmentCost(i, n, c));
-                }
-            } else {
-                for (int L = 3; L <= 5; L++) {
-                    for (int c = 0; c < 26; c++) {
-                        dp[i] = min(dp[i], segmentCost(i, i + L, c) + dp[i + L]);
+                    int cost = abs(ch - c);
+                    if (baseVal + cost + dp2[i + 1][0][c] == minCost) {
+                        result += (char)('a' + c);
+                        state = 0; curChar = c;
+                        break;
                     }
                 }
-            }
-        }
-        
-        if (dp[0] == INF) return "";
-        
-        vector<int> first_char(n + 1, -1);
-        vector<int> char_prefix_len(n + 1, 0);
-        vector<pair<int, int>> choice(n + 1, {-1, -1});
-        
-        for (int i = n - 1; i >= 0; i--) {
-            int remaining = n - i;
-            if (remaining < 3 || dp[i] == INF) continue;
-            
-            int best_c = -1, best_L = -1, best_prefix_len = 0;
-            
-            vector<int> valid_L;
-            if (remaining <= 5) {
-                valid_L.push_back(remaining);
+            } else if (state == 0) {
+                result += (char)('a' + curChar);
+                state = 1;
+            } else if (state == 1) {
+                result += (char)('a' + curChar);
+                state = 2;
             } else {
-                valid_L = {3, 4, 5};
-            }
-            
-            for (int c = 0; c < 26; c++) {
-                for (int L : valid_L) {
-                    long long cost = segmentCost(i, i + L, c);
-                    if (i + L < n) cost += dp[i + L];
-                    if (cost != dp[i]) continue;
-                    
-                    int len_new = L;
-                    if (i + L < n && first_char[i + L] == c) {
-                        len_new += char_prefix_len[i + L];
-                    }
-                    
-                    bool is_better = false;
-                    if (best_c == -1) {
-                        is_better = true;
-                    } else if (c < best_c) {
-                        is_better = true;
-                    } else if (c == best_c) {
-                        if (len_new < best_prefix_len) {
-                            int pos = i + len_new;
-                            if (pos == n || first_char[pos] < c) {
-                                is_better = true;
-                            }
-                        } else if (len_new > best_prefix_len) {
-                            int pos = i + best_prefix_len;
-                            if (pos < n && c < first_char[pos]) {
-                                is_better = true;
-                            }
+                int cost = abs(ch - curChar);
+                bool extended = false;
+                if (dp[i][2][curChar] + cost + dp2[i + 1][2][curChar] == minCost) {
+                    for (int c = 0; c < curChar; c++) {
+                        int newCost = abs(ch - c);
+                        if (dp[i][2][curChar] + newCost + dp2[i + 1][0][c] == minCost) {
+                            result += (char)('a' + c);
+                            state = 0; curChar = c;
+                            extended = true;
+                            break;
                         }
                     }
-                    
-                    if (is_better) {
-                        best_c = c;
-                        best_L = L;
-                        best_prefix_len = len_new;
+                    if (!extended) {
+                        result += (char)('a' + curChar);
+                        extended = true;
+                    }
+                } else {
+                    for (int c = 0; c < 26; c++) {
+                        int newCost = abs(ch - c);
+                        if (dp[i][2][curChar] + newCost + dp2[i + 1][0][c] == minCost) {
+                            result += (char)('a' + c);
+                            state = 0; curChar = c;
+                            extended = true;
+                            break;
+                        }
                     }
                 }
             }
-            
-            first_char[i] = best_c;
-            char_prefix_len[i] = best_prefix_len;
-            choice[i] = {best_L, best_c};
-        }
-        
-        string result;
-        int pos = 0;
-        while (pos < n) {
-            int L = choice[pos].first;
-            int c = choice[pos].second;
-            result += string(L, 'a' + c);
-            pos += L;
         }
         
         return result;
