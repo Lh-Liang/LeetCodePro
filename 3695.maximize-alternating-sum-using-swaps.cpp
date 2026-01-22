@@ -1,12 +1,12 @@
-#
-# @lc app=leetcode id=3695 lang=cpp
-#
-# [3695] Maximize Alternating Sum Using Swaps
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3695 lang=cpp
+//
+// [3695] Maximize Alternating Sum Using Swaps
+//
+// @lc code=start
 class Solution {
 public:
-    vector<int> parent;
+    vector<int> parent, rnk;
     
     int find(int x) {
         if (parent[x] != x) {
@@ -18,65 +18,49 @@ public:
     void unite(int x, int y) {
         int px = find(x);
         int py = find(y);
-        if (px != py) {
-            parent[px] = py;
-        }
+        if (px == py) return;
+        if (rnk[px] < rnk[py]) std::swap(px, py);
+        parent[py] = px;
+        if (rnk[px] == rnk[py]) rnk[px]++;
     }
     
     long long maxAlternatingSum(vector<int>& nums, vector<vector<int>>& swaps) {
         int n = nums.size();
         parent.resize(n);
-        for (int i = 0; i < n; i++) {
-            parent[i] = i;
+        rnk.resize(n, 0);
+        for (int i = 0; i < n; i++) parent[i] = i;
+        
+        for (auto& s : swaps) {
+            unite(s[0], s[1]);
         }
         
-        // Build union-find structure
-        for (const auto& swap : swaps) {
-            unite(swap[0], swap[1]);
-        }
-        
-        // Group indices by their root
         unordered_map<int, vector<int>> components;
         for (int i = 0; i < n; i++) {
             components[find(i)].push_back(i);
         }
         
-        // For each component, optimize assignment
-        vector<int> result(n);
+        long long result = 0;
+        
         for (auto& [root, indices] : components) {
-            // Collect values
-            vector<int> values;
+            vector<long long> values;
+            int evenCount = 0;
             for (int idx : indices) {
                 values.push_back(nums[idx]);
+                if (idx % 2 == 0) evenCount++;
             }
             
-            // Sort indices by coefficient (even = +1, odd = -1) in descending order
-            sort(indices.begin(), indices.end(), [](int a, int b) {
-                int coefA = (a % 2 == 0) ? 1 : -1;
-                int coefB = (b % 2 == 0) ? 1 : -1;
-                return coefA > coefB;
-            });
+            sort(values.begin(), values.end(), greater<long long>());
             
-            // Sort values in descending order
-            sort(values.begin(), values.end(), greater<int>());
-            
-            // Assign values
-            for (int i = 0; i < indices.size(); i++) {
-                result[indices[i]] = values[i];
+            for (int i = 0; i < (int)values.size(); i++) {
+                if (i < evenCount) {
+                    result += values[i];
+                } else {
+                    result -= values[i];
+                }
             }
         }
         
-        // Calculate alternating sum
-        long long sum = 0;
-        for (int i = 0; i < n; i++) {
-            if (i % 2 == 0) {
-                sum += result[i];
-            } else {
-                sum -= result[i];
-            }
-        }
-        
-        return sum;
+        return result;
     }
 };
-# @lc code=end
+// @lc code=end

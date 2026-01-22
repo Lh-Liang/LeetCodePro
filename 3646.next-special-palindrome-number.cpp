@@ -7,85 +7,93 @@
 class Solution {
 public:
     long long specialPalindrome(long long n) {
-        vector<long long> candidates;
+        vector<long long> allPalindromes;
         
-        // Generate all valid subsets of digits {1,2,...,9}
-        for (int mask = 1; mask < (1 << 9); mask++) {
-            vector<int> digits;
-            int totalLen = 0;
-            int oddCount = 0;
-            
-            for (int d = 1; d <= 9; d++) {
-                if (mask & (1 << (d - 1))) {
-                    digits.push_back(d);
-                    totalLen += d;
-                    if (d % 2 == 1) oddCount++;
+        vector<int> evens = {2, 4, 6, 8};
+        vector<int> odds = {1, 3, 5, 7, 9};
+        
+        // Case 1: Only evens (non-empty)
+        for (int evenMask = 1; evenMask < 16; evenMask++) {
+            vector<int> counts(10, 0);
+            for (int i = 0; i < 4; i++) {
+                if (evenMask & (1 << i)) {
+                    counts[evens[i]] = evens[i];
                 }
             }
-            
-            // Skip if more than one odd-count digit (can't form palindrome)
-            if (oddCount > 1) continue;
-            
-            // Skip if total length too long
-            if (totalLen > 20) continue;
-            
-            // Build the smallest palindrome for this subset
-            long long palindrome = buildPalindrome(digits, totalLen);
-            candidates.push_back(palindrome);
+            generatePalindromes(counts, allPalindromes);
         }
         
-        // Find the smallest candidate greater than n
-        long long result = LLONG_MAX;
-        for (long long cand : candidates) {
-            if (cand > n && cand < result) {
-                result = cand;
+        // Case 2: Zero or more evens + exactly one odd
+        for (int evenMask = 0; evenMask < 16; evenMask++) {
+            for (int odd : odds) {
+                vector<int> counts(10, 0);
+                for (int i = 0; i < 4; i++) {
+                    if (evenMask & (1 << i)) {
+                        counts[evens[i]] = evens[i];
+                    }
+                }
+                counts[odd] = odd;
+                generatePalindromes(counts, allPalindromes);
             }
         }
         
-        return result;
+        sort(allPalindromes.begin(), allPalindromes.end());
+        
+        for (long long p : allPalindromes) {
+            if (p > n) return p;
+        }
+        
+        return -1;
     }
     
-private:
-    long long buildPalindrome(const vector<int>& digits, int totalLen) {
-        bool isOddLen = (totalLen % 2 == 1);
+    void generatePalindromes(vector<int>& counts, vector<long long>& result) {
+        int total = 0;
         int oddDigit = -1;
-        
-        if (isOddLen) {
-            for (int d : digits) {
-                if (d % 2 == 1) {
-                    oddDigit = d;
-                    break;
-                }
+        for (int d = 0; d < 10; d++) {
+            total += counts[d];
+            if (counts[d] % 2 == 1) {
+                oddDigit = d;
             }
         }
         
-        vector<int> firstHalfDigits;
-        for (int d : digits) {
-            int count = d;
-            if (d == oddDigit) {
-                count--;
+        if (total == 0) return;
+        
+        bool isOdd = (total % 2 == 1);
+        
+        string half;
+        for (int d = 0; d < 10; d++) {
+            int halfCnt = counts[d] / 2;
+            for (int i = 0; i < halfCnt; i++) {
+                half += ('0' + d);
             }
-            for (int i = 0; i < count / 2; i++) {
-                firstHalfDigits.push_back(d);
+        }
+        
+        if (half.empty()) {
+            if (isOdd && oddDigit >= 0) {
+                result.push_back(oddDigit);
             }
+            return;
         }
         
-        sort(firstHalfDigits.begin(), firstHalfDigits.end());
+        sort(half.begin(), half.end());
         
-        string s = "";
-        for (int d : firstHalfDigits) {
-            s += to_string(d);
-        }
-        
-        if (isOddLen) {
-            s += to_string(oddDigit);
-        }
-        
-        for (int i = firstHalfDigits.size() - 1; i >= 0; i--) {
-            s += to_string(firstHalfDigits[i]);
-        }
-        
-        return stoll(s);
+        do {
+            if (half[0] == '0') continue;
+            
+            string palindrome = half;
+            if (isOdd) {
+                palindrome += ('0' + oddDigit);
+            }
+            string revHalf = half;
+            reverse(revHalf.begin(), revHalf.end());
+            palindrome += revHalf;
+            
+            if (palindrome.length() <= 18) {
+                long long num = stoll(palindrome);
+                result.push_back(num);
+            }
+            
+        } while (next_permutation(half.begin(), half.end()));
     }
 };
 # @lc code=end

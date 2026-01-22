@@ -1,57 +1,62 @@
-#
-# @lc app=leetcode id=3677 lang=cpp
-#
-# [3677] Count Binary Palindromic Numbers
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3677 lang=cpp
+//
+// [3677] Count Binary Palindromic Numbers
+//
+// @lc code=start
 class Solution {
 public:
     int countBinaryPalindromes(long long n) {
         if (n == 0) return 1;
         
-        // Find bit length of n
-        int bitLen = 0;
+        // Get binary representation of n (MSB first)
+        vector<int> bits;
         long long temp = n;
         while (temp > 0) {
-            bitLen++;
+            bits.push_back(temp & 1);
             temp >>= 1;
         }
+        reverse(bits.begin(), bits.end());
+        int L = (int)bits.size();
         
-        int count = 1; // Count 0
+        // Count starts with 1 (for the number 0)
+        long long count = 1;
         
-        // Count palindromes with length < bitLen
-        for (int len = 1; len < bitLen; len++) {
-            if (len == 1) {
-                count += 1; // Only "1"
-            } else if (len % 2 == 1) {
-                count += (1 << ((len - 1) / 2));
-            } else {
-                count += (1 << (len / 2 - 1));
+        // Count palindromes of lengths 1 to L-1 (all are strictly less than n)
+        for (int len = 1; len < L; len++) {
+            count += (1LL << ((len - 1) / 2));
+        }
+        
+        // Count palindromes of length L that are <= n
+        int m = (L - 1) / 2;  // front half covers positions 0 to m
+        
+        // Case 1: first difference at position j where p[j] = 0 < b[j] = 1
+        for (int j = 1; j <= m; j++) {
+            if (bits[j] == 1) {
+                count += (1LL << (m - j));
             }
         }
         
-        // Count palindromes with length = bitLen that are <= n
-        int halfLen = (bitLen + 1) / 2;
+        // Case 2: front half equals b's front half, construct palindrome and check
+        vector<int> p(L);
+        for (int i = 0; i <= m; i++) {
+            p[i] = bits[i];
+        }
+        for (int i = m + 1; i < L; i++) {
+            p[i] = p[L - 1 - i];
+        }
         
-        for (long long i = 0; i < (1LL << (halfLen - 1)); i++) {
-            long long half = (1LL << (halfLen - 1)) | i;
-            long long num = half;
-            long long mirror = (bitLen % 2 == 1) ? (half >> 1) : half;
-            
-            int shiftCount = (bitLen % 2 == 1) ? (halfLen - 1) : halfLen;
-            for (int j = 0; j < shiftCount; j++) {
-                num = (num << 1) | (mirror & 1);
-                mirror >>= 1;
-            }
-            
-            if (num <= n) {
-                count++;
-            } else {
+        bool lessOrEqual = true;
+        for (int i = 0; i < L; i++) {
+            if (p[i] < bits[i]) break;
+            if (p[i] > bits[i]) {
+                lessOrEqual = false;
                 break;
             }
         }
+        if (lessOrEqual) count++;
         
-        return count;
+        return (int)count;
     }
 };
-# @lc code=end
+// @lc code=end
