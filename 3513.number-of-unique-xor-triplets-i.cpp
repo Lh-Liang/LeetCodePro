@@ -7,19 +7,16 @@
 class Solution {
 public:
     int uniqueXorTriplets(vector<int>& nums) {
-        unordered_set<int> uniqueXors;
         int n = nums.size();
+        if (n == 1) return 1;
+        if (n == 2) return 2;
         
-        for (int i = 0; i < n; i++) {
-            for (int j = i; j < n; j++) {
-                for (int k = j; k < n; k++) {
-                    int xorVal = nums[i] ^ nums[j] ^ nums[k];
-                    uniqueXors.insert(xorVal);
-                }
-            }
+        // For n >= 3, find the smallest power of 2 greater than n
+        int k = 1;
+        while (k <= n) {
+            k <<= 1;
         }
-        
-        return uniqueXors.size();
+        return k;
     }
 };
 # @lc code=end

@@ -3,46 +3,83 @@
 #
 # [3510] Minimum Pair Removal to Sort Array II
 #
+
 # @lc code=start
 class Solution {
 public:
     int minimumPairRemoval(vector<int>& nums) {
         int n = nums.size();
-        if (n <= 1) return 0;
+        if (n == 1) return 0;
         
-        vector<long long> arr(nums.begin(), nums.end());
-        
-        auto isSorted = [](const vector<long long>& a) {
-            for (size_t i = 1; i < a.size(); i++) {
-                if (a[i] < a[i-1]) return false;
-            }
-            return true;
-        };
-        
-        if (isSorted(arr)) return 0;
-        
-        int operations = 0;
-        
-        while (!isSorted(arr)) {
-            // Find minimum sum pair (leftmost if tie)
-            size_t min_idx = 0;
-            long long min_sum = LLONG_MAX;
-            
-            for (size_t i = 0; i < arr.size() - 1; i++) {
-                long long sum = arr[i] + arr[i+1];
-                if (sum < min_sum) {
-                    min_sum = sum;
-                    min_idx = i;
-                }
-            }
-            
-            // Merge arr[min_idx] and arr[min_idx+1]
-            arr[min_idx] = arr[min_idx] + arr[min_idx + 1];
-            arr.erase(arr.begin() + min_idx + 1);
-            operations++;
+        vector<long long> vals(n);
+        for (int i = 0; i < n; i++) {
+            vals[i] = nums[i];
         }
         
-        return operations;
+        vector<int> nxt(n), prv(n);
+        for (int i = 0; i < n; i++) {
+            nxt[i] = i + 1;
+            prv[i] = i - 1;
+        }
+        
+        vector<bool> deleted(n, false);
+        
+        int badCount = 0;
+        for (int i = 0; i < n - 1; i++) {
+            if (vals[i] > vals[i + 1]) {
+                badCount++;
+            }
+        }
+        
+        if (badCount == 0) return 0;
+        
+        priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<>> pq;
+        
+        for (int i = 0; i < n - 1; i++) {
+            pq.push({vals[i] + vals[i + 1], i});
+        }
+        
+        int ops = 0;
+        while (badCount > 0) {
+            auto [sum, leftIdx] = pq.top();
+            pq.pop();
+            
+            if (deleted[leftIdx]) continue;
+            int rightIdx = nxt[leftIdx];
+            if (rightIdx >= n || deleted[rightIdx]) continue;
+            if (vals[leftIdx] + vals[rightIdx] != sum) continue;
+            
+            ops++;
+            
+            if (vals[leftIdx] > vals[rightIdx]) badCount--;
+            
+            int prevIdx = prv[leftIdx];
+            if (prevIdx >= 0 && !deleted[prevIdx]) {
+                if (vals[prevIdx] > vals[leftIdx]) badCount--;
+            }
+            
+            int nextRightIdx = nxt[rightIdx];
+            if (nextRightIdx < n && !deleted[nextRightIdx]) {
+                if (vals[rightIdx] > vals[nextRightIdx]) badCount--;
+            }
+            
+            vals[leftIdx] = sum;
+            deleted[rightIdx] = true;
+            
+            nxt[leftIdx] = nextRightIdx;
+            if (nextRightIdx < n) prv[nextRightIdx] = leftIdx;
+            
+            if (prevIdx >= 0 && !deleted[prevIdx]) {
+                if (vals[prevIdx] > vals[leftIdx]) badCount++;
+                pq.push({vals[prevIdx] + vals[leftIdx], prevIdx});
+            }
+            if (nextRightIdx < n && !deleted[nextRightIdx]) {
+                if (vals[leftIdx] > vals[nextRightIdx]) badCount++;
+                pq.push({vals[leftIdx] + vals[nextRightIdx], leftIdx});
+            }
+        }
+        
+        return ops;
     }
 };
 # @lc code=end
