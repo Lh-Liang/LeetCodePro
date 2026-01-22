@@ -1,33 +1,41 @@
-//
-// @lc app=leetcode id=3462 lang=cpp
-//
-// [3462] Maximum Sum With at Most K Elements
-//
+#
+# @lc app=leetcode id=3462 lang=cpp
+#
+# [3462] Maximum Sum With at Most K Elements
+#
 
-// @lc code=start
+# @lc code=start
 class Solution {
 public:
-    long long maxSum(vector<vector<int>>& grid, vector<int>& limits, int k) {
-        vector<int> candidates;
-        
+    long long maxSum(vector<vector<int>>& grid , vector< int >& limits , int k ) {
+        vector < pair < int , int >> elems ; // pair : value , rownumber
         int n = grid.size();
-        for (int i = 0; i < n; i++) {
-            vector<int> row = grid[i];
-            sort(row.begin(), row.end(), greater<int>());
-            for (int j = 0; j < limits[i]; j++) {
-                candidates.push_back(row[j]);
+        for(int i = 0 ; i < n ; ++ i ){
+            int m = grid [ i ].size();
+            for(int j = 0 ; j < m ; ++ j ){
+                elems.emplace_back(grid [ i ] [ j ] , i );
             }
         }
+        // sort descending by value
+        sort(elems.begin(), elems.end(), []( const pair < int , int >& a , const pair < int , int >& b){
+            return a.first > b.first;
+        });
         
-        sort(candidates.begin(), candidates.end(), greater<int>());
+        vector < int > cntPerRow ( n , 0 );
+        long long totalSum = 0 ;
+        int taken = 0 ;
         
-        long long sum = 0;
-        int count = min(k, (int)candidates.size());
-        for (int i = 0; i < count; i++) {
-            sum += candidates[i];
+        for(auto & p : elems){
+            int val = p.first;
+            int r   = p.second;
+            if(cntPerRow[r] < limits[r]){
+                totalSum += val;
+                cntPerRow[r]++;
+                taken++;
+                if(taken == k ) break;
+            }
         }
-        
-        return sum;
+        return totalSum;
     }
 };
-// @lc code=end
+n# @lc code=en
