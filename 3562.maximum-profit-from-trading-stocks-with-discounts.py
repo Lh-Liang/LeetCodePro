@@ -5,8 +5,6 @@
 #
 
 # @lc code=start
-from typing import List
-
 class Solution:
     def maxProfit(self, n: int, present: List[int], future: List[int], hierarchy: List[List[int]], budget: int) -> int:
         adj = [[] for _ in range(n + 1)]
@@ -14,61 +12,59 @@ class Solution:
             adj[u].append(v)
 
         def dfs(u):
-            # dp0[b]: max profit in subtree u if u's boss didn't buy
-            # dp1[b]: max profit in subtree u if u's boss bought
+            # dp0[c]: max profit in subtree u if u's boss didn't buy, using budget c
+            # dp1[c]: max profit in subtree u if u's boss did buy, using budget c
+            # Initialize with -infinity to represent unreachable states
+            dp0 = [-float('inf')] * (budget + 1)
+            dp1 = [-float('inf')] * (budget + 1)
             
-            # Initial state: no children processed yet
-            # We need to track the sum of children's dp0 and dp1 results
-            # using knapsack merging.
-            combined_dp0 = [0] * (budget + 1)
-            combined_dp1 = [0] * (budget + 1)
+            # Base case: node u decisions
+            # Case 1: u doesn't buy. Cost 0. Children use dp[v][0]
+            u_not_buy = [0] * (budget + 1)
             
+            # Case 2: u buys at full price. Cost present[u-1]. Children use dp[v][1]
+            u_buy_full = [-float('inf')] * (budget + 1)
+            cost_full = present[u - 1]
+            if cost_full <= budget:
+                u_buy_full[cost_full] = future[u - 1] - cost_full
+                
+            # Case 3: u buys at discount. Cost present[u-1]//2. Children use dp[v][1]
+            u_buy_disc = [-float('inf')] * (budget + 1)
+            cost_disc = cost_full // 2
+            if cost_disc <= budget:
+                u_buy_disc[cost_disc] = future[u - 1] - cost_disc
+
             for v in adj[u]:
                 v_dp0, v_dp1 = dfs(v)
-                new_combined_dp0 = [0] * (budget + 1)
-                new_combined_dp1 = [0] * (budget + 1)
                 
-                # Standard knapsack merge for children
-                for b in range(budget + 1):
-                    if combined_dp0[b] == 0 and combined_dp1[b] == 0 and b > 0:
-                        # Optimization: skip empty budget levels if possible
-                        pass 
-                    for v_b in range(budget - b + 1):
-                        if combined_dp0[b] + v_dp0[v_b] > new_combined_dp0[b + v_b]:
-                            new_combined_dp0[b + v_b] = combined_dp0[b] + v_dp0[v_b]
-                        if combined_dp1[b] + v_dp1[v_b] > new_combined_dp1[b + v_b]:
-                            new_combined_dp1[b + v_b] = combined_dp1[b] + v_dp1[v_b]
-                combined_dp0 = new_combined_dp0
-                combined_dp1 = new_combined_dp1
+                next_not_buy = [-float('inf')] * (budget + 1)
+                next_buy_full = [-float('inf')] * (budget + 1)
+                next_buy_disc = [-float('inf')] * (budget + 1)
+                
+                for c in range(budget + 1):
+                    if u_not_buy[c] == -float('inf') and u_buy_full[c] == -float('inf') and u_buy_disc[c] == -float('inf'):
+                        continue
+                    for cv in range(budget - c + 1):
+                        # If u didn't buy, children use v_dp0
+                        if u_not_buy[c] != -float('inf') and v_dp0[cv] != -float('inf'):
+                            next_not_buy[c + cv] = max(next_not_buy[c + cv], u_not_buy[c] + v_dp0[cv])
+                        # If u bought, children use v_dp1
+                        if v_dp1[cv] != -float('inf'):
+                            if u_buy_full[c] != -float('inf'):
+                                next_buy_full[c + cv] = max(next_buy_full[c + cv], u_buy_full[c] + v_dp1[cv])
+                            if u_buy_disc[c] != -float('inf'):
+                                next_buy_disc[c + cv] = max(next_buy_disc[c + cv], u_buy_disc[c] + v_dp1[cv])
+                
+                u_not_buy, u_buy_full, u_buy_disc = next_not_buy, next_buy_full, next_buy_disc
 
-            res_dp0 = [0] * (budget + 1)
-            res_dp1 = [0] * (budget + 1)
+            # Finalize dp0 and dp1 for node u
+            for c in range(budget + 1):
+                dp0[c] = max(u_not_buy[c], u_buy_full[c])
+                dp1[c] = max(u_not_buy[c], u_buy_disc[c])
             
-            cost_full = present[u-1]
-            profit_full = future[u-1] - cost_full
-            cost_half = present[u-1] // 2
-            profit_half = future[u-1] - cost_half
+            return dp0, dp1
 
-            for b in range(budget + 1):
-                # Option 1: u does not buy. Children get no discount.
-                res_dp0[b] = combined_dp0[b]
-                res_dp1[b] = combined_dp0[b]
-                
-                # Option 2: u buys at full price. Children get discount.
-                # Only possible for res_dp0 (boss didn't buy) and res_dp1 (boss bought)
-                if b >= cost_full:
-                    val = combined_dp1[b - cost_full] + profit_full
-                    if val > res_dp0[b]: res_dp0[b] = val
-                    if val > res_dp1[b]: res_dp1[b] = val
-                
-                # Option 3: u buys at half price. Children get discount.
-                # Only possible if boss bought (res_dp1)
-                if b >= cost_half:
-                    val = combined_dp1[b - cost_half] + profit_half
-                    if val > res_dp1[b]: res_dp1[b] = val
-            
-            return res_dp0, res_dp1
-
-        final_dp0, _ = dfs(1)
-        return max(final_dp0)
+        res_dp0, _ = dfs(1)
+        ans = max(res_dp0)
+        return ans if ans > 0 else 0
 # @lc code=end
