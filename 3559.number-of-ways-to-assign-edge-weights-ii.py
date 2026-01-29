@@ -5,71 +5,57 @@
 #
 
 # @lc code=start
-import collections
+from collections import deque
 from typing import List
 
 class Solution:
     def assignEdgeWeights(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
+        MOD = 10**9 + 7
         n = len(edges) + 1
         adj = [[] for _ in range(n + 1)]
-        for u, v in edges:
-            adj[u].append(v)
-            adj[v].append(u)
-        
-        # Binary Lifting Precomputation
-        LOG = n.bit_length()
-        up = [[0] * (n + 1) for _ in range(LOG)]
-        depth = [-1] * (n + 1)
-        
-        # BFS to find depths and parents
-        queue = collections.deque([1])
-        depth[1] = 0
-        while queue:
-            u = queue.popleft()
+        for a, b in edges:
+            adj[a].append(b)
+            adj[b].append(a)
+        LOG = 18
+        parent = [[0] * LOG for _ in range(n + 1)]
+        depth = [0] * (n + 1)
+        vis = [False] * (n + 1)
+        q = deque([1])
+        vis[1] = True
+        parent[1][0] = 1
+        while q:
+            u = q.popleft()
             for v in adj[u]:
-                if depth[v] == -1:
+                if not vis[v]:
+                    vis[v] = True
                     depth[v] = depth[u] + 1
-                    up[0][v] = u
-                    queue.append(v)
-        
-        # Build the binary lifting table
-        for i in range(1, LOG):
-            prev_row = up[i-1]
-            curr_row = up[i]
-            for u in range(1, n + 1):
-                curr_row[u] = prev_row[prev_row[u]]
-        
+                    parent[v][0] = u
+                    q.append(v)
+        for j in range(1, LOG):
+            for i in range(1, n + 1):
+                parent[i][j] = parent[parent[i][j - 1]][j - 1]
         def get_lca(u, v):
-            if depth[u] < depth[v]:
+            if depth[u] > depth[v]:
                 u, v = v, u
-            # Lift u to same depth as v
-            diff = depth[u] - depth[v]
-            for i in range(LOG):
-                if (diff >> i) & 1:
-                    u = up[i][u]
+            diff = depth[v] - depth[u]
+            j = 0
+            while diff > 0:
+                if diff & 1:
+                    v = parent[v][j]
+                diff >>= 1
+                j += 1
             if u == v:
                 return u
-            # Lift u and v together until they meet
-            for i in range(LOG - 1, -1, -1):
-                if up[i][u] != up[i][v]:
-                    u = up[i][u]
-                    v = up[i][v]
-            return up[0][u]
-        
-        MOD = 10**9 + 7
-        pow2 = [1] * (n + 1)
-        for i in range(1, n + 1):
-            pow2[i] = (pow2[i-1] * 2) % MOD
-            
-        results = []
-        for u, v in queries:
-            if u == v:
-                results.append(0)
-            else:
-                lca = get_lca(u, v)
-                dist = depth[u] + depth[v] - 2 * depth[lca]
-                # Number of ways is 2^(dist-1) mod 10^9 + 7
-                results.append(pow2[dist - 1])
-                
-        return results
+            for j in range(LOG - 1, -1, -1):
+                if parent[u][j] != parent[v][j]:
+                    u = parent[u][j]
+                    v = parent[v][j]
+            return parent[u][0]
+        ans = []
+        for qu, qv in queries:
+            l = get_lca(qu, qv)
+            k = depth[qu] + depth[qv] - 2 * depth[l]
+            ans.append(0 if k == 0 else pow(2, k - 1, MOD))
+        return ans
+
 # @lc code=end
