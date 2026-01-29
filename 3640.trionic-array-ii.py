@@ -5,71 +5,55 @@
 #
 
 # @lc code=start
+from typing import List
 class Solution:
     def maxSumTrionic(self, nums: List[int]) -> int:
         n = len(nums)
-        # inc1: max sum of the first increasing segment ending at current index
-        # dec: max sum of (inc1 + decreasing segment) ending at current index
-        # inc2: max sum of (inc1 + dec + increasing segment) ending at current index
-        
-        # Initialize with a very small number representing infinity
-        inf = float('inf')
-        inc1 = -inf
-        dec = -inf
-        inc2 = -inf
-        
-        ans = -inf
-        
+        pre = [0] * (n + 1)
+        for i in range(n):
+            pre[i + 1] = pre[i] + nums[i]
+        NEG_INF = -10**18
+        left_inc = [NEG_INF] * n
         for i in range(1, n):
-            curr = nums[i]
-            prev = nums[i-1]
-            
-            # Calculate new states based on transition from prev to curr
-            # We use temporary variables for the next state to avoid using updated values within the same step
-            if curr > prev:
-                # Increasing step
-                
-                # update inc2: can extend previous inc2 OR start inc2 from a previous dec
-                # Since we are going UP, we can be in the second increasing phase
-                new_inc2 = -inf
-                if inc2 != -inf:
-                    new_inc2 = max(new_inc2, inc2 + curr)
-                if dec != -inf:
-                    new_inc2 = max(new_inc2, dec + curr)
-                
-                # update inc1: can extend previous inc1 OR start new inc1 with (prev, curr)
-                new_inc1 = prev + curr
-                if inc1 != -inf:
-                    new_inc1 = max(new_inc1, inc1 + curr)
-                
-                # Cannot be in decreasing phase if we just went up
-                new_dec = -inf
-                
-                inc1, dec, inc2 = new_inc1, new_dec, new_inc2
-                
-            elif curr < prev:
-                # Decreasing step
-                
-                # update dec: can extend previous dec OR start dec from a previous inc1
-                # Since we are going DOWN, we can be in the middle decreasing phase
-                new_dec = -inf
-                if dec != -inf:
-                    new_dec = max(new_dec, dec + curr)
-                if inc1 != -inf:
-                    new_dec = max(new_dec, inc1 + curr)
-                
-                # Cannot extend increasing phases if we just went down
-                new_inc1 = -inf
-                new_inc2 = -inf
-                
-                inc1, dec, inc2 = new_inc1, new_dec, new_inc2
-                
+            if nums[i - 1] < nums[i]:
+                inner = nums[i - 1]
+                if left_inc[i - 1] != NEG_INF:
+                    inner = max(inner, left_inc[i - 1])
+                left_inc[i] = nums[i] + inner
+        right_inc = [NEG_INF] * n
+        for i in range(n - 2, -1, -1):
+            if nums[i] < nums[i + 1]:
+                inner = nums[i + 1]
+                if right_inc[i + 1] != NEG_INF:
+                    inner = max(inner, right_inc[i + 1])
+                right_inc[i] = nums[i] + inner
+        right_dec_end = list(range(n))
+        for i in range(n - 2, -1, -1):
+            if nums[i] > nums[i + 1]:
+                right_dec_end[i] = right_dec_end[i + 1]
             else:
-                # Equal elements: strictly increasing/decreasing property broken
-                inc1, dec, inc2 = -inf, -inf, -inf
-            
-            if inc2 != -inf:
-                ans = max(ans, inc2)
-                
+                right_dec_end[i] = i
+        left_sums = [NEG_INF] * n
+        i = 0
+        while i < n:
+            s = i
+            t = right_dec_end[s]
+            if t > s:
+                running_max = NEG_INF
+                for q in range(s + 1, t + 1):
+                    p = q - 1
+                    if left_inc[p] != NEG_INF:
+                        val = left_inc[p] - pre[p + 1]
+                        running_max = max(running_max, val)
+                    if running_max != NEG_INF:
+                        left_sums[q] = pre[q + 1] + running_max
+            i = t + 1
+        ans = NEG_INF
+        for q in range(n):
+            if left_sums[q] != NEG_INF and right_inc[q] != NEG_INF:
+                candidate = left_sums[q] + right_inc[q] - nums[q]
+                if candidate > ans:
+                    ans = candidate
         return ans
+
 # @lc code=end
