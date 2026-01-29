@@ -8,49 +8,32 @@
 class Solution:
     def countMajoritySubarrays(self, nums: List[int], target: int) -> int:
         n = len(nums)
-        # Offset to handle negative indices in BIT
-        # Range of prefix sums is [-n, n].
-        # We map -n to 1, 0 to n+1, n to 2n+1.
+        if n == 0:
+            return 0
         offset = n + 1
-        size = 2 * n + 2
-        bit = [0] * (size + 1)
+        tree = [0] * (2 * n + 3)
 
-        def update(i, delta):
-            while i < len(bit):
-                bit[i] += delta
-                i += i & (-i)
+        def fen_update(val, delta=1):
+            idx = val + offset
+            while idx < len(tree):
+                tree[idx] += delta
+                idx += idx & -idx
 
-        def query(i):
-            s = 0
-            while i > 0:
-                s += bit[i]
-                i -= i & (-i)
-            return s
+        def fen_query(val):
+            idx = val + offset
+            res = 0
+            while idx > 0:
+                res += tree[idx]
+                idx -= idx & -idx
+            return res
 
         ans = 0
-        current_prefix_sum = 0
-        
-        # Initialize with prefix sum 0 (representing empty prefix before start)
-        # Map 0 to offset
-        update(0 + offset, 1)
-
+        pre = 0
+        fen_update(0)
         for num in nums:
-            if num == target:
-                current_prefix_sum += 1
-            else:
-                current_prefix_sum -= 1
-            
-            # We want to count previous prefix sums P_prev such that
-            # current_prefix_sum - P_prev > 0  => P_prev < current_prefix_sum
-            # In BIT, we query for indices strictly less than (current_prefix_sum + offset)
-            # which is query(current_prefix_sum + offset - 1)
-            
-            count = query(current_prefix_sum + offset - 1)
-            ans += count
-            
-            # Add current prefix sum to BIT
-            update(current_prefix_sum + offset, 1)
-            
+            pre += 1 if num == target else -1
+            ans += fen_query(pre - 1)
+            fen_update(pre)
         return ans
 
 # @lc code=end
