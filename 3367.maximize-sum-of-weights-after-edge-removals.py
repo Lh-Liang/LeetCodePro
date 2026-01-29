@@ -5,55 +5,39 @@
 #
 
 # @lc code=start
+from typing import List
+from collections import defaultdict
+import heapq
+
 class Solution:
     def maximizeSumOfWeights(self, edges: List[List[int]], k: int) -> int:
-        n = len(edges) + 1
-        adj = [[] for _ in range(n)]
+        # Sort edges by weight descending order
+        edges.sort(key=lambda x: -x[2])
+        
+        # Initialize degree count for each node and union-find structure for connectivity check
+        parent = list(range(len(edges) + 1))
+        degree = defaultdict(int)
+        total_weight = 0  # To store the sum of selected edge weights
+        
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+        
+        def union(x, y):
+            rootX = find(x)
+            rootY = find(y)
+            if rootX != rootY:
+                parent[rootX] = rootY
+                return True
+            return False
+        
         for u, v, w in edges:
-            adj[u].append((v, w))
-            adj[v].append((u, w))
-            
-        # Iterative DFS to get post-order traversal to avoid recursion limits
-        order = []
-        stack = [0]
-        parent = [-1] * n
-        visited = [False] * n
-        visited[0] = True
+            # Ensure adding this edge will not create a cycle (connectivity check)
+            if degree[u] < k and degree[v] < k and union(u, v):
+                degree[u] += 1
+                degree[v] += 1
+                total_weight += w  # Add weight of this edge to total
         
-        while stack:
-            u = stack.pop()
-            order.append(u)
-            for v, w in adj[u]:
-                if not visited[v]:
-                    visited[v] = True
-                    parent[v] = u
-                    stack.append(v)
-        
-        # dp0[u]: max sum in subtree u if edge (parent, u) is NOT kept
-        # dp1[u]: max sum in subtree u if edge (parent, u) IS kept
-        dp0 = [0] * n
-        dp1 = [0] * n
-        
-        for u in reversed(order):
-            base_sum = 0
-            diffs = []
-            for v, w in adj[u]:
-                if v == parent[u]:
-                    continue
-                
-                base_sum += dp0[v]
-                # Profit of picking the edge to child v
-                diff = w + dp1[v] - dp0[v]
-                if diff > 0:
-                    diffs.append(diff)
-            
-            diffs.sort(reverse=True)
-            
-            # For dp0, we can pick up to k edges to children
-            dp0[u] = base_sum + sum(diffs[:k])
-            
-            # For dp1, we can pick up to k-1 edges to children (one slot reserved for parent)
-            dp1[u] = base_sum + sum(diffs[:k-1])
-            
-        return dp0[0]
+        return total_weight
 # @lc code=end
