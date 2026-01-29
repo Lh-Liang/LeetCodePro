@@ -1,4 +1,28 @@
-{
-    "reasoning": "Step 1: Problem Classification and Analysis\n- This is a shortest path problem on a 2D grid where costs are based on time. Since moving between rooms takes 1 second and rooms have specific opening times, we need to find the earliest arrival time at the destination (n-1, m-1).\n- Because the 'cost' (time) never decreases as we move forward, Dijkstra's algorithm is suitable for finding the minimum time.\n\nStep 2: State Transition Logic\n- State: (current_time, row, col).\n- Transition: From (r, c) at time 't' to an adjacent (nr, nc).\n- The room (nr, nc) opens at 'moveTime[nr][nc]'. We can only enter the room after it opens. If we arrive before it opens, we wait. If we arrive after it opens, we can enter immediately. The move itself takes 1 second.\n- Formula: arrival_time = max(t, moveTime[nr][nc]) + 1.\n\nStep 3: Logic Verification (Example 1)\n- Start at (0,0) at t=0. Neighbor (1,0) has moveTime 4. Arrival = max(0, 4) + 1 = 5.\n- From (1,0) at t=5, neighbor (1,1) has moveTime 4. Arrival = max(5, 4) + 1 = 6.\n- Result 6 matches Example 1. The logic is verified.\n\nStep 4: Constraint and Complexity Analysis\n- Grid size: Up to 50x50 (2500 cells). Max moveTime: 10^9.\n- Dijkstra Complexity: O(E log V), where V = N*M and E ≈ 4*V. 2500 * log(2500) is well within performance limits for 1 second.\n- Assumptions: Dijkstra works because all edge weights (time increments) are at least 1, ensuring no negative cycles or zero-weight loops that would invalidate the greedy approach.\",
-    "result": "#\n# @lc app=leetcode id=3341 lang=python3\n#\n# [3341] Find Minimum Time to Reach Last Room I\n#\n\n# @lc code=start\nfrom typing import List\nimport heapq\n\nclass Solution:\n    def minTimeToReach(self, moveTime: List[List[int]]) -> int:\n        n = len(moveTime)\n        m = len(moveTime[0])\n        \n        # dist[r][c] stores the minimum time to reach room (r, c)\n        dist = [[float('inf')] * m for _ in range(n)]\n        dist[0][0] = 0\n        \n        # Priority queue stores (current_time, r, c)\n        pq = [(0, 0, 0)]\n        \n        while pq:\n            t, r, c = heapq.heappop(pq)\n            \n            # If we reached the destination, return the time\n            if r == n - 1 and c == m - 1:\n                return t\n            \n            # If we already found a better way to reach this room, skip\n            if t > dist[r][c]:\n                continue\n            \n            # Check all 4 adjacent rooms\n            for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:\n                nr, nc = r + dr, c + dc\n                \n                if 0 <= nr < n and 0 <= nc < m:\n                    # The earliest we can start the 1-second move to (nr, nc) \n                    # is at max(current_time, moveTime[nr][nc])\n                    arrival_time = max(t, moveTime[nr][nc]) + 1\n                    \n                    if arrival_time < dist[nr][nc]:\n                        dist[nr][nc] = arrival_time\n                        heapq.heappush(pq, (arrival_time, nr, nc))\n        \n        return -1\n# @lc code=end"
-}
+#
+# @lc app=leetcode id=3341 lang=python3
+#
+# [3341] Find Minimum Time to Reach Last Room I
+#
+
+# @lc code=start
+class Solution:
+    def minTimeToReach(self, moveTime: List[List[int]]) -> int:
+        import heapq
+        n, m = len(moveTime), len(moveTime[0])
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
+        pq = [(0, 0, 0)]  # (time, x, y)
+        visited = set()
+        while pq:
+            time, x, y = heapq.heappop(pq)
+            if (x, y) == (n - 1, m - 1):
+                return time
+            if (x, y) in visited:
+                continue
+            visited.add((x, y))
+            for dx, dy in directions:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < n and 0 <= ny < m:
+                    wait_time = max(0, moveTime[nx][ny] - (time + 1))
+                    heapq.heappush(pq, (time + 1 + wait_time, nx, ny))
+        return -1 # In case there's no path which shouldn't happen given constraints.
+# @lc code=end
