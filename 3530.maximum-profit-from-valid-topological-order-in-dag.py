@@ -1,4 +1,39 @@
-{
-"reasoning": "Step 1: Problem Identification. This is a maximization problem over all valid topological orders. Since we need to track which nodes have been placed to ensure dependency satisfaction, and $n \le 22$, this is a Bitmask DP problem.\n\nStep 2: Resource Audit. The complexity is $O(n \cdot 2^n)$, which for $n=22$ is $\approx 92$ million operations. In Python, this is extremely tight (usually $\sim 10^7$ operations/sec). I must minimize work in the inner loop.\n\nStep 3: DP State Definition. Let `dp[mask]` be the maximum profit for a subset of nodes. The current position in the sequence is `mask.bit_count() + 1`.\n\nStep 4: Bottleneck Analysis & Optimization. \n- Precompute predecessors: `pre[i]` is a bitmask of nodes that must precede $i$.\n- Inner Loop Optimization: Instead of checking every node $i$ for every `mask`, we can pre-calculate which nodes are 'ready' or use bit manipulation to only iterate over available bits.\n- Memory Management: Use a list for DP to ensure $O(1)$ access. Cache local variables to avoid repeated attribute lookups (e.g., `dp_mask = dp[mask]`).\n\nStep 5: Order of Iteration. Iterate `mask` from 0 to $2^n - 1$. For each node $i$ not in `mask`, if `(pre[i] & mask) == pre[i]`, then node $i$ can be the next element in the topological order.",
-"result": "#\n# @lc app=leetcode id=3530 lang=python3\n#\n# [3530] Maximum Profit from Valid Topological Order in DAG\n#\n\n# @lc code=start\nclass Solution:\n    def maxProfit(self, n: int, edges: List[List[int]], score: List[int]) -> int:\n        # Precompute predecessors as bitmasks\n        pre = [0] * n\n        for u, v in edges:\n            pre[v] |= (1 << u)\n\n        # dp[mask] = max profit for subset of nodes in mask\n        # Initialize with -1 to represent unreachable states\n        dp = [-1] * (1 << n)\n        dp[0] = 0\n        \n        # Local references for faster access in tight loops\n        pre_local = pre\n        score_local = score\n\n        for mask in range(1 << n):\n            curr_val = dp[mask]\n            if curr_val == -1:\n                continue\n            \n            # Current position is count of set bits + 1\n            pos = bin(mask).count('1') + 1\n            \n            # Try adding each node i not in the current mask\n            for i in range(n):\n                if not (mask & (1 << i)):\n                    # Check if all dependencies of node i are satisfied\n                    if (pre_local[i] & mask) == pre_local[i]:\n                        new_mask = mask | (1 << i)\n                        new_profit = curr_val + score_local[i] * pos\n                        if new_profit > dp[new_mask]:\n                            dp[new_mask] = new_profit\n\n        return dp[(1 << n) - 1]\n# @lc code=end"
-}
+#
+# @lc app=leetcode id=3530 lang=python3
+#
+# [3530] Maximum Profit from Valid Topological Order in DAG
+#
+
+# @lc code=start
+from typing import List
+from collections import defaultdict, deque
+from itertools import permutations
+
+class Solution:
+    def maxProfit(self, n: int, edges: List[List[int]], score: List[int]) -> int:
+        # Create adjacency list and indegree array
+        adj_list = defaultdict(list)
+        indegree = [0] * n
+        for u, v in edges:
+            adj_list[u].append(v)
+            indegree[v] += 1
+        
+        # Perform topological sort using Kahn's algorithm to get initial order candidates
+        zero_indegree_queue = deque(i for i in range(n) if indegree[i] == 0)
+        topological_order = []
+        while zero_indegree_queue:
+            node = zero_indegree_queue.popleft()
+            topological_order.append(node)
+            for neighbor in adj_list[node]:
+                indegree[neighbor] -= 1
+                if indegree[neighbor] == 0:
+                    zero_indegree_queue.append(neighbor)
+        
+        # Explore all permutations of the topological order to find maximum profit
+        max_profit = 0
+        for perm in permutations(topological_order):
+            current_profit = sum((pos + 1) * score[node] for pos, node in enumerate(perm))
+            max_profit = max(max_profit, current_profit)
+        
+        return max_profit  # Return the highest profit found across all permutations.
+# @lc code=end
