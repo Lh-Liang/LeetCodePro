@@ -5,42 +5,47 @@
 #
 
 # @lc code=start
-import collections
+from collections import deque
 from typing import List
 
 class Solution:
     def maxTargetNodes(self, edges1: List[List[int]], edges2: List[List[int]]) -> List[int]:
-        def get_tree_stats(edges):
-            n = len(edges) + 1
-            adj = [[] for _ in range(n)]
+        def get_partition_sizes(edges, num_nodes):
+            adj = [[] for _ in range(num_nodes)]
             for u, v in edges:
                 adj[u].append(v)
                 adj[v].append(u)
             
-            colors = [-1] * n
-            counts = [0, 0]
-            
-            # Standard BFS to 2-color the tree
-            queue = collections.deque([0])
+            colors = [-1] * num_nodes
             colors[0] = 0
-            counts[0] = 1
-            
+            queue = deque([0])
+            count0 = 0
             while queue:
                 u = queue.popleft()
+                if colors[u] == 0:
+                    count0 += 1
                 for v in adj[u]:
                     if colors[v] == -1:
                         colors[v] = 1 - colors[u]
-                        counts[colors[v]] += 1
                         queue.append(v)
-            return colors, counts
+            
+            count1 = num_nodes - count0
+            return colors, count0, count1
 
         n = len(edges1) + 1
-        colors1, counts1 = get_tree_stats(edges1)
+        m = len(edges2) + 1
         
-        # For Tree 2, we only care about the size of the larger color partition
-        _, counts2 = get_tree_stats(edges2)
-        max_tree2_contribution = max(counts2)
+        colors1, c1_0, c1_1 = get_partition_sizes(edges1, n)
+        _, c2_0, c2_1 = get_partition_sizes(edges2, m)
         
-        # The answer for node i is (nodes in Tree 1 with same color as i) + (max parity set in Tree 2)
-        return [counts1[colors1[i]] + max_tree2_contribution for i in range(n)]
+        max_tree2_contribution = max(c2_0, c2_1)
+        
+        results = [0] * n
+        for i in range(n):
+            if colors1[i] == 0:
+                results[i] = c1_0 + max_tree2_contribution
+            else:
+                results[i] = c1_1 + max_tree2_contribution
+        
+        return results
 # @lc code=end
