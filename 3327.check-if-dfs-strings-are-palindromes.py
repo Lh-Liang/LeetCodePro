@@ -5,7 +5,10 @@
 #
 
 # @lc code=start
-from typing import List
+import sys
+
+# Increase recursion depth for deep trees
+sys.setrecursionlimit(200000)
 
 class Solution:
     def findAnswer(self, parent: List[int], s: str) -> List[bool]:
@@ -14,63 +17,50 @@ class Solution:
         for i in range(1, n):
             adj[parent[i]].append(i)
         
-        # 1. Sort children to ensure they are visited in increasing order
         for i in range(n):
             adj[i].sort()
             
-        start_idx = [0] * n
-        end_idx = [0] * n
-        order = []
+        dfs_order_chars = []
+        intervals = [None] * n
         
-        # 2. Iterative post-order DFS to build the global string and record node ranges
-        # stack stores (node, visited_children_flag)
-        stack = [(0, False)]
-        timer = 0
-        while stack:
-            u, visited = stack.pop()
-            if not visited:
-                # Pre-order: mark the start of this node's contribution in 'order'
-                start_idx[u] = timer
-                stack.append((u, True))
-                # Push children in reverse order so they are processed in increasing order
-                for v in reversed(adj[u]):
-                    stack.append((v, False))
-            else:
-                # Post-order: append character and mark the end index
-                order.append(s[u])
-                end_idx[u] = timer
-                timer += 1
-        
-        # The global string formed by the DFS process
-        S = "".join(order)
-        
-        # 3. Manacher's Algorithm to find all palindromic substrings in O(n)
-        # T = # s[0] # s[1] # ... # s[n-1] #
-        T = '#' + '#'.join(S) + '#'
-        m = len(T)
-        P = [0] * m
-        center = right = 0
-        for i in range(m):
-            if i < right:
-                P[i] = min(right - i, P[2 * center - i])
+        def build_dfs_string(u):
+            start = len(dfs_order_chars)
+            for v in adj[u]:
+                build_dfs_string(v)
+            dfs_order_chars.append(s[u])
+            end = len(dfs_order_chars) - 1
+            intervals[u] = (start, end)
             
-            while i - P[i] - 1 >= 0 and i + P[i] + 1 < m and T[i - P[i] - 1] == T[i + P[i] + 1]:
-                P[i] += 1
-            
-            if i + P[i] > right:
-                center, right = i, i + P[i]
+        build_dfs_string(0)
         
-        # 4. Check each node's range against the precomputed Manacher radii
+        t = "".join(dfs_order_chars)
+        rev_t = t[::-1]
+        
+        # Rolling Hash Parameters
+        P = 31
+        MOD = 10**9 + 7
+        
+        pow_p = [1] * (n + 1)
+        h_fwd = [0] * (n + 1)
+        h_bwd = [0] * (n + 1)
+        
+        for i in range(n):
+            pow_p[i+1] = (pow_p[i] * P) % MOD
+            h_fwd[i+1] = (h_fwd[i] * P + (ord(t[i]) - ord('a') + 1)) % MOD
+            h_bwd[i+1] = (h_bwd[i] * P + (ord(rev_t[i]) - ord('a') + 1)) % MOD
+            
+        def get_hash(h, l, r):
+            # Hash of substring t[l:r+1]
+            res = (h[r+1] - h[l] * pow_p[r - l + 1]) % MOD
+            return res
+
         ans = [False] * n
         for i in range(n):
-            L, R = start_idx[i], end_idx[i]
-            # The substring in S is S[L:R+1]. 
-            # In T, the center of S[L:R+1] is at index (L + R + 1).
-            # The length of the substring is (R - L + 1).
-            m_center = L + R + 1
-            m_length = R - L + 1
-            if P[m_center] >= m_length:
+            l, r = intervals[i]
+            # The reverse of t[l:r+1] is rev_t[(n-1-r):(n-1-l)+1]
+            l_rev, r_rev = n - 1 - r, n - 1 - l
+            if get_hash(h_fwd, l, r) == get_hash(h_bwd, l_rev, r_rev):
                 ans[i] = True
-        
+                
         return ans
 # @lc code=end
