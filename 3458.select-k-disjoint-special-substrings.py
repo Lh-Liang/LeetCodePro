@@ -11,52 +11,40 @@ class Solution:
             return True
             
         n = len(s)
-        first = [-1] * 26
-        last = [-1] * 26
-        
+        first = {}
+        last = {}
         for i, char in enumerate(s):
-            idx = ord(char) - ord('a')
-            if first[idx] == -1:
-                first[idx] = i
-            last[idx] = i
+            if char not in first:
+                first[char] = i
+            last[char] = i
             
         intervals = []
-        for char_idx in range(26):
-            if first[char_idx] == -1:
-                continue
-            
-            L = first[char_idx]
-            R = last[char_idx]
-            
-            possible = True
-            curr_R = R
-            i = L
-            while i <= curr_R:
-                c_at_i = ord(s[i]) - ord('a')
-                # If a character inside the range appears before our start, 
-                # this start cannot form a valid special substring.
-                if first[c_at_i] < L:
-                    possible = False
+        for char in first:
+            l, r = first[char], last[char]
+            is_valid = True
+            i = l
+            # Expand the interval to include all occurrences of all characters within it
+            while i <= r:
+                char_in_range = s[i]
+                if first[char_in_range] < l:
+                    is_valid = False
                     break
-                if last[c_at_i] > curr_R:
-                    curr_R = last[c_at_i]
+                r = max(r, last[char_in_range])
                 i += 1
             
-            if possible:
-                # Constraint: The substring is not the entire string s.
-                if not (L == 0 and curr_R == n - 1):
-                    intervals.append((L, curr_R))
+            # Substring cannot be the entire string
+            if is_valid and not (l == 0 and r == n - 1):
+                intervals.append((l, r))
         
-        # Greedy Interval Scheduling to find max disjoint intervals
-        # Sorting by end time is the optimal strategy for maximizing count.
+        # Greedy selection of non-overlapping intervals
         intervals.sort(key=lambda x: x[1])
         
         count = 0
-        last_end = -1
+        current_end = -1
         for start, end in intervals:
-            if start > last_end:
+            if start > current_end:
                 count += 1
-                last_end = end
-                
+                current_end = end
+        
         return count >= k
 # @lc code=end
