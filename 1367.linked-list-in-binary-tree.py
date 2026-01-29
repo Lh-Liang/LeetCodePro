@@ -3,6 +3,7 @@
 #
 # [1367] Linked List in Binary Tree
 #
+
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -20,21 +21,24 @@ class Solution:
         if not root:
             return False
         
-        def checkPath(list_node, tree_node):
-            # Successfully matched all nodes in the linked list
-            if not list_node:
-                return True
-            # Tree path ended before the linked list
-            if not tree_node:
-                return False
-            # Values do not match
-            if list_node.val != tree_node.val:
-                return False
-            # Check next node in the list against both children
-            return checkPath(list_node.next, tree_node.left) or checkPath(list_node.next, tree_node.right)
+        # Check if the path starts from the current root node
+        if self.checkPath(head, root):
+            return True
         
-        # 1. Try starting the match from the current root
-        # 2. Or search for a start in the left subtree
-        # 3. Or search for a start in the right subtree
-        return checkPath(head, root) or self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
+        # If not, try to find the path starting from left or right children
+        return self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
+
+    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
+        # Success: reached the end of the linked list
+        if not head:
+            return True
+        # Failure: reached a leaf in the tree before the end of the list
+        if not node:
+            return False
+        # Failure: values do not match
+        if head.val != node.val:
+            return False
+        
+        # Continue matching the next list node in the downward tree paths
+        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
 # @lc code=end
