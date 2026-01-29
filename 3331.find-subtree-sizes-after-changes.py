@@ -5,62 +5,44 @@
 #
 
 # @lc code=start
+from collections import deque
+import sys
+from typing import List
+
 class Solution:
     def findSubtreeSizes(self, parent: List[int], s: str) -> List[int]:
         n = len(parent)
-        original_adj = [[] for _ in range(n)]
-        for i, p in enumerate(parent):
-            if p != -1:
-                original_adj[p].append(i)
-        
-        new_parent = list(parent)
-        
-        # ancestors[char_code] = node_index
-        # Initialize with -1 indicating no ancestor for that char yet
-        ancestors = [-1] * 26
-        
-        def dfs_find_parents(u):
-            char_code = ord(s[u]) - ord('a')
-            closest_ancestor = ancestors[char_code]
-            
-            if closest_ancestor != -1:
-                new_parent[u] = closest_ancestor
-            
-            # Save current state to backtrack
-            ancestors[char_code] = u
-            
-            for v in original_adj[u]:
-                dfs_find_parents(v)
-            
-            # Backtrack
-            ancestors[char_code] = closest_ancestor
-
-        # Start DFS from root (node 0)
-        dfs_find_parents(0)
-        
-        # Build new tree adjacency list
+        adj = [[] for _ in range(n)]
+        for i in range(1, n):
+            adj[parent[i]].append(i)
+        new_parent = parent[:]
+        color_map = [-1] * 26
+        def dfs(node: int) -> None:
+            char_idx = ord(s[node]) - ord('a')
+            prev = color_map[char_idx]
+            if node != 0 and prev != -1:
+                new_parent[node] = prev
+            old = color_map[char_idx]
+            color_map[char_idx] = node
+            for child in adj[node]:
+                dfs(child)
+            color_map[char_idx] = old
+        sys.setrecursionlimit(100010)
+        dfs(0)
         new_adj = [[] for _ in range(n)]
-        for i, p in enumerate(new_parent):
+        for i in range(n):
+            if new_parent[i] != -1:
+                new_adj[new_parent[i]].append(i)
+        answer = [1] * n
+        pending = [len(new_adj[i]) for i in range(n)]
+        q = deque([i for i in range(n) if pending[i] == 0])
+        while q:
+            node = q.popleft()
+            p = new_parent[node]
             if p != -1:
-                new_adj[p].append(i)
-        
-        subtree_sizes = [0] * n
-        
-        # DFS to calculate subtree sizes
-        # Using iterative DFS to avoid recursion limit issues for deep trees, 
-        # though standard recursion is usually fine for 10^5 in Python depending on settings.
-        # Let's use standard recursion with setrecursionlimit just in case.
-        import sys
-        sys.setrecursionlimit(200000)
-        
-        def dfs_calc_size(u):
-            size = 1
-            for v in new_adj[u]:
-                size += dfs_calc_size(v)
-            subtree_sizes[u] = size
-            return size
-
-        dfs_calc_size(0)
-        
-        return subtree_sizes
+                answer[p] += answer[node]
+                pending[p] -= 1
+                if pending[p] == 0:
+                    q.append(p)
+        return answer
 # @lc code=end
