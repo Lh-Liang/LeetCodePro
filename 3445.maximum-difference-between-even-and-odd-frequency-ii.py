@@ -9,66 +9,59 @@ class Solution:
     def maxDifference(self, s: str, k: int) -> int:
         n = len(s)
         s_ints = [int(c) for c in s]
-        # Precompute prefix counts for all 5 characters
-        P = [[0] * (n + 1) for _ in range(5)]
-        for idx, char_val in enumerate(s_ints):
-            for c in range(5):
-                P[c][idx + 1] = P[c][idx] + (1 if char_val == c else 0)
+        # Precompute prefix counts for each digit '0'-'4'
+        counts = [[0] * (n + 1) for _ in range(5)]
+        for i in range(n):
+            digit = s_ints[i]
+            for d in range(5):
+                counts[d][i+1] = counts[d][i]
+            counts[digit][i+1] += 1
+            
+        max_diff = -float('inf')
         
-        ans = -float('inf')
-        INF = 10**9
-        
-        # Iterate through all pairs (a, b)
+        # Iterate over all pairs of distinct digits (a, b)
+        # a will have odd frequency, b will have even non-zero frequency
         for a in range(5):
             for b in range(5):
                 if a == b:
                     continue
                 
-                # Pre-fetch prefix sum lists to avoid repeated lookups
-                Pa = P[a]
-                Pb = P[b]
+                # min_vals[pa][pb] stores the minimum (counts[a][i] - counts[b][i])
+                # where pa = counts[a][i]%2 and pb = counts[b][i]%2
+                min_vals = [[float('inf')] * 2 for _ in range(2)]
                 
-                # min_val[pa][pb] stores min (P_a[i] - P_b[i]) for eligible i
-                # min_safe[pa][pb] stores min (P_a[i] - P_b[i]) where freq[b] > 0
-                min_val = [[INF] * 2 for _ in range(2)]
-                min_safe = [[INF] * 2 for _ in range(2)]
-                
+                processed_i = 0
                 last_b_idx = -1
                 
-                for j in range(n):
-                    # Update last_b_idx and move unsafe mins to safe if 'b' is encountered
-                    if s_ints[j] == b:
-                        last_b_idx = j
-                        for r in range(2):
-                            v0, v1 = min_val[r][0], min_val[r][1]
-                            if v0 < min_safe[r][0]: min_safe[r][0] = v0
-                            if v1 < min_safe[r][1]: min_safe[r][1] = v1
-                            min_val[r][0] = min_val[r][1] = INF
+                for j in range(1, n + 1):
+                    if s_ints[j-1] == b:
+                        last_b_idx = j - 1
                     
-                    # Check new eligible start index i
-                    i = j - k + 1
-                    if i >= 0:
-                        pa_i, pb_i = Pa[i] % 2, Pb[i] % 2
-                        val = Pa[i] - Pb[i]
-                        
-                        if i <= last_b_idx:
-                            if val < min_safe[pa_i][pb_i]:
-                                min_safe[pa_i][pb_i] = val
-                        else:
-                            if val < min_val[pa_i][pb_i]:
-                                min_val[pa_i][pb_i] = val
+                    # Constraints for i: 
+                    # 1. j - i >= k  => i <= j - k
+                    # 2. freq[b] > 0 => i <= last_b_idx
+                    target_i_bound = min(j - k, last_b_idx)
                     
-                    # Current state at j+1
-                    cur_pa, cur_pb = Pa[j+1] % 2, Pb[j+1] % 2
-                    cur_D = Pa[j+1] - Pb[j+1]
+                    while processed_i <= target_i_bound:
+                        pa_i = counts[a][processed_i] % 2
+                        pb_i = counts[b][processed_i] % 2
+                        val_i = counts[a][processed_i] - counts[b][processed_i]
+                        if val_i < min_vals[pa_i][pb_i]:
+                            min_vals[pa_i][pb_i] = val_i
+                        processed_i += 1
                     
-                    # Requirement: (cur_pa - i_pa) % 2 == 1 (odd) and (cur_pb - i_pb) % 2 == 0 (even)
-                    target_pa = 1 - cur_pa
-                    target_pb = cur_pb
+                    pa_j = counts[a][j] % 2
+                    pb_j = counts[b][j] % 2
+                    val_j = counts[a][j] - counts[b][j]
                     
-                    cand = cur_D - min_safe[target_pa][target_pb]
-                    if cand > ans:
-                        ans = cand
+                    # Need (counts[a][j]-counts[a][i]) odd and (counts[b][j]-counts[b][i]) even
+                    target_pa_i = 1 - pa_j
+                    target_pb_i = pb_j
+                    
+                    if min_vals[target_pa_i][target_pb_i] != float('inf'):
+                        diff = val_j - min_vals[target_pa_i][target_pb_i]
+                        if diff > max_diff:
+                            max_diff = diff
                             
-        return int(ans)
+        return int(max_diff)
 # @lc code=end
