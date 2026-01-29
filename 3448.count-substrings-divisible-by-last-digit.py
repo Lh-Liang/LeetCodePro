@@ -1,4 +1,37 @@
-{
-"reasoning": "Step 1: Analyze constraints and requirements. The string length is up to $10^5$, requiring an $O(N)$ or $O(N \cdot K)$ solution. We need to count substrings where the value is divisible by the last digit. Since the last digit $d \\in [1, 9]$ determines the divisor, we must track the remainder of all substrings ending at the current index for each possible divisor $d$.\n\nStep 2: Define the state. Let $dp[d][r]$ be the count of substrings ending at the current index that have a remainder $r$ when divided by $d$. The total number of states is $\\sum_{d=1}^{9} d = 45$. We can use a flat array of size 45 for efficiency.\n\nStep 3: Establish transitions. When moving from index $i$ to $i+1$ with digit $v$, a substring with remainder $r \\pmod d$ becomes $(r \\times 10 + v) \\pmod d$. Additionally, a new single-digit substring 'v' starts at index $i+1$ with remainder $v \\pmod d$.\n\nStep 4: Handle edge cases and rules. The problem specifies 'non-zero last digit'. If the current digit $v > 0$, we add $dp[v][0]$ to our total answer. Leading zeros are naturally handled by the remainder math ($0 \\times 10 + v$).\n\nStep 5: Optimization. Precompute the state offsets for each divisor and the remainder transitions for each possible digit to minimize operations inside the main loop, ensuring the $O(N \\times 45)$ complexity passes comfortably.",
-"result": "#\\n# @lc app=leetcode id=3448 lang=python3\\n#\\n# [3448] Count Substrings Divisible By Last Digit\\n#\\n\\n# @lc code=start\\nclass Solution:\\n    def countSubstrings(self, s: str) -> int:\\n        # offsets[d] is the starting index in our flat DP array for divisor d\\n        offsets = [0, 0, 1, 3, 6, 10, 15, 21, 28, 36]\\n        \\n        # Precompute transitions: trans[digit][state_index] = new_state_index\\n        # This maps the current remainder state to the next remainder state after appending 'digit'\\n        trans = [[0] * 45 for _ in range(10)]\\n        for digit in range(10):\\n            for d in range(1, 10):\\n                off = offsets[d]\\n                for r in range(d):\\n                    new_r = (r * 10 + digit) % d\\n                    trans[digit][off + r] = off + new_r\\n        \\n        # dp[i] stores the count of substrings ending at the current index with a specific remainder\\n        dp = [0] * 45\\n        ans = 0\\n        \\n        # Precompute the index for the new single-digit substring starting at the current position\\n        start_indices = [[offsets[d] + (digit % d) for d in range(1, 10)] for digit in range(10)]\\n        \\n        for char in s:\\n            digit = ord(char) - 48  # Faster than int(char)\\n            next_dp = [0] * 45\\n            \\n            # Transition existing substrings to the new remainder\\n            t = trans[digit]\\n            for i in range(45):\\n                if dp[i]:\\n                    next_dp[t[i]] += dp[i]\\n            \\n            # Add the new single-digit substring starting at this index for all divisors\\n            s_idx = start_indices[digit]\\n            for idx in s_idx:\\n                next_dp[idx] += 1\\n            \\n            dp = next_dp\\n            \\n            # If the current digit is non-zero, it is the last digit of substrings ending here.\\n            # Count those divisible by this digit (remainder 0).\\n            if digit > 0:\\n                ans += dp[offsets[digit]]\\n                \\n        return ans\\n# @lc code=end"
-}
+#
+# @lc app=leetcode id=3448 lang=python3
+#
+# [3448] Count Substrings Divisible By Last Digit
+#
+
+# @lc code=start
+class Solution:
+    def countSubstrings(self, s: str) -> int:
+        # dp[d] is a list where dp[d][rem] is the number of substrings 
+        # ending at the previous character that have remainder 'rem' when divided by 'd'.
+        dp = [[0] * d for d in range(10)]
+        ans = 0
+        
+        for char in s:
+            v = int(char)
+            next_dp = [[0] * d for d in range(10)]
+            
+            for d in range(1, 10):
+                # Update existing substrings
+                d_row = dp[d]
+                nd_row = next_dp[d]
+                for rem, count in enumerate(d_row):
+                    if count > 0:
+                        nd_row[(rem * 10 + v) % d] += count
+                
+                # Start a new substring at the current digit
+                nd_row[v % d] += 1
+            
+            # If the current digit is the divisor, count substrings ending here with rem 0
+            if v > 0:
+                ans += next_dp[v][0]
+            
+            dp = next_dp
+            
+        return ans
+# @lc code=end
