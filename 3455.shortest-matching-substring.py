@@ -5,66 +5,68 @@
 #
 
 # @lc code=start
-from bisect import bisect_left, bisect_right
+import bisect
 
 class Solution:
     def shortestMatchingSubstring(self, s: str, p: str) -> int:
-        # Helper to find all occurrences using KMP-based logic or built-in methods
-        def find_all(text, sub):
-            if not sub: return []
+        parts = p.split('*')
+        p1, p2, p3 = parts
+        n = len(s)
+
+        def get_indices(pattern):
+            if not pattern: return []
             res = []
-            # Using KMP preprocessing for O(N) finding
-            n, m = len(text), len(sub)
-            pi = [0] * m
-            j = 0
-            for i in range(1, m):
-                while j > 0 and sub[i] != sub[j]: j = pi[j-1]
-                if sub[i] == sub[j]: j += 1
-                pi[i] = j
-            
-            j = 0
-            for i in range(n):
-                while j > 0 and text[i] != sub[j]: j = pi[j-1]
-                if text[i] == sub[j]: j += 1
-                if j == m:
-                    res.append(i - m + 1)
-                    j = pi[j-1]
+            curr = s.find(pattern)
+            while curr != -1:
+                res.append(curr)
+                curr = s.find(pattern, curr + 1)
             return res
 
-        parts = p.split('*')
-        s1, s2, s3 = parts
-        len1, len2, len3 = len(s1), len(s2), len(s3)
-        
-        # Pre-calculate all occurrences
-        idx1 = find_all(s, s1) if s1 else [0]
-        idx2 = find_all(s, s2) if s2 else list(range(len(s) + 1))
-        idx3 = find_all(s, s3) if s3 else [len(s)]
+        idx1 = get_indices(p1)
+        idx2 = get_indices(p2)
+        idx3 = get_indices(p3)
 
-        if (s1 and not idx1) or (s2 and not idx2) or (s3 and not idx3):
+        # If a non-empty part is not found, no match is possible
+        if (p1 and not idx1) or (p2 and not idx2) or (p3 and not idx3):
             return -1
 
         ans = float('inf')
-        
-        # Iterate through s2 as the anchor
-        for i2 in idx2:
-            # Find largest i1 such that i1 + len1 <= i2
-            # We use bisect_right to find the first index > (i2 - len1), then move back one
-            if not s1:
-                i1 = i2
-            else:
-                pos1 = bisect_right(idx1, i2 - len1)
-                if pos1 == 0: continue
-                i1 = idx1[pos1 - 1]
+        l1, l2, l3 = len(p1), len(p2), len(p3)
+
+        if p2:
+            # Iterate through middle part occurrences
+            for k in idx2:
+                # Find largest i such that i + l1 <= k
+                if not p1:
+                    i = k
+                else:
+                    pos = bisect.bisect_right(idx1, k - l1)
+                    if pos == 0: continue
+                    i = idx1[pos - 1]
+                
+                # Find smallest j such that j >= k + l2
+                if not p3:
+                    j = k + l2
+                else:
+                    pos = bisect.bisect_left(idx3, k + l2)
+                    if pos == len(idx3): continue
+                    j = idx3[pos]
+                
+                ans = min(ans, (j + l3) - i)
+        else:
+            # p2 is empty, match p1 and p3 directly
+            if not p1 and not p3:
+                return 0
+            if not p1:
+                return l3
+            if not p3:
+                return l1
             
-            # Find smallest i3 such that i3 >= i2 + len2
-            if not s3:
-                i3 = i2 + len2
-            else:
-                pos3 = bisect_left(idx3, i2 + len2)
-                if pos3 == len(idx3): continue
-                i3 = idx3[pos3]
-            
-            ans = min(ans, (i3 + len3) - i1)
-            
-        return ans if ans != float('inf') else -1
+            for j in idx3:
+                pos = bisect.bisect_right(idx1, j - l1)
+                if pos > 0:
+                    i = idx1[pos - 1]
+                    ans = min(ans, (j + l3) - i)
+
+        return int(ans) if ans != float('inf') else -1
 # @lc code=end
