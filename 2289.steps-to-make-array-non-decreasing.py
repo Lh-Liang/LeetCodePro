@@ -7,28 +7,32 @@
 # @lc code=start
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        # The stack will store tuples of (value, time_removed)
-        # time_removed = 0 means the element is never removed.
+        # stack will store pairs of (value, steps_to_be_removed)
+        # steps_to_be_removed represents the step count at which this element is deleted.
+        # If an element is never deleted, its steps_to_be_removed will be 0.
         stack = []
-        ans = 0
+        max_steps = 0
         
         for x in nums:
-            t = 0
-            # Pop elements that x is greater than or equal to.
-            # We track the maximum time it took for those elements to be removed.
+            current_element_steps = 0
+            # When we encounter an element x, we check elements to its left that are smaller or equal.
+            # These elements would have been 'covered' or deleted before x could be deleted 
+            # by the same larger element further to the left.
             while stack and stack[-1][0] <= x:
-                t = max(t, stack.pop()[1])
+                # The time x takes to be deleted must be strictly greater than the time 
+                # taken by any element 'blocked' by x.
+                current_element_steps = max(current_element_steps, stack.pop()[1])
             
             if not stack:
-                # No element to the left is larger; x survives indefinitely.
-                time_to_remove_x = 0
+                # No element to the left is larger than x; x survives.
+                current_element_steps = 0
             else:
-                # x will be removed by the current stack top element.
-                # It takes 't' steps to clear previous elements, then 1 more for x.
-                time_to_remove_x = t + 1
+                # The element at the top of the stack is > x. 
+                # x will be deleted one step after the last element between the 'killer' and x is gone.
+                current_element_steps += 1
             
-            stack.append((x, time_to_remove_x))
-            ans = max(ans, time_to_remove_x)
+            stack.append((x, current_element_steps))
+            max_steps = max(max_steps, current_element_steps)
             
-        return ans
+        return max_steps
 # @lc code=end
