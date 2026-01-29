@@ -5,7 +5,6 @@
 #
 
 # @lc code=start
-import random
 from typing import List
 
 class Solution:
@@ -15,67 +14,63 @@ class Solution:
         for i in range(1, n):
             adj[parent[i]].append(i)
         
-        # Ensure children are visited in increasing order
+        # 1. Sort children to ensure they are visited in increasing order
         for i in range(n):
-            if len(adj[i]) > 1:
-                adj[i].sort()
-        
+            adj[i].sort()
+            
         start_idx = [0] * n
         end_idx = [0] * n
-        dfs_sequence = []
+        order = []
         
-        # Iterative post-order DFS to build the global string and track subtree ranges
-        # state 0: pre-order (record start), state 1: post-order (append char and record end)
-        stack = [(0, 0)]
+        # 2. Iterative post-order DFS to build the global string and record node ranges
+        # stack stores (node, visited_children_flag)
+        stack = [(0, False)]
+        timer = 0
         while stack:
-            u, state = stack.pop()
-            if state == 0:
-                start_idx[u] = len(dfs_sequence)
-                stack.append((u, 1))
-                # Push children in reverse for LIFO to process in increasing order
-                curr_children = adj[u]
-                for i in range(len(curr_children) - 1, -1, -1):
-                    stack.append((curr_children[i], 0))
+            u, visited = stack.pop()
+            if not visited:
+                # Pre-order: mark the start of this node's contribution in 'order'
+                start_idx[u] = timer
+                stack.append((u, True))
+                # Push children in reverse order so they are processed in increasing order
+                for v in reversed(adj[u]):
+                    stack.append((v, False))
             else:
-                dfs_sequence.append(s[u])
-                end_idx[u] = len(dfs_sequence) - 1
+                # Post-order: append character and mark the end index
+                order.append(s[u])
+                end_idx[u] = timer
+                timer += 1
         
-        m = len(dfs_sequence)
-        MOD = (1 << 61) - 1
-        BASE = random.randint(31, 1000)
+        # The global string formed by the DFS process
+        S = "".join(order)
         
-        # Precompute powers and forward/backward rolling hashes
-        pows = [1] * (m + 1)
-        fwd_hashes = [0] * (m + 1)
-        rev_hashes = [0] * (m + 1)
-        
-        # Forward hash construction
+        # 3. Manacher's Algorithm to find all palindromic substrings in O(n)
+        # T = # s[0] # s[1] # ... # s[n-1] #
+        T = '#' + '#'.join(S) + '#'
+        m = len(T)
+        P = [0] * m
+        center = right = 0
         for i in range(m):
-            val = ord(dfs_sequence[i]) - 96
-            fwd_hashes[i+1] = (fwd_hashes[i] * BASE + val) % MOD
-            pows[i+1] = (pows[i] * BASE) % MOD
+            if i < right:
+                P[i] = min(right - i, P[2 * center - i])
             
-        # Backward hash construction (using reversed sequence)
-        rev_sequence = dfs_sequence[::-1]
-        for i in range(m):
-            val = ord(rev_sequence[i]) - 96
-            rev_hashes[i+1] = (rev_hashes[i] * BASE + val) % MOD
+            while i - P[i] - 1 >= 0 and i + P[i] + 1 < m and T[i - P[i] - 1] == T[i + P[i] + 1]:
+                P[i] += 1
             
+            if i + P[i] > right:
+                center, right = i, i + P[i]
+        
+        # 4. Check each node's range against the precomputed Manacher radii
         ans = [False] * n
         for i in range(n):
             L, R = start_idx[i], end_idx[i]
-            length = R - L + 1
-            
-            # Extract forward hash for range [L, R]
-            h_fwd = (fwd_hashes[R+1] - fwd_hashes[L] * pows[length]) % MOD
-            
-            # Map range [L, R] to the reversed string's indices
-            # S[L...R] reversed is S_rev[m-1-R ... m-1-L]
-            L_rev, R_rev = m - 1 - R, m - 1 - L
-            h_rev = (rev_hashes[R_rev+1] - rev_hashes[L_rev] * pows[length]) % MOD
-            
-            if h_fwd == h_rev:
+            # The substring in S is S[L:R+1]. 
+            # In T, the center of S[L:R+1] is at index (L + R + 1).
+            # The length of the substring is (R - L + 1).
+            m_center = L + R + 1
+            m_length = R - L + 1
+            if P[m_center] >= m_length:
                 ans[i] = True
-                
+        
         return ans
 # @lc code=end
