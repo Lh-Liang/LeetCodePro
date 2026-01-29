@@ -5,10 +5,8 @@
 #
 
 # @lc code=start
-import sys
-
-# Increase recursion depth for deep trees
-sys.setrecursionlimit(200000)
+from collections import deque
+from typing import List
 
 class Solution:
     def minimumWeight(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
@@ -17,91 +15,60 @@ class Solution:
         for u, v, w in edges:
             adj[u].append((v, w))
             adj[v].append((u, w))
-        
-        # Preprocessing for LCA using Binary Lifting
-        # depth_node: depth in terms of number of edges (for LCA logic)
-        # depth_weight: depth in terms of sum of weights (for distance calculation)
-        depth_node = [0] * n
-        depth_weight = [0] * n
-        LOG = 18  # Sufficient for 10^5 nodes
-        up = [[-1] * LOG for _ in range(n)]
-        
-        # DFS to build tree structure rooted at 0
-        stack = [(0, -1, 0, 0)] # u, p, d_node, d_weight
-        
-        # Iterative DFS to avoid recursion limit issues and overhead
-        # But we need to process in topological order for 'up' table or do it after
-        # Standard recursive DFS is easier to write, let's use iterative for safety with large N
-        
-        parent = [-1] * n
-        
-        # BFS or DFS to set parents and depths
-        queue = [0]
-        visited = [False] * n
-        visited[0] = True
-        
-        # Using BFS for level order traversal to setup depths
-        q_idx = 0
-        while q_idx < len(queue):
-            u = queue[q_idx]
-            q_idx += 1
-            
+        LOG = 18
+        parent = [[-1] * LOG for _ in range(n)]
+        hop_depth = [0] * n
+        weighted_depth = [0] * n
+        vis = [False] * n
+        q = deque([0])
+        vis[0] = True
+        parent[0][0] = 0
+        while q:
+            u = q.popleft()
             for v, w in adj[u]:
-                if not visited[v]:
-                    visited[v] = True
-                    parent[v] = u
-                    depth_node[v] = depth_node[u] + 1
-                    depth_weight[v] = depth_weight[u] + w
-                    queue.append(v)
-        
-        # Build Binary Lifting Table
-        for i in range(n):
-            up[i][0] = parent[i]
-        
+                if not vis[v]:
+                    vis[v] = True
+                    parent[v][0] = u
+                    hop_depth[v] = hop_depth[u] + 1
+                    weighted_depth[v] = weighted_depth[u] + w
+                    q.append(v)
         for j in range(1, LOG):
             for i in range(n):
-                if up[i][j-1] != -1:
-                    up[i][j] = up[up[i][j-1]][j-1]
+                p = parent[i][j - 1]
+                if p != -1:
+                    parent[i][j] = parent[p][j - 1]
                 else:
-                    up[i][j] = -1
-                    
-        def get_lca(u, v):
-            if depth_node[u] < depth_node[v]:
+                    parent[i][j] = -1
+        def get_lca(u: int, v: int) -> int:
+            du = hop_depth[u]
+            dv = hop_depth[v]
+            if du > dv:
                 u, v = v, u
-            
-            # Lift u to the same depth as v
-            diff = depth_node[u] - depth_node[v]
+                du, dv = dv, du
+            diff = dv - du
             for j in range(LOG):
                 if (diff >> j) & 1:
-                    u = up[u][j]
-            
+                    v = parent[v][j]
             if u == v:
                 return u
-            
-            # Lift both until they are just below LCA
             for j in range(LOG - 1, -1, -1):
-                if up[u][j] != up[v][j]:
-                    u = up[u][j]
-                    v = up[v][j]
-            
-            return up[u][0]
-
-        def get_dist(u, v):
-            lca = get_lca(u, v)
-            return depth_weight[u] + depth_weight[v] - 2 * depth_weight[lca]
-
-        results = []
+                if parent[u][j] != parent[v][j]:
+                    u = parent[u][j]
+                    v = parent[v][j]
+            return parent[u][0]
+        def get_dist(u: int, v: int) -> int:
+            l = get_lca(u, v)
+            return weighted_depth[u] + weighted_depth[v] - 2 * weighted_depth[l]
+        ans = []
         for src1, src2, dest in queries:
-            # The minimum weight subgraph connecting src1, src2, dest is unique.
-            # The sum of weights of edges in this subgraph is:
-            # (dist(src1, src2) + dist(src1, dest) + dist(src2, dest)) // 2
-            
-            d12 = get_dist(src1, src2)
-            d1d = get_dist(src1, dest)
-            d2d = get_dist(src2, dest)
-            
-            ans = (d12 + d1d + d2d) // 2
-            results.append(ans)
-            
-        return results
+            a, b, c = src1, src2, dest
+            lca_ab = get_lca(a, b)
+            lca_ac = get_lca(a, c)
+            lca_bc = get_lca(b, c)
+            cands = [(hop_depth[lca_ab], lca_ab), (hop_depth[lca_ac], lca_ac), (hop_depth[lca_bc], lca_bc)]
+            _, m = max(cands)
+            total = get_dist(a, m) + get_dist(b, m) + get_dist(c, m)
+            ans.append(total)
+        return ans
+
 # @lc code=end
