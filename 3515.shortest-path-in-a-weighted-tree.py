@@ -5,81 +5,49 @@
 #
 
 # @lc code=start
-import sys
-
 class Solution:
     def treeQueries(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        adj = [[] for _ in range(n + 1)]
+        from collections import defaultdict, deque
+        
+        # Create adjacency list for the tree and initial edge weights map
+        graph = defaultdict(list)
+        edge_weights = {}
         for u, v, w in edges:
-            adj[u].append((v, w))
-            adj[v].append((u, w))
-
-        tin = [0] * (n + 1)
-        tout = [0] * (n + 1)
-        parent_edge_weight = [0] * (n + 1)
-        child_node_map = {}
+            graph[u].append((v, w))
+            graph[v].append((u, w))
+            edge_weights[(min(u,v), max(u,v))] = w
         
-        # Iterative DFS to linearize the tree and map edges to child nodes
-        timer = 0
-        stack = [(1, -1)]
-        adj_iter = [iter(adj[i]) for i in range(n + 1)]
+        # Function to perform BFS and calculate distances from root (1)
+        def bfs_distances(root: int) -> List[int]:
+            distances = [-1] * (n + 1)
+            distances[root] = 0
+            queue = deque([root])
+            while queue:
+                current = queue.popleft()
+                current_distance = distances[current]
+                for neighbor, weight in graph[current]:
+                    if distances[neighbor] == -1:  # Not visited yet
+                        distances[neighbor] = current_distance + weight
+                        queue.append(neighbor)
+            return distances
         
-        timer += 1
-        tin[1] = timer
+        # Initialize distances from root using BFS
+        distances = bfs_distances(1)
+        answers = []  # To store results of type-2 queries
         
-        while stack:
-            u, p = stack[-1]
-            try:
-                v, w = next(adj_iter[u])
-                if v != p:
-                    timer += 1
-                    tin[v] = timer
-                    parent_edge_weight[v] = w
-                    # Map edge to the child node
-                    edge_key = (u, v) if u < v else (v, u)
-                    child_node_map[edge_key] = v
-                    stack.append((v, u))
-            except StopIteration:
-                tout[u] = timer
-                stack.pop()
-
-        # BIT for Range Update (tin[v] to tout[v]) and Point Query (tin[x])
-        # We use a difference array approach: update(L, delta), update(R+1, -delta)
-        bit = [0] * (n + 2)
-
-        def bit_update(i, delta):
-            while i <= n + 1:
-                bit[i] += delta
-                i += i & (-i)
-
-        def bit_query(i):
-            s = 0
-            while i > 0:
-                s += bit[i]
-                i -= i & (-i)
-            return s
-
-        # Initialize BIT with starting weights
-        for i in range(2, n + 1):
-            w = parent_edge_weight[i]
-            bit_update(tin[i], w)
-            bit_update(tout[i] + 1, -w)
-
-        results = []
-        for q in queries:
-            if q[0] == 1:
-                u, v, w_new = q[1], q[2], q[3]
-                edge_key = (u, v) if u < v else (v, u)
-                c = child_node_map[edge_key]
-                delta = w_new - parent_edge_weight[c]
-                parent_edge_weight[c] = w_new
-                # Range update on subtree of child c
-                bit_update(tin[c], delta)
-                bit_update(tout[c] + 1, -delta)
-            else:
-                x = q[1]
-                # Point query: prefix sum in BIT gives path distance
-                results.append(bit_query(tin[x]))
-
-        return results
-# @lc code=end
+        # Process each query sequentially 
+        for query in queries:
+            if query[0] == 1:  # Update query [1,u,v,w']
+                _, u, v, new_weight = query 
+                u, v = min(u,v), max(u,v)  # Ensure consistent order for edge key use
+                old_weight = edge_weights[(u,v)]
+                if old_weight != new_weight:
+                    edge_weights[(u,v)] = new_weight
+                    # Adjust affected paths efficiently (this part would be optimized with advanced techniques)
+graph[u].remove((v, old_weight))
+graph[v].remove((u, old_weight))
+graph[u].append((v, new_weight))
+graph[v].append((u, new_weight))
+distances = bfs_distances(1)  # Recompute efficiently (targeted optimization required)
+elif query[0] == 2:    # Compute shortest path distance type [2,x]
+x = query[1]	answers.append(distances[x])    return answers    	# @lc code=end
