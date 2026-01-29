@@ -5,61 +5,46 @@
 #
 
 # @lc code=start
+from collections import deque
 from typing import List
 
 class Solution:
     def countNonDecreasingSubarrays(self, nums: List[int], k: int) -> int:
+        # A subarray is non-decreasing if its reverse is non-increasing.
+        # We reverse the array and solve for the non-increasing property.
+        nums.reverse()
+        
         n = len(nums)
-        prefix = [0] * (n + 1)
-        for i in range(n):
-            prefix[i + 1] = prefix[i] + nums[i]
-        right = [n] * n
-        stack = []
-        for i in range(n - 1, -1, -1):
-            while stack and nums[stack[-1]] <= nums[i]:
-                stack.pop()
-            right[i] = stack[-1] if stack else n
-            stack.append(i)
-        inc_end = list(range(n))
-        for i in range(n - 2, -1, -1):
-            if nums[i + 1] > nums[i]:
-                inc_end[i] = inc_end[i + 1]
-            else:
-                inc_end[i] = i
         ans = 0
-        for start in range(n):
-            cost = 0
-            pos = start
-            brk = False
-            while pos < n:
-                seg_end = right[pos]
-                if seg_end == pos + 1:
-                    if seg_end == n:
-                        pos = n
-                    else:
-                        pos = inc_end[pos]
-                    continue
-                terms = seg_end - pos - 1
-                seg_cost = nums[pos] * terms - (prefix[seg_end] - prefix[pos + 1])
-                if cost + seg_cost > k:
-                    remain = k - cost
-                    lo = pos
-                    hi = seg_end - 1
-                    while lo < hi:
-                        mid = lo + (hi - lo + 1) // 2
-                        tterms = mid - pos
-                        pcost = nums[pos] * tterms - (prefix[mid + 1] - prefix[pos + 1])
-                        if pcost <= remain:
-                            lo = mid
-                        else:
-                            hi = mid - 1
-                    ans += lo - start + 1
-                    brk = True
-                    break
-                cost += seg_cost
-                pos = seg_end
-            if not brk:
-                ans += n - start
+        l = 0
+        current_cost = 0
+        # Deque stores indices such that nums[dq] is monotonic decreasing.
+        dq = deque()
+        
+        for r in range(n):
+            # When adding nums[r], if it's larger than previous elements in the window,
+            # those elements (which were previously capped by smaller values) 
+            # now need to be raised to nums[r] to keep the subarray non-increasing.
+            while dq and nums[dq[-1]] < nums[r]:
+                idx = dq.pop()
+                # The range of elements that were previously capped by nums[idx]
+                # starts after the current tail of the deque (or the left boundary).
+                prev_idx = dq[-1] if dq else l - 1
+                current_cost += (nums[r] - nums[idx]) * (idx - prev_idx)
+            
+            dq.append(r)
+            
+            # If cost exceeds k, shrink the window from the left.
+            while current_cost > k:
+                # The cost contributed by nums[l] is (max_in_window - nums[l]).
+                # In a non-increasing window, the max is at the start of the deque.
+                current_cost -= (nums[dq[0]] - nums[l])
+                if dq[0] == l:
+                    dq.popleft()
+                l += 1
+            
+            # All subarrays ending at r starting from [l...r] are valid.
+            ans += (r - l + 1)
+            
         return ans
-
 # @lc code=end
