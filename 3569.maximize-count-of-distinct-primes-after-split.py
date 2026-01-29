@@ -1,4 +1,113 @@
-{
-  "reasoning": "Step 1: Precompute primes up to 10^5 using a sieve. For each prime, maintain a sorted set or a similar structure (like a Balanced BST or a managed heap) to track its indices in the current `nums` array.\n\nStep 2: Define the contribution of each prime $p$. Let $S$ be the number of distinct primes in the array. A prime $p$ contributes 1 to the total count if it exists. It contributes an additional 1 if it exists in both the prefix `nums[0..k-1]` and the suffix `nums[k..n-1]`. The split point $k$ is valid if $1 \le k < n$. The condition for $p$ being in both parts is: $k > \text{first_index}(p)$ and $k \le \text{last_index}(p)$. Thus, for a given $k$, the total count is $S + \sum_{p} [\text{first_index}(p) + 1 \le k \le \text{last_index}(p)]$.\n\nStep 3: Use a Segment Tree to maintain the counts of overlapping intervals $[\text{first_index}(p) + 1, \text{last_index}(p)]$. The Segment Tree must support range updates (addition) and global maximum queries in $O(\log N)$ time. The range of the Segment Tree will be $[1, n-1]$, representing possible values of $k$.\n\nStep 4: For each query, update `nums[idx]`. If the old value was prime, remove its old interval from the Segment Tree, update its index set, and add its new interval back. Repeat for the new value if it is prime. Update the global count $S$ if a prime is added to or removed from the array completely.\n\nStep 5: The answer for each query is $S + \text{SegmentTree.query_max()}$.",
-  "result": "#\n# @lc app=leetcode id=3569 lang=python3\n#\n# [3569] Maximize Count of Distinct Primes After Split\n#\n\n# @lc code=start\nimport heapq\n\nclass SegmentTree:\n    def __init__(self, n):\n        self.n = n\n        self.tree = [0] * (4 * n)\n        self.lazy = [0] * (4 * n)\n\n    def _push(self, v):\n        if self.lazy[v] != 0:\n            self.tree[2*v] += self.lazy[v]\n            self.lazy[2*v] += self.lazy[v]\n            self.tree[2*v+1] += self.lazy[v]\n            self.lazy[2*v+1] += self.lazy[v]\n            self.lazy[v] = 0\n\n    def update(self, v, tl, tr, l, r, add):\n        if l > r:\n            return\n        if l == tl and r == tr:\n            self.tree[v] += add\n            self.lazy[v] += add\n        else:\n            self._push(v)\n            tm = (tl + tr) // 2\n            self.update(2*v, tl, tm, l, min(r, tm), add)\n            self.update(2*v+1, tm+1, tr, max(l, tm+1), r, add)\n            self.tree[v] = max(self.tree[2*v], self.tree[2*v+1])\n\n    def query(self):\n        return self.tree[1] if self.n > 0 else 0\n\nclass Solution:\n    def maximumCount(self, nums: List[int], queries: List[List[int]]) -> List[int]:\n        n = len(nums)\n        MAX_V = 100001\n        is_prime = [True] * MAX_V\n        is_prime[0] = is_prime[1] = False\n        for i in range(2, int(MAX_V**0.5) + 1):\n            if is_prime[i]:\n                for j in range(i*i, MAX_V, i):\n                    is_prime[j] = False\n\n        indices = [set() for _ in range(MAX_V)]\n        min_h = [[] for _ in range(MAX_V)]\n        max_h = [[] for _ in range(MAX_V)]\n        \n        def get_range(p):\n            while min_h[p] and min_h[p][0] not in indices[p]: heapq.heappop(min_h[p])\n            while max_h[p] and -max_h[p][0] not in indices[p]: heapq.heappop(max_h[p])\n            if not indices[p]: return None\n            return (min_h[p][0], -max_h[p][0])\n\n        st = SegmentTree(n)\n        distinct_count = 0\n        \n        def update_prime(p, idx, add_mode):\n            nonlocal distinct_count\n            old_rng = get_range(p)\n            if old_rng and old_rng[0] < old_rng[1]:\n                st.update(1, 1, n-1, old_rng[0] + 1, old_rng[1], -1)\n            \n            if add_mode:\n                if not indices[p]: distinct_count += 1\n                indices[p].add(idx)\n                heapq.heappush(min_h[p], idx)\n                heapq.heappush(max_h[p], -idx)\n            else:\n                indices[p].remove(idx)\n                if not indices[p]: distinct_count -= 1\n            \n            new_rng = get_range(p)\n            if new_rng and new_rng[0] < new_rng[1]:\n                st.update(1, 1, n-1, new_rng[0] + 1, new_rng[1], 1)\n\n        for i, v in enumerate(nums):\n            if is_prime[v]: update_prime(v, i, True)\n\n        ans = []\n        for idx, val in queries:\n            old_v = nums[idx]\n            if old_v != val:\n                if is_prime[old_v]: update_prime(old_v, idx, False)\n                nums[idx] = val\n                if is_prime[val]: update_prime(val, idx, True)\n            ans.append(distinct_count + st.query())\n        return ans\n# @lc code=end"
-}
+#
+# @lc app=leetcode id=3569 lang=python3
+#
+# [3569] Maximize Count of Distinct Primes After Split
+#
+
+# @lc code=start
+import heapq
+
+MAX_V = 100001
+IS_PRIME = [True] * MAX_V
+IS_PRIME[0] = IS_PRIME[1] = False
+for p in range(2, int(MAX_V**0.5) + 1):
+    if IS_PRIME[p]:
+        for i in range(p * p, MAX_V, p):
+            IS_PRIME[i] = False
+
+class SegmentTree:
+    """Iterative Segment Tree for Range Addition and Global Maximum Query."""
+    def __init__(self, n):
+        self.n = n
+        self.size = 1 << (n + 1).bit_length()
+        self.max_val = [0] * (2 * self.size)
+        self.lazy = [0] * (2 * self.size)
+
+    def _apply(self, p, val):
+        self.max_val[p] += val
+        self.lazy[p] += val
+
+    def _build(self, p):
+        while p > 1:
+            p >>= 1
+            self.max_val[p] = max(self.max_val[p<<1], self.max_val[p<<1|1]) + self.lazy[p]
+
+    def update(self, l, r, val):
+        if l > r: return
+        l += self.size
+        r += self.size
+        l0, r0 = l, r
+        while l <= r:
+            if l & 1:
+                self._apply(l, val)
+                l += 1
+            if not (r & 1):
+                self._apply(r, val)
+                r -= 1
+            l >>= 1
+            r >>= 1
+        self._build(l0)
+        self._build(r0)
+
+    def query(self):
+        # Max value in range [1, n-1]
+        return self.max_val[1]
+
+class Solution:
+    def maximumCount(self, nums: List[int], queries: List[List[int]]) -> List[int]:
+        n = len(nums)
+        st = SegmentTree(n - 1)
+        
+        indices = [set() for _ in range(MAX_V)]
+        min_heaps = [[] for _ in range(MAX_V)]
+        max_heaps = [[] for _ in range(MAX_V)]
+        distinct_primes_count = 0
+        
+        def get_endpoints(p):
+            while min_heaps[p] and min_heaps[p][0] not in indices[p]:
+                heapq.heappop(min_heaps[p])
+            while max_heaps[p] and -max_heaps[p][0] not in indices[p]:
+                heapq.heappop(max_heaps[p])
+            if not indices[p]:
+                return None, None
+            return min_heaps[p][0], -max_heaps[p][0]
+
+        def update_prime_state(p, idx, is_add):
+            nonlocal distinct_primes_count
+            l_old, r_old = get_endpoints(p)
+            
+            if is_add:
+                if not indices[p]: distinct_primes_count += 1
+                indices[p].add(idx)
+                heapq.heappush(min_heaps[p], idx)
+                heapq.heappush(max_heaps[p], -idx)
+            else:
+                indices[p].remove(idx)
+                if not indices[p]: distinct_primes_count -= 1
+            
+            l_new, r_new = get_endpoints(p)
+            
+            # Update segment tree only if the interval [L+1, R] has changed
+            if (l_old, r_old) != (l_new, r_new):
+                if l_old is not None and l_old < r_old:
+                    st.update(l_old + 1, r_old, -1)
+                if l_new is not None and l_new < r_new:
+                    st.update(l_new + 1, r_new, 1)
+
+        for i, v in enumerate(nums):
+            if IS_PRIME[v]:
+                update_prime_state(v, i, True)
+        
+        results = []
+        for idx, val in queries:
+            old_val = nums[idx]
+            if old_val != val:
+                if IS_PRIME[old_val]:
+                    update_prime_state(old_val, idx, False)
+                nums[idx] = val
+                if IS_PRIME[val]:
+                    update_prime_state(val, idx, True)
+            results.append(distinct_primes_count + st.query())
+            
+        return results
+# @lc code=end
