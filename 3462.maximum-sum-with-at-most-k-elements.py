@@ -7,19 +7,19 @@
 # @lc code=start
 class Solution:
     def maxSum(self, grid: List[List[int]], limits: List[int], k: int) -> int:
-        # Pool to store the best candidates from each row
         all_candidates = []
         
+        # Step 1: Extract the best possible candidates from each row
         for i in range(len(grid)):
-            # Extract the top 'limits[i]' elements from the current row
-            # We sort the row in descending order to identify them
-            row_sorted = sorted(grid[i], reverse=True)
-            all_candidates.extend(row_sorted[:limits[i]])
+            # Only sort and take elements if the limit for this row is > 0
+            if limits[i] > 0:
+                row_sorted = sorted(grid[i], reverse=True)
+                all_candidates.extend(row_sorted[:limits[i]])
         
-        # Sort the global pool of candidates in descending order
+        # Step 2: Sort all valid candidates globally
         all_candidates.sort(reverse=True)
         
-        # Sum the top 'k' elements from the pool
-        # If k is 0, sum() returns 0 automatically
+        # Step 3: Sum the top k elements. Since elements are non-negative, 
+        # we take as many as possible up to k.
         return sum(all_candidates[:k])
 # @lc code=end
