@@ -8,71 +8,60 @@
 import sys
 
 class Solution:
-    def minimumWeight(self, edges: list[list[int]], queries: list[list[int]]) -> list[int]:
+    def minimumWeight(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
         n = len(edges) + 1
         adj = [[] for _ in range(n)]
         for u, v, w in edges:
             adj[u].append((v, w))
             adj[v].append((u, w))
 
+        # Standard binary lifting for LCA
         LOG = n.bit_length()
-        up = [[-1] * n for _ in range(LOG)]
+        up = [[-1] * LOG for _ in range(n)]
         depth = [0] * n
-        dist_to_root = [0] * n
-
-        # Iterative DFS for tree properties
+        w_depth = [0] * n
+        
+        # Iterative DFS to avoid recursion limit issues and handle large trees
         stack = [(0, -1, 0, 0)]
         while stack:
-            u, p, d, w_sum = stack.pop()
-            up[0][u] = p
+            u, p, d, wd = stack.pop()
             depth[u] = d
-            dist_to_root[u] = w_sum
+            w_depth[u] = wd
+            up[u][0] = p
             for v, w in adj[u]:
                 if v != p:
-                    stack.append((v, u, d + 1, w_sum + w))
+                    stack.append((v, u, d + 1, wd + w))
 
-        # Binary lifting table
-        for i in range(1, LOG):
-            row = up[i]
-            prev_row = up[i-1]
-            for u in range(n):
-                mid = prev_row[u]
-                if mid != -1:
-                    row[u] = prev_row[mid]
+        for j in range(1, LOG):
+            for i in range(n):
+                if up[i][j-1] != -1:
+                    up[i][j] = up[up[i][j-1]][j-1]
 
         def get_lca(u, v):
             if depth[u] < depth[v]:
                 u, v = v, u
-            diff = depth[u] - depth[v]
-            for i in range(LOG):
-                if (diff >> i) & 1:
-                    u = up[i][u]
+            for j in range(LOG - 1, -1, -1):
+                if depth[u] - (1 << j) >= depth[v]:
+                    u = up[u][j]
             if u == v:
                 return u
-            for i in range(LOG - 1, -1, -1):
-                if up[i][u] != up[i][v]:
-                    u = up[i][u]
-                    v = up[i][v]
-            return up[0][u]
+            for j in range(LOG - 1, -1, -1):
+                if up[u][j] != up[v][j]:
+                    u = up[u][j]
+                    v = up[v][j]
+            return up[u][0]
 
         def get_dist(u, v):
             lca = get_lca(u, v)
-            return dist_to_root[u] + dist_to_root[v] - 2 * dist_to_root[lca]
+            return w_depth[u] + w_depth[v] - 2 * w_depth[lca]
 
-        ans = []
+        results = []
         for s1, s2, d in queries:
-            # The junction node X is the LCA with the greatest depth
-            l12 = get_lca(s1, s2)
-            l1d = get_lca(s1, d)
-            l2d = get_lca(s2, d)
+            d12 = get_dist(s1, s2)
+            d2d = get_dist(s2, d)
+            d1d = get_dist(s1, d)
+            # Steiner Tree weight for 3 nodes in a tree
+            results.append((d12 + d2d + d1d) // 2)
             
-            x = l12
-            if depth[l1d] > depth[x]: x = l1d
-            if depth[l2d] > depth[x]: x = l2d
-            
-            # Total weight = dist(s1, x) + dist(s2, x) + dist(d, x)
-            res = get_dist(s1, x) + get_dist(s2, x) + get_dist(d, x)
-            ans.append(res)
-            
-        return ans
+        return results
 # @lc code=end
