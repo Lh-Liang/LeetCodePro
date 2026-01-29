@@ -5,70 +5,48 @@
 #
 
 # @lc code=start
+from typing import List
 import sys
-
-# Increase recursion depth for deep trees
-sys.setrecursionlimit(10**6)
+sys.setrecursionlimit(10**5 + 10)
 
 class Solution:
-    def subtreeInversionSum(self, edges: list[list[int]], nums: list[int], k: int) -> int:
+    def subtreeInversionSum(self, edges: List[List[int]], nums: List[int], k: int) -> int:
         n = len(nums)
         adj = [[] for _ in range(n)]
-        for u, v in edges:
-            adj[u].append(v)
-            adj[v].append(u)
-
-        # dp[u][i] where i in [0, k-1] means parity 0, nearest flip at dist i (0 = none)
-        # dp[u][i+k] where i in [0, k-1] means parity 1, nearest flip at dist i (0 = none)
-        # Note: 'none' is distance infinity, but we use 0 to represent 'available to flip'
+        for a, b in edges:
+            adj[a].append(b)
+            adj[b].append(a)
+        INF = 10**18
+        dp = [[[-INF] * k for _ in range(2)] for _ in range(n)]
         
-        memo = {}
-
-        # Flatten tree to process iteratively or use optimized recursion
-        order = []
-        parent = [-1] * n
-        stack = [0]
-        while stack:
-            u = stack.pop()
-            order.append(u)
+        def compute(u: int, p: int) -> None:
             for v in adj[u]:
-                if v != parent[u]:
-                    parent[v] = u
-                    stack.append(v)
+                if v != p:
+                    compute(v, u)
+            for p_in in range(2):
+                for s_in in range(k):
+                    max_val = -INF
+                    for flip in range(2):
+                        if flip == 1 and s_in != 0:
+                            continue
+                        parity_u = (p_in + flip) % 2
+                        contrib_u = nums[u] if parity_u == 0 else -nums[u]
+                        p_child = parity_u
+                        if flip == 1:
+                            s_child = 0 if k <= 1 else 1
+                        else:
+                            if s_in == 0:
+                                s_child = 0
+                            else:
+                                s_child = 0 if s_in + 1 >= k else s_in + 1
+                        children_sum = 0
+                        for v in adj[u]:
+                            if v != p:
+                                children_sum += dp[v][p_child][s_child]
+                        total = contrib_u + children_sum
+                        max_val = max(max_val, total)
+                    dp[u][p_in][s_in] = max_val
         
-        # dp[u][state] 
-        # state 0: parity 0, can flip (no flipped ancestor within k-1)
-        # state 1..k-1: parity 0, nearest flipped ancestor at distance state
-        # state k: parity 1, can flip (no flipped ancestor within k-1) - Impossible state by logic but kept for indexing
-        # state k..2k-1: parity 1, nearest flipped ancestor at distance state-k
-        
-        dp = [[0] * (2 * k) for _ in range(n)]
-
-        for u in reversed(order):
-            for state in range(2 * k):
-                p = state // k
-                dist = state % k
-                
-                val = nums[u] if p == 0 else -nums[u]
-                
-                # Option 1: Don't flip u
-                res_no_flip = val
-                next_dist = 0 if dist == 0 or dist + 1 >= k else dist + 1
-                next_state = p * k + next_dist
-                for v in adj[u]:
-                    if v != parent[u]:
-                        res_no_flip += dp[v][next_state]
-                
-                # Option 2: Flip u (only if dist == 0)
-                if dist == 0:
-                    res_flip = -val
-                    next_state_flip = (1 - p) * k + 1
-                    for v in adj[u]:
-                        if v != parent[u]:
-                            res_flip += dp[v][next_state_flip]
-                    dp[u][state] = max(res_no_flip, res_flip)
-                else:
-                    dp[u][state] = res_no_flip
-
-        return dp[0][0]
+        compute(0, -1)
+        return dp[0][0][0]
 # @lc code=end
