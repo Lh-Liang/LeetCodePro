@@ -5,48 +5,67 @@
 #
 
 # @lc code=start
-from typing import List
 import sys
-sys.setrecursionlimit(10**5 + 10)
 
 class Solution:
-    def subtreeInversionSum(self, edges: List[List[int]], nums: List[int], k: int) -> int:
+    def subtreeInversionSum(self, edges: list[list[int]], nums: list[int], k: int) -> int:
         n = len(nums)
         adj = [[] for _ in range(n)]
-        for a, b in edges:
-            adj[a].append(b)
-            adj[b].append(a)
-        INF = 10**18
-        dp = [[[-INF] * k for _ in range(2)] for _ in range(n)]
-        
-        def compute(u: int, p: int) -> None:
+        for u, v in edges:
+            adj[u].append(v)
+            adj[v].append(u)
+
+        # Post-order traversal to process children before parents
+        order = []
+        stack = [0]
+        parent = [-1] * n
+        visited = [False] * n
+        visited[0] = True
+        while stack:
+            u = stack.pop()
+            order.append(u)
             for v in adj[u]:
-                if v != p:
-                    compute(v, u)
-            for p_in in range(2):
-                for s_in in range(k):
-                    max_val = -INF
-                    for flip in range(2):
-                        if flip == 1 and s_in != 0:
-                            continue
-                        parity_u = (p_in + flip) % 2
-                        contrib_u = nums[u] if parity_u == 0 else -nums[u]
-                        p_child = parity_u
-                        if flip == 1:
-                            s_child = 0 if k <= 1 else 1
-                        else:
-                            if s_in == 0:
-                                s_child = 0
-                            else:
-                                s_child = 0 if s_in + 1 >= k else s_in + 1
-                        children_sum = 0
-                        for v in adj[u]:
-                            if v != p:
-                                children_sum += dp[v][p_child][s_child]
-                        total = contrib_u + children_sum
-                        max_val = max(max_val, total)
-                    dp[u][p_in][s_in] = max_val
+                if not visited[v]:
+                    visited[v] = True
+                    parent[v] = u
+                    stack.append(v)
         
-        compute(0, -1)
-        return dp[0][0][0]
+        # dp[u][d][p]: max sum of subtree u given dist d to nearest inv ancestor and parity p
+        # We use a flat list or separate variables to optimize Python performance
+        # dp_table[u] will store a list of size (k+1)*2
+        dp = [None] * n
+
+        for u in reversed(order):
+            # Pre-calculate sums of children for all possible (next_d, next_p)
+            # child_sums[d][p] = sum(dp[v][d][p] for v in children)
+            child_sums = [0] * ((k + 1) * 2)
+            for v in adj[u]:
+                if v == parent[u]:
+                    continue
+                v_dp = dp[v]
+                for i in range(len(v_dp)):
+                    child_sums[i] += v_dp[i]
+
+            u_dp = [0] * ((k + 1) * 2)
+            for p in range(2):
+                # Case: Invert at u (only if dist to ancestor >= k)
+                # If we invert at u, the node value is flipped relative to parity p
+                # and children see distance 1 and parity 1-p
+                res_inv = ((-nums[u] if p == 0 else nums[u]) + 
+                           child_sums[1 * 2 + (1 - p)])
+                
+                for d in range(1, k + 1):
+                    # Case: Don't invert at u
+                    next_d = min(k, d + 1)
+                    res_no = (nums[u] if p == 0 else -nums[u]) + \
+                             child_sums[next_d * 2 + p]
+                    
+                    if d >= k:
+                        u_dp[d * 2 + p] = max(res_no, res_inv)
+                    else:
+                        u_dp[d * 2 + p] = res_no
+            dp[u] = u_dp
+
+        # Initial state: root has no inverted ancestors (dist k, parity 0)
+        return dp[0][k * 2 + 0]
 # @lc code=end
