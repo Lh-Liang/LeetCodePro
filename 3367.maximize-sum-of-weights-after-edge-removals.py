@@ -5,8 +5,7 @@
 #
 
 # @lc code=start
-from collections import deque
-from typing import List
+import collections
 
 class Solution:
     def maximizeSumOfWeights(self, edges: List[List[int]], k: int) -> int:
@@ -16,13 +15,12 @@ class Solution:
             adj[u].append((v, w))
             adj[v].append((u, w))
         
-        # BFS to get post-order traversal and parent pointers
-        order = []
+        # Iterative Tree Traversal to avoid recursion limits
         parent = [-1] * n
-        parent_w = [0] * n
+        order = []
+        queue = collections.deque([0])
         visited = [False] * n
         visited[0] = True
-        queue = deque([0])
         
         while queue:
             u = queue.popleft()
@@ -31,34 +29,47 @@ class Solution:
                 if not visited[v]:
                     visited[v] = True
                     parent[v] = u
-                    parent_w[v] = w
                     queue.append(v)
         
-        # f[u][0]: max weight in subtree u, u can have k edges to children (no parent edge)
-        # f[u][1]: max weight in subtree u, u can have k-1 edges to children (parent edge kept)
-        f = [[0, 0] for _ in range(n)]
+        # dp0[u]: max sum for subtree u if u can have k edges to children
+        # dp1[u]: max sum for subtree u if u can have k-1 edges to children
+        dp0 = [0] * n
+        dp1 = [0] * n
         
-        # Process nodes in reverse order (bottom-up)
+        # Process nodes from leaves to root
         for u in reversed(order):
-            base_sum = 0
-            diffs = []
+            base_total = 0
+            gains = []
+            
             for v, w in adj[u]:
                 if v == parent[u]:
                     continue
                 
-                # Default: don't keep edge (u, v)
-                base_sum += f[v][0]
-                # Gain if we keep edge (u, v)
-                d = f[v][1] + w - f[v][0]
-                if d > 0:
-                    diffs.append(d)
+                # Option A: Don't keep edge (u, v)
+                base_total += dp0[v]
+                
+                # Option B: Keep edge (u, v). Gain is (w + dp1[v]) - dp0[v]
+                gain = w + dp1[v] - dp0[v]
+                if gain > 0:
+                    gains.append(gain)
             
-            diffs.sort(reverse=True)
+            gains.sort(reverse=True)
             
-            # f[u][0] allows up to k edges to children
-            f[u][0] = base_sum + sum(diffs[:k])
-            # f[u][1] allows up to k-1 edges to children
-            f[u][1] = base_sum + sum(diffs[:k-1])
+            # Calculate DP states by picking best positive gains
+            sum_gains = sum(gains)
+            num_gains = len(gains)
             
-        return f[0][0]
+            # For dp0, we can take up to k gains
+            if num_gains <= k:
+                dp0[u] = base_total + sum_gains
+            else:
+                dp0[u] = base_total + sum(gains[:k])
+                
+            # For dp1, we can take up to k-1 gains
+            if num_gains <= k - 1:
+                dp1[u] = base_total + sum_gains
+            else:
+                dp1[u] = base_total + sum(gains[:k-1])
+        
+        return dp0[0]
 # @lc code=end
