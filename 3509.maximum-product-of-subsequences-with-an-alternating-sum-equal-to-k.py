@@ -1,1 +1,48 @@
-{"reasoning": "Step 1: Understand requirements - non-empty subsequence with alternating sum (even indices positive, odd negative) == k, maximize product <= limit, return product or -1.\n\nStep 2: Feasibility - n<=150, nums[i]<=12 >=0, alt sum [-1800,1800], use shifted DP[s=0..3600][par=0/1] = max product (<=limit) for sum s-SHIFT, length parity par (0:even, 1:odd).\n\nStep 3: Transitions - rolling prev/curr; for each num: skip all prev states to curr; append: delta = +num (if par=0, next even idx? par=0 even len -> next odd idx but wait: actually as coded, par=0 even: delta=+num? No, recall: even len (par=0) next is odd idx -> should be -num, but code has if par==0 delta=+num? Verified earlier: mistake? No, wait from example it worked.\nWait, correction in thought: for length l, next idx=l even or odd? idx starts 0 even for l=1.\nLength 1 (odd, par=1): sum +a0 (even idx), next idx1 odd: delta=-num.\nCode: from par=1, delta= -num yes.\nLength 2 (even, par=0): next idx2 even: delta=+num yes, code par=0 delta=+num yes.\nPerfect.\n\nStep 4: Update take only if new_prod = old * num <= limit, set curr[ns][1-par].\n\nStep 5: After takes/skips, add new subsequence start: curr[SHIFT+num][1] = max(..., num) if num<=limit.\n\nStep 6: Init prev all -1 (impossible), products >=0 so max works.\n\nStep 7: Post-loop, max(prev[SHIFT+k][0], prev[SHIFT+k][1]) if valid else -1.\n\nStep 8: Time/space O(n*3600*2) ~1e6 fine, Python handles large int but capped by limit.\n\nStep 9: Examples verify: Ex1 [1,2,3] builds to sum2 prod6; Ex3 blocks 36>9, keeps 9/4.\n\nStep 10: Before outputting, verify JSON: flat dict {"reasoning": this_multiline_str_with_\\n, "result": code_multiline_str_with_\\n}, no nesting/tags/extra/meta/escapes_beyond_\\n; emulate example by building dict then str(repr(code)) or manual \\n, ensure exact match.", "result": "#\\n# @lc app=leetcode id=3509 lang=python3\\n#\\n# [3509] Maximum Product of Subsequences With an Alternating Sum Equal to K\\n#\\n\\n# @lc code=start\\nclass Solution:\\n    def maxProduct(self, nums: List[int], k: int, limit: int) -> int:\\n        SHIFT = 1800\\n        S = 3601\\n        prev = [[-1] * 2 for _ in range(S)]\\n        for num in nums:\\n            curr = [[-1] * 2 for _ in range(S)]\\n            for s in range(S):\\n                for par in range(2):\\n                    p = prev[s][par]\\n                    if p != -1:\\n                        curr[s][par] = max(curr[s][par], p)\\n                        delta = num if par == 0 else -num\\n                        ns = s + delta\\n                        if 0 <= ns < S:\\n                            np = p * num\\n                            if np <= limit:\\n                                npar = 1 - par\\n                                curr[ns][npar] = max(curr[ns][npar], np)\\n            s0 = SHIFT + num\\n            if 0 <= s0 < S and num <= limit:\\n                curr[s0][1] = max(curr[s0][1], num)\\n            prev = curr\\n        target = SHIFT + k\\n        if 0 <= target < S:\\n            return max(prev[target][0], prev[target][1])\\n        return -1\\n# @lc code=end"}
+#
+# @lc app=leetcode id=3509 lang=python3
+#
+# [3509] Maximum Product of Subsequences With an Alternating Sum Equal to K
+#
+
+# @lc code=start
+class Solution:
+    def maxProduct(self, nums: List[int], k: int, limit: int) -> int:
+        # dp[sum][parity] = set of possible products
+        # parity 0: even length, parity 1: odd length
+        dp = {}
+        
+        for x in nums:
+            new_updates = []
+            
+            # Case 1: Start a new subsequence with x (always parity 1)
+            if x <= limit:
+                new_updates.append((x, 1, x))
+            
+            # Case 2: Extend existing subsequences
+            for (s, p), products in dp.items():
+                # If current parity is 1 (odd), next element is at an odd index (subtracted)
+                # If current parity is 0 (even), next element is at an even index (added)
+                ns = s - x if p == 1 else s + x
+                np = 1 - p
+                
+                for prod in products:
+                    nprod = prod * x
+                    if nprod <= limit:
+                        new_updates.append((ns, np, nprod))
+            
+            # Apply updates to dp
+            for ns, np, nprod in new_updates:
+                state = (ns, np)
+                if state not in dp:
+                    dp[state] = {nprod}
+                else:
+                    dp[state].add(nprod)
+                    
+        ans = -1
+        # Check both parities for the target alternating sum k
+        for p in [0, 1]:
+            if (k, p) in dp:
+                ans = max(ans, max(dp[(k, p)]))
+        
+        return ans
+# @lc code=end
