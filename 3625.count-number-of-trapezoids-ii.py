@@ -5,74 +5,77 @@
 #
 
 # @lc code=start
-from typing import List
 from collections import defaultdict
-from math import gcd
+import math
 
 class Solution:
     def countTrapezoids(self, points: List[List[int]]) -> int:
         n = len(points)
         if n < 4:
             return 0
-        
-        def comb2(k: int) -> int:
-            return k * (k - 1) // 2
-        
-        # Collect all unique slopes and pair counts
-        slopes = set()
-        slope_paircount = defaultdict(int)
-        for i in range(n):
-            for j in range(i + 1, n):
-                x1, y1 = points[i]
-                x2, y2 = points[j]
-                dx = x2 - x1
-                dy = y2 - y1
-                g = gcd(abs(dx), abs(dy))
-                if g != 0:
-                    dx //= g
-                    dy //= g
-                if dx < 0 or (dx == 0 and dy < 0):
-                    dx = -dx
-                    dy = -dy
-                sl = (dy, dx)
-                slopes.add(sl)
-                slope_paircount[sl] += 1
-        
-        # Compute S
-        S = 0
-        for sl in slopes:
-            if slope_paircount[sl] < 2:
-                continue
-            dy, dx = sl
-            b_count = defaultdict(int)
-            for x, y in points:
-                b = dy * x - dx * y
-                b_count[b] += 1
-            sizes = [cnt for cnt in b_count.values() if cnt >= 2]
-            m = len(sizes)
-            for ii in range(m):
-                for jj in range(ii + 1, m):
-                    S += comb2(sizes[ii]) * comb2(sizes[jj])
-        
-        # Compute P: parallelograms via shared midpoints
-        mid_to_diags = defaultdict(list)
-        for i in range(n):
-            for k in range(i + 1, n):
-                sx = points[i][0] + points[k][0]
-                sy = points[i][1] + points[k][1]
-                mid_to_diags[(sx, sy)].append((i, k))
-        
-        P = 0
-        for diags in mid_to_diags.values():
-            ld = len(diags)
-            for a in range(ld):
-                for b in range(a + 1, ld):
-                    i1, k1 = diags[a]
-                    i2, k2 = diags[b]
-                    ends = {i1, k1, i2, k2}
-                    if len(ends) == 4:
-                        P += 1
-        
-        return S - P
+            
+        def get_slope(p1, p2):
+            dx = p2[0] - p1[0]
+            dy = p2[1] - p1[1]
+            if dx == 0:
+                return (0, 1)
+            if dy == 0:
+                return (1, 0)
+            g = math.gcd(dx, dy)
+            dx //= g
+            dy //= g
+            if dx < 0:
+                dx, dy = -dx, -dy
+            elif dx == 0 and dy < 0:
+                dy = -dy
+            return (dx, dy)
 
+        # slope_groups[slope][line_constant] = count_of_pairs_on_this_line
+        # A line is defined by its slope (dx, dy) and the constant C = dy*x - dx*y
+        slope_groups = defaultdict(lambda: defaultdict(int))
+        midpoints = defaultdict(int)
+        collinear_midpoints = defaultdict(lambda: defaultdict(int))
+
+        for i in range(n):
+            p1 = points[i]
+            for j in range(i + 1, n):
+                p2 = points[j]
+                slope = get_slope(p1, p2)
+                dx, dy = slope
+                # Line equation: dy*x - dx*y = C
+                c = dy * p1[0] - dx * p1[1]
+                slope_groups[slope][c] += 1
+                
+                # For parallelogram counting
+                mx, my = p1[0] + p2[0], p1[1] + p2[1]
+                midpoints[(mx, my)] += 1
+                collinear_midpoints[(slope, c)][(mx, my)] += 1
+
+        total_trapezoids = 0
+        for slope in slope_groups:
+            lines = list(slope_groups[slope].values())
+            if len(lines) < 2:
+                continue
+            
+            sum_segments = sum(lines)
+            sum_sq_segments = sum(x*x for x in lines)
+            # Number of ways to pick two segments from different lines of the same slope
+            total_trapezoids += (sum_segments**2 - sum_sq_segments) // 2
+
+        parallelograms = 0
+        for m in midpoints:
+            cnt = midpoints[m]
+            if cnt >= 2:
+                parallelograms += cnt * (cnt - 1) // 2
+        
+        # Subtract collinear midpoints (4 points on the same line cannot form a trapezoid/parallelogram)
+        for line_key in collinear_midpoints:
+            for m in collinear_midpoints[line_key]:
+                cnt = collinear_midpoints[line_key][m]
+                if cnt >= 2:
+                    parallelograms -= cnt * (cnt - 1) // 2
+
+        # Each parallelogram has 2 pairs of parallel sides, so it was counted twice in total_trapezoids.
+        # To count each unique parallelogram once, we subtract it once.
+        return total_trapezoids - parallelograms
 # @lc code=end
