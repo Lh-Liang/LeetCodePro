@@ -3,177 +3,126 @@
 #
 # [3762] Minimum Operations to Equalize Subarrays
 #
-
 # @lc code=start
-from bisect import bisect_right
+from typing import List
+import math
+
+class FenwickTree:
+    def __init__(self, size: int):
+        self.size = size
+        self.tree = [0] * (size + 2)
+
+    def update(self, index: int, delta: int) -> None:
+        while index <= self.size:
+            self.tree[index] += delta
+            index += index & -index
+
+    def query(self, index: int) -> int:
+        res = 0
+        while index > 0:
+            res += self.tree[index]
+            index -= index & -index
+        return res
 
 class Solution:
     def minOperations(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
         n = len(nums)
-        quots = [x // k for x in nums]
-        rems = [x % k for x in nums]
-        
-        # Precompute validity check
-        # A subarray is valid if all elements have the same remainder modulo k.
-        # We can use a prefix sum array to check this in O(1).
-        # mismatch[i] = 1 if nums[i] % k != nums[i-1] % k else 0
-        mismatch = [0] * n
-        for i in range(1, n):
-            if rems[i] != rems[i-1]:
-                mismatch[i] = 1
-        
-        mismatch_pref = [0] * (n + 1)
+        mods = [num % k for num in nums]
+        qarr = [num // k for num in nums]
+
+        # Sparse table for range min/max on mods
+        LOG = n.bit_length()
+        st_min = [[0] * n for _ in range(LOG)]
+        st_max = [[0] * n for _ in range(LOG)]
         for i in range(n):
-            mismatch_pref[i+1] = mismatch_pref[i] + mismatch[i]
-            
-        # Merge Sort Tree Construction
-        # tree[v] stores a sorted list of quotients for the range covered by node v
-        # pref[v] stores the prefix sums of that sorted list
-        self.tree = [[] for _ in range(4 * n)]
-        self.pref = [[] for _ in range(4 * n)]
-        
-        def build(node, start, end):
-            if start == end:
-                self.tree[node] = [quots[start]]
-                self.pref[node] = [0, quots[start]]
-                return
-            
-            mid = (start + end) // 2
-            build(2 * node, start, mid)
-            build(2 * node + 1, mid + 1, end)
-            
-            # Merge two sorted arrays
-            left_arr = self.tree[2 * node]
-            right_arr = self.tree[2 * node + 1]
-            merged = []
-            i = j = 0
-            while i < len(left_arr) and j < len(right_arr):
-                if left_arr[i] < right_arr[j]:
-                    merged.append(left_arr[i])
-                    i += 1
+            st_min[0][i] = mods[i]
+            st_max[0][i] = mods[i]
+        for j in range(1, LOG):
+            for i in range(n - (1 << j) + 1):
+                st_min[j][i] = min(st_min[j-1][i], st_min[j-1][i + (1 << (j-1))])
+                st_max[j][i] = max(st_max[j-1][i], st_max[j-1][i + (1 << (j-1))])
+
+        def get_log(length: int) -> int:
+            j = 0
+            while (1 << (j + 1)) <= length:
+                j += 1
+            return j
+
+        def range_min(l: int, r: int) -> int:
+            length = r - l + 1
+            j = get_log(length)
+            return min(st_min[j][l], st_min[j][r - (1 << j) + 1])
+
+        def range_max(l: int, r: int) -> int:
+            length = r - l + 1
+            j = get_log(length)
+            return max(st_max[j][l], st_max[j][r - (1 << j) + 1])
+
+        # Mo's algorithm setup
+        B = int(math.sqrt(n)) + 1
+        query_list = [[l, r, i] for i, (l, r) in enumerate(queries)]
+        query_list.sort(key=lambda x: (x[0] // B, x[1]))
+
+        # Coordinate compression
+        vals = sorted(set(qarr))
+        m = len(vals)
+        ranks = {vals[i]: i + 1 for i in range(m)}
+
+        mo_ans = [0] * len(queries)
+        ft_count = FenwickTree(m)
+        ft_sumval = FenwickTree(m)
+        cur_l = 0
+        cur_r = -1
+
+        def add(pos: int):
+            rk = ranks[qarr[pos]]
+            ft_count.update(rk, 1)
+            ft_sumval.update(rk, qarr[pos])
+
+        def remove(pos: int):
+            rk = ranks[qarr[pos]]
+            ft_count.update(rk, -1)
+            ft_sumval.update(rk, -qarr[pos])
+
+        for ql, qr, qidx in query_list:
+            while cur_r < qr:
+                cur_r += 1
+                add(cur_r)
+            while cur_l > ql:
+                cur_l -= 1
+                add(cur_l)
+            while cur_r > qr:
+                remove(cur_r)
+                cur_r -= 1
+            while cur_l < ql:
+                remove(cur_l)
+                cur_l += 1
+            sz = cur_r - cur_l + 1
+            need = sz // 2 + 1
+            # Binary search for med_rk
+            lo, hi = 1, m
+            while lo < hi:
+                md = (lo + hi) // 2
+                if ft_count.query(md) >= need:
+                    hi = md
                 else:
-                    merged.append(right_arr[j])
-                    j += 1
-            merged.extend(left_arr[i:])
-            merged.extend(right_arr[j:])
-            
-            self.tree[node] = merged
-            
-            # Build prefix sums for the merged array
-            p = [0] * (len(merged) + 1)
-            curr = 0
-            for idx, val in enumerate(merged):
-                curr += val
-                p[idx+1] = curr
-            self.pref[node] = p
+                    lo = md + 1
+            med_rk = lo
+            med = vals[med_rk - 1]
+            num_lt = ft_count.query(med_rk - 1) if med_rk > 1 else 0
+            cnt_ge = sz - num_lt
+            total_sumq = ft_sumval.query(m)
+            sum_lt = ft_sumval.query(med_rk - 1) if med_rk > 1 else 0
+            sum_ge = total_sumq - sum_lt
+            mo_ans[qidx] = (2 * sum_ge - total_sumq) - med * (2 * cnt_ge - sz)
 
-        build(1, 0, n - 1)
-        
-        # Helper to get count of numbers <= val in range [L, R]
-        def query_count(node, start, end, L, R, val):
-            if R < start or end < L:
-                return 0
-            if L <= start and end <= R:
-                return bisect_right(self.tree[node], val)
-            mid = (start + end) // 2
-            return query_count(2 * node, start, mid, L, R, val) + \
-                   query_count(2 * node + 1, mid + 1, end, L, R, val)
-
-        # Helper to find the k-th smallest number (0-indexed rank) in range [L, R]
-        # We binary search on the answer space (min_val to max_val)
-        min_val = min(quots)
-        max_val = max(quots)
-        
-        def get_quantile(L, R, rank):
-            low = min_val
-            high = max_val
-            ans = high
-            
-            while low <= high:
-                mid = (low + high) // 2
-                # count how many numbers are <= mid inside [L, R]
-                c = query_count(1, 0, n - 1, L, R, mid)
-                if c > rank:
-                    ans = mid
-                    high = mid - 1
-                else:
-                    low = mid + 1
-            return ans
-
-        # Helper to get sum and count of numbers <= val in range [L, R]
-        def query_sum_count(node, start, end, L, R, val):
-            if R < start or end < L:
-                return 0, 0
-            if L <= start and end <= R:
-                idx = bisect_right(self.tree[node], val)
-                return self.pref[node][idx], idx
-            
-            mid = (start + end) // 2
-            s1, c1 = query_sum_count(2 * node, start, mid, L, R, val)
-            s2, c2 = query_sum_count(2 * node + 1, mid + 1, end, L, R, val)
-            return s1 + s2, c1 + c2
-
+        # Build final ans
         ans = []
-        for l, r in queries:
-            # Check validity
-            # If mismatch_pref[r+1] - mismatch_pref[l+1] > 0, it means there's a mismatch inside
-            # Actually, mismatch at index i compares i and i-1.
-            # For range [l, r], we need to check mismatches at l+1, l+2, ..., r.
-            # So we look at mismatch_pref[r+1] - mismatch_pref[l+1].
-            # If l == r, valid automatically.
-            if l < r and (mismatch_pref[r+1] - mismatch_pref[l+1] > 0):
+        for i, (l, r) in enumerate(queries):
+            if range_min(l, r) != range_max(l, r):
                 ans.append(-1)
-                continue
-            
-            # Find Median
-            count = r - l + 1
-            median_rank = count // 2  # 0-indexed rank of median
-            median_val = get_quantile(l, r, median_rank)
-            
-            # Calculate Cost
-            # Cost = sum(|x - median|) for x in range
-            #      = (count_less * median - sum_less) + (sum_greater - count_greater * median)
-            # where less includes equal to median for simplicity in splitting, 
-            # but strictly speaking |x - median| is 0 for x=median so it doesn't matter which side equal goes.
-            
-            sum_less, count_less = query_sum_count(1, 0, n - 1, l, r, median_val)
-            
-            # Total sum of the range [l, r]
-            # We can get total sum by querying with infinity or just reuse the logic
-            # Actually, sum_greater = total_sum - sum_less
-            # count_greater = total_count - count_less
-            
-            # To get total sum efficiently, we can use a standard prefix sum array for quots
-            # let's build it on the fly or precompute it. Precomputing is better.
-            
-            # But wait, query_sum_count gives us sum of subset.
-            # We need total sum of quots[l...r].
-            # Let's add a simple prefix sum array for quots.
-            pass 
-
-        # Add simple prefix sum for quots
-        quot_pref = [0] * (n + 1)
-        for i in range(n):
-            quot_pref[i+1] = quot_pref[i] + quots[i]
-
-        ans = []
-        for l, r in queries:
-            if l < r and (mismatch_pref[r+1] - mismatch_pref[l+1] > 0):
-                ans.append(-1)
-                continue
-            
-            count = r - l + 1
-            median_rank = count // 2 
-            median_val = get_quantile(l, r, median_rank)
-            
-            sum_le, cnt_le = query_sum_count(1, 0, n - 1, l, r, median_val)
-            
-            total_sum = quot_pref[r+1] - quot_pref[l]
-            sum_gt = total_sum - sum_le
-            cnt_gt = count - cnt_le
-            
-            cost = (cnt_le * median_val - sum_le) + (sum_gt - cnt_gt * median_val)
-            ans.append(cost)
-            
+            else:
+                ans.append(mo_ans[i])
         return ans
+
 # @lc code=end
