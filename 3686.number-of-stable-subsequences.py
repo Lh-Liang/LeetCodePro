@@ -8,29 +8,29 @@
 class Solution:
     def countStableSubsequences(self, nums: List[int]) -> int:
         MOD = 10**9 + 7
-        n = len(nums)
-        parity = [num % 2 for num in nums]
-        prev = [[0] * 2 for _ in range(2)]
-        for i in range(n):
-            p = parity[i]
-            curr = [[0] * 2 for _ in range(2)]
-            for s in range(2):
-                for pp in range(2):
-                    curr[s][pp] = (curr[s][pp] + prev[s][pp]) % MOD
-            curr[0][p] = (curr[0][p] + 1) % MOD
-            for ps in range(2):
-                plen = ps + 1
-                for pp in range(2):
-                    ways = prev[ps][pp]
-                    if ways == 0:
-                        continue
-                    if pp != p:
-                        curr[0][p] = (curr[0][p] + ways) % MOD
-                    else:
-                        nlen = plen + 1
-                        if nlen <= 2:
-                            ns = nlen - 1
-                            curr[ns][p] = (curr[ns][p] + ways) % MOD
-            prev = curr
-        return sum(sum(row) for row in prev) % MOD
+        # e1: ends in 1 even, e2: ends in 2 evens
+        # o1: ends in 1 odd, o2: ends in 2 odds
+        e1, e2, o1, o2 = 0, 0, 0, 0
+        
+        for x in nums:
+            if x % 2 == 0:
+                # New subsequences ending in exactly two evens
+                # come from those previously ending in exactly one even
+                added_e2 = e1
+                # New subsequences ending in exactly one even
+                # come from those ending in any number of odds, plus the singleton [x]
+                added_e1 = (o1 + o2 + 1) % MOD
+                
+                e1 = (e1 + added_e1) % MOD
+                e2 = (e2 + added_e2) % MOD
+            else:
+                # New subsequences ending in exactly two odds
+                added_o2 = o1
+                # New subsequences ending in exactly one odd
+                added_o1 = (e1 + e2 + 1) % MOD
+                
+                o1 = (o1 + added_o1) % MOD
+                o2 = (o2 + added_o2) % MOD
+                
+        return (e1 + e2 + o1 + o2) % MOD
 # @lc code=end
