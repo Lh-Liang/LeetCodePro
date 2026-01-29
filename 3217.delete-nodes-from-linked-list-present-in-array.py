@@ -13,8 +13,7 @@
 class Solution:
     def modifiedList(self, nums: List[int], head: Optional[ListNode]) -> Optional[ListNode]:
         nums_set = set(nums)
-        dummy = ListNode(0)
-        dummy.next = head
+        dummy = ListNode(0, head)
         curr = dummy
         
         while curr.next:
@@ -22,6 +21,6 @@ class Solution:
                 curr.next = curr.next.next
             else:
                 curr = curr.next
-                
+        
         return dummy.next
 # @lc code=end
