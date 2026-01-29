@@ -9,58 +9,71 @@ class Solution:
     def longestPalindrome(self, s: str, t: str) -> int:
         n, m = len(s), len(t)
 
-        def get_max_pal_at_pos(text):
-            size = len(text)
-            # p_start[i]: max palindrome length starting at index i
-            # p_end[i]: max palindrome length ending at index i
-            p_start = [1] * size
-            p_end = [1] * size
-            for i in range(size):
+        def get_pals(string):
+            sz = len(string)
+            # Manacher's to get max palindrome starting/ending at each index
+            # d1[i]: radius of odd palindrome centered at i
+            # d2[i]: radius of even palindrome centered at i
+            d1 = [0] * sz
+            l, r = 0, -1
+            for i in range(sz):
+                k = 1 if i > r else min(d1[l + r - i], r - i + 1)
+                while 0 <= i - k and i + k < sz and string[i - k] == string[i + k]:
+                    k += 1
+                d1[i] = k
+                if i + k - 1 > r:
+                    l, r = i - k + 1, i + k - 1
+            
+            d2 = [0] * sz
+            l, r = 0, -1
+            for i in range(sz):
+                k = 0 if i > r else min(d2[l + r - i + 1], r - i + 1)
+                while 0 <= i - k - 1 and i + k < sz and string[i - k - 1] == string[i + k]:
+                    k += 1
+                d2[i] = k
+                if i + k - 1 > r:
+                    l, r = i - k, i + k - 1
+            
+            start_max = [0] * (sz + 1)
+            end_max = [0] * (sz + 1)
+            for i in range(sz):
                 # Odd
-                for l, r in [(i, i), (i, i + 1)]:
-                    while l >= 0 and r < size and text[l] == text[r]:
-                        length = r - l + 1
-                        if length > p_start[l]: p_start[l] = length
-                        if length > p_end[r]: p_end[r] = length
-                        l -= 1
-                        r += 1
-            return p_start, p_end
+                l1, r1 = i - d1[i] + 1, i + d1[i] - 1
+                start_max[l1] = max(start_max[l1], 2 * d1[i] - 1)
+                end_max[r1 + 1] = max(end_max[r1 + 1], 2 * d1[i] - 1)
+                # Even
+                if d2[i] > 0:
+                    l2, r2 = i - d2[i], i + d2[i] - 1
+                    start_max[l2] = max(start_max[l2], 2 * d2[i])
+                    end_max[r2 + 1] = max(end_max[r2 + 1], 2 * d2[i])
+            
+            # Propagate: if a pal of length L starts at i, one of L-2 starts at i+1
+            for i in range(sz):
+                start_max[i+1] = max(start_max[i+1], start_max[i] - 2)
+            for i in range(sz, 0, -1):
+                end_max[i-1] = max(end_max[i-1], end_max[i] - 2)
+                
+            return start_max, end_max
 
-        ps_start, _ = get_max_pal_at_pos(s)
-        _, pt_end = get_max_pal_at_pos(t)
+        s_start, s_end = get_pals(s)
+        t_start, t_end = get_pals(t)
 
-        ans = max(max(ps_start) if s else 0, max(pt_end) if t else 0)
+        ans = max(max(s_start), max(t_start))
 
-        # Case 1: s_sub = A + Y, t_sub = A_rev (Y in s)
-        # A is suffix of s_sub, A_rev is t_sub. A = common substring of s and rev_t.
-        rev_t = t[::-1]
-        dp = [0] * (m + 1)
+        # dp[i][j] is LCS of s[:i] and rev(t[j:])
+        # s[i-1] matches t[j]
+        dp = [[0] * (m + 1) for _ in range(n + 1)]
         for i in range(1, n + 1):
-            new_dp = [0] * (m + 1)
-            max_L = 0
-            for j in range(1, m + 1):
-                if s[i-1] == rev_t[j-1]:
-                    new_dp[j] = dp[j-1] + 1
-                    if new_dp[j] > max_L: max_L = new_dp[j]
-            dp = new_dp
-            # If A ends at i-1, Y starts at i
-            y_len = ps_start[i] if i < n else 0
-            ans = max(ans, 2 * max_L + y_len)
-
-        # Case 2: s_sub = A, t_sub = Y + A_rev (Y in t)
-        rev_s = s[::-1]
-        dp = [0] * (n + 1)
-        for i in range(1, m + 1):
-            new_dp = [0] * (n + 1)
-            max_L = 0
-            for j in range(1, n + 1):
-                if t[m-i] == rev_s[j-1]:
-                    new_dp[j] = dp[j-1] + 1
-                    if new_dp[j] > max_L: max_L = new_dp[j]
-            dp = new_dp
-            # If A_rev starts at m-i, Y ends at m-i-1
-            y_len = pt_end[m-i-1] if m-i-1 >= 0 else 0
-            ans = max(ans, 2 * max_L + y_len)
+            for j in range(m - 1, -1, -1):
+                if s[i-1] == t[j]:
+                    dp[i][j] = dp[i-1][j+1] + 1
+                    L = dp[i][j]
+                    # Option 1: s[...i-1] + t[j...]
+                    # Palindrome is in s after the matching part or in t before matching part
+                    # Matches s[i-L...i-1] with t[j...j+L-1]
+                    # Check s_start[i] (pal in s immediately after match)
+                    # Check t_end[j] (pal in t immediately before match)
+                    ans = max(ans, 2 * L + max(s_start[i], t_end[j]))
 
         return ans
 # @lc code=end
