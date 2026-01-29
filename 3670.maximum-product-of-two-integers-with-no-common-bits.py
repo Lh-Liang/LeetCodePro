@@ -5,53 +5,37 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def maxProduct(self, nums: List[int]) -> int:
-        if not nums:
-            return 0
-            
-        # Determine the number of bits needed based on the maximum value
-        max_num = max(nums)
-        if max_num == 0: # Constraints say nums[i] >= 1, but safe to check
-            return 0
-            
-        bits = max_num.bit_length()
-        limit = 1 << bits
+        # Step 1: Create a dictionary to map numbers to their bit masks
+        bit_masks = {}
+        for num in nums:
+            # Step 2: Compute the bit mask for each number
+            bit_masks[num] = self.computeBitMask(num)
         
-        # max_val[mask] stores the maximum value for a specific bitmask
-        # Using a list for speed in Python
-        max_val = [0] * limit
-        unique_nums = []
-        for x in nums:
-            if max_val[x] == 0:
-                unique_nums.append(x)
-            if x > max_val[x]:
-                max_val[x] = x
+        max_product = 0
+        n = len(nums)
         
-        # f[mask] will store the maximum value among all numbers whose bitmask is a subset of mask
-        f = list(max_val)
+        # Step 3: Compare each pair using precomputed bit masks
+        for i in range(n):
+            for j in range(i + 1, n):
+                # Check if i and j have no common bits using bit masks
+                if bit_masks[nums[i]] & bit_masks[nums[j]] == 0:
+                    # Step 4: Calculate product if no common bits and update max product
+                    max_product = max(max_product, nums[i] * nums[j])
         
-        # SOS DP (Sum Over Subsets) to compute f[mask] in O(B * 2^B)
-        for i in range(bits):
-            bit = 1 << i
-            for mask in range(limit):
-                if mask & bit:
-                    # If the subset mask (mask without bit i) has a larger value, update
-                    if f[mask ^ bit] > f[mask]:
-                        f[mask] = f[mask ^ bit]
-        
-        ans = 0
-        full_mask = limit - 1
-        for x in unique_nums:
-            # complement contains all bits within our range NOT set in x
-            complement = full_mask ^ x
-            # f[complement] is the max value whose bits are a subset of complement
-            # This means f[complement] & x == 0
-            best_partner = f[complement]
-            if best_partner > 0:
-                product = x * best_partner
-                if product > ans:
-                    ans = product
-        
-        return ans
+        # Step 5: Return maximum product found
+        return max_product
+    
+    def computeBitMask(self, num: int) -> int:
+        mask = 0
+        position = 0
+        while num > 0:
+            if num & 1:
+                mask |= (1 << position)
+            num >>= 1
+            position += 1
+        return mask
 # @lc code=end
