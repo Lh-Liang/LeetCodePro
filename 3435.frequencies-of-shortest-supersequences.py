@@ -1,81 +1,84 @@
-import collections
+#
+# @lc app=leetcode id=3435 lang=python3
+#
+# [3435] Frequencies of Shortest Supersequences
+#
+
+# @lc code=start
+
+from collections import deque
+
 
 class Solution:
     def supersequences(self, words: List[str]) -> List[List[int]]:
-        unique_chars = sorted(list(set("".join(words))))
-        char_to_idx = {c: i for i, c in enumerate(unique_chars)}
-        n = len(unique_chars)
-        
-        adj = [0] * n
-        in_degree_mask = [0] * n
-        mandatory_doubled = 0
-        
+        chars = set()
         for w in words:
-            u, v = char_to_idx[w[0]], char_to_idx[w[1]]
-            if u == v:
-                mandatory_doubled |= (1 << u)
-            else:
-                # Edge u -> v
-                if not (adj[u] & (1 << v)):
-                    adj[u] |= (1 << v)
-                    in_degree_mask[v] |= (1 << u)
-        
-        # valid_dag[mask] is True if the subgraph induced by the nodes in 'mask' is a DAG
-        valid_dag = [False] * (1 << n)
-        valid_dag[0] = True
-        
-        for mask in range(1, 1 << n):
-            # Try to find a node 'i' in 'mask' that has 0 in-degree within the induced subgraph
-            # i.e., no other node 'j' in 'mask' has an edge j -> i.
-            for i in range(n):
-                if (mask >> i) & 1:
-                    if (in_degree_mask[i] & mask) == 0:
-                        # If removing i leaves a valid DAG, then mask is a valid DAG
-                        if valid_dag[mask ^ (1 << i)]:
-                            valid_dag[mask] = True
-                            break
-        
-        max_single_count = -1
-        best_masks = []
-        
-        # We want to maximize the number of characters that appear once (are in the mask).
-        # Characters in the mask have count 1. Characters NOT in the mask have count 2.
-        # Condition 1: Mask cannot contain any character that MUST be doubled (mandatory_doubled).
-        # Condition 2: The induced subgraph of the mask must be a DAG.
-        
-        for mask in range(1 << n):
-            if (mask & mandatory_doubled) == 0:
-                if valid_dag[mask]:
-                    cnt = bin(mask).count('1')
-                    if cnt > max_single_count:
-                        max_single_count = cnt
-                        best_masks = [mask]
-                    elif cnt == max_single_count:
-                        best_masks.append(mask)
-        
-        results = []
-        # It's possible to generate duplicate frequency arrays if multiple masks map to same freqs?
-        # No, a mask uniquely determines the counts for the subset of unique_chars.
-        # However, we need to map these back to the full 26-char alphabet.
-        
-        seen_freqs = set()
-        
-        for mask in best_masks:
-            freq = [0] * 26
-            # For chars in unique_chars:
-            # If in mask -> count 1
-            # Else -> count 2
-            for i in range(n):
-                char_code = ord(unique_chars[i]) - ord('a')
-                if (mask >> i) & 1:
-                    freq[char_code] = 1
-                else:
-                    freq[char_code] = 2
-            
-            # Convert to tuple to store in set
-            freq_tuple = tuple(freq)
-            if freq_tuple not in seen_freqs:
-                seen_freqs.add(freq_tuple)
-                results.append(freq)
-                
-        return results
+            chars.add(w[0])
+            chars.add(w[1])
+        char_list = sorted(chars)
+        m = len(char_list)
+        if m == 0:
+            return []
+        c2i = {char_list[i]: i for i in range(m)}
+        has_edge = [[False] * m for _ in range(m)]
+        for w in words:
+            u = c2i[w[0]]
+            v = c2i[w[1]]
+            has_edge[u][v] = True
+        min_L = float('inf')
+        cand = []
+        for mask in range(1 << m):
+            num_doubles = bin(mask).count('1')
+            L = m + num_doubles
+            adj = [[] for _ in range(2 * m)]
+            indeg = [0] * (2 * m)
+            for i in range(m):
+                if mask & (1 << i):
+                    s = i
+                    e = m + i
+                    adj[s].append(e)
+                    indeg[e] += 1
+            for u in range(m):
+                for v in range(m):
+                    if has_edge[u][v]:
+                        A = u
+                        B = m + v if (mask & (1 << v)) else v
+                        adj[A].append(B)
+                        indeg[B] += 1
+            q = deque()
+            for node in range(2 * m):
+                if indeg[node] == 0 and (node < m or (mask & (1 << (node - m)))):
+                    q.append(node)
+            visited = 0
+            while q:
+                node = q.popleft()
+                visited += 1
+                for nei in adj[node]:
+                    indeg[nei] -= 1
+                    if indeg[nei] == 0 and (nei < m or (mask & (1 << (nei - m)))):
+                        q.append(nei)
+            total_active = m + num_doubles
+            if visited == total_active:
+                freq = [0] * 26
+                for i in range(m):
+                    idx = ord(char_list[i]) - ord('a')
+                    freq[idx] = 2 if (mask & (1 << i)) else 1
+                if L < min_L:
+                    min_L = L
+                    cand = [freq]
+                elif L == min_L:
+                    cand.append(freq)
+        # Consistency check and deduplication
+        if cand:
+            expected_sum = min_L
+            seen = set()
+            res = []
+            for f in cand:
+                if sum(f) == expected_sum:
+                    ft = tuple(f)
+                    if ft not in seen:
+                        seen.add(ft)
+                        res.append(f)
+            return res
+        return []
+# @lc code=end
