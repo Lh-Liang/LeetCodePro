@@ -3,7 +3,6 @@
 #
 # [1367] Linked List in Binary Tree
 #
-
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -18,27 +17,24 @@
 #         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        if not head:
-            return True
         if not root:
             return False
         
-        # Check if a path starts at the current root, or search in left/right subtrees
-        return self.checkPath(head, root) or \
-               self.isSubPath(head, root.left) or \
-               self.isSubPath(head, root.right)
-
-    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
-        # If we reached the end of the list, we found the path
-        if not head:
-            return True
-        # If the tree ends but the list hasn't, this path is invalid
-        if not node:
-            return False
-        # If values don't match, this path is invalid
-        if head.val != node.val:
-            return False
+        def checkPath(list_node, tree_node):
+            # Successfully matched all nodes in the linked list
+            if not list_node:
+                return True
+            # Tree path ended before the linked list
+            if not tree_node:
+                return False
+            # Values do not match
+            if list_node.val != tree_node.val:
+                return False
+            # Check next node in the list against both children
+            return checkPath(list_node.next, tree_node.left) or checkPath(list_node.next, tree_node.right)
         
-        # Continue matching the next list node with either child of the current tree node
-        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
+        # 1. Try starting the match from the current root
+        # 2. Or search for a start in the left subtree
+        # 3. Or search for a start in the right subtree
+        return checkPath(head, root) or self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
 # @lc code=end
