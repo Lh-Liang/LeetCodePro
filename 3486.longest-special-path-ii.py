@@ -6,102 +6,78 @@
 
 # @lc code=start
 import sys
-
-# Increase recursion depth for deep trees
-sys.setrecursionlimit(100000)
+from bisect import insort, bisect_left
 
 class Solution:
-    def longestSpecialPath(self, edges: list[list[int]], nums: list[int]) -> list[int]:
+    def longestSpecialPath(self, edges: List[List[int]], nums: List[int]) -> List[int]:
+        sys.setrecursionlimit(100000)
         n = len(nums)
         adj = [[] for _ in range(n)]
-        for u, v, l in edges:
-            adj[u].append((v, l))
-            adj[v].append((u, l))
+        for u, v, w in edges:
+            adj[u].append((v, w))
+            adj[v].append((u, w))
 
-        # Segment tree to find the 2nd largest last2 depth
-        # tree[i] stores the count of values whose current last2 is at depth i
-        size = 1
-        while size <= n: size *= 2
-        tree = [0] * (2 * size)
-
-        def update_tree(idx, delta):
-            if idx < 0: return
-            idx += size
-            while idx > 0:
-                tree[idx] += delta
-                idx //= 2
-
-        def get_second_largest():
-            # If total count < 2, return -1
-            if tree[1] < 2: return -1
-            # Find the index of the 2nd largest element (k-th where k = total - 1)
-            k = tree[1] - 1
-            idx = 1
-            while idx < size:
-                if tree[2 * idx] < k:
-                    k -= tree[2 * idx]
-                    idx = 2 * idx + 1
-                else:
-                    idx = 2 * idx
-            return idx - size
-
-        # State tracking
-        pos_stacks = [[] for _ in range(max(nums) + 1 if nums else 1)]
-        dist_at_depth = [0] * (n + 1)
         self.max_len = -1
         self.min_nodes = float('inf')
-        self.global_m3 = -1
-        # We need to track the current max of all last3 depths
-        # Since we only add/remove from the end of path, we can use a frequency map/heap
-        # for m3, but since it only ever increases or stays same in a downward path,
-        # we just pass it down the recursion.
+        
+        dist = [0] * (n + 1)
+        pos = [[] for _ in range(50001)]
+        # duplicate_indices stores pos[v][-2] for all values v currently appearing >= 2 times
+        duplicate_indices = []
+        # triplicate_limit tracks the max of pos[v][-3]
+        triplicate_limit = -1
 
-        def dfs(u, p, depth, curr_dist, m3):
-            dist_at_depth[depth] = curr_dist
+        def dfs(u, p, depth):
+            nonlocal triplicate_limit
             val = nums[u]
-            v_stack = pos_stacks[val]
-            
-            # Identify old last2 and last3
-            old_l2 = v_stack[-2] if len(v_stack) >= 2 else -1
-            old_l3 = v_stack[-3] if len(v_stack) >= 3 else -1
-            
-            # Update state with current node
-            v_stack.append(depth)
-            new_l2 = v_stack[-2] if len(v_stack) >= 2 else -1
-            new_l3 = v_stack[-3] if len(v_stack) >= 3 else -1
-            
-            # Update Segment Tree for last2
-            if old_l2 != new_l2:
-                update_tree(old_l2, -1)
-                update_tree(new_l2, 1)
-            
-            # Update m3 for this branch
-            current_m3 = max(m3, new_l3)
-            
-            # Calculate best path ending at u
-            m2_2 = get_second_largest()
-            start_depth = max(current_m3, m2_2) + 1
-            
-            length = curr_dist - dist_at_depth[start_depth]
-            nodes = depth - start_depth + 1
-            
-            if length > self.max_len:
-                self.max_len = length
-                self.min_nodes = nodes
-            elif length == self.max_len:
-                if nodes < self.min_nodes:
-                    self.min_nodes = nodes
-            
-            for v, l in adj[u]:
-                if v != p:
-                    dfs(v, u, depth + 1, curr_dist + l, current_m3)
-            
-            # Backtrack
-            v_stack.pop()
-            if old_l2 != new_l2:
-                update_tree(new_l2, -1)
-                update_tree(old_l2, 1)
+            prev_tri_limit = triplicate_limit
+            added_dup_idx = -1
+            removed_dup_idx = -1
 
-        dfs(0, -1, 0, 0, -1)
+            # Update constraints based on adding current node
+            if len(pos[val]) >= 1:
+                # The previous occurrence now becomes a duplicate-producing index
+                added_dup_idx = pos[val][-1]
+                insort(duplicate_indices, added_dup_idx)
+                if len(pos[val]) >= 2:
+                    # The occurrence before that is now a triplicate-producing index
+                    # and must be removed from duplicate_indices
+                    removed_dup_idx = pos[val][-2]
+                    idx = bisect_left(duplicate_indices, removed_dup_idx)
+                    duplicate_indices.pop(idx)
+                    triplicate_limit = max(triplicate_limit, removed_dup_idx)
+
+            # Determine the earliest valid start index
+            # Must be after triplicate_limit AND after the 2nd-most-recent duplicate index
+            constraint_idx = triplicate_limit
+            if len(duplicate_indices) >= 2:
+                constraint_idx = max(constraint_idx, duplicate_indices[-2])
+            
+            start_idx = constraint_idx + 1
+            curr_len = dist[depth] - dist[start_idx]
+            curr_nodes = depth - start_idx + 1
+
+            if curr_len > self.max_len:
+                self.max_len = curr_len
+                self.min_nodes = curr_nodes
+            elif curr_len == self.max_len:
+                self.min_nodes = min(self.min_nodes, curr_nodes)
+
+            pos[val].append(depth)
+            for v, w in adj[u]:
+                if v != p:
+                    dist[depth + 1] = dist[depth] + w
+                    dfs(v, u, depth + 1)
+            
+            # Backtrack state
+            pos[val].pop()
+            if removed_dup_idx != -1:
+                insort(duplicate_indices, removed_dup_idx)
+            if added_dup_idx != -1:
+                idx = bisect_left(duplicate_indices, added_dup_idx)
+                duplicate_indices.pop(idx)
+            triplicate_limit = prev_tri_limit
+
+        dfs(0, -1, 0)
         return [self.max_len, self.min_nodes]
 # @lc code=end
