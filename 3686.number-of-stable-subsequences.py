@@ -5,36 +5,32 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def countStableSubsequences(self, nums: List[int]) -> int:
         MOD = 10**9 + 7
-        # e1: Ending with exactly one even number
-        # e2: Ending with exactly two even numbers
-        # o1: Ending with exactly one odd number
-        # o2: Ending with exactly two odd numbers
-        e1 = e2 = o1 = o2 = 0
+        n = len(nums)
+        result = 0
+        # dp[i][0] tracks stable sequences ending at i with last element even
+        # dp[i][1] tracks stable sequences ending at i with last element odd
+        dp = [[0, 0] for _ in range(n + 1)]
         
-        for x in nums:
-            if x % 2 == 0:
-                # New subsequences ending in exactly one even number:
-                # 1 (for [x] itself) + subsequences ending in odd(s)
-                gain_e1 = (o1 + o2 + 1) % MOD
-                # New subsequences ending in exactly two even numbers:
-                # Subsequences currently ending in exactly one even number
-                gain_e2 = e1
+        for i in range(1, n + 1):
+            num_parity = nums[i - 1] % 2
+            # Add the number itself as a new subsequence
+            dp[i][num_parity] = (dp[i][num_parity] + 1) % MOD
+            
+            # Extend previous stable sequences ending with different parity
+            if i > 1:
+                dp[i][num_parity] = (dp[i][num_parity] + dp[i - 1][1 - num_parity]) % MOD
                 
-                e1 = (e1 + gain_e1) % MOD
-                e2 = (e2 + gain_e2) % MOD
-            else:
-                # New subsequences ending in exactly one odd number:
-                # 1 (for [x] itself) + subsequences ending in even(s)
-                gain_o1 = (e1 + e2 + 1) % MOD
-                # New subsequences ending in exactly two odd numbers:
-                # Subsequences currently ending in exactly one odd number
-                gain_o2 = o1
+            # Extend previous stable sequences ending with same parity but not forming an invalid streak of three
+            if i > 2 and nums[i - 2] % 2 == num_parity and nums[i - 3] % 2 == num_parity:
+                continue # Skip adding this to avoid invalid streaks of three consecutive same parity numbers.
+            elif i > 1:
+                dp[i][num_parity] = (dp[i][num_parity] + dp[i - 1][num_parity]) % MOD
                 
-                o1 = (o1 + gain_o1) % MOD
-                o2 = (o2 + gain_o2) % MOD
-                
-        return (e1 + e2 + o1 + o2) % MOD
-# @lc code=end
+            # Accumulate total stable subsequences ending at this point
+            result = (result + dp[i][num_parity]) % MOD
+        return result # @lc code=end
