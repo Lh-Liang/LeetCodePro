@@ -8,60 +8,56 @@
 class Solution:
     def maxDifference(self, s: str, k: int) -> int:
         n = len(s)
-        s_ints = [int(c) for c in s]
-        # Precompute prefix counts for each digit '0'-'4'
-        counts = [[0] * (n + 1) for _ in range(5)]
+        ans = -float('inf')
+        
+        # Precompute prefix sums for each digit 0-4
+        pref = [[0] * (n + 1) for _ in range(5)]
         for i in range(n):
-            digit = s_ints[i]
+            val = int(s[i])
             for d in range(5):
-                counts[d][i+1] = counts[d][i]
-            counts[digit][i+1] += 1
-            
-        max_diff = -float('inf')
+                pref[d][i+1] = pref[d][i] + (1 if d == val else 0)
         
         # Iterate over all pairs of distinct digits (a, b)
-        # a will have odd frequency, b will have even non-zero frequency
+        # a: odd frequency char, b: even frequency char
         for a in range(5):
             for b in range(5):
-                if a == b:
-                    continue
+                if a == b: continue
                 
-                # min_vals[pa][pb] stores the minimum (counts[a][i] - counts[b][i])
-                # where pa = counts[a][i]%2 and pb = counts[b][i]%2
-                min_vals = [[float('inf')] * 2 for _ in range(2)]
+                # Pre-calculate first occurrence of each prefix sum value for b
+                # to handle the 'non-zero frequency' constraint efficiently.
+                first_occ_b = {}
+                for idx, val in enumerate(pref[b]):
+                    if val not in first_occ_b: 
+                        first_occ_b[val] = idx
                 
-                processed_i = 0
-                last_b_idx = -1
+                # min_lookup[parity_a][parity_b] stores min(pref[a][i] - pref[b][i])
+                min_lookup = [[float('inf')] * 2 for _ in range(2)]
+                ptr = 0
                 
-                for j in range(1, n + 1):
-                    if s_ints[j-1] == b:
-                        last_b_idx = j - 1
+                for j in range(k, n + 1):
+                    # Valid i must satisfy: 
+                    # 1. i <= j - k (Length constraint)
+                    # 2. pref[b][i] < pref[b][j] (Non-zero frequency constraint)
+                    # Because pref[b] is non-decreasing, pref[b][i] < pref[b][j] 
+                    # is equivalent to i < first_occ_b[pref[b][j]]
+                    limit = min(j - k, first_occ_b[pref[b][j]] - 1)
                     
-                    # Constraints for i: 
-                    # 1. j - i >= k  => i <= j - k
-                    # 2. freq[b] > 0 => i <= last_b_idx
-                    target_i_bound = min(j - k, last_b_idx)
+                    while ptr <= limit:
+                        pa, pb = pref[a][ptr] % 2, pref[b][ptr] % 2
+                        val = pref[a][ptr] - pref[b][ptr]
+                        if val < min_lookup[pa][pb]:
+                            min_lookup[pa][pb] = val
+                        ptr += 1
                     
-                    while processed_i <= target_i_bound:
-                        pa_i = counts[a][processed_i] % 2
-                        pb_i = counts[b][processed_i] % 2
-                        val_i = counts[a][processed_i] - counts[b][processed_i]
-                        if val_i < min_vals[pa_i][pb_i]:
-                            min_vals[pa_i][pb_i] = val_i
-                        processed_i += 1
+                    # To make freq[a] odd: pref[a][j] % 2 != pref[a][i] % 2
+                    # To make freq[b] even: pref[b][j] % 2 == pref[b][i] % 2
+                    target_pa = 1 - (pref[a][j] % 2)
+                    target_pb = pref[b][j] % 2
                     
-                    pa_j = counts[a][j] % 2
-                    pb_j = counts[b][j] % 2
-                    val_j = counts[a][j] - counts[b][j]
-                    
-                    # Need (counts[a][j]-counts[a][i]) odd and (counts[b][j]-counts[b][i]) even
-                    target_pa_i = 1 - pa_j
-                    target_pb_i = pb_j
-                    
-                    if min_vals[target_pa_i][target_pb_i] != float('inf'):
-                        diff = val_j - min_vals[target_pa_i][target_pb_i]
-                        if diff > max_diff:
-                            max_diff = diff
+                    if min_lookup[target_pa][target_pb] != float('inf'):
+                        diff = (pref[a][j] - pref[b][j]) - min_lookup[target_pa][target_pb]
+                        if diff > ans:
+                            ans = diff
                             
-        return int(max_diff)
+        return int(ans)
 # @lc code=end
