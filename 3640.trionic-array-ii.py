@@ -11,47 +11,39 @@ class Solution:
         if n < 4:
             return 0
         
-        # Step 1: Precalculate max increasing sum ending at i (len >= 2)
-        pref_inc = [-float('inf')] * n
+        # Arrays to store max increasing/decreasing sums up to or from each index
+        increasing_left = [0] * n
+        decreasing = [0] * n
+        increasing_right = [0] * n
+        
+        # Calculate increasing sums from left to right
         for i in range(1, n):
-            if nums[i] > nums[i-1]:
-                pref_inc[i] = nums[i] + max(nums[i-1], pref_inc[i-1])
-        
-        # Step 2: Precalculate max increasing sum starting at i (len >= 2)
-        suff_inc = [-float('inf')] * n
-        for i in range(n - 2, -1, -1):
-            if nums[i] < nums[i+1]:
-                suff_inc[i] = nums[i] + max(nums[i+1], suff_inc[i+1])
-        
-        # Step 3: Prefix sums for range sum calculation
-        p = [0] * (n + 1)
-        for i in range(n):
-            p[i+1] = p[i] + nums[i]
-            
-        # Step 4: Iterate through maximal strictly decreasing subarrays
-        ans = -float('inf')
-        idx = 0
-        while idx < n - 1:
-            j = idx
-            while j + 1 < n and nums[j] > nums[j+1]:
-                j += 1
-            
-            if j > idx:
-                # For decreasing segment nums[idx...j], find p, q s.t. idx <= p < q <= j
-                max_val_p = -float('inf')
-                for k in range(idx, j + 1):
-                    # Try k as 'q' (valley)
-                    if k > idx and suff_inc[k] != -float('inf') and max_val_p != -float('inf'):
-                        ans = max(ans, max_val_p + p[k] + suff_inc[k])
-                    
-                    # Try k as 'p' (peak)
-                    if pref_inc[k] != -float('inf'):
-                        val_p = pref_inc[k] - p[k+1]
-                        if val_p > max_val_p:
-                            max_val_p = val_p
-                idx = j
+            if nums[i] > nums[i - 1]:
+                increasing_left[i] = increasing_left[i - 1] + nums[i]
             else:
-                idx += 1
-                
-        return int(ans)
+                increasing_left[i] = nums[i]
+            
+        # Calculate decreasing sums from right to left and prepare right-increasing sums
+        for i in range(n - 2, -1, -1):
+            if nums[i] > nums[i + 1]:
+                decreasing[i] = decreasing[i + 1] + nums[i]
+            else:
+                decreasing[i] = nums[i]
+            
+            if nums[i] < nums[i + 1]:
+                increasing_right[i] = increasing_right[i + 1] + nums[i]
+            else:
+                increasing_right[i] = nums[i]
+        
+        max_sum = float('-inf')
+        # Find max trionic subarray sum by combining results from above arrays
+        for p in range(1, n - 2):
+            for q in range(p + 1, n - 1):
+                if nums[q] > nums[q - 1]: # Ensure q starts an increase again after decrease
+                    l_sum = increasing_left[p]
+                    d_sum = decreasing[q]
+                    r_sum = increasing_right[q + 1]
+                    max_sum = max(max_sum, l_sum + d_sum + r_sum)
+                    
+        return max_sum
 # @lc code=end
