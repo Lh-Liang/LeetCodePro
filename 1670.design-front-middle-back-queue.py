@@ -3,39 +3,69 @@
 #
 # [1670] Design Front Middle Back Queue
 #
+
 # @lc code=start
+from collections import deque
+
 class FrontMiddleBackQueue:
 
     def __init__(self):
-        self.q = []
+        # Invariant: len(left) == len(right) OR len(right) == len(left) + 1
+        self.left = deque()
+        self.right = deque()
 
+    def _rebalance(self):
+        # Case 1: Left is too long
+        if len(self.left) > len(self.right):
+            self.right.appendleft(self.left.pop())
+        # Case 2: Right is too long (more than 1 greater than left)
+        elif len(self.right) > len(self.left) + 1:
+            self.left.append(self.right.popleft())
 
     def pushFront(self, val: int) -> None:
-        self.q.insert(0, val)
-
+        self.left.appendleft(val)
+        self._rebalance()
 
     def pushMiddle(self, val: int) -> None:
-        self.q.insert(len(self.q) // 2, val)
-
+        if len(self.left) == len(self.right):
+            # Adding to right keeps it at len(left) + 1
+            self.right.appendleft(val)
+        else:
+            # Right was len(left) + 1, adding to left makes them equal
+            self.left.append(val)
 
     def pushBack(self, val: int) -> None:
-        self.q.append(val)
-
+        self.right.append(val)
+        self._rebalance()
 
     def popFront(self) -> int:
-        return self.q.pop(0) if self.q else -1
-
+        if not self.right:
+            return -1
+        if not self.left:
+            res = self.right.popleft()
+        else:
+            res = self.left.popleft()
+        self._rebalance()
+        return res
 
     def popMiddle(self) -> int:
-        if not self.q:
+        if not self.right:
             return -1
-        idx = (len(self.q) - 1) // 2
-        return self.q.pop(idx)
-
+        if len(self.left) == len(self.right):
+            # Even size: [1, 2 | 3, 4] -> middle is 2 (frontmost)
+            res = self.left.pop()
+        else:
+            # Odd size: [1, 2 | 3, 4, 5] -> middle is 3
+            res = self.right.popleft()
+        self._rebalance()
+        return res
 
     def popBack(self) -> int:
-        return self.q.pop() if self.q else -1
-
+        if not self.right:
+            return -1
+        res = self.right.pop()
+        self._rebalance()
+        return res
 
 
 # Your FrontMiddleBackQueue object will be instantiated and called as such:
