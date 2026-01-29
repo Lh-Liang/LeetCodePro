@@ -8,13 +8,13 @@
 class Solution:
     def uniqueXorTriplets(self, nums: List[int]) -> int:
         n = len(nums)
-        if n == 1:
-            return 1
-        if n == 2:
-            return 2
-        
-        # For n >= 3, the set of unique XOR triplet values covers the entire range
-        # of the XOR span of integers [1, n]. This span is always [0, 2^k - 1]
-        # where k is the bit length of n.
-        return 1 << n.bit_length()
+        prefix_xor = [0] * (n + 1)
+        for i in range(n):
+            prefix_xor[i + 1] = prefix_xor[i] ^ nums[i]
+        unique_xor_values = set()
+        for start in range(n):
+            for end in range(start, n):
+                xor_value = prefix_xor[end + 1] ^ prefix_xor[start]
+                unique_xor_values.add(xor_value)
+        return len(unique_xor_values)
 # @lc code=end
