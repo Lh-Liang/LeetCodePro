@@ -1,4 +1,4 @@
-# 
+#
 # @lc app=leetcode id=3488 lang=python3
 #
 # [3488] Closest Equal Element Queries
@@ -11,33 +11,35 @@ from collections import defaultdict
 class Solution:
     def solveQueries(self, nums: List[int], queries: List[int]) -> List[int]:
         n = len(nums)
-        # Group all indices for each unique value in the array
-        pos_map = defaultdict(list)
-        for i, v in enumerate(nums):
-            pos_map[v].append(i)
+        val_to_indices = defaultdict(list)
+        # pos_in_list stores the index of nums[i] within the list val_to_indices[nums[i]]
+        pos_in_list = [0] * n
+        
+        for i, val in enumerate(nums):
+            pos_in_list[i] = len(val_to_indices[val])
+            val_to_indices[val].append(i)
             
-        # Precompute the minimum distance for every index in the array
-        # Initialize with -1 for values that appear only once
-        results = [-1] * n
-        for v in pos_map:
-            plist = pos_map[v]
-            L = len(plist)
-            if L > 1:
-                for k in range(L):
-                    curr_idx = plist[k]
-                    # In a circular array, the closest equal element must be either
-                    # the immediate predecessor or the immediate successor in the sorted index list.
-                    
-                    # Distance to the predecessor (moving counter-clockwise)
-                    # Python's % operator handles negative results correctly for circularity
-                    dist_left = (curr_idx - plist[k - 1]) % n
-                    
-                    # Distance to the successor (moving clockwise)
-                    dist_right = (plist[(k + 1) % L] - curr_idx) % n
-                    
-                    # Store the minimum of the two possible directions
-                    results[curr_idx] = min(dist_left, dist_right)
-                    
-        # Return the precomputed results for the requested indices
-        return [results[q] for q in queries]
+        ans = []
+        for q_idx in queries:
+            val = nums[q_idx]
+            indices = val_to_indices[val]
+            k = len(indices)
+            
+            if k == 1:
+                ans.append(-1)
+                continue
+            
+            p = pos_in_list[q_idx]
+            
+            # The closest elements in a circular array are the adjacent ones in the sorted index list
+            prev_idx = indices[(p - 1) % k]
+            next_idx = indices[(p + 1) % k]
+            
+            # Calculate circular distances using modulo to handle wraparound correctly
+            dist_prev = (q_idx - prev_idx) % n
+            dist_next = (next_idx - q_idx) % n
+            
+            ans.append(min(dist_prev, dist_next))
+            
+        return ans
 # @lc code=end
