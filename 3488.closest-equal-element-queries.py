@@ -5,41 +5,47 @@
 #
 
 # @lc code=start
-from typing import List
 from collections import defaultdict
+from typing import List
 
 class Solution:
     def solveQueries(self, nums: List[int], queries: List[int]) -> List[int]:
-        n = len(nums)
-        val_to_indices = defaultdict(list)
-        # pos_in_list stores the index of nums[i] within the list val_to_indices[nums[i]]
-        pos_in_list = [0] * n
-        
+        # Map each value to a sorted list of indices where it occurs
+        pos_map = defaultdict(list)
         for i, val in enumerate(nums):
-            pos_in_list[i] = len(val_to_indices[val])
-            val_to_indices[val].append(i)
+            pos_map[val].append(i)
             
-        ans = []
+        # Map each index to its position within its value's sorted list
+        idx_to_pos_in_list = [0] * len(nums)
+        for val, indices in pos_map.items():
+            for pos, original_idx in enumerate(indices):
+                idx_to_pos_in_list[original_idx] = pos
+                
+        n = len(nums)
+        results = []
+        
         for q_idx in queries:
             val = nums[q_idx]
-            indices = val_to_indices[val]
-            k = len(indices)
+            indices = pos_map[val]
+            m = len(indices)
             
-            if k == 1:
-                ans.append(-1)
+            if m == 1:
+                results.append(-1)
                 continue
             
-            p = pos_in_list[q_idx]
+            # Position of the query index in the sorted list of indices
+            k = idx_to_pos_in_list[q_idx]
             
-            # The closest elements in a circular array are the adjacent ones in the sorted index list
-            prev_idx = indices[(p - 1) % k]
-            next_idx = indices[(p + 1) % k]
+            # Neighbor to the left (circularly)
+            left_neighbor = indices[(k - 1) % m]
+            # Neighbor to the right (circularly)
+            right_neighbor = indices[(k + 1) % m]
             
-            # Calculate circular distances using modulo to handle wraparound correctly
-            dist_prev = (q_idx - prev_idx) % n
-            dist_next = (next_idx - q_idx) % n
+            # Calculate circular distances
+            dist_left = (q_idx - left_neighbor) % n
+            dist_right = (right_neighbor - q_idx) % n
             
-            ans.append(min(dist_prev, dist_next))
+            results.append(min(dist_left, dist_right))
             
-        return ans
+        return results
 # @lc code=end
