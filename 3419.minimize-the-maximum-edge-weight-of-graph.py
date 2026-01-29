@@ -5,51 +5,50 @@
 #
 
 # @lc code=start
-from collections import deque
+import collections
 from typing import List
 
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # Node 0 must be reachable from all other nodes.
-        # In the reversed graph, node 0 must reach all other nodes.
-        # The constraint 'threshold >= 1' ensures that if reachability is possible,
-        # we can always satisfy the outgoing edge limit by keeping only one edge per node (spanning tree).
+        # The core insight is that if node 0 can reach all nodes in the reversed graph,
+        # we can always extract a spanning tree where each node has out-degree 1.
+        # Since threshold >= 1, the out-degree constraint is satisfied by any valid reachability.
         
-        # Build reversed adjacency list: v -> u with weight w
-        adj = [[] for _ in range(n)]
+        # Build reversed adjacency list: v -> u
+        adj = collections.defaultdict(list)
+        unique_weights = set()
         for u, v, w in edges:
             adj[v].append((u, w))
+            unique_weights.add(w)
         
-        # Extract and sort unique weights for binary search
-        weights = sorted(list(set(e[2] for e in edges)))
+        sorted_weights = sorted(list(unique_weights))
         
-        # Helper function to check if node 0 can reach all nodes in reversed graph
-        # using only edges with weight <= max_w
-        def check(max_w):
+        def can_reach_all(limit: int) -> bool:
             visited = [False] * n
             visited[0] = True
-            q = deque([0])
+            queue = collections.deque([0])
             count = 1
             
-            while q:
-                u = q.popleft()
-                for v, w in adj[u]:
-                    if w <= max_w and not visited[v]:
-                        visited[v] = True
+            while queue:
+                curr = queue.popleft()
+                for neighbor, weight in adj[curr]:
+                    if not visited[neighbor] and weight <= limit:
+                        visited[neighbor] = True
                         count += 1
                         if count == n:
                             return True
-                        q.append(v)
+                        queue.append(neighbor)
             return count == n
-        
-        # Binary search over the sorted unique weights
-        low, high = 0, len(weights) - 1
+
+        # Binary search on the sorted unique weights
+        low = 0
+        high = len(sorted_weights) - 1
         ans = -1
         
         while low <= high:
             mid = (low + high) // 2
-            if check(weights[mid]):
-                ans = weights[mid]
+            if can_reach_all(sorted_weights[mid]):
+                ans = sorted_weights[mid]
                 high = mid - 1
             else:
                 low = mid + 1
