@@ -5,67 +5,58 @@
 #
 
 # @lc code=start
-import sys
-
 class Solution:
-    def subtreeInversionSum(self, edges: list[list[int]], nums: list[int], k: int) -> int:
+    def subtreeInversionSum(self, edges: List[List[int]], nums: List[int], k: int) -> int:
         n = len(nums)
         adj = [[] for _ in range(n)]
         for u, v in edges:
             adj[u].append(v)
             adj[v].append(u)
-
-        # Post-order traversal to process children before parents
+            
+        # Iterative post-order traversal
         order = []
         stack = [0]
         parent = [-1] * n
-        visited = [False] * n
-        visited[0] = True
         while stack:
             u = stack.pop()
             order.append(u)
             for v in adj[u]:
-                if not visited[v]:
-                    visited[v] = True
+                if v != parent[u]:
                     parent[v] = u
                     stack.append(v)
         
-        # dp[u][d][p]: max sum of subtree u given dist d to nearest inv ancestor and parity p
-        # We use a flat list or separate variables to optimize Python performance
-        # dp_table[u] will store a list of size (k+1)*2
+        # dp[u] stores two lists: [dp_u_parity0, dp_u_parity1]
+        # each list is of size k+1 representing distance d
         dp = [None] * n
-
+        
         for u in reversed(order):
-            # Pre-calculate sums of children for all possible (next_d, next_p)
-            # child_sums[d][p] = sum(dp[v][d][p] for v in children)
-            child_sums = [0] * ((k + 1) * 2)
+            # Pre-calculate sums from children for both parities
+            # s0[d] is sum of dp[v][0][d], s1[d] is sum of dp[v][1][d]
+            s0 = [0] * (k + 1)
+            s1 = [0] * (k + 1)
             for v in adj[u]:
-                if v == parent[u]:
-                    continue
-                v_dp = dp[v]
-                for i in range(len(v_dp)):
-                    child_sums[i] += v_dp[i]
-
-            u_dp = [0] * ((k + 1) * 2)
-            for p in range(2):
-                # Case: Invert at u (only if dist to ancestor >= k)
-                # If we invert at u, the node value is flipped relative to parity p
-                # and children see distance 1 and parity 1-p
-                res_inv = ((-nums[u] if p == 0 else nums[u]) + 
-                           child_sums[1 * 2 + (1 - p)])
-                
+                if v == parent[u]: continue
+                v_dp0, v_dp1 = dp[v]
                 for d in range(1, k + 1):
-                    # Case: Don't invert at u
-                    next_d = min(k, d + 1)
-                    res_no = (nums[u] if p == 0 else -nums[u]) + \
-                             child_sums[next_d * 2 + p]
-                    
-                    if d >= k:
-                        u_dp[d * 2 + p] = max(res_no, res_inv)
-                    else:
-                        u_dp[d * 2 + p] = res_no
-            dp[u] = u_dp
-
-        # Initial state: root has no inverted ancestors (dist k, parity 0)
-        return dp[0][k * 2 + 0]
+                    s0[d] += v_dp0[d]
+                    s1[d] += v_dp1[d]
+            
+            dp_u_0 = [0] * (k + 1)
+            dp_u_1 = [0] * (k + 1)
+            val = nums[u]
+            
+            # Distance d < k: Inversion not allowed
+            for d in range(1, k):
+                dp_u_0[d] = val + s0[min(k, d + 1)]
+                dp_u_1[d] = -val + s1[min(k, d + 1)]
+            
+            # Distance d = k: Can choose to invert or not
+            # Parity 0: Max(Not Invert [val + s0[k]], Invert [-val + s1[1]])
+            dp_u_0[k] = max(val + s0[k], -val + s1[1])
+            # Parity 1: Max(Not Invert [-val + s1[k]], Invert [val + s0[1]])
+            dp_u_1[k] = max(-val + s1[k], val + s0[1])
+            
+            dp[u] = (dp_u_0, dp_u_1)
+            
+        return dp[0][0][k]
 # @lc code=end
