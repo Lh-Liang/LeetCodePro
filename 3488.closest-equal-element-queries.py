@@ -5,38 +5,30 @@
 #
 
 # @lc code=start
-import collections
+from collections import defaultdict
+import bisect
 from typing import List
 
 class Solution:
     def solveQueries(self, nums: List[int], queries: List[int]) -> List[int]:
         n = len(nums)
-        val_to_indices = collections.defaultdict(list)
-        
-        # Group indices for each value. 
-        # Since we iterate from 0 to n-1, lists will be sorted.
-        for i, v in enumerate(nums):
-            val_to_indices[v].append(i)
-        
-        # Precompute the minimum distance for every index
-        min_dist = [-1] * n
-        for indices in val_to_indices.values():
-            k = len(indices)
-            if k < 2:
+        pos = defaultdict(list)
+        for i in range(n):
+            pos[nums[i]].append(i)
+        ans = []
+        for q in queries:
+            positions = pos[nums[q]]
+            m = len(positions)
+            if m <= 1:
+                ans.append(-1)
                 continue
-            
-            for i in range(k):
-                curr_idx = indices[i]
-                # Distance to the next neighbor in clockwise direction
-                # Python's modulo operator handles negative results correctly
-                d_next = (indices[(i + 1) % k] - curr_idx) % n
-                # Distance to the previous neighbor in counter-clockwise direction
-                # (which is the clockwise distance from the previous to current)
-                d_prev = (curr_idx - indices[i - 1]) % n
-                
-                min_dist[curr_idx] = min(d_next, d_prev)
-        
-        # Answer each query using the precomputed results
-        return [min_dist[q] for q in queries]
-
+            idx = bisect.bisect_left(positions, q)
+            pidx = (idx - 1 + m) % m
+            nidx = (idx + 1) % m
+            prev = positions[pidx]
+            nxt = positions[nidx]
+            d1 = min(abs(q - prev), n - abs(q - prev))
+            d2 = min(abs(q - nxt), n - abs(q - nxt))
+            ans.append(min(d1, d2))
+        return ans
 # @lc code=end
