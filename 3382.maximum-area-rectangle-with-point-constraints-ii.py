@@ -5,124 +5,100 @@
 #
 
 # @lc code=start
+from typing import List
+from collections import defaultdict
+import bisect
+
 class Solution:
     def maxRectangleArea(self, xCoord: List[int], yCoord: List[int]) -> int:
-        # Combine coordinates into points
-        points = sorted(zip(xCoord, yCoord))
-        n = len(points)
-        
-        # Coordinate compression for Y
-        unique_ys = sorted(list(set(yCoord)))
-        y_map = {y: i for i, y in enumerate(unique_ys)}
-        m = len(unique_ys)
-        
-        # Segment Tree for Range Maximum Query
-        # We store the last seen x-index (from the unique_xs list) for each y-rank.
-        # Initialize with -1.
-        tree = [-1] * (4 * m)
-        
-        def update(node, start, end, idx, val):
+        n = len(xCoord)
+        if n < 4:
+            return -1
+        x_to_ys = defaultdict(list)
+        for i in range(n):
+            x_to_ys[xCoord[i]].append(yCoord[i])
+        X = sorted(x_to_ys.keys())
+        mx = len(X)
+        if mx < 2:
+            return -1
+        x_to_rank = {X[i]: i + 1 for i in range(mx)}
+        for x in list(x_to_ys.keys()):
+            x_to_ys[x].sort()
+        supports = defaultdict(list)
+        for x, ys in x_to_ys.items():
+            if len(ys) < 2:
+                continue
+            for j in range(len(ys) - 1):
+                yb = ys[j]
+                yt = ys[j + 1]
+                supports[(yb, yt)].append(x)
+        all_y = set()
+        for ys in x_to_ys.values():
+            all_y.update(ys)
+        Y = sorted(all_y)
+        my = len(Y)
+        y_to_rank = {Y[i]: i + 1 for i in range(my)}
+        xrank_to_yranks = [[] for _ in range(mx + 1)]
+        for x, ys in x_to_ys.items():
+            r = x_to_rank[x]
+            for yv in ys:
+                xrank_to_yranks[r].append(y_to_rank[yv])
+        tree = [[] for _ in range(4 * (mx + 1))]
+        def build(node: int, start: int, end: int) -> None:
             if start == end:
-                tree[node] = val
+                tree[node] = xrank_to_yranks[start][:]
                 return
             mid = (start + end) // 2
-            if idx <= mid:
-                update(2 * node, start, mid, idx, val)
-            else:
-                update(2 * node + 1, mid + 1, end, idx, val)
-            tree[node] = max(tree[2 * node], tree[2 * node + 1])
-            
-        def query(node, start, end, L, R):
-            if R < start or end < L:
-                return -1
-            if L <= start and end <= R:
-                return tree[node]
-            mid = (start + end) // 2
-            return max(query(2 * node, start, mid, L, R),
-                       query(2 * node + 1, mid + 1, end, L, R))
-        
-        # Group points by x-coordinate
-        from collections import defaultdict
-        points_by_x = defaultdict(list)
-        for x, y in points:
-            points_by_x[x].append(y)
-            
-        # Sort unique x coordinates to iterate in order
-        sorted_unique_xs = sorted(points_by_x.keys())
-        
-        # Map to store the last x-coordinate where a specific segment (y1, y2) was seen
-        # Key: (y1, y2), Value: x_coordinate
-        # Note: We store the actual x-coordinate value for area calculation,
-        # but the segment tree stores indices of sorted_unique_xs.
-        last_seen_segment_x = {}
-        
-        max_area = -1
-        
-        for i, x in enumerate(sorted_unique_xs):
-            ys = points_by_x[x]
-            # ys is already sorted because we sorted 'points' initially and insertion order is preserved
-            # or we can explicitly sort to be safe
-            ys.sort()
-            
-            # Check segments formed by consecutive y-coordinates
-            for j in range(len(ys) - 1):
-                y1, y2 = ys[j], ys[j+1]
-                
-                if (y1, y2) in last_seen_segment_x:
-                    prev_x = last_seen_segment_x[(y1, y2)]
-                    # We need the index of prev_x in sorted_unique_xs to compare with seg tree results
-                    # Since we don't store the index in the map, we might need a way to look it up
-                    # OR, we can store (prev_x, prev_x_index) in the map.
-                    # Let's refine the map: Key=(y1, y2), Value=(x_val, x_index)
-                    
-                    # However, looking at the logic: 
-                    # We just need to know if there's any point in y-range [y1, y2] 
-                    # that appeared strictly after prev_x_index.
-                    
-                    # Let's re-fetch the stored data properly.
-                    pass
-            
-            # Re-iterate to process logic correctly
-            pass
-        
-        # Reset and implement the loop cleanly
-        last_seen_segment = {} # (y1, y2) -> (x_val, x_index)
-        
-        for i, x in enumerate(sorted_unique_xs):
-            ys = points_by_x[x]
-            ys.sort()
-            
-            # 1. Query and Check candidates
-            for j in range(len(ys) - 1):
-                y1, y2 = ys[j], ys[j+1]
-                rank1, rank2 = y_map[y1], y_map[y2]
-                
-                if (y1, y2) in last_seen_segment:
-                    prev_x, prev_x_idx = last_seen_segment[(y1, y2)]
-                    
-                    # Check if any point exists in y-range [y1, y2] strictly after prev_x_idx
-                    # The segment tree stores the max x-index seen so far for a y-rank.
-                    # If max_idx > prev_x_idx, it means there is an obstruction.
-                    max_idx_in_range = query(1, 0, m - 1, rank1, rank2)
-                    
-                    if max_idx_in_range <= prev_x_idx:
-                        area = (x - prev_x) * (y2 - y1)
-                        if area > max_area:
-                            max_area = area
-                    
-                    # Even if invalid, we update the last seen for this segment to current
-                    # because the old one can't form a valid rectangle with any future line 
-                    # if the current line blocked it or if it was valid (greedy approach for segments)
-                    # Actually, for the specific pair (y1, y2), the current vertical line 
-                    # becomes the new potential left edge for future rectangles.
-                    
-                # Update the map for this segment to be the current x
-                last_seen_segment[(y1, y2)] = (x, i)
-            
-            # 2. Update Segment Tree with current points
-            # We must do this AFTER checking segments to avoid self-interference
-            for y in ys:
-                update(1, 0, m - 1, y_map[y], i)
-                
-        return max_area
+            build(2 * node, start, mid)
+            build(2 * node + 1, mid + 1, end)
+            left = tree[2 * node]
+            right = tree[2 * node + 1]
+            i = j = 0
+            merged = []
+            while i < len(left) and j < len(right):
+                if left[i] <= right[j]:
+                    merged.append(left[i])
+                    i += 1
+                else:
+                    merged.append(right[j])
+                    j += 1
+            merged.extend(left[i:])
+            merged.extend(right[j:])
+            tree[node] = merged
+        build(1, 1, mx)
+        def has_point(xlo: int, xhi: int, ylo: int, yhi: int) -> bool:
+            if xlo > xhi:
+                return False
+            def query(node: int, nstart: int, nend: int, qstart: int, qend: int) -> bool:
+                if qstart > nend or qend < nstart:
+                    return False
+                if qstart <= nstart and nend <= qend:
+                    lst = tree[node]
+                    if not lst:
+                        return False
+                    idx = bisect.bisect_left(lst, ylo)
+                    return idx < len(lst) and lst[idx] <= yhi
+                mid = (nstart + nend) // 2
+                if query(2 * node, nstart, mid, qstart, qend):
+                    return True
+                return query(2 * node + 1, mid + 1, nend, qstart, qend)
+            return query(1, 1, mx, xlo, xhi)
+        max_area = 0
+        for (yb, yt), xlist in supports.items():
+            slist = sorted(set(xlist))
+            if len(slist) < 2:
+                continue
+            ylo = y_to_rank[yb]
+            yhi = y_to_rank[yt]
+            for k in range(len(slist) - 1):
+                xl_val = slist[k]
+                xr_val = slist[k + 1]
+                xl_r = x_to_rank[xl_val]
+                xr_r = x_to_rank[xr_val]
+                if not has_point(xl_r + 1, xr_r - 1, ylo, yhi):
+                    area = (xr_val - xl_val) * (yt - yb)
+                    if area > max_area:
+                        max_area = area
+        return max_area if max_area > 0 else -1
+
 # @lc code=end
