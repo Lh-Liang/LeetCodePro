@@ -12,21 +12,30 @@
 #         self.next = next
 class Solution:
     def doubleIt(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # If the head value is 5 or more, the result will have an extra digit at the front.
-        if head.val >= 5:
-            head = ListNode(0, head)
+        def reverse_ll(curr):
+            prev = None
+            while curr:
+                nxt = curr.next
+                curr.next = prev
+                prev = curr
+                curr = nxt
+            return prev
+
+        if not head:
+            return None
         
-        curr = head
-        while curr:
-            # Update the current node's value: double it and take the last digit.
-            # The maximum value of (val * 2) % 10 is 8.
-            curr.val = (curr.val * 2) % 10
-            
-            # If the next node's original value is 5 or more, it will produce a carry.
-            if curr.next and curr.next.val >= 5:
-                curr.val += 1
-            
-            curr = curr.next
-            
-        return head
+        rev = reverse_ll(head)
+        cur = rev
+        carry = 0
+        tail = None
+        while cur:
+            total = cur.val * 2 + carry
+            cur.val = total % 10
+            carry = total // 10
+            tail = cur
+            cur = cur.next
+        if carry:
+            tail.next = ListNode(carry)
+        return reverse_ll(rev)
+
 # @lc code=end
