@@ -5,43 +5,36 @@
 #
 
 # @lc code=start
-from math import gcd
-from collections import Counter
-from typing import List
-
 class Solution:
     def countCoprime(self, mat: List[List[int]]) -> int:
         MOD = 10**9 + 7
-        
-        # Initialize dp with the first row
-        # dp[g] stores the number of ways to have a running GCD of g
-        dp = [0] * 151
-        
-        row_counts = Counter(mat[0])
-        for val, count in row_counts.items():
-            dp[val] = (dp[val] + count) % MOD
-            
-        # Process subsequent rows
-        for i in range(1, len(mat)):
-            new_dp = [0] * 151
-            row_counts = Counter(mat[i])
-            
-            # We only need to iterate through existing GCDs in dp
-            # Since values are small (<=150), we can just iterate 1..150
-            # Optimization: collect current valid gcds to avoid iterating 150 times if sparse
-            current_gcds = [g for g in range(1, 151) if dp[g] > 0]
-            
-            if not current_gcds:
-                return 0
-                
-            for g in current_gcds:
-                ways = dp[g]
-                for val, count in row_counts.items():
-                    new_g = gcd(g, val)
-                    new_dp[new_g] = (new_dp[new_g] + ways * count) % MOD
-            
-            dp = new_dp
-            
-        return dp[1]
+        MAXV = 150
+        mu = [0] * (MAXV + 1)
+        mu[1] = 1
+        vis = [False] * (MAXV + 1)
+        primes = []
+        for i in range(2, MAXV + 1):
+            if not vis[i]:
+                primes.append(i)
+                mu[i] = -1
+            for p in primes:
+                if i * p > MAXV:
+                    break
+                vis[i * p] = True
+                if i % p == 0:
+                    mu[i * p] = 0
+                    break
+                else:
+                    mu[i * p] = -mu[i]
+        ans = 0
+        for d in range(1, MAXV + 1):
+            if mu[d] == 0:
+                continue
+            prod = 1
+            for row in mat:
+                cnt = sum(1 for x in row if x % d == 0)
+                prod = (prod * cnt) % MOD
+            ans = (ans + (mu[d] * prod % MOD + MOD) % MOD) % MOD
+        return ans
 
 # @lc code=end
