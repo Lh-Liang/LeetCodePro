@@ -8,43 +8,67 @@
 class Solution:
     def maxDifference(self, s: str, k: int) -> int:
         n = len(s)
-        pref = [[0] * (n + 1) for _ in range(5)]
-        for i in range(n):
-            c = ord(s[i]) - ord('0')
-            for cc in range(5):
-                pref[cc][i + 1] = pref[cc][i]
-            pref[c][i + 1] += 1
-        ans = -30001
-        INF = 10**9 + 7
+        s_ints = [int(c) for c in s]
+        # Precompute prefix counts for all 5 characters
+        P = [[0] * (n + 1) for _ in range(5)]
+        for idx, char_val in enumerate(s_ints):
+            for c in range(5):
+                P[c][idx + 1] = P[c][idx] + (1 if char_val == c else 0)
+        
+        ans = -float('inf')
+        INF = 10**9
+        
+        # Iterate through all pairs (a, b)
         for a in range(5):
             for b in range(5):
-                parity_a = [pref[a][i] % 2 for i in range(n + 1)]
-                parity_b = [pref[b][i] % 2 for i in range(n + 1)]
-                val = [pref[a][i] - pref[b][i] for i in range(n + 1)]
-                segment_start = [0] * (n + 1)
-                for i in range(1, n + 1):
-                    if pref[b][i] == pref[b][i - 1]:
-                        segment_start[i] = segment_start[i - 1]
-                    else:
-                        segment_start[i] = i
-                prefix_min = [[INF] * (n + 1) for _ in range(4)]
-                for st in range(4):
-                    cur_min = INF
-                    for i in range(n + 1):
-                        curr_st = (parity_a[i] << 1) | parity_b[i]
-                        if curr_st == st:
-                            cur_min = min(cur_min, val[i])
-                        prefix_min[st][i] = cur_min
-                for j in range(k, n + 1):
-                    des_pa = 1 - parity_a[j]
-                    des_pb = parity_b[j]
-                    des_st = (des_pa << 1) | des_pb
-                    limit = min(j - k, segment_start[j] - 1)
-                    if limit >= 0:
-                        minv = prefix_min[des_st][limit]
-                        if minv < INF:
-                            diff = val[j] - minv
-                            ans = max(ans, diff)
-        return -1 if ans == -30001 else ans
-
+                if a == b:
+                    continue
+                
+                # Pre-fetch prefix sum lists to avoid repeated lookups
+                Pa = P[a]
+                Pb = P[b]
+                
+                # min_val[pa][pb] stores min (P_a[i] - P_b[i]) for eligible i
+                # min_safe[pa][pb] stores min (P_a[i] - P_b[i]) where freq[b] > 0
+                min_val = [[INF] * 2 for _ in range(2)]
+                min_safe = [[INF] * 2 for _ in range(2)]
+                
+                last_b_idx = -1
+                
+                for j in range(n):
+                    # Update last_b_idx and move unsafe mins to safe if 'b' is encountered
+                    if s_ints[j] == b:
+                        last_b_idx = j
+                        for r in range(2):
+                            v0, v1 = min_val[r][0], min_val[r][1]
+                            if v0 < min_safe[r][0]: min_safe[r][0] = v0
+                            if v1 < min_safe[r][1]: min_safe[r][1] = v1
+                            min_val[r][0] = min_val[r][1] = INF
+                    
+                    # Check new eligible start index i
+                    i = j - k + 1
+                    if i >= 0:
+                        pa_i, pb_i = Pa[i] % 2, Pb[i] % 2
+                        val = Pa[i] - Pb[i]
+                        
+                        if i <= last_b_idx:
+                            if val < min_safe[pa_i][pb_i]:
+                                min_safe[pa_i][pb_i] = val
+                        else:
+                            if val < min_val[pa_i][pb_i]:
+                                min_val[pa_i][pb_i] = val
+                    
+                    # Current state at j+1
+                    cur_pa, cur_pb = Pa[j+1] % 2, Pb[j+1] % 2
+                    cur_D = Pa[j+1] - Pb[j+1]
+                    
+                    # Requirement: (cur_pa - i_pa) % 2 == 1 (odd) and (cur_pb - i_pb) % 2 == 0 (even)
+                    target_pa = 1 - cur_pa
+                    target_pb = cur_pb
+                    
+                    cand = cur_D - min_safe[target_pa][target_pb]
+                    if cand > ans:
+                        ans = cand
+                            
+        return int(ans)
 # @lc code=end
