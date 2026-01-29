@@ -5,93 +5,89 @@
 #
 
 # @lc code=start
-import bisect
-
 class Solution:
-    def maxActiveSectionsAfterTrade(self, s: str, queries: list[list[int]]) -> list[int]:
+    def maxActiveSectionsAfterTrade(self, s: str, queries: List[List[int]]) -> List[int]:
+        import math
+
         n = len(s)
-        if n == 0: return [0] * len(queries)
+        pref = [0] * (n + 1)
+        for i in range(n):
+            pref[i+1] = pref[i] + (1 if s[i] == '1' else 0)
+            
+        ones_blocks = []
+        zeros_blocks = []
         
-        blocks = []
-        curr_char = s[0]
-        start = 0
-        for i in range(1, n):
-            if s[i] != curr_char:
-                blocks.append((curr_char, start, i - 1))
-                curr_char = s[i]
-                start = i
-        blocks.append((curr_char, start, n - 1))
-        
-        m = len(blocks)
-        idx_to_block = [0] * n
-        for i, (_, b_start, b_end) in enumerate(blocks):
-            for j in range(b_start, b_end + 1):
-                idx_to_block[j] = i
+        i = 0
+        while i < n:
+            start = i
+            char = s[i]
+            while i < n and s[i] == char:
+                i += 1
+            if char == '1':
+                ones_blocks.append((start, i - 1, i - start))
+            else:
+                zeros_blocks.append((start, i - 1, i - start))
 
-        total_ones = s.count('1')
-        z_indices = [i for i, b in enumerate(blocks) if b[0] == '0']
-        z_lens = [blocks[i][2] - blocks[i][1] + 1 for i in z_indices]
-        
-        def build_st(arr):
-            if not arr: return []
-            k = len(arr).bit_length()
-            st = [[0] * len(arr) for _ in range(k)]
-            st[0] = arr[:]
-            for j in range(1, k):
-                for i in range(len(arr) - (1 << j) + 1):
-                    st[j][i] = max(st[j-1][i], st[j-1][i + (1 << (j-1))])
-            return st
+        # Sparse Table for Max Zeros
+        num_z = len(zeros_blocks)
+        if num_z > 0:
+            max_log_z = num_z.bit_length()
+            st_max_z = [[0] * num_z for _ in range(max_log_z)]
+            for j in range(num_z):
+                st_max_z[0][j] = zeros_blocks[j][2]
+            for i in range(1, max_log_z):
+                for j in range(num_z - (1 << i) + 1):
+                    st_max_z[i][j] = max(st_max_z[i-1][j], st_max_z[i-1][j + (1 << (i-1))])
 
-        def query_st(st, L, R):
-            if L > R: return -float('inf')
-            j = (R - L + 1).bit_length() - 1
-            return max(st[j][L], st[j][R - (1 << j) + 1])
+        def query_max_z(L, R):
+            if L > R: return 0
+            i = (R - L + 1).bit_length() - 1
+            return max(st_max_z[i][L], st_max_z[i][R - (1 << i) + 1])
 
-        st_z = build_st(z_lens)
+        # Sparse Table for Min Ones
+        num_o = len(ones_blocks)
+        if num_o > 0:
+            max_log_o = num_o.bit_length()
+            st_min_o = [[float('inf')] * num_o for _ in range(max_log_o)]
+            for j in range(num_o):
+                # A '1' block is tradeable only if surrounded by '0's
+                # This means it cannot be the very first or very last block of the string s
+                # unless we check the query boundaries. Actually, a '1' block is tradeable
+                # within s[li...ri] if s[start-1] == '0' and s[end+1] == '0'.
+                if ones_blocks[j][0] > 0 and ones_blocks[j][1] < n - 1 and s[ones_blocks[j][0]-1] == '0' and s[ones_blocks[j][1]+1] == '0':
+                    st_min_o[0][j] = ones_blocks[j][2]
+            for i in range(1, max_log_o):
+                for j in range(num_o - (1 << i) + 1):
+                    st_min_o[i][j] = min(st_min_o[i-1][j], st_min_o[i-1][j + (1 << (i-1))])
 
-        tradable_ones_idx = []
-        gains_merge = []
-        neg_len_one = []
-        for i in range(m):
-            if blocks[i][0] == '1' and i > 0 and i < m - 1 and blocks[i-1][0] == '0' and blocks[i+1][0] == '0':
-                tradable_ones_idx.append(i)
-                gains_merge.append((blocks[i-1][2]-blocks[i-1][1]+1) + (blocks[i+1][2]-blocks[i+1][1]+1))
-                neg_len_one.append(-(blocks[i][2]-blocks[i][1]+1))
-        
-        st_merge = build_st(gains_merge)
-        st_neg_len = build_st(neg_len_one)
-        
+        def query_min_o(L, R):
+            if L > R: return float('inf')
+            i = (R - L + 1).bit_length() - 1
+            return min(st_min_o[i][L], st_min_o[i][R - (1 << i) + 1])
+
+        from bisect import bisect_left, bisect_right
+        o_starts = [b[0] for b in ones_blocks]
+        o_ends = [b[1] for b in ones_blocks]
+        z_starts = [b[0] for b in zeros_blocks]
+        z_ends = [b[1] for b in zeros_blocks]
+
         results = []
         for li, ri in queries:
-            b_li, b_ri = idx_to_block[li], idx_to_block[ri]
+            initial_ones = pref[ri+1] - pref[li]
             
-            z_start_idx = bisect.bisect_left(z_indices, b_li)
-            z_end_idx = bisect.bisect_right(z_indices, b_ri) - 1
-            max_z = 0
-            if z_start_idx <= z_end_idx:
-                if z_start_idx + 1 <= z_end_idx - 1:
-                    max_z = query_st(st_z, z_start_idx + 1, z_end_idx - 1)
-                b_idx_first = z_indices[z_start_idx]
-                max_z = max(max_z, blocks[b_idx_first][2] - max(li, blocks[b_idx_first][1]) + 1)
-                b_idx_last = z_indices[z_end_idx]
-                max_z = max(max_z, min(ri, blocks[b_idx_last][2]) - blocks[b_idx_last][1] + 1)
-
-            t_start = bisect.bisect_left(tradable_ones_idx, b_li + 1)
-            t_end = bisect.bisect_right(tradable_ones_idx, b_ri - 1) - 1
+            # Tradeable '1' blocks: must be fully in [li+1, ri-1] and surrounded by '0's
+            idx_o_start = bisect_left(o_starts, li + 1)
+            idx_o_end = bisect_right(o_ends, ri - 1) - 1
+            min_o = query_min_o(idx_o_start, idx_o_end) if num_o > 0 else float('inf')
             
-            best_gain = 0
-            if t_start <= t_end:
-                for t_idx in {t_start, t_end}:
-                    i = tradable_ones_idx[t_idx]
-                    len_z_prev = blocks[i-1][2] - max(li, blocks[i-1][1]) + 1
-                    len_z_next = min(ri, blocks[i+1][2]) - blocks[i+1][1] + 1
-                    len_one = blocks[i][2] - blocks[i][1] + 1
-                    best_gain = max(best_gain, len_z_prev + len_z_next, max_z - len_one)
-                
-                if t_start + 1 <= t_end - 1:
-                    best_gain = max(best_gain, query_st(st_merge, t_start + 1, t_end - 1))
-                    best_gain = max(best_gain, max_z + query_st(st_neg_len, t_start + 1, t_end - 1))
+            # Tradeable '0' blocks: fully in [li, ri], surrounded by '1's in augmented
+            idx_z_start = bisect_left(z_starts, li)
+            idx_z_end = bisect_right(z_ends, ri) - 1
+            max_z = query_max_z(idx_z_start, idx_z_end) if num_z > 0 else 0
             
-            results.append(total_ones + best_gain)
+            if min_o != float('inf') and max_z > 0:
+                results.append(max(initial_ones, initial_ones - min_o + max_z))
+            else:
+                results.append(initial_ones)
         return results
 # @lc code=end
