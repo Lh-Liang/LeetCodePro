@@ -8,49 +8,47 @@
 class Solution:
     def maximumCoins(self, coins: List[List[int]], k: int) -> int:
         coins.sort()
+        n = len(coins)
         
-        def solve(arr, k):
-            n = len(arr)
+        def get_max(segments, k):
+            m = len(segments)
             ans = 0
             current_sum = 0
-            j = 0
-            for i in range(n):
-                # Window starts at the beginning of segment i
-                R = arr[i][0] + k - 1
+            right = 0
+            
+            # Prefix sums of (r - l + 1) * c for full segments
+            prefix_coins = [0] * (m + 1)
+            for i in range(m):
+                l, r, c = segments[i]
+                prefix_coins[i+1] = prefix_coins[i] + (r - l + 1) * c
+            
+            for left in range(m):
+                l_start, r_start, c_start = segments[left]
+                window_end = l_start + k - 1
                 
-                # Extend j to include all segments fully contained within [arr[i][0], R]
-                while j < n and arr[j][1] <= R:
-                    current_sum += (arr[j][1] - arr[j][0] + 1) * arr[j][2]
-                    j += 1
+                # Move right pointer to the last segment that starts within the window
+                while right < m and segments[right][0] <= window_end:
+                    right += 1
                 
-                # Total coins = full segments + partial overlap with the next segment (j)
-                res = current_sum
-                if j < n:
-                    overlap = max(0, R - arr[j][0] + 1)
-                    res += overlap * arr[j][2]
+                # Full segments are from index 'left' to 'right - 2'
+                # The segment at 'right - 1' might be partially covered
+                full_segments_sum = prefix_coins[right-1] - prefix_coins[left]
                 
-                ans = max(ans, res)
+                # Partial segment at right-1
+                last_idx = right - 1
+                l_last, r_last, c_last = segments[last_idx]
+                partial_sum = (min(r_last, window_end) - l_last + 1) * c_last
                 
-                # Before moving to next i, remove segment i from the current_sum
-                # Ensure j doesn't fall behind i
-                if j > i:
-                    current_sum -= (arr[i][1] - arr[i][0] + 1) * arr[i][2]
-                else:
-                    j = i + 1
-                    current_sum = 0
+                ans = max(ans, full_segments_sum + partial_sum)
             return ans
 
-        # Case 1: Window starts at some li
-        ans1 = solve(coins, k)
+        # Case 1: Window starts at the beginning of a segment
+        res1 = get_max(coins, k)
         
-        # Case 2: Window ends at some ri
-        # Transform [l, r, c] to [-r, -l, c] to reuse the 'start at' logic
-        reversed_coins = []
-        for l, r, c in coins:
-            reversed_coins.append([-r, -l, c])
-        reversed_coins.sort()
+        # Case 2: Window ends at the end of a segment
+        # Transform: [l, r, c] -> [-r, -l, c] and sort to reuse the 'start' logic
+        reversed_coins = sorted([[-r, -l, c] for l, r, c in coins])
+        res2 = get_max(reversed_coins, k)
         
-        ans2 = solve(reversed_coins, k)
-        
-        return max(ans1, ans2)
+        return max(res1, res2)
 # @lc code=end
