@@ -5,80 +5,76 @@
 #
 
 # @lc code=start
-
-from collections import deque
-
+from typing import List
 
 class Solution:
     def supersequences(self, words: List[str]) -> List[List[int]]:
-        chars = set()
+        # Identify all unique characters and map them to indices
+        chars = sorted(list(set("".join(words))))
+        n = len(chars)
+        char_to_idx = {c: i for i, c in enumerate(chars)}
+        
+        adj = [0] * n
+        rev_adj = [0] * n
+        self_loops = 0
+        
+        # Build adjacency lists using bitmasks for efficient set operations
         for w in words:
-            chars.add(w[0])
-            chars.add(w[1])
-        char_list = sorted(chars)
-        m = len(char_list)
-        if m == 0:
-            return []
-        c2i = {char_list[i]: i for i in range(m)}
-        has_edge = [[False] * m for _ in range(m)]
-        for w in words:
-            u = c2i[w[0]]
-            v = c2i[w[1]]
-            has_edge[u][v] = True
-        min_L = float('inf')
-        cand = []
-        for mask in range(1 << m):
-            num_doubles = bin(mask).count('1')
-            L = m + num_doubles
-            adj = [[] for _ in range(2 * m)]
-            indeg = [0] * (2 * m)
-            for i in range(m):
-                if mask & (1 << i):
-                    s = i
-                    e = m + i
-                    adj[s].append(e)
-                    indeg[e] += 1
-            for u in range(m):
-                for v in range(m):
-                    if has_edge[u][v]:
-                        A = u
-                        B = m + v if (mask & (1 << v)) else v
-                        adj[A].append(B)
-                        indeg[B] += 1
-            q = deque()
-            for node in range(2 * m):
-                if indeg[node] == 0 and (node < m or (mask & (1 << (node - m)))):
-                    q.append(node)
-            visited = 0
-            while q:
-                node = q.popleft()
-                visited += 1
-                for nei in adj[node]:
-                    indeg[nei] -= 1
-                    if indeg[nei] == 0 and (nei < m or (mask & (1 << (nei - m)))):
-                        q.append(nei)
-            total_active = m + num_doubles
-            if visited == total_active:
-                freq = [0] * 26
-                for i in range(m):
-                    idx = ord(char_list[i]) - ord('a')
-                    freq[idx] = 2 if (mask & (1 << i)) else 1
-                if L < min_L:
-                    min_L = L
-                    cand = [freq]
-                elif L == min_L:
-                    cand.append(freq)
-        # Consistency check and deduplication
-        if cand:
-            expected_sum = min_L
-            seen = set()
-            res = []
-            for f in cand:
-                if sum(f) == expected_sum:
-                    ft = tuple(f)
-                    if ft not in seen:
-                        seen.add(ft)
-                        res.append(f)
-            return res
-        return []
+            u, v = w[0], w[1]
+            u_idx, v_idx = char_to_idx[u], char_to_idx[v]
+            if u_idx == v_idx:
+                self_loops |= (1 << u_idx)
+            else:
+                adj[u_idx] |= (1 << v_idx)
+                rev_adj[v_idx] |= (1 << u_idx)
+        
+        # dp[mask] will be True if the subgraph induced by nodes in mask is a DAG
+        dp = [False] * (1 << n)
+        dp[0] = True
+        
+        max_dag_size = 0
+        best_masks = [0]
+        
+        # Iterate through all possible subsets of characters
+        for mask in range(1, 1 << n):
+            # Characters with self-loops can never be part of a DAG search space
+            if mask & self_loops:
+                continue
+            
+            temp_mask = mask
+            while temp_mask:
+                # Extract the lowest set bit (lsb) to try a candidate source node
+                lsb = temp_mask & -temp_mask
+                i = lsb.bit_length() - 1
+                
+                # If node i has no incoming edges from other nodes in the current mask,
+                # then the mask is a DAG if (mask - {i}) is a DAG.
+                if not (rev_adj[i] & mask):
+                    if dp[mask ^ lsb]:
+                        dp[mask] = True
+                        break
+                
+                # Move to the next bit
+                temp_mask ^= lsb
+            
+            # Track masks that form the largest possible induced DAGs
+            if dp[mask]:
+                size = bin(mask).count('1')
+                if size > max_dag_size:
+                    max_dag_size = size
+                    best_masks = [mask]
+                elif size == max_dag_size:
+                    best_masks.append(mask)
+        
+        # Convert each optimal mask into the required frequency array format
+        results = []
+        for m_mask in best_masks:
+            freq = [0] * 26
+            for i in range(n):
+                c_idx = ord(chars[i]) - ord('a')
+                # Nodes in the DAG appear once; others (FVS nodes or self-loops) appear twice
+                freq[c_idx] = 1 if (m_mask & (1 << i)) else 2
+            results.append(freq)
+            
+        return results
 # @lc code=end
