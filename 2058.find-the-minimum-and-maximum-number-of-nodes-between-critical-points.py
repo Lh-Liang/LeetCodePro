@@ -5,43 +5,28 @@
 #
 
 # @lc code=start
-# Definition for singly-linked list.
-# class ListNode:
-#     def __init__(self, val=0, next=None):
-#         self.val = val
-#         self.next = next
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
         if not head or not head.next or not head.next.next:
             return [-1, -1]
-        
-        first_cp = -1
-        prev_cp = -1
+        first_cp = last_cp = -1
         min_dist = float('inf')
-        
-        prev_val = head.val
-        curr = head.next
-        idx = 1
-        
-        while curr.next:
-            next_val = curr.next.val
-            # Check if current node is a local maxima or minima
-            if (curr.val > prev_val and curr.val > next_val) or \
-               (curr.val < prev_val and curr.val < next_val):
-                
+        index = 1
+        prev, curr, next_node = head, head.next, head.next.next
+        critical_points = []
+        while next_node:
+            if (curr.val > prev.val and curr.val > next_node.val) or (curr.val < prev.val and curr.val < next_node.val):
                 if first_cp == -1:
-                    first_cp = idx
+                    first_cp = index
                 else:
-                    min_dist = min(min_dist, idx - prev_cp)
-                
-                prev_cp = idx
-            
-            prev_val = curr.val
-            curr = curr.next
-            idx += 1
-            
-        if min_dist == float('inf'):
+                    min_dist = min(min_dist, index - last_cp)
+                last_cp = index
+                critical_points.append(index)
+            prev, curr = curr, next_node
+            next_node = next_node.next
+            index += 1
+        if len(critical_points) < 2:
             return [-1, -1]
-        
-        return [int(min_dist), prev_cp - first_cp]
+        max_dist = critical_points[-1] - critical_points[0]
+        return [min_dist, max_dist]
 # @lc code=end
