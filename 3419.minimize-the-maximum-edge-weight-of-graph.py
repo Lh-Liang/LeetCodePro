@@ -5,48 +5,42 @@
 #
 
 # @lc code=start
-from typing import List
-import collections
-
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # Build reversed adjacency list: v -> u
-        # Original: u -> v (u can reach v)
-        # Reversed: v -> u (v can reach u)
-        # If 0 can reach all nodes in reversed graph, all nodes can reach 0 in original.
-        rev_adj = collections.defaultdict(list)
-        max_weight = 0
+        # Reverse the graph: original u -> v becomes v -> u.
+        # Node 0 being reachable from all nodes in the original graph is equivalent to
+        # node 0 being able to reach all nodes in the reversed graph.
+        rev_adj = [[] for _ in range(n)]
+        max_possible_w = 0
         for u, v, w in edges:
             rev_adj[v].append((u, w))
-            if w > max_weight:
-                max_weight = w
+            if w > max_possible_w:
+                max_possible_w = w
         
-        def check(limit: int) -> bool:
-            # BFS to check if node 0 can reach all nodes using weights <= limit
+        def can_reach_all(max_w: int) -> bool:
             visited = [False] * n
             visited[0] = True
-            queue = collections.deque([0])
+            stack = [0]
             count = 1
-            
-            while queue:
-                curr = queue.popleft()
-                for neighbor, weight in rev_adj[curr]:
-                    if not visited[neighbor] and weight <= limit:
-                        visited[neighbor] = True
+            while stack:
+                u = stack.pop()
+                for v, w in rev_adj[u]:
+                    if w <= max_w and not visited[v]:
+                        visited[v] = True
                         count += 1
+                        stack.append(v)
                         if count == n:
                             return True
-                        queue.append(neighbor)
             return count == n
 
-        # Binary search on the weight range
+        # Binary search on the range of possible weights
         low = 1
-        high = max_weight
+        high = max_possible_w
         ans = -1
         
         while low <= high:
             mid = (low + high) // 2
-            if check(mid):
+            if can_reach_all(mid):
                 ans = mid
                 high = mid - 1
             else:
