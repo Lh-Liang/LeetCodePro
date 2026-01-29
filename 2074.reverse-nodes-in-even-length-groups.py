@@ -12,46 +12,37 @@
 #         self.next = next
 class Solution:
     def reverseEvenLengthGroups(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        if not head or not head.next:
-            return head
-        
-        # The first group always has length 1 (odd), so it's never reversed.
-        # We start 'prev' at the last node of the first group.
-        prev = head
-        group_size = 2
-        
+        dummy = ListNode(0, head)
+        prev = dummy
+        gsize = 1
         while prev.next:
-            # Count the actual number of nodes in the current group
-            count = 0
-            temp = prev.next
-            while temp and count < group_size:
-                temp = temp.next
-                count += 1
-            
-            if count % 2 == 0:
-                # Reverse the group of 'count' nodes
-                curr = prev.next
-                # rev_prev starts as 'temp' (the node after the group) 
-                # so that the new tail automatically points to the rest of the list
-                rev_prev = temp
-                rev_curr = curr
-                for _ in range(count):
-                    rev_next = rev_curr.next
-                    rev_curr.next = rev_prev
-                    rev_prev = rev_curr
-                    rev_curr = rev_next
-                
-                # Connect the previous group's tail to the new head of this group
-                prev.next = rev_prev
-                # Update 'prev' to the current group's tail (which was the original head)
-                prev = curr
+            start = prev.next
+            curr = start
+            length = 0
+            for _ in range(gsize):
+                if curr is None:
+                    break
+                length += 1
+                curr = curr.next
+            group_end = start
+            for _ in range(1, length):
+                group_end = group_end.next
+            next_start = group_end.next
+            if length % 2 == 0:
+                # reverse start to group_end
+                prevv = None
+                cur = start
+                for _ in range(length):
+                    nxt = cur.next
+                    cur.next = prevv
+                    prevv = cur
+                    cur = nxt
+                prev.next = prevv
+                start.next = next_start  # start is now tail
+                prev = start
             else:
-                # Group length is odd, skip it by moving 'prev' to the end of the group
-                for _ in range(count):
-                    prev = prev.next
-            
-            # Move to the next group size
-            group_size += 1
-            
-        return head
+                prev = group_end
+            gsize += 1
+        return dummy.next
+
 # @lc code=end
