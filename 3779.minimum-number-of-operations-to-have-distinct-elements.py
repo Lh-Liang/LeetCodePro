@@ -7,24 +7,13 @@
 # @lc code=start
 class Solution:
     def minOperations(self, nums: List[int]) -> int:
-        n = len(nums)
-        seen = set()
-        # Find the longest suffix that has distinct elements
-        # We iterate backwards from the end of the array
-        last_duplicate_idx = -1
-        for i in range(n - 1, -1, -1):
-            if nums[i] in seen:
-                last_duplicate_idx = i
-                break
-            seen.add(nums[i])
-        
-        if last_duplicate_idx == -1:
-            return 0
-            
-        # Number of elements that MUST be removed
-        elements_to_remove = last_duplicate_idx + 1
-        
-        # Each operation removes 3 elements
-        # Using ceiling division: (a + b - 1) // b
-        return (elements_to_remove + 2) // 3
+        operations = 0
+        while nums:
+            if len(set(nums)) == len(nums):
+                return operations
+            if len(nums) <= 3:
+                return operations + 1
+            nums = nums[3:]
+            operations += 1
+        return operations
 # @lc code=end
