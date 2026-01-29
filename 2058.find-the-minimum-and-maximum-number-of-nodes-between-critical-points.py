@@ -15,35 +15,33 @@ class Solution:
         if not head or not head.next or not head.next.next:
             return [-1, -1]
         
-        first_idx = -1
-        last_idx = -1
+        first_cp = -1
+        prev_cp = -1
         min_dist = float('inf')
         
-        prev = head
+        prev_val = head.val
         curr = head.next
         idx = 1
         
         while curr.next:
-            nxt = curr.next
-            # Check for critical point: local maxima or local minima
-            is_critical = (curr.val > prev.val and curr.val > nxt.val) or \
-                          (curr.val < prev.val and curr.val < nxt.val)
-            
-            if is_critical:
-                if first_idx == -1:
-                    first_idx = idx
-                else:
-                    min_dist = min(min_dist, idx - last_idx)
+            next_val = curr.next.val
+            # Check if current node is a local maxima or minima
+            if (curr.val > prev_val and curr.val > next_val) or \
+               (curr.val < prev_val and curr.val < next_val):
                 
-                last_idx = idx
+                if first_cp == -1:
+                    first_cp = idx
+                else:
+                    min_dist = min(min_dist, idx - prev_cp)
+                
+                prev_cp = idx
             
-            prev = curr
-            curr = nxt
+            prev_val = curr.val
+            curr = curr.next
             idx += 1
             
         if min_dist == float('inf'):
             return [-1, -1]
         
-        max_dist = last_idx - first_idx
-        return [int(min_dist), int(max_dist)]
+        return [int(min_dist), prev_cp - first_cp]
 # @lc code=end
