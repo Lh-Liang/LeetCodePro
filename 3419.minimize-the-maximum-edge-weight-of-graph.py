@@ -1,52 +1,6 @@
-#
-# @lc app=leetcode id=3419 lang=python3
-#
-# [3419] Minimize the Maximum Edge Weight of Graph
-#
-
-# @lc code=start
-from typing import List
-import collections
-
-class Solution:
-    def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # Reverse graph: node 0 must be reachable from all other nodes
-        # is equivalent to node 0 reaching all other nodes in the reversed graph.
-        adj = collections.defaultdict(list)
-        max_w = 0
-        for u, v, w in edges:
-            # Original: u -> v. Reversed: v -> u.
-            adj[v].append((u, w))
-            if w > max_w:
-                max_w = w
-        
-        def check(limit):
-            visited = [False] * n
-            visited[0] = True
-            queue = collections.deque([0])
-            count = 1
-            
-            while queue:
-                u = queue.popleft()
-                for v, w in adj[u]:
-                    if w <= limit and not visited[v]:
-                        visited[v] = True
-                        count += 1
-                        queue.append(v)
-            
-            return count == n
-
-        low = 1
-        high = max_w
-        ans = -1
-        
-        while low <= high:
-            mid = (low + high) // 2
-            if check(mid):
-                ans = mid
-                high = mid - 1
-            else:
-                low = mid + 1
-                
-        return ans
-# @lc code=end
+<solution>
+{
+    "reasoning": "Step 1: Understand the problem. We must remove edges (possibly none) so that: (1) every node has a path to node 0, (2) the maximum weight of remaining edges is minimized, (3) no node has more than 'threshold' outgoing edges. Return this min-max weight or -1 if impossible.\n\nStep 2: Key insight - Reachability to 0 requires paths from all nodes to 0. Since threshold >= 1, if such paths exist using only edges <= M, we can thin the subgraph to a spanning arborescence rooted at 0: each non-0 node has exactly one outgoing edge to its 'parent' toward 0 (out-degree 1 <= threshold), node 0 has 0. This satisfies all conditions with max weight <= M.\n\nStep 3: Equivalence for check - Reverse the edges: original path u -> ... -> 0 becomes 0 -> ... -> u in reverse graph. All nodes reachable from 0 in reverse subgraph (edges w <= M) iff all can reach 0 in original.\n\nStep 4: Algorithm - Binary search minimal M: low = 0, high = max(edge weights). For mid = M, build reverse adj list for edges w <= M, BFS from 0, check if all n nodes visited.\n\nStep 5: Why threshold unused? Arborescence construction guarantees out-degree <=1 <= threshold; no need to check explicitly.\n\nStep 6: Complexity - O(E log W) where W <=1e6, E<=1e5: fine. BFS O(n + E_M) per check.\n\nStep 7: Edge cases - If not reachable even at max_w, return -1. Node 0 always reachable. Multi-edges handled naturally. No self-loops.\n\nStep 8: Implementation - Use deque for BFS, list of lists for adj_rev, standard binsearch updating ans only on success.\n\nStep 9: Output verification - Top-level JSON with exactly 'reasoning' (this task-solving text) and 'result' (pure code string). Mentally confirm: valid JSON, code indents correct, imports present, matches template/examples, executable Python.",
+    "result": "#\n# @lc app=leetcode id=3419 lang=python3\n#\n# [3419] Minimize the Maximum Edge Weight of Graph\n#\n\n# @lc code=start\nfrom typing import List\nfrom collections import deque\n\nclass Solution:\n    def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:\n        def can_reach(max_weight: int) -> bool:\n            adj_rev = [[] for _ in range(n)]\n            for a, b, w in edges:\n                if w <= max_weight:\n                    adj_rev[b].append(a)  # reverse: b -> a means original a -> b\n            visited = [False] * n\n            q = deque([0])\n            visited[0] = True\n            count = 1\n            while q:\n                u = q.popleft()\n                for v in adj_rev[u]:\n                    if not visited[v]:\n                        visited[v] = True\n                        count += 1\n                        q.append(v)\n            return count == n\n        \n        if not edges:\n            return -1\n        max_w = max(w for _, _, w in edges)\n        left, right = 0, max_w\n        ans = -1\n        while left <= right:\n            mid = left + (right - left) // 2\n            if can_reach(mid):\n                ans = mid\n                right = mid - 1\n            else:\n                left = mid + 1\n        return ans\n\n# @lc code=end"
+}
+</solution>
