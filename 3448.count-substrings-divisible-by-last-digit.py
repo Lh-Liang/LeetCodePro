@@ -7,31 +7,30 @@
 # @lc code=start
 class Solution:
     def countSubstrings(self, s: str) -> int:
-        # dp[d] is a list where dp[d][rem] is the number of substrings 
-        # ending at the previous character that have remainder 'rem' when divided by 'd'.
-        dp = [[0] * d for d in range(10)]
-        ans = 0
+        # dp[k][rem] stores the count of substrings ending at current index
+        # that have remainder 'rem' when divided by 'k'.
+        dp = [[0] * 10 for _ in range(10)]
+        total_count = 0
         
         for char in s:
             v = int(char)
-            next_dp = [[0] * d for d in range(10)]
+            new_dp = [[0] * 10 for _ in range(10)]
             
-            for d in range(1, 10):
-                # Update existing substrings
-                d_row = dp[d]
-                nd_row = next_dp[d]
-                for rem, count in enumerate(d_row):
-                    if count > 0:
-                        nd_row[(rem * 10 + v) % d] += count
+            for k in range(1, 10):
+                # Case: The substring is just the current digit itself
+                new_dp[k][v % k] += 1
                 
-                # Start a new substring at the current digit
-                nd_row[v % d] += 1
+                # Case: Extend previous substrings
+                for rem in range(k):
+                    if dp[k][rem] > 0:
+                        new_rem = (rem * 10 + v) % k
+                        new_dp[k][new_rem] += dp[k][rem]
             
-            # If the current digit is the divisor, count substrings ending here with rem 0
+            # If the last digit is non-zero, add substrings divisible by it
             if v > 0:
-                ans += next_dp[v][0]
+                total_count += new_dp[v][0]
             
-            dp = next_dp
+            dp = new_dp
             
-        return ans
+        return total_count
 # @lc code=end
