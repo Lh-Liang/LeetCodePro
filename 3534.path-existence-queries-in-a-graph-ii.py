@@ -5,52 +5,72 @@
 #
 
 # @lc code=start
-from typing import List
-import bisect
-
 class Solution:
     def pathExistenceQueries(self, n: int, nums: List[int], maxDiff: int, queries: List[List[int]]) -> List[int]:
-        nodes = sorted(range(n), key=lambda x: nums[x])
-        rank = [0] * n
-        for r, node in enumerate(nodes):
-            rank[node] = r
-        val = [nums[nodes[r]] for r in range(n)]
-        right = [0] * n
-        for r in range(n):
-            j = bisect.bisect_right(val, val[r] + maxDiff, r, n) - 1
-            right[r] = j
-        LOG = 18
-        jump = [[0] * LOG for _ in range(n)]
-        for r in range(n):
-            jump[r][0] = right[r]
-        for b in range(1, LOG):
-            for r in range(n):
-                jump[r][b] = jump[ jump[r][b-1] ][b-1]
-        def reach(start, steps):
-            cur = start
-            for b in range(LOG - 1, -1, -1):
-                if steps & (1 << b):
-                    cur = jump[cur][b]
-            return cur
+        if not nums:
+            return []
+
+        # 1. Map values to unique sorted positions
+        unique_nums = sorted(list(set(nums)))
+        m = len(unique_nums)
+        val_to_idx = {v: i for i, v in enumerate(unique_nums)}
+        node_to_pos = [val_to_idx[num] for num in nums]
+
+        # 2. Pre-calculate components (connectivity check)
+        comp = [0] * m
+        curr_comp = 0
+        for i in range(1, m):
+            if unique_nums[i] - unique_nums[i-1] > maxDiff:
+                curr_comp += 1
+            comp[i] = curr_comp
+
+        # 3. Build Binary Lifting table for greedy jumping
+        # next_idx[i] = max index reachable from i in 1 jump
+        next_idx = [0] * m
+        r = 0
+        for l in range(m):
+            while r + 1 < m and unique_nums[r + 1] <= unique_nums[l] + maxDiff:
+                r += 1
+            next_idx[l] = r
+
+        # Sparse table: up[k][i] is the index reached from i after 2^k jumps
+        LOG = m.bit_length()
+        up = [next_idx]
+        for k in range(1, LOG):
+            prev = up[-1]
+            # Efficiency: use a local reference for the previous jump level
+            curr_level = [prev[prev[i]] for i in range(m)]
+            up.append(curr_level)
+
         ans = []
-        for u, v in queries:
-            if u == v:
+        for ui, vi in queries:
+            if ui == vi:
                 ans.append(0)
                 continue
-            ru = rank[u]
-            rv = rank[v]
-            if ru > rv:
-                ru, rv = rv, ru
-            l, h = 1, n
-            min_k = -1
-            while l <= h:
-                m = (l + h) // 2
-                if reach(ru, m) >= rv:
-                    min_k = m
-                    h = m - 1
-                else:
-                    l = m + 1
-            ans.append(min_k)
+            
+            u_pos, v_pos = node_to_pos[ui], node_to_pos[vi]
+            if u_pos == v_pos:
+                # Distinct nodes, same value: distance is 1 step
+                ans.append(1)
+                continue
+            
+            # Normalize: start is always the smaller index
+            start, target = (u_pos, v_pos) if u_pos < v_pos else (v_pos, u_pos)
+            
+            if comp[start] != comp[target]:
+                ans.append(-1)
+                continue
+            
+            # Binary lifting to find min steps
+            steps = 0
+            curr = start
+            for k in range(LOG - 1, -1, -1):
+                if up[k][curr] < target:
+                    curr = up[k][curr]
+                    steps += (1 << k)
+            
+            # One final jump to reach or exceed target
+            ans.append(steps + 1)
+            
         return ans
-
 # @lc code=end
