@@ -8,42 +8,53 @@
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-
-        def check(k):
-            if k == 1:
-                # Case k=1: String must be 0101... or 1010...
-                flips1 = 0 # Target: 0101...
-                flips2 = 0 # Target: 1010...
-                for i in range(n):
-                    if int(s[i]) != i % 2:
-                        flips1 += 1
-                    else:
-                        flips2 += 1
-                return min(flips1, flips2) <= numOps
+        
+        # Pre-calculate block lengths for efficiency in the binary search
+        lengths = []
+        i = 0
+        while i < n:
+            j = i
+            while j < n and s[j] == s[i]:
+                j += 1
+            lengths.append(j - i)
+            i = j
             
-            # Case k > 1: Break segments of length L
+        def check1():
+            # For k=1, the string must be strictly alternating: 0101... or 1010...
+            f1 = 0
+            for i in range(n):
+                # Target pattern: 0101...
+                target = '0' if i % 2 == 0 else '1'
+                if s[i] != target:
+                    f1 += 1
+            # min(f1, n - f1) gives the minimum flips to match either 0101... or 1010...
+            return min(f1, n - f1) <= numOps
+            
+        def checkK(k):
+            # For k >= 2, we can greedily flip every (k+1)-th character in each block
             total_flips = 0
-            count = 1
-            for i in range(1, n):
-                if s[i] == s[i-1]:
-                    count += 1
-                else:
-                    total_flips += count // (k + 1)
-                    count = 1
-            total_flips += count // (k + 1)
-            return total_flips <= numOps
-
+            for length in lengths:
+                total_flips += length // (k + 1)
+                if total_flips > numOps:
+                    return False
+            return True
+            
         low = 1
         high = n
         ans = n
         
+        # Binary search for the minimum possible maximum length k
         while low <= high:
             mid = (low + high) // 2
-            if check(mid):
+            if mid == 1:
+                possible = check1()
+            else:
+                possible = checkK(mid)
+                
+            if possible:
                 ans = mid
                 high = mid - 1
             else:
                 low = mid + 1
-        
         return ans
 # @lc code=end
