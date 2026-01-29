@@ -1,36 +1,25 @@
-#
 # @lc app=leetcode id=3457 lang=python3
 #
 # [3457] Eat Pizzas!
 #
 
 # @lc code=start
-import math
+from typing import List
 
 class Solution:
     def maxWeight(self, pizzas: List[int]) -> int:
-        pizzas.sort(reverse=True)
-        n = len(pizzas)
-        total_days = n // 4
+        # Sort pizzas in descending order
+        sorted_pizzas = sorted(pizzas, reverse=True)
+        total_weight_gain = 0
         
-        # Number of odd and even days
-        odd_days = (total_days + 1) // 2
-        even_days = total_days // 2
+        # Iterate over groups of four pizzas at a time
+        for i in range(0, len(sorted_pizzas), 4):
+            # Odd days (1-indexed): Gain weight of heaviest pizza Z
+            if (i // 4) % 2 == 0:
+                total_weight_gain += sorted_pizzas[i]
+            # Even days (1-indexed): Gain weight of second heaviest pizza Y
+            else:
+                total_weight_gain += sorted_pizzas[i + 1]
         
-        max_total_weight = 0
-        
-        # For odd days, we take the largest available pizzas as 'Z'
-        for i in range(odd_days):
-            max_total_weight += pizzas[i]
-            
-        # For even days, we need to pick 'Y'. 
-        # Each even day requires skipping one larger pizza (to be 'Z') 
-        # and taking the next largest (to be 'Y').
-        current_idx = odd_days
-        for _ in range(even_days):
-            # Skip one (the Z for this even day) and take the next (the Y)
-            max_total_weight += pizzas[current_idx + 1]
-            current_idx += 2
-            
-        return max_total_weight
+        return total_weight_gain
 # @lc code=end
