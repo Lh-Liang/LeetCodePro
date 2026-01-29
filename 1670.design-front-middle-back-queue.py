@@ -14,7 +14,7 @@ class FrontMiddleBackQueue:
         self.right = deque()
 
     def _balance(self):
-        # Ensures the invariant: len(right) == len(left) or len(right) == len(left) + 1
+        # Invariant: 0 <= len(self.right) - len(self.left) <= 1
         if len(self.left) > len(self.right):
             self.right.appendleft(self.left.pop())
         elif len(self.right) > len(self.left) + 1:
@@ -29,7 +29,6 @@ class FrontMiddleBackQueue:
             self.right.appendleft(val)
         else:
             self.left.append(val)
-        self._balance()
 
     def pushBack(self, val: int) -> None:
         self.right.append(val)
@@ -38,37 +37,28 @@ class FrontMiddleBackQueue:
     def popFront(self) -> int:
         if not self.left and not self.right:
             return -1
-        # If left is empty, the only element must be in right
-        val = self.left.popleft() if self.left else self.right.popleft()
+        if not self.left:
+            res = self.right.popleft()
+        else:
+            res = self.left.popleft()
         self._balance()
-        return val
+        return res
 
     def popMiddle(self) -> int:
         if not self.left and not self.right:
             return -1
-        # For even total length (L==R), the frontmost middle is the last element of the left half
-        # For odd total length (R==L+1), the middle is the first element of the right half
         if len(self.left) == len(self.right):
-            val = self.left.pop()
+            res = self.left.pop()
         else:
-            val = self.right.popleft()
+            res = self.right.popleft()
         self._balance()
-        return val
+        return res
 
     def popBack(self) -> int:
         if not self.left and not self.right:
             return -1
-        val = self.right.pop()
+        res = self.right.pop()
         self._balance()
-        return val
+        return res
 
-
-# Your FrontMiddleBackQueue object will be instantiated and called as such:
-# obj = FrontMiddleBackQueue()
-# obj.pushFront(val)
-# obj.pushMiddle(val)
-# obj.pushBack(val)
-# param_4 = obj.popFront()
-# param_5 = obj.popMiddle()
-# param_6 = obj.popBack()
 # @lc code=end
