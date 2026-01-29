@@ -3,114 +3,50 @@
 #
 # [3646] Next Special Palindrome Number
 #
+
 # @lc code=start
-from itertools import combinations
+import itertools
+from bisect import bisect_right
 
 class Solution:
     def specialPalindrome(self, n: int) -> int:
-        s_n = str(n)
-        len_n = len(s_n)
-        candidates = []
-
-        # Iterate through all possible subsets of digits 1-9
+        special_numbers = []
+        digits = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        
+        # Find all subsets of {1..9} with at most one odd number
         for r in range(1, 10):
-            for subset in combinations(range(1, 10), r):
-                length = sum(subset)
-                if length < len_n:
+            for subset in itertools.combinations(digits, r):
+                odds = [d for d in subset if d % 2 != 0]
+                if len(odds) > 1:
                     continue
                 
-                # Check parity constraints for palindrome
-                odds = [d for d in subset if d % 2 != 0]
-                if length % 2 == 0:
-                    if len(odds) > 0: continue
-                    mid_digit = None
-                else:
-                    if len(odds) != 1: continue
-                    mid_digit = odds[0]
+                total_len = sum(subset)
+                if total_len > 17: # Constraints go up to 10^15, but allow some margin
+                    continue
                 
-                # Required counts for the first half (including center if odd)
-                half_counts = {d: d // 2 for d in subset}
-                if mid_digit is not None:
-                    half_counts[mid_digit] += 1
+                mid = str(odds[0]) if odds else ""
+                half_elements = []
+                for d in subset:
+                    count = (d - 1) // 2 if d % 2 != 0 else d // 2
+                    half_elements.extend([str(d)] * count)
                 
-                res = self.get_min_greater(length, half_counts, mid_digit, s_n if length == len_n else None)
-                if res is not None:
-                    candidates.append(res)
+                # Generate all unique permutations of the half part
+                seen_perms = set()
+                for p in itertools.permutations(half_elements):
+                    if p in seen_perms:
+                        continue
+                    seen_perms.add(p)
+                    
+                    # No leading zeros (though digits are 1-9, good practice)
+                    if p and p[0] == '0':
+                        continue
+                    
+                    half_str = "".join(p)
+                    full_str = half_str + mid + half_str[::-1]
+                    special_numbers.append(int(full_str))
         
-        return min(candidates) if candidates else -1
-
-    def get_min_greater(self, length, half_counts, mid_digit, limit_str):
-        m = (length + 1) // 2
-
-        def build(prefix_list):
-            s = "".join(map(str, prefix_list))
-            if length % 2 == 0:
-                return int(s + s[::-1])
-            else:
-                return int(s + s[:-1][::-1])
-
-        if limit_str is None:
-            # Case: length > len(n). Build smallest possible.
-            res_prefix = []
-            counts = half_counts.copy()
-            for i in range(m):
-                for d in range(1, 10):
-                    if counts.get(d, 0) > 0:
-                        res_prefix.append(d)
-                        counts[d] -= 1
-                        break
-            return build(res_prefix)
-
-        # Case: length == len(n). 
-        n_val = int(limit_str)
-        best = float('inf')
+        special_numbers.sort()
+        idx = bisect_right(special_numbers, n)
         
-        # 1. Try matching prefix exactly
-        counts = half_counts.copy()
-        match_prefix = []
-        possible = True
-        for i in range(m):
-            d = int(limit_str[i])
-            if counts.get(d, 0) > 0:
-                match_prefix.append(d)
-                counts[d] -= 1
-            else:
-                possible = False
-                break
-        if possible:
-            p = build(match_prefix)
-            if p > n_val: best = min(best, p)
-
-        # 2. Try changing at index i to something larger, then minimize rest
-        for i in range(m - 1, -1, -1):
-            counts = half_counts.copy()
-            prefix_fixed = []
-            can_match = True
-            for j in range(i):
-                d = int(limit_str[j])
-                if counts.get(d, 0) > 0:
-                    prefix_fixed.append(d)
-                    counts[d] -= 1
-                else:
-                    can_match = False
-                    break
-            if not can_match: continue
-            
-            # Try d > limit_str[i]
-            for d in range(int(limit_str[i]) + 1, 10):
-                if counts.get(d, 0) > 0:
-                    temp_counts = counts.copy()
-                    temp_prefix = prefix_fixed + [d]
-                    temp_counts[d] -= 1
-                    # Fill remaining with smallest possible
-                    for _ in range(i + 1, m):
-                        for d_low in range(1, 10):
-                            if temp_counts.get(d_low, 0) > 0:
-                                temp_prefix.append(d_low)
-                                temp_counts[d_low] -= 1
-                                break
-                    best = min(best, build(temp_prefix))
-                    break # Found smallest for this index i
-        
-        return best if best != float('inf') else None
+        return special_numbers[idx] if idx < len(special_numbers) else -1
 # @lc code=end
