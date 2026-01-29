@@ -8,54 +8,55 @@
 class Solution:
     def minDeletions(self, s: str, queries: List[List[int]]) -> List[int]:
         n = len(s)
-        ans = []
-        N = n - 1
+        s_list = list(s)
+        bit = [0] * (n + 1)
 
-        def update(tree, size, idx, delta):
-            while idx <= size:
-                tree[idx] += delta
-                idx += idx & -idx
+        def update(idx, val):
+            idx += 1  # 1-based indexing
+            while idx <= n:
+                bit[idx] += val
+                idx += idx & (-idx)
 
-        def prefix_sum(tree, idx):
+        def query(idx):
+            idx += 1
             res = 0
             while idx > 0:
-                res += tree[idx]
-                idx -= idx & -idx
+                res += bit[idx]
+                idx -= idx & (-idx)
             return res
 
-        tree = [0] * (N + 2)
+        def get_sum(l, r):
+            if l > r: return 0
+            return query(r) - query(l - 1)
 
-        # Initialize
-        if N > 0:
-            prev = s[0]
-            for i in range(1, n):
-                curr = s[i]
-                val = 1 if prev != curr else 0
-                update(tree, N, i, val)
-                prev = curr
+        # Initialize BIT with adjacent identical pairs
+        # B[i] = 1 if s[i] == s[i+1]
+        for i in range(n - 1):
+            if s_list[i] == s_list[i+1]:
+                update(i, 1)
 
+        ans = []
         for q in queries:
             if q[0] == 1:
                 j = q[1]
-                if j > 0:
-                    idx = j
-                    curr_val = prefix_sum(tree, idx) - prefix_sum(tree, idx - 1)
-                    delta = 1 - 2 * curr_val
-                    update(tree, N, idx, delta)
-                if j < n - 1:
-                    idx = j + 1
-                    curr_val = prefix_sum(tree, idx) - prefix_sum(tree, idx - 1)
-                    delta = 1 - 2 * curr_val
-                    update(tree, N, idx, delta)
+                # Potential pairs affected: (j-1, j) and (j, j+1)
+                for k in [j - 1, j]:
+                    if 0 <= k < n - 1:
+                        if s_list[k] == s_list[k+1]:
+                            update(k, -1)
+                
+                # Flip character
+                s_list[j] = 'B' if s_list[j] == 'A' else 'A'
+                
+                # Re-add if they are now identical
+                for k in [j - 1, j]:
+                    if 0 <= k < n - 1:
+                        if s_list[k] == s_list[k+1]:
+                            update(k, 1)
             else:
-                l, r = q[1], q[2]
-                m = r - l + 1
-                if m <= 1:
-                    ans.append(0)
-                    continue
-                sum_changes = prefix_sum(tree, r) - prefix_sum(tree, l)
-                deletions = m - 1 - sum_changes
-                ans.append(deletions)
+                _, l, r = q
+                # Deletions needed for s[l..r] is sum of B[i] for i in [l, r-1]
+                ans.append(get_sum(l, r - 1))
+        
         return ans
-
 # @lc code=end
