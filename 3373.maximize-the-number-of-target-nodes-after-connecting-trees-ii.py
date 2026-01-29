@@ -5,23 +5,24 @@
 #
 
 # @lc code=start
-from typing import List
 from collections import deque
+from typing import List
 
 class Solution:
     def maxTargetNodes(self, edges1: List[List[int]], edges2: List[List[int]]) -> List[int]:
-        def get_color_counts(edges, num_nodes):
-            if num_nodes == 0:
-                return [], [0, 0]
-            adj = [[] for _ in range(num_nodes)]
+        def get_bipartite_counts(edges):
+            n = len(edges) + 1
+            adj = [[] for _ in range(n)]
             for u, v in edges:
                 adj[u].append(v)
                 adj[v].append(u)
             
-            colors = [-1] * num_nodes
+            # colors[i] stores the partition (0 or 1) for node i
+            colors = [-1] * n
             counts = [0, 0]
             
-            # Iterative BFS to avoid recursion depth issues
+            # BFS to color the tree and count nodes in each partition
+            # Since it's a tree, it's guaranteed to be bipartite
             queue = deque([0])
             colors[0] = 0
             counts[0] = 1
@@ -35,22 +36,19 @@ class Solution:
                         queue.append(v)
             return colors, counts
 
+        # Process Tree 1: Get partition assignment for each node and total counts
+        colors1, counts1 = get_bipartite_counts(edges1)
+        
+        # Process Tree 2: Get total partition counts
+        _, counts2 = get_bipartite_counts(edges2)
+        
+        # For any node i in Tree 1, we can connect it to a node j in Tree 2
+        # such that we capture all nodes in the larger partition of Tree 2.
+        # The distance through the bridge is 1 (odd), so an odd distance in Tree 2
+        # results in an even total distance.
+        max_from_tree2 = max(counts2)
         n = len(edges1) + 1
-        m = len(edges2) + 1
         
-        colors1, counts1 = get_color_counts(edges1, n)
-        _, counts2 = get_color_counts(edges2, m)
-        
-        # For any node i in Tree 1, we can connect it to a node in Tree 2
-        # such that we reach the maximum number of nodes in Tree 2 at an even distance.
-        # The distance from i to k in Tree 2 is 1 + dist(bridge_node_in_Tree2, k).
-        # We want 1 + dist to be even, so dist must be odd.
-        # The max nodes at an odd distance from any node in Tree 2 is max(counts2[0], counts2[1]).
-        max_tree2_contribution = max(counts2)
-        
-        ans = [0] * n
-        for i in range(n):
-            ans[i] = counts1[colors1[i]] + max_tree2_contribution
-            
-        return ans
+        # answer[i] = (nodes in i's partition in T1) + (nodes in largest partition in T2)
+        return [counts1[colors1[i]] + max_from_tree2 for i in range(n)]
 # @lc code=end
