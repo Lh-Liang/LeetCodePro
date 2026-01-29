@@ -5,38 +5,36 @@
 #
 
 # @lc code=start
-from collections import Counter
-from typing import List
-import math
-
 class Solution:
     def minSwaps(self, nums: List[int], forbidden: List[int]) -> int:
         n = len(nums)
-        
-        # Step 1: Feasibility check
-        # A value v cannot be placed if (count in nums) + (count in forbidden) > n
-        nums_counts = Counter(nums)
-        forb_counts = Counter(forbidden)
-        
-        all_vals = set(nums_counts.keys()) | set(forb_counts.keys())
-        for v in all_vals:
-            if nums_counts.get(v, 0) + forb_counts.get(v, 0) > n:
-                return -1
-        
-        # Step 2: Identify indices where nums[i] == forbidden[i]
-        bad_forbidden_vals = []
+        # Track positions of conflicts and potential candidates for swapping
+        conflicts = []
+        available = []
+        # Record indices where nums and forbidden are equal (conflicts)
         for i in range(n):
             if nums[i] == forbidden[i]:
-                bad_forbidden_vals.append(forbidden[i])
-        
-        k = len(bad_forbidden_vals)
-        if k == 0:
+                conflicts.append(i)
+            else:
+                available.append(i)
+        if not conflicts:  # No conflicts initially
             return 0
-            
-        # Step 3: Calculate bottleneck based on frequency in bad indices
-        bad_counts = Counter(bad_forbidden_vals)
-        max_c = max(bad_counts.values())
-        
-        # Step 4: The result is the maximum of the two lower bounds
-        return max((k + 1) // 2, max_c)
+        # Attempt to resolve all conflicts by swapping with available elements
+        swaps = 0
+        for i in conflicts:
+            found_swap = False
+            for j in available:
+                if nums[j] != forbidden[i]:  # Valid swap candidate found
+                    # Perform swap ensuring it doesn't create new conflict at j's position
+                    nums[i], nums[j] = nums[j], nums[i]
+                    if nums[j] != forbidden[j]:  # Ensure new position j is not a conflict now
+                        available.remove(j)  # Update available list after swap
+                        swaps += 1  # Increment swap count
+                        found_swap = True
+                        break  # Break loop after successful swap
+                    else:  # If it results in a conflict revert the change and try next candidate
+                        nums[i], nums[j] = nums[j], nums[i]
+            if not found_swap:  # If no valid swap was possible for a conflict index
+                return -1  # Return -1 as it is not solvable
+        return swaps  # Return total number of swaps required to resolve all conflicts.
 # @lc code=end
