@@ -5,71 +5,41 @@
 #
 
 # @lc code=start
+from typing import List
+from collections import defaultdict
+
+def mod_inv(a, m):
+    if gcd(a, m) != 1:
+        return None  # Modular inverse doesn't exist if a and m are not coprime.
+    m0, x0, x1 = m, 0, 1
+    while a > 1:
+        q = a // m
+        m, a = a % m, m
+        x0, x1 = x1 - q * x0, x0
+    return (x1 + m0) % m0 if x1 < 0 else x1 
+
+def gcd(a,b):
+    while b:
+        a,b = b,a%b
+    return a
+
+def calculate_x_value(nums: List[int], k: int, start: int, xi: int) -> int:
+    n = len(nums)
+    prefix_product = [1] * (start + 1)
+    for i in range(start):
+        prefix_product[i+1] = (prefix_product[i] * nums[i]) % k 
+    product_mod_count = defaultdict(int)
+    suffix_product = 1
+    result = 0 
+    for i in range(n-1, start-1, -1): 
+        product_mod_count[suffix_product % k] += 1 
+        suffix_product = (suffix_product * nums[i]) % k 
+        inv_prefix_mod = mod_inv(prefix_product[start], k) 
+        if inv_prefix_mod is not None:
+            target_mod = (suffix_product * inv_prefix_mod) % k 
+            result += product_mod_count[(xi - target_mod + k) % k]
+    return result 
 class Solution:
-    def resultArray(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
-        n = len(nums)
-        # Each node: [total_product_mod_k, counts_array_of_size_k]
-        tree_prod = [1] * (4 * n)
-        tree_counts = [[0] * k for _ in range(4 * n)]
-
-        def merge(left_prod, left_counts, right_prod, right_counts):
-            new_prod = (left_prod * right_prod) % k
-            new_counts = list(left_counts)
-            for i in range(k):
-                if right_counts[i] > 0:
-                    target = (left_prod * i) % k
-                    new_counts[target] += right_counts[i]
-            return new_prod, new_counts
-
-        def build(node, start, end):
-            if start == end:
-                val = nums[start] % k
-                tree_prod[node] = val
-                tree_counts[node][val] = 1
-                return
-            mid = (start + end) // 2
-            build(2 * node, start, mid)
-            build(2 * node + 1, mid + 1, end)
-            tree_prod[node], tree_counts[node] = merge(
-                tree_prod[2 * node], tree_counts[2 * node],
-                tree_prod[2 * node + 1], tree_counts[2 * node + 1]
-            )
-
-        def update(node, start, end, idx, val):
-            if start == end:
-                v = val % k
-                tree_prod[node] = v
-                tree_counts[node] = [0] * k
-                tree_counts[node][v] = 1
-                return
-            mid = (start + end) // 2
-            if idx <= mid:
-                update(2 * node, start, mid, idx, val)
-            else:
-                update(2 * node + 1, mid + 1, end, idx, val)
-            tree_prod[node], tree_counts[node] = merge(
-                tree_prod[2 * node], tree_counts[2 * node],
-                tree_prod[2 * node + 1], tree_counts[2 * node + 1]
-            )
-
-        def query(node, start, end, l, r):
-            if l <= start and end <= r:
-                return tree_prod[node], tree_counts[node]
-            mid = (start + end) // 2
-            if r <= mid:
-                return query(2 * node, start, mid, l, r)
-            if l > mid:
-                return query(2 * node + 1, mid + 1, end, l, r)
-            
-            lp, lc = query(2 * node, start, mid, l, mid)
-            rp, rc = query(2 * node + 1, mid + 1, end, mid + 1, r)
-            return merge(lp, lc, rp, rc)
-
-        build(1, 0, n - 1)
-        results = []
-        for idx, val, start_i, x_i in queries:
-            update(1, 0, n - 1, idx, val)
-            _, counts = query(1, 0, n - 1, start_i, n - 1)
-            results.append(counts[x_i])
-        return results
-# @lc code=end
+def resultArray(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
+data = [] 	for indexi, valuei, starti, xi in queries:
+data.append(calculate_x_value(nums[:indexi]+[valuei]+nums[indexi+1:],k,starti)) 	return data 	# @lc code=end
