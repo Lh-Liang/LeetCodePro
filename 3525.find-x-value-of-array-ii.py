@@ -1,98 +1,86 @@
+#
+# @lc app=leetcode id=3525 lang=python3
+#
+# [3525] Find X Value of Array II
+#
+
+# @lc code=start
+from typing import List
+
 class Solution:
     def resultArray(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
+        class Node:
+            def __init__(self, k: int):
+                self.total = 1
+                self.count = [0] * k
+        
+        class SegTree:
+            def __init__(self, n: int, k: int, nums: List[int]):
+                self.n = n
+                self.k = k
+                self.tree = [Node(k) for _ in range(4 * n + 10)]
+                self._build(1, 0, n - 1, nums)
+            
+            def _build(self, node: int, start: int, end: int, nums: List[int]):
+                if start == end:
+                    m = nums[start] % self.k
+                    self.tree[node].total = m
+                    self.tree[node].count[m] = 1
+                    return
+                mid = (start + end) // 2
+                self._build(2 * node, start, mid, nums)
+                self._build(2 * node + 1, mid + 1, end, nums)
+                self.tree[node] = self._merge(self.tree[2 * node], self.tree[2 * node + 1])
+            
+            def _merge(self, a: Node, b: Node) -> Node:
+                res = Node(self.k)
+                res.total = (a.total * b.total) % self.k
+                contrib = [0] * self.k
+                for y in range(self.k):
+                    z = (a.total * y) % self.k
+                    contrib[z] += b.count[y]
+                for x in range(self.k):
+                    res.count[x] = a.count[x] + contrib[x]
+                return res
+            
+            def update(self, pos: int, val: int):
+                self._update(1, 0, self.n - 1, pos, val)
+            
+            def _update(self, node: int, start: int, end: int, pos: int, val: int):
+                if start == end:
+                    m = val % self.k
+                    self.tree[node].total = m
+                    self.tree[node].count = [0] * self.k
+                    self.tree[node].count[m] = 1
+                    return
+                mid = (start + end) // 2
+                if pos <= mid:
+                    self._update(2 * node, start, mid, pos, val)
+                else:
+                    self._update(2 * node + 1, mid + 1, end, pos, val)
+                self.tree[node] = self._merge(self.tree[2 * node], self.tree[2 * node + 1])
+            
+            def query(self, left: int, right: int) -> Node:
+                return self._query(1, 0, self.n - 1, left, right)
+            
+            def _query(self, node: int, start: int, end: int, l: int, r: int) -> Node:
+                if l > end or r < start:
+                    return Node(self.k)
+                if l <= start and end <= r:
+                    return self.tree[node]
+                mid = (start + end) // 2
+                leftq = self._query(2 * node, start, mid, l, r)
+                rightq = self._query(2 * node + 1, mid + 1, end, l, r)
+                return self._merge(leftq, rightq)
+        
         n = len(nums)
-        m = 1
-        while m < n:
-            m *= 2
-        
-        identity_prod = 1 % k
-        identity_counts = [0] * k
-        
-        # tree[i] stores (product_modulo_k, counts_array)
-        # counts_array[rem] stores the number of prefixes in the range with product % k == rem
-        tree = [(identity_prod, list(identity_counts)) for _ in range(2 * m)]
-        
-        # Initialize leaves
-        for i in range(n):
-            val = nums[i]
-            p = val % k
-            c = [0] * k
-            c[p] = 1
-            tree[m + i] = (p, c)
-            
-        # Build tree
-        for i in range(m - 1, 0, -1):
-            lp, lc = tree[2 * i]
-            rp, rc = tree[2 * i + 1]
-            
-            np = (lp * rp) % k
-            nc = lc[:]
-            for r, count in enumerate(rc):
-                if count > 0:
-                    nc[(lp * r) % k] += count
-            
-            tree[i] = (np, nc)
-            
-        results = []
-        
-        for index, value, start, x in queries:
-            # Update point
-            idx = m + index
-            p = value % k
-            c = [0] * k
-            c[p] = 1
-            tree[idx] = (p, c)
-            
-            # Propagate changes up
-            curr = idx // 2
-            while curr > 0:
-                lp, lc = tree[2 * curr]
-                rp, rc = tree[2 * curr + 1]
-                
-                np = (lp * rp) % k
-                nc = lc[:]
-                for r, count in enumerate(rc):
-                    if count > 0:
-                        nc[(lp * r) % k] += count
-                
-                tree[curr] = (np, nc)
-                curr //= 2
-            
-            # Query range [start, n-1]
-            l, r = m + start, m + n - 1
-            
-            la_p, la_c = identity_prod, list(identity_counts)
-            ra_nodes = []
-            
-            while l <= r:
-                if l % 2 == 1:
-                    node_p, node_c = tree[l]
-                    new_c = la_c[:]
-                    for rem, count in enumerate(node_c):
-                        if count > 0:
-                            new_c[(la_p * rem) % k] += count
-                    la_p = (la_p * node_p) % k
-                    la_c = new_c
-                    l += 1
-                
-                if r % 2 == 0:
-                    ra_nodes.append(tree[r])
-                    r -= 1
-                
-                l //= 2
-                r //= 2
-            
-            # Merge right accumulator nodes in correct order
-            curr_p, curr_c = la_p, la_c
-            while ra_nodes:
-                node_p, node_c = ra_nodes.pop()
-                new_c = curr_c[:]
-                for rem, count in enumerate(node_c):
-                    if count > 0:
-                        new_c[(curr_p * rem) % k] += count
-                curr_p = (curr_p * node_p) % k
-                curr_c = new_c
-                
-            results.append(curr_c[x])
-            
-        return results
+        st = SegTree(n, k, nums)
+        result = []
+        for q in queries:
+            idx, val, si, xi = q
+            st.update(idx, val)
+            res_node = st.query(si, n - 1)
+            result.append(res_node.count[xi])
+        return result
+
+# @lc code=end
