@@ -5,128 +5,160 @@
 #
 
 # @lc code=start
-import bisect
+from typing import List
+
+class SegmentTree:
+    def __init__(self, n: int):
+        self.n = n
+        self.tree = [0] * (4 * n + 4)
+
+    def update(self, idx: int, val: int):
+        idx += self.n
+        self.tree[idx] = val
+        idx //= 2
+        while idx >= 1:
+            self.tree[idx] = max(self.tree[2 * idx], self.tree[2 * idx + 1])
+            idx //= 2
+
+    def query(self, left: int, right: int) -> int:
+        if left > right:
+            return 0
+        res = 0
+        left += self.n
+        right += self.n + 1
+        while left < right:
+            if left & 1:
+                res = max(res, self.tree[left])
+                left += 1
+            if right & 1:
+                right -= 1
+                res = max(res, self.tree[right])
+            left >>= 1
+            right >>= 1
+        return res
 
 class Solution:
     def maxActiveSectionsAfterTrade(self, s: str, queries: List[List[int]]) -> List[int]:
         n = len(s)
-        
-        # Identify 0-blocks
-        blocks = []
+        if n == 0:
+            return [0] * len(queries)
+        # total ones
+        total_ones = sum(1 for c in s if c == '1')
+        # 1-runs: list of (start, end)
+        one_runs = []
         i = 0
         while i < n:
-            if s[i] == '0':
+            if s[i] == '1':
                 start = i
-                while i < n and s[i] == '0':
+                while i < n and s[i] == '1':
                     i += 1
                 end = i - 1
-                blocks.append((start, end))
+                one_runs.append((start, end))
             else:
                 i += 1
-        
-        total_ones_in_s = s.count('1')
-        k = len(blocks)
-        
-        if k == 0:
-            return [total_ones_in_s] * len(queries)
+        num_runs = len(one_runs)
+        if num_runs == 0:
+            return [total_ones] * len(queries)
+        # arrays
+        start_arr = [0] * num_runs
+        end_arr = [0] * num_runs
+        left0_start_arr = [0] * num_runs
+        right0_end_arr = [0] * num_runs
+        lb_arr = [0] * num_runs
+        global_gain_arr = [0] * num_runs
+        candidates = []
+        lb_to_gain = {}
+        for k in range(num_runs):
+            start_arr[k], end_arr[k] = one_runs[k]
+            lb_arr[k] = start_arr[k] - 1
+            prev_end = -1 if k == 0 else end_arr[k - 1]
+            left0_start_arr[k] = prev_end + 1
+            bl = start_arr[k] - left0_start_arr[k]
+            next_start = n if k == num_runs - 1 else start_arr[k + 1]
+            right0_end_arr[k] = next_start - 1
+            br = right0_end_arr[k] - end_arr[k]
+            if bl >= 1 and br >= 1:
+                gain = bl + br
+                global_gain_arr[k] = gain
+                rb = end_arr[k] + 1
+                lb_to_gain[lb_arr[k]] = gain
+                candidates.append((rb, lb_arr[k], gain))
+        # special arrays
+        next_one_after_zero = [-1] * n
+        prev_one_before_zero = [-1] * n
+        for k in range(num_runs):
+            # left 0-run
+            ls = left0_start_arr[k]
+            le = start_arr[k] - 1
+            if 0 <= ls <= le < n:
+                for p in range(ls, le + 1):
+                    next_one_after_zero[p] = k
+            # right 0-run
+            rs = end_arr[k] + 1
+            re = right0_end_arr[k]
+            if 0 <= rs <= re < n:
+                for p in range(rs, re + 1):
+                    prev_one_before_zero[p] = k
+        # sort candidates by rb
+        candidates.sort()
+        m = len(candidates)
+        # queries offline
+        q = len(queries)
+        qlist = [None] * q
+        for idx in range(q):
+            li, ri = queries[idx]
+            qlist[idx] = (ri, li, idx)
+        qlist.sort()
+        # segtree
+        st = SegmentTree(n)
+        ptr = 0
+        ans = [0] * q
+        for rq_r, rq_l, qidx in qlist:
+            while ptr < m and candidates[ptr][0] <= rq_r:
+                _, lb, gn = candidates[ptr]
+                st.update(lb, gn)
+                ptr += 1
+            # specials
+            special_ks = set()
+            if rq_l < n and s[rq_l] == '0':
+                k = next_one_after_zero[rq_l]
+                if k != -1:
+                    stt = start_arr[k]
+                    en = end_arr[k]
+                    if rq_l < stt and en < rq_r:
+                        special_ks.add(k)
+            if rq_r > rq_l and rq_r < n and s[rq_r] == '0':
+                k = prev_one_before_zero[rq_r]
+                if k != -1:
+                    stt = start_arr[k]
+                    en = end_arr[k]
+                    if rq_l < stt and en < rq_r:
+                        special_ks.add(k)
+            # lbs to exclude
+            lbs_to_exclude = []
+            for k in special_ks:
+                lb = lb_arr[k]
+                if lb >= rq_l and lb in lb_to_gain:  # valid candidate
+                    lbs_to_exclude.append(lb)
+            # temp zero
+            for lb in lbs_to_exclude:
+                st.update(lb, 0)
+            max_non = st.query(rq_l, n - 1)
+            # restore
+            for lb in lbs_to_exclude:
+                st.update(lb, lb_to_gain[lb])
+            # special actuals
+            max_spec = 0
+            for k in special_ks:
+                l0s = left0_start_arr[k]
+                r0e = right0_end_arr[k]
+                blc = start_arr[k] - max(rq_l, l0s)
+                brc = min(rq_r, r0e) - end_arr[k]
+                act = blc + brc
+                max_spec = max(max_spec, act)
+            # overall
+            this_gain = max(max_non, max_spec)
+            ans[qidx] = total_ones + this_gain
+        return ans
 
-        block_lens = [end - start + 1 for start, end in blocks]
-        
-        # Precompute merge values (sum of adjacent 0-blocks)
-        # block_merges[i] corresponds to merging blocks[i] and blocks[i+1]
-        block_merges = []
-        for i in range(k - 1):
-            block_merges.append(block_lens[i] + block_lens[i+1])
-            
-        # Build Sparse Table for block lengths
-        # st_lens[j][i] covers range [i, i + 2^j - 1]
-        max_log_k = k.bit_length()
-        st_lens = [[0] * k for _ in range(max_log_k + 1)]
-        for i in range(k):
-            st_lens[0][i] = block_lens[i]
-        for j in range(1, max_log_k + 1):
-            length = 1 << (j - 1)
-            for i in range(k - (1 << j) + 1):
-                st_lens[j][i] = max(st_lens[j-1][i], st_lens[j-1][i + length])
-                
-        def query_lens(L, R):
-            if L > R: return 0
-            length = R - L + 1
-            bit = length.bit_length() - 1
-            return max(st_lens[bit][L], st_lens[bit][R - (1 << bit) + 1])
-
-        # Build Sparse Table for merges
-        m = k - 1
-        query_merges = None
-        if m > 0:
-            max_log_m = m.bit_length()
-            st_merges = [[0] * m for _ in range(max_log_m + 1)]
-            for i in range(m):
-                st_merges[0][i] = block_merges[i]
-            for j in range(1, max_log_m + 1):
-                length = 1 << (j - 1)
-                for i in range(m - (1 << j) + 1):
-                    st_merges[j][i] = max(st_merges[j-1][i], st_merges[j-1][i + length])
-            
-            def query_merges_fn(L, R):
-                if L > R: return 0
-                length = R - L + 1
-                bit = length.bit_length() - 1
-                return max(st_merges[bit][L], st_merges[bit][R - (1 << bit) + 1])
-            query_merges = query_merges_fn
-        else:
-            def query_merges_fn(L, R): return 0
-            query_merges = query_merges_fn
-
-        starts = [b[0] for b in blocks]
-        ends = [b[1] for b in blocks]
-        
-        ans_list = []
-        
-        for l, r in queries:
-            # Find range of intersecting blocks
-            # Find first block ending >= l
-            idx_L = bisect.bisect_left(ends, l)
-            # Find last block starting <= r
-            idx_R = bisect.bisect_right(starts, r) - 1
-            
-            if idx_L > idx_R:
-                ans_list.append(total_ones_in_s)
-                continue
-            
-            # Calculate lengths of partial blocks at boundaries
-            b_L = blocks[idx_L]
-            len_L = min(b_L[1], r) - max(b_L[0], l) + 1
-            
-            b_R = blocks[idx_R]
-            len_R = min(b_R[1], r) - max(b_R[0], l) + 1
-            
-            current_gain = 0
-            
-            if idx_L == idx_R:
-                current_gain = len_L
-            elif idx_L + 1 == idx_R:
-                current_gain = len_L + len_R
-            else:
-                # At least 3 blocks involved: L, L+1, ..., R-1, R
-                
-                # 1. Single flips at boundaries
-                current_gain = max(len_L, len_R)
-                
-                # 2. Merges at boundaries
-                # Merge L with L+1
-                current_gain = max(current_gain, len_L + block_lens[idx_L+1])
-                # Merge R-1 with R
-                current_gain = max(current_gain, block_lens[idx_R-1] + len_R)
-                
-                # 3. Internal single flips: range [L+1, R-1]
-                current_gain = max(current_gain, query_lens(idx_L + 1, idx_R - 1))
-                
-                # 4. Internal merges: ranges (i, i+1) where i >= L+1 and i+1 <= R-1
-                # i.e., indices i from L+1 to R-2
-                current_gain = max(current_gain, query_merges(idx_L + 1, idx_R - 2))
-            
-            ans_list.append(total_ones_in_s + current_gain)
-            
-        return ans_list
 # @lc code=end
