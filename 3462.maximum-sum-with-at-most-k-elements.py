@@ -1,1 +1,25 @@
-#\n# @lc app=leetcode id=3462 lang=python3\n#\n# [3462] Maximum Sum With at Most K Elements\n#\n\n# @lc code=start\nclass Solution:\n    def maxSum(self, grid: List[List[int]], limits: List[int], k: int) -> int:\n        n = len(grid)\n        vals = [(num, i) for i in range(n) for num in grid[i]]\n        vals.sort(reverse=True)\n        count = [0] * n\n        ans = 0\n        picked = 0\n        for num, i in vals:\n            if picked < k and count[i] < limits[i]:\n                ans += num\n                count[i] += 1\n                picked += 1\n        return ans\n\n# @lc code=end
+#
+# @lc app=leetcode id=3462 lang=python3
+#
+# [3462] Maximum Sum With at Most K Elements
+#
+
+# @lc code=start
+class Solution:
+    def maxSum(self, grid: List[List[int]], limits: List[int], k: int) -> int:
+        # Pool to store the best candidates from each row
+        all_candidates = []
+        
+        for i in range(len(grid)):
+            # Extract the top 'limits[i]' elements from the current row
+            # We sort the row in descending order to identify them
+            row_sorted = sorted(grid[i], reverse=True)
+            all_candidates.extend(row_sorted[:limits[i]])
+        
+        # Sort the global pool of candidates in descending order
+        all_candidates.sort(reverse=True)
+        
+        # Sum the top 'k' elements from the pool
+        # If k is 0, sum() returns 0 automatically
+        return sum(all_candidates[:k])
+# @lc code=end
