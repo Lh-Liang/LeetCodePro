@@ -5,75 +5,83 @@
 #
 
 # @lc code=start
-from collections import Counter
 from typing import List
 
 class Solution:
     def canPartitionGrid(self, grid: List[List[int]]) -> bool:
-        def check_horizontal(g):
-            rows = len(g)
-            cols = len(g[0])
-            if rows < 2:
-                return False
-            
-            row_sums = [sum(row) for row in g]
-            total_sum = sum(row_sums)
-            total_freq = Counter()
-            for row in g:
-                for val in row:
-                    total_freq[val] += 1
-            
-            sec1_freq = Counter()
-            s1 = 0
-            for i in range(rows - 1):
-                for val in g[i]:
-                    sec1_freq[val] += 1
-                s1 += row_sums[i]
-                s2 = total_sum - s1
-                
-                # Case 1: Equal sums
-                if s1 == s2:
-                    return True
-                
-                # Case 2: Discount x from Section 1
-                x1 = 2 * s1 - total_sum
-                if x1 > 0:
-                    if (i + 1 > 1 and cols > 1):
-                        if sec1_freq[x1] > 0:
-                            return True
-                    elif i + 1 == 1 and cols == 1:
-                        if x1 == g[0][0]:
-                            return True
-                    elif i + 1 == 1:
-                        if x1 == g[0][0] or x1 == g[0][cols - 1]:
-                            return True
-                    elif cols == 1:
-                        if x1 == g[0][0] or x1 == g[i][0]:
-                            return True
-                
-                # Case 3: Discount x from Section 2
-                x2 = total_sum - 2 * s1
-                if x2 > 0:
-                    in_sec2 = (total_freq[x2] - sec1_freq[x2]) > 0
-                    if in_sec2:
-                        m2 = rows - i - 1
-                        if (m2 > 1 and cols > 1):
-                            return True
-                        elif m2 == 1 and cols == 1:
-                            if x2 == g[rows - 1][0]:
-                                return True
-                        elif m2 == 1:
-                            if x2 == g[i + 1][0] or x2 == g[i + 1][cols - 1]:
-                                return True
-                        elif cols == 1:
-                            if x2 == g[i + 1][0] or x2 == g[rows - 1][0]:
-                                return True
+        if not grid or not grid[0]:
             return False
+        m, n = len(grid), len(grid[0])
+        T = 0
+        row_sum = [0] * m
+        col_sum = [0] * n
+        for i in range(m):
+            for j in range(n):
+                v = grid[i][j]
+                T += v
+                row_sum[i] += v
+                col_sum[j] += v
+        # prefix_row[r] = sum of first r rows (0 to r-1)
+        prefix_row = [0] * (m + 1)
+        for i in range(m):
+            prefix_row[i + 1] = prefix_row[i] + row_sum[i]
+        sum_to_r = {}
+        for r in range(1, m):
+            s = prefix_row[r]
+            if 2 * s == T:
+                return True
+            sum_to_r[s] = r
+        # prefix_col[c] = sum of first c cols
+        prefix_col = [0] * (n + 1)
+        for j in range(n):
+            prefix_col[j + 1] = prefix_col[j] + col_sum[j]
+        sum_to_c = {}
+        for c in range(1, n):
+            s = prefix_col[c]
+            if 2 * s == T:
+                return True
+            sum_to_c[s] = c
+        def can_remove(H: int, W: int, rr: int, rc: int) -> bool:
+            if H >= 2 and W >= 2:
+                return True
+            if H == 1 and W == 1:
+                return False
+            if H == 1:  # W >= 2, horizontal line
+                return rc == 0 or rc == W - 1
+            if W == 1:  # H >= 2, vertical line
+                return rr == 0 or rr == H - 1
+            return False
+        for i in range(m):
+            for j in range(n):
+                v = grid[i][j]
+                # Horizontal: discount upper (remove from upper section)
+                if (T + v) % 2 == 0:
+                    target = (T + v) // 2
+                    if target in sum_to_r:
+                        r = sum_to_r[target]
+                        if i < r and can_remove(r, n, i, j):
+                            return True
+                # Horizontal: discount lower
+                if (T - v) % 2 == 0:
+                    target = (T - v) // 2
+                    if target >= 0 and target in sum_to_r:
+                        r = sum_to_r[target]
+                        if i >= r and can_remove(m - r, n, i - r, j):
+                            return True
+                # Vertical: discount left
+                if (T + v) % 2 == 0:
+                    target = (T + v) // 2
+                    if target in sum_to_c:
+                        c = sum_to_c[target]
+                        if j < c and can_remove(m, c, i, j):
+                            return True
+                # Vertical: discount right
+                if (T - v) % 2 == 0:
+                    target = (T - v) // 2
+                    if target >= 0 and target in sum_to_c:
+                        c = sum_to_c[target]
+                        if j >= c and can_remove(m, n - c, i, j - c):
+                            return True
+        return False
 
-        if check_horizontal(grid):
-            return True
-        
-        # Transpose grid for vertical cuts
-        transposed = list(zip(*grid))
-        return check_horizontal(transposed)
 # @lc code=end
