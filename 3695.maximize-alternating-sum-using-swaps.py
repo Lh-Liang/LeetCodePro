@@ -5,44 +5,59 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import defaultdict
-
 class Solution:
     def maxAlternatingSum(self, nums: List[int], swaps: List[List[int]]) -> int:
-        def find(p: list[int], i: int) -> int:
-            if p[i] != i:
-                p[i] = find(p, p[i])
-            return p[i]
-        
-        def union(p: list[int], rank: list[int], a: int, b: int):
-            pa = find(p, a)
-            pb = find(p, b)
-            if pa == pb:
-                return
-            if rank[pa] < rank[pb]:
-                p[pa] = pb
-            elif rank[pa] > rank[pb]:
-                p[pb] = pa
-            else:
-                p[pb] = pa
-                rank[pa] += 1
-        
         n = len(nums)
         parent = list(range(n))
         rank = [0] * n
-        for a, b in swaps:
-            union(parent, rank, a, b)
         
-        groups = defaultdict(list)
+        def find(i):
+            root = i
+            while parent[root] != root:
+                root = parent[root]
+            while parent[i] != root:
+                next_node = parent[i]
+                parent[i] = root
+                i = next_node
+            return root
+        
+        def union(i, j):
+            root_i = find(i)
+            root_j = find(j)
+            if root_i != root_j:
+                if rank[root_i] < rank[root_j]:
+                    parent[root_i] = root_j
+                elif rank[root_i] > rank[root_j]:
+                    parent[root_j] = root_i
+                else:
+                    parent[root_i] = root_j
+                    rank[root_j] += 1
+        
+        for u, v in swaps:
+            union(u, v)
+            
+        from collections import defaultdict
+        components_values = defaultdict(list)
+        components_even_counts = defaultdict(int)
+        
         for i in range(n):
-            groups[find(parent, i)].append(i)
+            root = find(i)
+            components_values[root].append(nums[i])
+            if i % 2 == 0:
+                components_even_counts[root] += 1
         
-        ans = 0
-        for idxs in groups.values():
-            vals = sorted(nums[i] for i in idxs, reverse=True)
-            ne = sum(1 for i in idxs if i % 2 == 0)
-            ans += sum(vals[:ne]) - sum(vals[ne:])
-        return ans
-
+        total_sum = 0
+        for root in components_values:
+            vals = components_values[root]
+            vals.sort(reverse=True)
+            num_even = components_even_counts[root]
+            
+            # Largest values to even positions
+            for i in range(num_even):
+                total_sum += vals[i]
+            # Smallest values to odd positions
+            for i in range(num_even, len(vals)):
+                total_sum -= vals[i]
+                
+        return total_sum
 # @lc code=end
