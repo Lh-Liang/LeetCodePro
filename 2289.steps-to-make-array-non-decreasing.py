@@ -5,34 +5,32 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        # stack will store pairs of (value, steps_to_be_removed)
-        # steps_to_be_removed represents the step count at which this element is deleted.
-        # If an element is never deleted, its steps_to_be_removed will be 0.
+        # stack stores pairs of (value, steps_to_remove)
         stack = []
-        max_steps = 0
+        ans = 0
         
-        for x in nums:
-            current_element_steps = 0
-            # When we encounter an element x, we check elements to its left that are smaller or equal.
-            # These elements would have been 'covered' or deleted before x could be deleted 
-            # by the same larger element further to the left.
-            while stack and stack[-1][0] <= x:
-                # The time x takes to be deleted must be strictly greater than the time 
-                # taken by any element 'blocked' by x.
-                current_element_steps = max(current_element_steps, stack.pop()[1])
+        for num in nums:
+            max_steps_for_inner = 0
+            # Pop elements that are smaller or equal to current num.
+            # These are elements that were removed 'under' the same peak
+            # or will be blocked by the current num.
+            while stack and stack[-1][0] <= num:
+                max_steps_for_inner = max(max_steps_for_inner, stack.pop()[1])
             
             if not stack:
-                # No element to the left is larger than x; x survives.
-                current_element_steps = 0
+                # This element is a new peak (nothing to its left is greater)
+                stack.append((num, 0))
             else:
-                # The element at the top of the stack is > x. 
-                # x will be deleted one step after the last element between the 'killer' and x is gone.
-                current_element_steps += 1
-            
-            stack.append((x, current_element_steps))
-            max_steps = max(max_steps, current_element_steps)
-            
-        return max_steps
+                # This element will be removed by the element currently at the top
+                # It takes 1 step more than the maximum steps needed for any
+                # element trapped between the 'remover' and this current element.
+                steps_to_remove_num = max_steps_for_inner + 1
+                ans = max(ans, steps_to_remove_num)
+                stack.append((num, steps_to_remove_num))
+                
+        return ans
 # @lc code=end
