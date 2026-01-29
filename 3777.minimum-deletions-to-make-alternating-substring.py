@@ -8,55 +8,58 @@
 class Solution:
     def minDeletions(self, s: str, queries: List[List[int]]) -> List[int]:
         n = len(s)
-        s_list = list(s)
-        bit = [0] * (n + 1)
-
-        def update(idx, val):
-            idx += 1  # 1-based indexing
-            while idx <= n:
-                bit[idx] += val
-                idx += idx & (-idx)
-
-        def query(idx):
-            idx += 1
-            res = 0
-            while idx > 0:
-                res += bit[idx]
-                idx -= idx & (-idx)
-            return res
-
-        def get_sum(l, r):
-            if l > r: return 0
-            return query(r) - query(l - 1)
-
-        # Initialize BIT with adjacent identical pairs
-        # B[i] = 1 if s[i] == s[i+1]
-        for i in range(n - 1):
-            if s_list[i] == s_list[i+1]:
-                update(i, 1)
-
-        ans = []
-        for q in queries:
-            if q[0] == 1:
-                j = q[1]
-                # Potential pairs affected: (j-1, j) and (j, j+1)
-                for k in [j - 1, j]:
-                    if 0 <= k < n - 1:
-                        if s_list[k] == s_list[k+1]:
-                            update(k, -1)
-                
-                # Flip character
-                s_list[j] = 'B' if s_list[j] == 'A' else 'A'
-                
-                # Re-add if they are now identical
-                for k in [j - 1, j]:
-                    if 0 <= k < n - 1:
-                        if s_list[k] == s_list[k+1]:
-                            update(k, 1)
-            else:
-                _, l, r = q
-                # Deletions needed for s[l..r] is sum of B[i] for i in [l, r-1]
-                ans.append(get_sum(l, r - 1))
+        # Precompute prefix arrays for 'AA' and 'BB'
+        count_AA = [0] * n
+        count_BB = [0] * n
         
-        return ans
+        # Initialize prefix counts for existing string
+        for i in range(1, n):
+            count_AA[i] = count_AA[i-1]
+            count_BB[i] = count_BB[i-1]
+            if s[i] == s[i-1]:
+                if s[i] == 'A':
+                    count_AA[i] += 1
+                else:
+                    count_BB[i] += 1
+        
+        result = []
+        s = list(s)  # Convert string to list for mutability
+        
+        for query in queries:
+            if query[0] == 1:  # Flip operation
+                j = query[1]
+                # Flip character at index j
+                original_char = s[j]
+                new_char = 'A' if original_char == 'B' else 'B'
+                s[j] = new_char
+                
+                # Adjust counts around index j after flip
+                if j > 0:
+                    if s[j-1] == original_char:
+                        if original_char == 'A':
+                            count_AA[j:] = [x-1 for x in count_AA[j:]]
+                        else:
+                            count_BB[j:] = [x-1 for x in count_BB[j:]]
+                    elif s[j-1] == new_char:
+                        if new_char == 'A':
+                            count_AA[j:] = [x+1 for x in count_AA[j:]]
+                        else:
+                            count_BB[j:] = [x+1 for x in count_BB[j:]]
+                if j < n-1:
+                    if s[j+1] == original_char:
+                        if original_char == 'A':
+                            count_AA[j+2:] = [x-1 for x in count_AA[j+2:]]
+                        else:
+                            count_BB[j+2:] = [x-1 for x in count_BB[j+2:]]
+                    elif s[j+1] == new_char:
+                        if new_char == 'A':
+                            count_AA[j+2:] = [x+1 for x in count_AA[j+2:]]
+                        else:
+                            count_BB[j+2:] = [x+1 for x in count_BB[j+2:]]
+            elif query[0] == 2:  # Compute operation
+                l, r = query[1], query[2]
+                delete_AA = (count_AA[r] - (count_AA[l-1] if l > 0 else 0))
+                delete_BB = (count_BB[r] - (count_BB[l-1] if l > 0 else 0))
+                result.append(delete_AA + delete_BB)
+        return result
 # @lc code=end
