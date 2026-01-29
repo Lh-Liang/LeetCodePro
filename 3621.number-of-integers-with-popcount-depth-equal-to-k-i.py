@@ -5,56 +5,62 @@
 #
 
 # @lc code=start
-import math
-
 class Solution:
     def popcountDepth(self, n: int, k: int) -> int:
+        def popcount(x: int) -> int:
+            cnt = 0
+            while x:
+                cnt += x & 1
+                x >>= 1
+            return cnt
+        
+        def pop_depth(x: int) -> int:
+            d = 0
+            while x != 1:
+                x = popcount(x)
+                d += 1
+            return d
+        
         if k == 0:
-            return 1
+            return 1 if n >= 1 else 0
         
-        # Precompute depth for values 1 to 64
-        depths = [0] * 65
-        depths[1] = 0
-        for i in range(2, 65):
-            pop = bin(i).count('1')
-            depths[i] = 1 + depths[pop]
-            
-        # Find all target popcounts c such that depth(c) == k-1
-        targets = []
-        for c in range(1, 65):
-            if depths[c] == k - 1:
-                targets.append(c)
+        good_s = [s for s in range(1, 65) if pop_depth(s) == k - 1]
         
-        if not targets:
-            return 0
-            
-        def countWithPopcount(limit, target_c):
-            if target_c < 0:
+        def count_ones(target: int) -> int:
+            if target == 0 or n == 0:
                 return 0
-            s = bin(limit)[2:]
-            L = len(s)
-            res = 0
-            current_c = 0
-            for i in range(L):
-                if s[i] == '1':
-                    # If we pick '0' at this position
-                    remaining_positions = L - 1 - i
-                    needed_c = target_c - current_c
-                    if 0 <= needed_c <= remaining_positions:
-                        res += math.comb(remaining_positions, needed_c)
-                    current_c += 1
-            if current_c == target_c:
-                res += 1
-            return res
-
-        total_count = 0
-        for c in targets:
-            total_count += countWithPopcount(n, c)
+            bits = []
+            tmp = n
+            while tmp > 0:
+                bits.append(tmp % 2)
+                tmp //= 2
+            bits = bits[::-1]  # MSB first
+            L = len(bits)
+            memo = {}
             
-        # Special case: if k=1, targets includes c=1. 
-        # countWithPopcount(n, 1) includes x=1, but d(1)=0, not 1.
+            def dp(pos: int, tight: int, cnt: int) -> int:
+                if pos == L:
+                    return cnt == target
+                key = (pos, tight, cnt)
+                if key in memo:
+                    return memo[key]
+                ans = 0
+                upper = bits[pos] if tight else 1
+                for d in range(2):
+                    if d > upper:
+                        continue
+                    new_tight = 1 if tight and d == upper else 0
+                    new_cnt = cnt + d
+                    if new_cnt > target:
+                        continue
+                    ans += dp(pos + 1, new_tight, new_cnt)
+                memo[key] = ans
+                return ans
+            return dp(0, 1, 0)
+        
+        ans = sum(count_ones(s) for s in good_s)
         if k == 1:
-            total_count -= 1
-            
-        return total_count
+            ans -= 1
+        return ans
+
 # @lc code=end
