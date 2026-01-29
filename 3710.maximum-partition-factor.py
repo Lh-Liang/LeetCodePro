@@ -5,62 +5,34 @@
 #
 
 # @lc code=start
-from typing import List
-import collections
-
 class Solution:
     def maxPartitionFactor(self, points: List[List[int]]) -> int:
+        import itertools
+        # Function to calculate Manhattan distance between two points
+        def manhattan_distance(p1, p2):
+            return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
+        
+        # Initialize max partition factor to zero
+        max_partition_factor = 0
         n = len(points)
-        if n == 2:
-            return 0
         
-        # Precompute all pairwise Manhattan distances
-        dists_list = []
-        adj_data = []
-        for i in range(n):
-            for j in range(i + 1, n):
-                d = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
-                dists_list.append(d)
-                adj_data.append((i, j, d))
-        
-        # The candidate values for the maximum partition factor are the distances themselves
-        unique_dists = sorted(list(set(dists_list)))
-        
-        def is_bipartite(threshold):
-            # Build graph where edges are pairs with distance < threshold
-            # If this graph is bipartite, we can achieve a partition factor >= threshold
-            adj = [[] for _ in range(n)]
-            for i, j, d in adj_data:
-                if d < threshold:
-                    adj[i].append(j)
-                    adj[j].append(i)
+        # Iterate over all possible ways to split points into two groups
+        for i in range(1, (1 << n) // 2):
+            group1 = [points[j] for j in range(n) if (i & (1 << j))]
+            group2 = [points[j] for j in range(n) if not (i & (1 << j))]
             
-            color = [-1] * n
-            for i in range(n):
-                if color[i] == -1:
-                    color[i] = 0
-                    queue = collections.deque([i])
-                    while queue:
-                        u = queue.popleft()
-                        for v in adj[u]:
-                            if color[v] == -1:
-                                color[v] = 1 - color[u]
-                                queue.append(v)
-                            elif color[v] == color[u]:
-                                return False
-            return True
-
-        # Binary search for the maximum distance X such that G_X is bipartite
-        low = 0
-        high = len(unique_dists) - 1
-        ans = 0
-        while low <= high:
-            mid = (low + high) // 2
-            if is_bipartite(unique_dists[mid]):
-                ans = unique_dists[mid]
-                low = mid + 1
-            else:
-                high = mid - 1
+            # Compute minimum intra-group distance for each group
+            min_dist_group1 = float('inf') if len(group1) > 1 else 0
+            min_dist_group2 = float('inf') if len(group2) > 1 else 0
+            
+            for p1, p2 in itertools.combinations(group1, 2):
+                min_dist_group1 = min(min_dist_group1, manhattan_distance(p1, p2))
+            for p1, p2 in itertools.combinations(group2, 2):
+                min_dist_group2 = min(min_dist_group2, manhattan_distance(p1, p2))
+            
+            # Calculate partition factor for this split and update maximum found so far
+            current_partition_factor = min(min_dist_group1, min_dist_group2)
+            max_partition_factor = max(max_partition_factor, current_partition_factor)
         
-        return ans
+        return max_partition_factor
 # @lc code=end
