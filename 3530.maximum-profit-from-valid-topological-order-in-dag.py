@@ -7,48 +7,22 @@
 # @lc code=start
 class Solution:
     def maxProfit(self, n: int, edges: List[List[int]], score: List[int]) -> int:
-        # Precompute predecessors for each node as a bitmask
-        pre = [0] * n
+        pred_mask = [0] * n
         for u, v in edges:
-            pre[v] |= (1 << u)
-        
-        # Precompute ready_mask[mask]: bitmask of nodes whose predecessors are a subset of mask
-        # Using SOS DP (Sum Over Subsets) approach to propagate 'readiness'
-        ready_mask = [0] * (1 << n)
-        for i in range(n):
-            ready_mask[pre[i]] |= (1 << i)
-            
-        for j in range(n):
-            bit_j = 1 << j
-            for mask in range(1 << n):
-                if mask & bit_j:
-                    ready_mask[mask] |= ready_mask[mask ^ bit_j]
-                    
-        # dp[mask] stores the maximum profit for the set of nodes in mask
-        dp = [-1] * (1 << n)
+            pred_mask[v] |= (1 << u)
+        N = 1 << n
+        NEG_INF = -10**18
+        dp = [NEG_INF] * N
         dp[0] = 0
-        
-        # Main DP to calculate max profit
-        for mask in range(1 << n):
-            curr_profit = dp[mask]
-            if curr_profit == -1:
-                continue
-            
-            # Position is 1-based
-            pos = mask.bit_count() + 1
-            
-            # Candidates are nodes that are ready but not yet in the mask
-            candidates = ready_mask[mask] & ~mask
-            
-            # Iterate over each candidate bit
-            while candidates:
-                bit = candidates & -candidates
-                i = bit.bit_length() - 1
-                new_mask = mask | bit
-                new_val = curr_profit + score[i] * pos
-                if new_val > dp[new_mask]:
-                    dp[new_mask] = new_val
-                candidates ^= bit
-                
-        return dp[(1 << n) - 1]
+        pop = [0] * N
+        for i in range(N):
+            pop[i] = pop[i // 2] + (i & 1)
+        for mask in range(1, N):
+            pos = pop[mask]
+            for v in range(n):
+                if mask & (1 << v):
+                    prev = mask ^ (1 << v)
+                    if (pred_mask[v] & prev) == pred_mask[v]:
+                        dp[mask] = max(dp[mask], dp[prev] + score[v] * pos)
+        return dp[N - 1]
 # @lc code=end
