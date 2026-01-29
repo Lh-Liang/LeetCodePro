@@ -6,58 +6,59 @@
 
 # @lc code=start
 import sys
-from typing import List
 
 class Solution:
     def longestSpecialPath(self, edges: List[List[int]], nums: List[int]) -> List[int]:
-        # Increase recursion limit for potentially deep trees
-        sys.setrecursionlimit(200000)
+        # Increase recursion limit to handle deep trees (N = 50,000)
+        sys.setrecursionlimit(100000)
         
         n = len(nums)
         adj = [[] for _ in range(n)]
         for u, v, w in edges:
             adj[u].append((v, w))
             adj[v].append((u, w))
-        
-        # res[0] = max_length, res[1] = min_nodes
-        # Initialize max_length to 0 and min_nodes to 1 (single node path)
+            
+        # res[0]: max length, res[1]: min nodes for that length
         res = [0, 1]
-        
-        # last_pos[val] stores the depth of the most recent node with value 'val' in current path
+        # last_pos[val] stores the depth of the most recent occurrence of 'val'
+        # Constraint: 0 <= nums[i] <= 50,000
         last_pos = [-1] * 50001
-        # path_distances[d] stores the distance from root to the node at depth d
-        path_distances = [0] * (n + 1)
+        # dist_stack stores prefix sums of distances from root to node at depth i
+        dist_stack = [0]
         
-        def dfs(u, p, current_dist, depth, current_L):
-            # The window start L must be after the last seen position of the current node's value
-            # to ensure all values in the path [new_L, depth] are unique.
-            new_L = max(current_L, last_pos[nums[u]] + 1)
-            
-            path_distances[depth] = current_dist
-            
-            # Calculate length and node count for the special path ending at u
-            length = current_dist - path_distances[new_L]
-            nodes = depth - new_L + 1
-            
-            if length > res[0]:
-                res[0] = length
-                res[1] = nodes
-            elif length == res[0]:
-                if nodes < res[1]:
-                    res[1] = nodes
-            
-            # Save current last_pos to backtrack later
+        def dfs(u, p, curr_dist, curr_depth, top_depth):
             old_pos = last_pos[nums[u]]
-            last_pos[nums[u]] = depth
+            # The special path ending at u cannot start at or above any previous 
+            # occurrence of a value currently in the path.
+            # top_depth tracks the 'highest' invalid depth.
+            new_top_depth = max(top_depth, old_pos)
+            
+            # The valid unique path starts at depth (new_top_depth + 1)
+            # Length = dist[curr_depth] - dist[new_top_depth + 1]
+            # Nodes = curr_depth - new_top_depth
+            path_len = curr_dist - dist_stack[new_top_depth + 1]
+            num_nodes = curr_depth - new_top_depth
+            
+            if path_len > res[0]:
+                res[0] = path_len
+                res[1] = num_nodes
+            elif path_len == res[0]:
+                if num_nodes < res[1]:
+                    res[1] = num_nodes
+            
+            # Update state for recursive calls
+            last_pos[nums[u]] = curr_depth
             
             for v, w in adj[u]:
                 if v != p:
-                    dfs(v, u, current_dist + w, depth + 1, new_L)
+                    dist_stack.append(curr_dist + w)
+                    dfs(v, u, curr_dist + w, curr_depth + 1, new_top_depth)
+                    dist_stack.pop()
             
-            # Backtrack to restore the state for other branches
+            # Backtrack to restore state for other branches
             last_pos[nums[u]] = old_pos
-
-        dfs(0, -1, 0, 0, 0)
-        
+            
+        # Start DFS: node 0, no parent, distance 0, depth 0, top_depth -1
+        dfs(0, -1, 0, 0, -1)
         return res
 # @lc code=end
