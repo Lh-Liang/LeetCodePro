@@ -12,14 +12,16 @@
 #         self.next = next
 class Solution:
     def modifiedList(self, nums: List[int], head: Optional[ListNode]) -> Optional[ListNode]:
-        nodeSet = set(nums)
-        dummy = ListNode(0, head)
-        current = dummy
-        while current.next:
-            if current.next.val in nodeSet:
-                current.next = current.next.next
+        nums_set = set(nums)
+        dummy = ListNode(0)
+        dummy.next = head
+        curr = dummy
+        
+        while curr.next:
+            if curr.next.val in nums_set:
+                curr.next = curr.next.next
             else:
-                current = current.next
+                curr = curr.next
+                
         return dummy.next
-
 # @lc code=end
