@@ -11,30 +11,30 @@ class Solution:
         
         def check(k):
             if k == 1:
-                # For k=1, the string must be strictly alternating.
-                # Compare s with "0101..." and "1010..."
-                pattern1_flips = 0 # Target: 010101...
-                pattern2_flips = 0 # Target: 101010...
+                # For k=1, the string must be alternating: 0101... or 1010...
+                count1 = 0 # mismatches with 0101...
                 for i in range(n):
-                    expected1 = str(i % 2)
-                    expected2 = str((i + 1) % 2)
-                    if s[i] != expected1:
-                        pattern1_flips += 1
-                    if s[i] != expected2:
-                        pattern2_flips += 1
-                return min(pattern1_flips, pattern2_flips) <= numOps
+                    expected = '0' if i % 2 == 0 else '1'
+                    if s[i] != expected:
+                        count1 += 1
+                count2 = n - count1 # mismatches with 1010...
+                return min(count1, count2) <= numOps
             
-            # For k >= 2, we can greedily break blocks of identical characters.
-            total_flips = 0
-            current_block_len = 1
-            for i in range(1, n):
-                if s[i] == s[i-1]:
-                    current_block_len += 1
+            # For k > 1, we can treat each run of identical characters independently.
+            # A run of length L requires floor(L / (k + 1)) flips to break into
+            # pieces of length at most k.
+            total_ops = 0
+            curr_run_len = 0
+            prev_char = ''
+            for char in s:
+                if char == prev_char:
+                    curr_run_len += 1
                 else:
-                    total_flips += current_block_len // (k + 1)
-                    current_block_len = 1
-            total_flips += current_block_len // (k + 1)
-            return total_flips <= numOps
+                    total_ops += curr_run_len // (k + 1)
+                    curr_run_len = 1
+                    prev_char = char
+            total_ops += curr_run_len // (k + 1)
+            return total_ops <= numOps
 
         low = 1
         high = n
