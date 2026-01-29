@@ -4,44 +4,38 @@
 # [3604] Minimum Time to Reach Destination in Directed Graph
 #
 
-# @lc code=start
-import heapq
-from typing import List
+from heapq import heappop, heappush
+from collections import defaultdict
+import sys
 
+# @lc code=start
 class Solution:
     def minTime(self, n: int, edges: List[List[int]]) -> int:
-        # Build adjacency list
-        adj = [[] for _ in range(n)]
+        # Create adjacency list for graph representation
+        graph = defaultdict(list)
         for u, v, start, end in edges:
-            adj[u].append((v, start, end))
+            graph[u].append((v, start, end))
         
-        # dist[i] stores the minimum time to reach node i
-        dist = [float('inf')] * n
-        dist[0] = 0
-        pq = [(0, 0)]  # (time, node)
+        # Min heap for Dijkstra's algorithm (time, node)
+        pq = [(0, 0)]
+        # Array to track minimum time to reach each node,
+        # initialized with infinity
+        min_time = [sys.maxsize] * n
+        min_time[0] = 0
         
         while pq:
-            t, u = heapq.heappop(pq)
-            
-            # If we reached the destination, return the time immediately
+            curr_time, u = heappop(pq)
+            # Check if we have reached the last node
             if u == n - 1:
-                return t
+                return curr_time
             
-            # Standard Dijkstra pruning
-            if t > dist[u]:
-                continue
-            
-            for v, start, end in adj[u]:
-                # Earliest time we can start traveling on this edge
-                # is the arrival time at u or the start of the window, whichever is later.
-                t_start = max(t, start)
-                
-                # Check if the earliest start time is within the edge's availability window
-                if t_start <= end:
-                    t_arrival = t_start + 1
-                    if t_arrival < dist[v]:
-                        dist[v] = t_arrival
-                        heapq.heappush(pq, (t_arrival, v))
-        
+            # Explore all outgoing edges from current node u
+            for v, start, end in graph[u]:
+                # Wait until within valid travel time window if necessary
+                next_time = max(curr_time + 1, start)
+                if next_time <= end and next_time < min_time[v]:
+                    min_time[v] = next_time
+                    heappush(pq, (next_time, v))
+                    
         return -1
 # @lc code=end
