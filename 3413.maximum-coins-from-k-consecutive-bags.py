@@ -6,64 +6,61 @@
 
 # @lc code=start
 from typing import List
+from collections import defaultdict
+import heapq
 
 class Solution:
     def maximumCoins(self, coins: List[List[int]], k: int) -> int:
-        # Sort segments to process them in order
-        coins.sort()
-        n = len(coins)
+        # Step 1: Create events from segments
+        events = []
+        for l, r, c in coins:
+            events.append((l, c))       # Start event adds coins
+            events.append((r + 1, -c))  # End event removes coins (after r)
         
-        # Precompute prefix sums of coins for O(1) range sum calculation
-        # prefix[i+1] = sum of coins in the first i segments
-        prefix = [0] * (n + 1)
-        for i in range(n):
-            l, r, c = coins[i]
-            prefix[i+1] = prefix[i] + (r - l + 1) * c
+        # Step 2: Sort events by position
+        events.sort()
         
-        max_total = 0
+        # Step 3: Sweep line with current coin count and calculate sums.
+        current_sum = 0
+        max_coins = 0
+        sums_at_positions = []
+        last_position = None
         
-        # Case 1: Window starts at the beginning of segment i
-        # Window is [coins[i][0], coins[i][0] + k - 1]
-        right_ptr = 0
-        for i in range(n):
-            start = coins[i][0]
-            end = start + k - 1
-            
-            # Advance right_ptr to find segments within the window
-            while right_ptr < n and coins[right_ptr][1] <= end:
-                right_ptr += 1
-            
-            # Full segments from i to right_ptr - 1
-            current_sum = prefix[right_ptr] - prefix[i]
-            
-            # Partial segment at right_ptr (if it starts before 'end')
-            if right_ptr < n and coins[right_ptr][0] <= end:
-                current_sum += (end - coins[right_ptr][0] + 1) * coins[right_ptr][2]
-            
-            max_total = max(max_total, current_sum)
-            
-        # Case 2: Window ends at the end of segment i
-        # Window is [coins[i][1] - k + 1, coins[i][1]]
-        left_ptr = 0
-        for i in range(n):
-            end = coins[i][1]
-            start = end - k + 1
-            
-            # Advance left_ptr to find segments within the window
-            # We want the first segment that doesn't end before 'start'
-            while left_ptr < n and coins[left_ptr][1] < start:
-                left_ptr += 1
-            
-            # Full segments from left_ptr + 1 to i
-            current_sum = prefix[i+1] - prefix[left_ptr+1]
-            
-            # Partial segment at left_ptr
-            if left_ptr <= i:
-                # The covered part of segment left_ptr is from max(l, start) to r
-                covered_l = max(coins[left_ptr][0], start)
-                current_sum += (coins[left_ptr][1] - covered_l + 1) * coins[left_ptr][2]
-            
-            max_total = max(max_total, current_sum)
-            
-        return max_total
+        for pos, change in events:
+            if last_position is not None and pos != last_position:
+                sums_at_positions.append((last_position, current_sum))
+            current_sum += change
+            last_position = pos
+        
+        # After processing all events, check final position's sum as well if not added.
+        if last_position is not None:
+            sums_at_positions.append((last_position, current_sum))
+        
+        # Step 4: Calculate max using sliding window over recorded sums.
+        max_coins = 0
+        start_idx = 0      # Start of sliding window index on sums_at_positions array.
+        window_sum = 0     # Sum within current window size <= k.
+        num_positions_covered = 0   # Track number of actual positions covered in window.
+        
+        for end_idx in range(len(sums_at_positions)):
+            pos_end, value_end = sums_at_positions[end_idx]
+            while num_positions_covered < k and end_idx < len(sums_at_positions):
+                if end_idx > start_idx:
+                    num_positions_covered += (sums_at_positions[end_idx][0] - sums_at_positions[end_idx - 1][0])
+                else:
+                    num_positions_covered += 1  # First element starts covering one position.
+                window_sum += value_end
+                end_idx += 1    
+            while num_positions_covered > k:
+                pos_start, value_start = sums_at_positions[start_idx]
+                if start_idx + 1 < len(sums_at_positions):
+                    next_pos_start = sums_at_positions[start_idx + 1][0]
+                    num_positions_covered -= (next_pos_start - pos_start)
+                else:
+                    num_positions_covered -= (pos_end - pos_start)
+                window_sum -= value_start
+                start_idx += 1   
+            max_coins = max(max_coins, window_sum)
+            if end_idx < len(sums_at_positions):
+                end_idx -= 1   # Correct loop increment effect when breaking out early.																	    	      	          	             	         	          	          	         	          	         	       	       return max_coins
 # @lc code=end
