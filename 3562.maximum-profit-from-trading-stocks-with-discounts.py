@@ -5,48 +5,70 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def maxProfit(self, n: int, present: List[int], future: List[int], hierarchy: List[List[int]], budget: int) -> int:
         adj = [[] for _ in range(n + 1)]
-        for boss, emp in hierarchy:
-            adj[boss].append(emp)
-        
-        def dfs(u: int) -> tuple[list[int], list[int]]:
-            child_no = [0] * (budget + 1)
-            child_yes = [0] * (budget + 1)
+        for u, v in hierarchy:
+            adj[u].append(v)
+
+        def dfs(u):
+            # dp0[b]: max profit in subtree u if u's boss didn't buy
+            # dp1[b]: max profit in subtree u if u's boss bought
+            
+            # Initial state: no children processed yet
+            # We need to track the sum of children's dp0 and dp1 results
+            # using knapsack merging.
+            combined_dp0 = [0] * (budget + 1)
+            combined_dp1 = [0] * (budget + 1)
+            
             for v in adj[u]:
-                dp_no_v, dp_yes_v = dfs(v)
-                new_no = [0] * (budget + 1)
-                for j in range(budget + 1):
-                    for k in range(j + 1):
-                        new_no[j] = max(new_no[j], child_no[j - k] + dp_no_v[k])
-                child_no = new_no
+                v_dp0, v_dp1 = dfs(v)
+                new_combined_dp0 = [0] * (budget + 1)
+                new_combined_dp1 = [0] * (budget + 1)
                 
-                new_yes = [0] * (budget + 1)
-                for j in range(budget + 1):
-                    for k in range(j + 1):
-                        new_yes[j] = max(new_yes[j], child_yes[j - k] + dp_yes_v[k])
-                child_yes = new_yes
+                # Standard knapsack merge for children
+                for b in range(budget + 1):
+                    if combined_dp0[b] == 0 and combined_dp1[b] == 0 and b > 0:
+                        # Optimization: skip empty budget levels if possible
+                        pass 
+                    for v_b in range(budget - b + 1):
+                        if combined_dp0[b] + v_dp0[v_b] > new_combined_dp0[b + v_b]:
+                            new_combined_dp0[b + v_b] = combined_dp0[b] + v_dp0[v_b]
+                        if combined_dp1[b] + v_dp1[v_b] > new_combined_dp1[b + v_b]:
+                            new_combined_dp1[b + v_b] = combined_dp1[b] + v_dp1[v_b]
+                combined_dp0 = new_combined_dp0
+                combined_dp1 = new_combined_dp1
+
+            res_dp0 = [0] * (budget + 1)
+            res_dp1 = [0] * (budget + 1)
             
-            p = present[u - 1]
-            f = future[u - 1]
-            prof_full = f - p
-            p_disc = p // 2
-            prof_disc = f - p_disc
+            cost_full = present[u-1]
+            profit_full = future[u-1] - cost_full
+            cost_half = present[u-1] // 2
+            profit_half = future[u-1] - cost_half
+
+            for b in range(budget + 1):
+                # Option 1: u does not buy. Children get no discount.
+                res_dp0[b] = combined_dp0[b]
+                res_dp1[b] = combined_dp0[b]
+                
+                # Option 2: u buys at full price. Children get discount.
+                # Only possible for res_dp0 (boss didn't buy) and res_dp1 (boss bought)
+                if b >= cost_full:
+                    val = combined_dp1[b - cost_full] + profit_full
+                    if val > res_dp0[b]: res_dp0[b] = val
+                    if val > res_dp1[b]: res_dp1[b] = val
+                
+                # Option 3: u buys at half price. Children get discount.
+                # Only possible if boss bought (res_dp1)
+                if b >= cost_half:
+                    val = combined_dp1[b - cost_half] + profit_half
+                    if val > res_dp1[b]: res_dp1[b] = val
             
-            dp_no = [0] * (budget + 1)
-            for c in range(budget + 1):
-                dp_no[c] = child_no[c]
-            for c in range(p, budget + 1):
-                dp_no[c] = max(dp_no[c], prof_full + child_yes[c - p])
-            
-            dp_yes = [0] * (budget + 1)
-            for c in range(budget + 1):
-                dp_yes[c] = child_no[c]
-            for c in range(p_disc, budget + 1):
-                dp_yes[c] = max(dp_yes[c], prof_disc + child_yes[c - p_disc])
-            return dp_no, dp_yes
-        
-        dp_no_root, _ = dfs(1)
-        return max(dp_no_root)
+            return res_dp0, res_dp1
+
+        final_dp0, _ = dfs(1)
+        return max(final_dp0)
 # @lc code=end
