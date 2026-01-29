@@ -7,28 +7,28 @@
 # @lc code=start
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        # Stack stores (value, steps_to_remove)
+        # The stack will store tuples of (value, time_removed)
+        # time_removed = 0 means the element is never removed.
         stack = []
-        max_steps = 0
+        ans = 0
         
         for x in nums:
-            current_steps = 0
-            # While current element is >= top of stack, it takes at least as many
-            # steps as the elements it 'covers' to be removed by a larger element further left.
+            t = 0
+            # Pop elements that x is greater than or equal to.
+            # We track the maximum time it took for those elements to be removed.
             while stack and stack[-1][0] <= x:
-                prev_val, prev_steps = stack.pop()
-                current_steps = max(current_steps, prev_steps)
+                t = max(t, stack.pop()[1])
             
-            # If stack is not empty, the current top is strictly greater than x
-            # and will eventually remove x.
-            if stack:
-                current_steps += 1
+            if not stack:
+                # No element to the left is larger; x survives indefinitely.
+                time_to_remove_x = 0
             else:
-                # No element to the left is greater than x, so x is never removed.
-                current_steps = 0
+                # x will be removed by the current stack top element.
+                # It takes 't' steps to clear previous elements, then 1 more for x.
+                time_to_remove_x = t + 1
             
-            stack.append((x, current_steps))
-            max_steps = max(max_steps, current_steps)
+            stack.append((x, time_to_remove_x))
+            ans = max(ans, time_to_remove_x)
             
-        return max_steps
+        return ans
 # @lc code=end
