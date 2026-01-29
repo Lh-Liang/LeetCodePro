@@ -8,62 +8,70 @@
 class Solution:
     def countNumbers(self, l: str, r: str, b: int) -> int:
         MOD = 10**9 + 7
-        
-        # Precompute binomial coefficients up to ~400 (max base-b digits for 10^100)
-        MAX_N = 500
-        C = [[0] * MAX_N for _ in range(MAX_N)]
-        for i in range(MAX_N):
-            C[i][0] = 1
-            for j in range(1, i + 1):
-                C[i][j] = (C[i-1][j-1] + C[i-1][j]) % MOD
-        
-        def to_base(n, b):
-            if n == 0: return [0]
-            digits = []
-            temp = n
-            while temp > 0:
-                digits.append(temp % b)
-                temp //= b
-            return digits[::-1]
+        MAXN = 401
+        fact = [1] * (MAXN + 1)
+        for i in range(1, MAXN + 1):
+            fact[i] = fact[i - 1] * i % MOD
+        invfact = [0] * (MAXN + 1)
+        invfact[MAXN] = pow(fact[MAXN], MOD - 2, MOD)
+        for i in range(MAXN - 1, -1, -1):
+            invfact[i] = invfact[i + 1] * (i + 1) % MOD
 
-        def f(N_int, b):
-            if N_int < 0: return 0
-            if N_int == 0: return 1 # 0 is non-decreasing
-            
-            S = to_base(N_int, b)
-            m = len(S)
-            total = 1 # Counting the number 0
-            
-            # Count non-decreasing numbers with length L < m
-            for L in range(1, m):
-                # Choose L digits from {1..b-1} with replacement
-                # Formula: comb(n + k - 1, k) where n = b-1 and k = L
-                total = (total + C[b + L - 2][L]) % MOD
-            
-            # Count non-decreasing numbers with length m and value <= N
-            prev_digit = 1
-            for i in range(m):
-                limit = S[i]
-                # Try digits d in [prev_digit, limit-1]
-                start_d = max(prev_digit, 1 if i == 0 else 0)
-                for d in range(start_d, limit):
-                    # Remaining positions: k = m - 1 - i
-                    # Remaining choices for digits: {d..b-1}, so n = b - d
-                    n_rem = b - d
-                    k_rem = m - 1 - i
-                    total = (total + C[n_rem + k_rem - 1][k_rem]) % MOD
-                
-                if limit < prev_digit:
+        def comb(n: int, k: int) -> int:
+            if k < 0 or k > n:
+                return 0
+            return fact[n] * invfact[k] % MOD * invfact[n - k] % MOD
+
+        def decrement(s: str) -> str:
+            ls = list(s)
+            i = len(ls) - 1
+            while i >= 0:
+                if ls[i] != '0':
+                    ls[i] = str(int(ls[i]) - 1)
                     break
-                prev_digit = limit
-                if i == m - 1:
-                    total = (total + 1) % MOD
-            
-            return total
+                ls[i] = '9'
+                i -= 1
+            return ''.join(ls)
 
-        val_r = int(r)
-        val_l_minus_1 = int(l) - 1
-        
-        ans = (f(val_r, b) - f(val_l_minus_1, b)) % MOD
-        return ans
+        def get_baseb_digits(s: str, base: int) -> list[int]:
+            num = int(s)
+            digs = []
+            while num > 0:
+                digs.append(num % base)
+                num //= base
+            digs.reverse()
+            return digs
+
+        def count_up_to(s: str, base: int, mod: int) -> int:
+            if int(s) == 0:
+                return 0
+            D = get_baseb_digits(s, base)
+            L = len(D)
+            m = base - 1
+            shorter = 0
+            if L > 1:
+                shorter = (comb(L + m - 1, m) - 1 + mod) % mod
+            memo = {}
+            def dfs(pos: int, prev: int, tight: int) -> int:
+                if pos == L:
+                    return 1
+                key = (pos, prev, tight)
+                if key in memo:
+                    return memo[key]
+                ans = 0
+                up = D[pos] if tight == 1 else m
+                lo = 1 if prev == 0 else prev
+                for d in range(lo, up + 1):
+                    new_tight = 1 if tight == 1 and d == D[pos] else 0
+                    ans = (ans + dfs(pos + 1, d, new_tight)) % mod
+                memo[key] = ans
+                return ans
+            same_len = dfs(0, 0, 1)
+            return (shorter + same_len) % mod
+
+        l_minus = decrement(l)
+        fr = count_up_to(r, b, MOD)
+        fl = count_up_to(l_minus, b, MOD)
+        return (fr - fl + MOD) % MOD
+
 # @lc code=end
