@@ -5,25 +5,24 @@
 #
 
 # @lc code=start
-import collections
 from typing import List
+import collections
 
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # The core insight is that if node 0 can reach all nodes in the reversed graph,
-        # we can always extract a spanning tree where each node has out-degree 1.
-        # Since threshold >= 1, the out-degree constraint is satisfied by any valid reachability.
-        
         # Build reversed adjacency list: v -> u
-        adj = collections.defaultdict(list)
-        unique_weights = set()
+        # Original: u -> v (u can reach v)
+        # Reversed: v -> u (v can reach u)
+        # If 0 can reach all nodes in reversed graph, all nodes can reach 0 in original.
+        rev_adj = collections.defaultdict(list)
+        max_weight = 0
         for u, v, w in edges:
-            adj[v].append((u, w))
-            unique_weights.add(w)
+            rev_adj[v].append((u, w))
+            if w > max_weight:
+                max_weight = w
         
-        sorted_weights = sorted(list(unique_weights))
-        
-        def can_reach_all(limit: int) -> bool:
+        def check(limit: int) -> bool:
+            # BFS to check if node 0 can reach all nodes using weights <= limit
             visited = [False] * n
             visited[0] = True
             queue = collections.deque([0])
@@ -31,7 +30,7 @@ class Solution:
             
             while queue:
                 curr = queue.popleft()
-                for neighbor, weight in adj[curr]:
+                for neighbor, weight in rev_adj[curr]:
                     if not visited[neighbor] and weight <= limit:
                         visited[neighbor] = True
                         count += 1
@@ -40,18 +39,18 @@ class Solution:
                         queue.append(neighbor)
             return count == n
 
-        # Binary search on the sorted unique weights
-        low = 0
-        high = len(sorted_weights) - 1
+        # Binary search on the weight range
+        low = 1
+        high = max_weight
         ans = -1
         
         while low <= high:
             mid = (low + high) // 2
-            if can_reach_all(sorted_weights[mid]):
-                ans = sorted_weights[mid]
+            if check(mid):
+                ans = mid
                 high = mid - 1
             else:
                 low = mid + 1
-                
+        
         return ans
 # @lc code=end
