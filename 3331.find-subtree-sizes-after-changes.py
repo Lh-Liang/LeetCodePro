@@ -5,71 +5,36 @@
 #
 
 # @lc code=start
-from typing import List
-import collections
-
 class Solution:
     def findSubtreeSizes(self, parent: List[int], s: str) -> List[int]:
-        n = len(parent)
-        adj = [[] for _ in range(n)]
-        for i in range(1, n):
-            adj[parent[i]].append(i)
-            
-        new_parent = [-1] * n
-        # tracks the current path's ancestors for each character 'a'-'z'
-        char_ancestors = [[] for _ in range(26)]
+        from collections import defaultdict
         
-        # Iterative DFS to find new parents based on original tree ancestors
-        # (node, child_iterator)
-        stack = [(0, iter(adj[0]))]
+        # Step 1: Construct adjacency list for the tree
+        tree = defaultdict(list)
+        for child in range(1, len(parent)):
+            tree[parent[child]].append(child)
         
-        # Process root
-        char_idx = ord(s[0]) - ord('a')
-        char_ancestors[char_idx].append(0)
+        # Step 2: Create a new parent map after changes based on character matches
+        new_parent = parent[:]
+        for x in range(1, len(parent)):
+            current = new_parent[x]
+            while current != -1 and s[current] != s[x]:
+                current = new_parent[current]
+            if current != -1:
+                new_parent[x] = current
+                # Adjust the tree structure
+                tree[parent[x]].remove(x)
+                tree[current].append(x)
+
+        # Step 3 & Step 4: DFS to calculate subtree sizes
+        def dfs(node):
+            subtree_size = 1  # Count itself
+            for child in tree[node]:
+                subtree_size += dfs(child)
+            answer[node] = subtree_size
+            return subtree_size
         
-        while stack:
-            u, children = stack[-1]
-            try:
-                v = next(children)
-                v_char_idx = ord(s[v]) - ord('a')
-                
-                # Find closest ancestor with same character
-                if char_ancestors[v_char_idx]:
-                    new_parent[v] = char_ancestors[v_char_idx][-1]
-                else:
-                    new_parent[v] = parent[v]
-                
-                # Push to stack and update char path
-                char_ancestors[v_char_idx].append(v)
-                stack.append((v, iter(adj[v])))
-                
-            except StopIteration:
-                # Finished exploring all children of u
-                u_char_idx = ord(s[u]) - ord('a')
-                char_ancestors[u_char_idx].pop()
-                stack.pop()
-        
-        # Build the new tree structure
-        new_adj = [[] for _ in range(n)]
-        for i in range(1, n):
-            new_adj[new_parent[i]].append(i)
-            
-        # Calculate subtree sizes in the new tree using iterative post-order
-        ans = [1] * n
-        # Standard iterative post-order: reverse of a modified pre-order
-        order = []
-        process_stack = [0]
-        while process_stack:
-            u = process_stack.pop()
-            order.append(u)
-            for v in new_adj[u]:
-                process_stack.append(v)
-        
-        # Process in reverse pre-order (which is post-order)
-        for u in reversed(order):
-            if u != 0:
-                p = new_parent[u]
-                ans[p] += ans[u]
-                
-        return ans
+        answer = [0] * len(parent)
+        dfs(0)
+        return answer
 # @lc code=end
