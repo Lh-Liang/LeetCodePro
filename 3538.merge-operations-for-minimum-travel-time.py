@@ -7,34 +7,44 @@
 # @lc code=start
 class Solution:
     def minTravelTime(self, l: int, n: int, k: int, position: List[int], time: List[int]) -> int:
-        INF = 10**18
-        dp = [[[INF] * 101 for _ in range(k + 1)] for _ in range(n)]
-        prefix = [0] * (n + 1)
+        # Number of segments to keep is m
+        m = n - k - 1
+        # dp[c][i][j]: min cost for c segments, ending at sign i, with previous sign j
+        # Constraints: n <= 50, k <= 10. Max c is n-1.
+        INF = float('inf')
+        dp = [[[INF] * n for _ in range(n)] for _ in range(m + 1)]
+
+        # Precompute prefix sums for time to get range sums in O(1)
+        pref = [0] * (n + 1)
         for i in range(n):
-            prefix[i + 1] = prefix[i] + time[i]
-        if time[0] <= 100:
-            dp[0][0][time[0]] = 0
+            pref[i+1] = pref[i] + time[i]
+        
+        def get_sum(start, end):
+            if start > end: return 0
+            return pref[end+1] - pref[start]
+
+        # Base case: first segment (c=1)
+        # Segment from 0 to i. Speed is always time[0].
         for i in range(1, n):
-            for prev in range(i):
-                merges_add = i - prev - 1
-                for j_prev in range(k + 1):
-                    for s in range(101):
-                        cost = dp[prev][j_prev][s]
-                        if cost == INF:
-                            continue
-                        new_j = j_prev + merges_add
-                        if new_j > k:
-                            continue
-                        new_accum = prefix[i + 1] - prefix[prev + 1]
-                        if new_accum > 100:
-                            continue
-                        dist_add = position[i] - position[prev]
-                        added = dist_add * s
-                        new_cost = cost + added
-                        if new_cost < dp[i][new_j][new_accum]:
-                            dp[i][new_j][new_accum] = new_cost
+            # Previous sign of 0 is conceptually at index -1, but we handle c=1 separately
+            dp[1][i][0] = (position[i] - position[0]) * time[0]
+
+        # DP transitions
+        for c in range(2, m + 1):
+            for i in range(c, n): # Current sign
+                for j in range(c - 1, i): # Previous sign
+                    # Speed for [j, i] depends on the sign before j (let's call it p)
+                    # Speed = sum(time[p+1...j])
+                    for p in range(c - 2, j):
+                        if dp[c-1][j][p] != INF:
+                            speed = get_sum(p + 1, j)
+                            cost = dp[c-1][j][p] + (position[i] - position[j]) * speed
+                            if cost < dp[c][i][j]:
+                                dp[c][i][j] = cost
+
         ans = INF
-        for s in range(101):
-            ans = min(ans, dp[n - 1][k][s])
-        return ans
+        for j in range(m - 1, n - 1):
+            ans = min(ans, dp[m][n-1][j])
+            
+        return int(ans)
 # @lc code=end
