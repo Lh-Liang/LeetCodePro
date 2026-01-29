@@ -5,27 +5,46 @@
 #
 
 # @lc code=start
+import heapq
+from typing import List
+
 class Solution:
     def minTimeToReach(self, moveTime: List[List[int]]) -> int:
-        import heapq
         n, m = len(moveTime), len(moveTime[0])
-        INF = 10**18
-        dist = [[INF] * m for _ in range(n)]
+        
+        # Initialize distances with infinity and start point with 0
+        # dist[i][j] stores the minimum time to reach room (i, j)
+        dist = [[float('inf')] * m for _ in range(n)]
         dist[0][0] = 0
-        pq = []
-        heapq.heappush(pq, (0, 0, 0))  # time, r, c
-        dirs = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        
+        # Priority queue stores (current_time, row, col)
+        # We use a min-heap to always expand the node with the smallest time
+        pq = [(0, 0, 0)]
+        
         while pq:
-            time, r, c = heapq.heappop(pq)
-            if time > dist[r][c]:
+            t, r, c = heapq.heappop(pq)
+            
+            # If we reached the destination, we can return immediately
+            if r == n - 1 and c == m - 1:
+                return t
+            
+            # Standard Dijkstra: if we found a better path to this cell already, skip
+            if t > dist[r][c]:
                 continue
-            for dr, dc in dirs:
+            
+            # Explore all 4 adjacent neighbors
+            for dr, dc in [(0, 1), (0, -1), (1, 0), (-1, 0)]:
                 nr, nc = r + dr, c + dc
+                
                 if 0 <= nr < n and 0 <= nc < m:
-                    new_time = max(time, moveTime[nr][nc]) + 1
-                    if new_time < dist[nr][nc]:
-                        dist[nr][nc] = new_time
-                        heapq.heappush(pq, (new_time, nr, nc))
+                    # The room opens at moveTime[nr][nc]. 
+                    # We can only move there at max(current_time, moveTime[nr][nc])
+                    # and the move itself takes exactly 1 second.
+                    arrival_time = max(t, moveTime[nr][nc]) + 1
+                    
+                    if arrival_time < dist[nr][nc]:
+                        dist[nr][nc] = arrival_time
+                        heapq.heappush(pq, (arrival_time, nr, nc))
+        
         return dist[n-1][m-1]
-
 # @lc code=end
