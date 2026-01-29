@@ -1,1 +1,34 @@
-#\n# @lc app=leetcode id=2289 lang=python3\n#\n# [2289] Steps to Make Array Non-decreasing\n#\n\n# @lc code=start\nfrom typing import List\n\nclass Solution:\n    def totalSteps(self, nums: List[int]) -> int:\n        n = len(nums)\n        if n <= 1:\n            return 0\n        max_nondec_end = [0] * n\n        cur_start = 0\n        for i in range(1, n):\n            if nums[i] < nums[i - 1]:\n                for j in range(cur_start, i):\n                    max_nondec_end[j] = i - 1\n                cur_start = i\n        for j in range(cur_start, n):\n            max_nondec_end[j] = n - 1\n        ans = 0\n        for i in range(n - 1):\n            s = i + 1\n            if s >= n or nums[s] >= nums[i]:\n                continue\n            endd = max_nondec_end[s]\n            l = s\n            r = endd\n            pos = s - 1\n            while l <= r:\n                m = (l + r) // 2\n                if nums[m] <= nums[i]:\n                    pos = m\n                    l = m + 1\n                else:\n                    r = m - 1\n            length = pos - s + 1\n            ans = max(ans, length)\n        return ans\n\n# @lc code=end
+#
+# @lc app=leetcode id=2289 lang=python3
+#
+# [2289] Steps to Make Array Non-decreasing
+#
+
+# @lc code=start
+class Solution:
+    def totalSteps(self, nums: List[int]) -> int:
+        # Stack stores (value, steps_to_remove)
+        stack = []
+        max_steps = 0
+        
+        for x in nums:
+            current_steps = 0
+            # While current element is >= top of stack, it takes at least as many
+            # steps as the elements it 'covers' to be removed by a larger element further left.
+            while stack and stack[-1][0] <= x:
+                prev_val, prev_steps = stack.pop()
+                current_steps = max(current_steps, prev_steps)
+            
+            # If stack is not empty, the current top is strictly greater than x
+            # and will eventually remove x.
+            if stack:
+                current_steps += 1
+            else:
+                # No element to the left is greater than x, so x is never removed.
+                current_steps = 0
+            
+            stack.append((x, current_steps))
+            max_steps = max(max_steps, current_steps)
+            
+        return max_steps
+# @lc code=end
