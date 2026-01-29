@@ -10,41 +10,38 @@ from typing import List
 
 class Solution:
     def minTime(self, n: int, edges: List[List[int]]) -> int:
-        # Build adjacency list: u -> list of (v, start_time, end_time)
+        # Build adjacency list
         adj = [[] for _ in range(n)]
-        for u, v, s, e in edges:
-            adj[u].append((v, s, e))
+        for u, v, start, end in edges:
+            adj[u].append((v, start, end))
         
-        # dist[i] stores the earliest arrival time at node i
+        # dist[i] stores the minimum time to reach node i
         dist = [float('inf')] * n
         dist[0] = 0
-        
-        # Priority queue: (arrival_time, current_node)
-        pq = [(0, 0)]
+        pq = [(0, 0)]  # (time, node)
         
         while pq:
             t, u = heapq.heappop(pq)
+            
+            # If we reached the destination, return the time immediately
+            if u == n - 1:
+                return t
             
             # Standard Dijkstra pruning
             if t > dist[u]:
                 continue
             
-            # Goal check
-            if u == n - 1:
-                return t
-            
-            for v, s, e in adj[u]:
-                # Earliest time we can depart from u using this edge
-                # We either depart immediately (t) or wait until it opens (s)
-                departure_time = max(t, s)
+            for v, start, end in adj[u]:
+                # Earliest time we can start traveling on this edge
+                # is the arrival time at u or the start of the window, whichever is later.
+                t_start = max(t, start)
                 
-                # Check if the edge is still valid at the earliest departure time
-                if departure_time <= e:
-                    # Arrival at v is 1 unit of time after departure
-                    arrival_v = departure_time + 1
-                    if arrival_v < dist[v]:
-                        dist[v] = arrival_v
-                        heapq.heappush(pq, (arrival_v, v))
+                # Check if the earliest start time is within the edge's availability window
+                if t_start <= end:
+                    t_arrival = t_start + 1
+                    if t_arrival < dist[v]:
+                        dist[v] = t_arrival
+                        heapq.heappush(pq, (t_arrival, v))
         
         return -1
 # @lc code=end
