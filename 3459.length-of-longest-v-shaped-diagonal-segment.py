@@ -5,39 +5,39 @@
 #
 
 # @lc code=start
+import sys
+
+# Increase recursion depth for deep DP paths
+sys.setrecursionlimit(2000000)
+
 class Solution:
     def lenOfVDiagonal(self, grid: List[List[int]]) -> int:
         n, m = len(grid), len(grid[0])
-        # Directions: 0: UL (-1,-1), 1: UR (-1,1), 2: DR (1,1), 3: DL (1,-1)
+        # Directions: 0: (-1, -1), 1: (-1, 1), 2: (1, 1), 3: (1, -1)
         dirs = [(-1, -1), (-1, 1), (1, 1), (1, -1)]
-        
-        # dp[r][c][dir][has_turned] 
-        # We use memoization to compute the longest sequence starting at (r, c)
-        # as a specific part of the V-shape.
-        import sys
-        sys.setrecursionlimit(2000000)
         
         memo = {}
 
-        def solve(r, c, d, has_turned, expected_val):
-            state = (r, c, d, has_turned, expected_val)
-            if state in memo: return memo[state]
+        def get_len(r, c, d_idx, turned, target):
+            state = (r, c, d_idx, turned, target)
+            if state in memo:
+                return memo[state]
             
-            res = 1
-            # Next cell in the current direction
-            nr, nc = r + dirs[d][0], c + dirs[d][1]
-            next_val = 2 if expected_val == 0 else 0
+            dr, dc = dirs[d_idx]
+            nr, nc = r + dr, c + dc
             
-            # Option 1: Continue straight
-            if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] == next_val:
-                res = max(res, 1 + solve(nr, nc, d, has_turned, next_val))
+            res = 0
+            # Option 1: Continue in the same direction
+            if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] == target:
+                res = 1 + get_len(nr, nc, d_idx, turned, 2 - target)
             
-            # Option 2: Turn 90 degrees clockwise (only if not already turned)
-            if not has_turned:
-                nd = (d + 1) % 4
-                tr, tc = r + dirs[nd][0], c + dirs[nd][1]
-                if 0 <= tr < n and 0 <= tc < m and grid[tr][tc] == next_val:
-                    res = max(res, 1 + solve(tr, tc, nd, True, next_val))
+            # Option 2: Turn 90 degrees clockwise (only if not turned yet)
+            if not turned:
+                new_d_idx = (d_idx + 1) % 4
+                ndr, ndc = dirs[new_d_idx]
+                nnr, nnc = r + ndr, c + ndc
+                if 0 <= nnr < n and 0 <= nnc < m and grid[nnr][nnc] == target:
+                    res = max(res, 1 + get_len(nnr, nnc, new_d_idx, True, 2 - target))
             
             memo[state] = res
             return res
@@ -46,11 +46,13 @@ class Solution:
         for r in range(n):
             for c in range(m):
                 if grid[r][c] == 1:
-                    max_len = max(max_len, 1)
-                    for d in range(4):
-                        nr, nc = r + dirs[d][0], c + dirs[d][1]
+                    max_len = max(max_len, 1) # A single '1' is a valid segment
+                    for d_idx in range(4):
+                        dr, dc = dirs[d_idx]
+                        nr, nc = r + dr, c + dc
                         if 0 <= nr < n and 0 <= nc < m and grid[nr][nc] == 2:
-                            max_len = max(max_len, 1 + solve(nr, nc, d, False, 2))
+                            # Start path: 1 (at r,c) -> 2 (at nr, nc)
+                            max_len = max(max_len, 1 + 1 + get_len(nr, nc, d_idx, False, 0))
                             
         return max_len
 # @lc code=end
