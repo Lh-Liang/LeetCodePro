@@ -5,49 +5,61 @@
 #
 
 # @lc code=start
-from collections import deque
 from typing import List
 
 class Solution:
     def countNonDecreasingSubarrays(self, nums: List[int], k: int) -> int:
         n = len(nums)
-        ans = 0
-        j = n - 1
-        cost = 0
-        # Deque stores [value, count] of prefix maximums in the window [i, j]
-        dq = deque()
-        
-        # Iterate i from right to left
+        prefix = [0] * (n + 1)
+        for i in range(n):
+            prefix[i + 1] = prefix[i] + nums[i]
+        right = [n] * n
+        stack = []
         for i in range(n - 1, -1, -1):
-            # When moving from i+1 to i, nums[i] is the new start of the subarray [i, j]
-            # It might become the new prefix maximum for several elements to its right
-            new_val = nums[i]
-            count_covered = 0
-            
-            # Update cost: elements smaller than nums[i] now have nums[i] as their prefix max
-            while dq and dq[0][0] < new_val:
-                val, count = dq.popleft()
-                cost += (new_val - val) * count
-                count_covered += count
-            
-            # Add nums[i] itself plus the elements it now covers
-            dq.appendleft([new_val, count_covered + 1])
-            
-            # Shrink window from the right if cost exceeds k
-            while cost > k:
-                # The prefix maximum at index j is the last element in the deque
-                val, count = dq[-1]
-                cost -= (val - nums[j])
-                
-                if count > 1:
-                    dq[-1][1] -= 1
-                else:
-                    dq.pop()
-                
-                j -= 1
-            
-            # All subarrays starting at i and ending between i and j are valid
-            ans += (j - i + 1)
-            
+            while stack and nums[stack[-1]] <= nums[i]:
+                stack.pop()
+            right[i] = stack[-1] if stack else n
+            stack.append(i)
+        inc_end = list(range(n))
+        for i in range(n - 2, -1, -1):
+            if nums[i + 1] > nums[i]:
+                inc_end[i] = inc_end[i + 1]
+            else:
+                inc_end[i] = i
+        ans = 0
+        for start in range(n):
+            cost = 0
+            pos = start
+            brk = False
+            while pos < n:
+                seg_end = right[pos]
+                if seg_end == pos + 1:
+                    if seg_end == n:
+                        pos = n
+                    else:
+                        pos = inc_end[pos]
+                    continue
+                terms = seg_end - pos - 1
+                seg_cost = nums[pos] * terms - (prefix[seg_end] - prefix[pos + 1])
+                if cost + seg_cost > k:
+                    remain = k - cost
+                    lo = pos
+                    hi = seg_end - 1
+                    while lo < hi:
+                        mid = lo + (hi - lo + 1) // 2
+                        tterms = mid - pos
+                        pcost = nums[pos] * tterms - (prefix[mid + 1] - prefix[pos + 1])
+                        if pcost <= remain:
+                            lo = mid
+                        else:
+                            hi = mid - 1
+                    ans += lo - start + 1
+                    brk = True
+                    break
+                cost += seg_cost
+                pos = seg_end
+            if not brk:
+                ans += n - start
         return ans
+
 # @lc code=end
