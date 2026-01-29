@@ -3,73 +3,39 @@
 #
 # [1670] Design Front Middle Back Queue
 #
-
 # @lc code=start
-from collections import deque
-
 class FrontMiddleBackQueue:
 
     def __init__(self):
-        # We split the queue into two halves to handle middle operations efficiently.
-        # Invariant: len(right) == len(left) or len(right) == len(left) + 1
-        self.left = deque()
-        self.right = deque()
+        self.q = []
 
-    def _balance(self):
-        # Ensure the invariant: len(right) is either equal to len(left) or len(left) + 1.
-        if len(self.left) > len(self.right):
-            self.right.appendleft(self.left.pop())
-        elif len(self.right) > len(self.left) + 1:
-            self.left.append(self.right.popleft())
 
-    def pushFront(self, val: int) -> None: 
-        self.left.appendleft(val)
-        self._balance()
+    def pushFront(self, val: int) -> None:
+        self.q.insert(0, val)
+
 
     def pushMiddle(self, val: int) -> None:
-        if len(self.left) == len(self.right):
-            # [1, 2] [3, 4] -> middle index is 4 // 2 = 2. 
-            # Adding to right's front puts it at index 2.
-            self.right.appendleft(val)
-        else:
-            # [1, 2] [3, 4, 5] -> middle index is 5 // 2 = 2.
-            # Adding to left's back puts it at index 2.
-            self.left.append(val)
+        self.q.insert(len(self.q) // 2, val)
+
 
     def pushBack(self, val: int) -> None:
-        self.right.append(val)
-        self._balance()
+        self.q.append(val)
+
 
     def popFront(self) -> int:
-        if not self.left and not self.right:
-            return -1
-        if not self.left:
-            res = self.right.popleft()
-        else:
-            res = self.left.popleft()
-        self._balance()
-        return res
+        return self.q.pop(0) if self.q else -1
+
 
     def popMiddle(self) -> int:
-        if not self.left and not self.right:
+        if not self.q:
             return -1
-        if len(self.left) == len(self.right):
-            # [1, 2] [3, 4] -> removal index is (4-1)//2 = 1. 
-            # Index 1 is the back of left.
-            res = self.left.pop()
-        else:
-            # [1, 2] [3, 4, 5] -> removal index is (5-1)//2 = 2.
-            # Index 2 is the front of right.
-            res = self.right.popleft()
-        self._balance()
-        return res
+        idx = (len(self.q) - 1) // 2
+        return self.q.pop(idx)
+
 
     def popBack(self) -> int:
-        if not self.left and not self.right:
-            return -1
-        res = self.right.pop()
-        self._balance()
-        return res
+        return self.q.pop() if self.q else -1
+
 
 
 # Your FrontMiddleBackQueue object will be instantiated and called as such:
