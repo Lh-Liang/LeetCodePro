@@ -5,53 +5,56 @@
 #
 
 # @lc code=start
+import bisect
+from typing import List
+
 class Solution:
     def maximumCoins(self, coins: List[List[int]], k: int) -> int:
-        coins.sort(key=lambda x: x[0])
+        # Sort segments by start position to enable binary search and prefix sums
+        coins.sort()
         n = len(coins)
-        lengths = [0] * n
+        
+        # Extract components for easier access
+        l = [c[0] for c in coins]
+        r = [c[1] for c in coins]
+        c = [c[2] for c in coins]
+        
+        # Prefix sum of coins: pre[i] is sum of first i segments
+        pre = [0] * (n + 1)
         for i in range(n):
-            l, r, c = coins[i]
-            lengths[i] = r - l + 1
-        ans = 0
-        cur_sum = 0
-        left = 0
-        for right in range(n):
-            l, r, c = coins[right]
-            cur_sum += c * lengths[right]
-            while left <= right:
-                ll, rl, cl = coins[left]
-                span = r - ll + 1
-                if span > k + lengths[left] + lengths[right]:
-                    cur_sum -= cl * lengths[left]
-                    left += 1
-                else:
-                    break
-            # compute for current left, right
-            ll, rl, cl = coins[left]
-            span = r - ll + 1
-            excess = span - k
-            if excess <= 0:
-                ans = max(ans, cur_sum)
-            else:
-                c_l = cl
-                c_r = coins[right][2]
-                len_l = lengths[left]
-                len_r = lengths[right]
-                pen = 0
-                ex = excess
-                if c_l <= c_r:
-                    rem = min(ex, len_l)
-                    pen += c_l * rem
-                    ex -= rem
-                    if ex > 0:
-                        pen += c_r * ex
-                else:
-                    rem = min(ex, len_r)
-                    pen += c_r * rem
-                    ex -= rem
-                    if ex > 0:
-                        pen += c_l * ex
-                ans = max(ans, cur_sum - pen)
-        return ans
+            pre[i+1] = pre[i] + (r[i] - l[i] + 1) * c[i]
+            
+        max_coins = 0
+        
+        # Case 1: Window starts at the beginning of segment i [l[i], l[i] + k - 1]
+        for i in range(n):
+            R = l[i] + k - 1
+            # Find the largest index j such that segment j starts at or before R
+            j = bisect.bisect_right(l, R) - 1
+            
+            # Sum of fully contained segments from i to j-1
+            # pre[j] is sum of segments 0 to j-1; pre[i] is sum of segments 0 to i-1
+            current = pre[j] - pre[i]
+            # Add partial or full contribution of segment j (capped at R)
+            current += (min(r[j], R) - l[j] + 1) * c[j]
+            
+            if current > max_coins:
+                max_coins = current
+                
+        # Case 2: Window ends at the end of segment i [r[i] - k + 1, r[i]]
+        for i in range(n):
+            L = r[i] - k + 1
+            # Find the smallest index j such that segment j ends at or after L
+            j = bisect.bisect_left(r, L)
+            
+            # Sum of fully contained segments from j+1 to i
+            # pre[i+1] is sum of segments 0 to i; pre[j+1] is sum of segments 0 to j
+            current = pre[i+1] - pre[j+1]
+            # Add partial or full contribution of segment j (starting from L)
+            current += (r[j] - max(l[j], L) + 1) * c[j]
+            
+            if current > max_coins:
+                max_coins = current
+                
+        return max_coins
 # @lc code=end
