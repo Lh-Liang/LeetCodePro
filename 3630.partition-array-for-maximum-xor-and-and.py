@@ -1,1 +1,69 @@
-{"reasoning": "Step 1: Problem decomposition - Restate: Partition nums (n<=19, 1<=nums[i]<=1e9) into disjoint A,B,C covering all, maximize XOR(A) + AND(B) + XOR(C), empty=0. Output int max value.\n\nStep 2: Constraints analysis - n<=19 → 2^19=524288 subsets feasible (O(2^n * n * 32) ~ 3e8 ops ok). Use bitmasks for subsets.\n\nStep 3: High-level strategy - Enumerate subsets B via maskB (0 to 2^n-1), compute AND(B) via DP. For rem S (mask full^maskB), xorS = XOR(S). Note XOR(A)+XOR(C) = xorS + 2 * (XOR(A) & ~xorS), since bits in ~xorS contribute twice if set in XOR(A), bits in xorS cancel. Max Z = max_{A subset S} (XOR(A) & m) where m=~xorS & ((1<<32)-1), found as max subset XOR over projections {nums[i] & m | i in S} using 32-bit linear basis (Gaussian elimination).\n\nStep 4: Precomputations - SOS-DP style: xor_dp[0]=0, and_dp[0]=(1<<32)-1. For mask=1 to 2^n-1: i = lowest set bit pos (mask & -mask).bit_length()-1, prev=mask ^ (1<<i), xor_dp[mask]=xor_dp[prev] ^ nums[i], and_dp[mask]=and_dp[prev] & nums[i]. Handles singletons/empty correctly.\n\nStep 5: Per maskB - andB = 0 if maskB==0 else and_dp[maskB]; rem_mask=(1<<n)-1 ^ maskB; xorS=xor_dp[rem_mask]; m = ((1<<32)-1) ^ xorS; init basis=[0]*32; for i in 0..n-1 if (rem_mask & (1<<i)): x=nums[i]&m; if x==0 continue; for j=31..0: if (x & (1<<j)): if basis[j]: x ^= basis[j]; else: basis[j]=x; break.\n\nStep 6: Compute max_Z=0; for j=31..0: if basis[j] and (max_Z ^ basis[j]) > max_Z: max_Z ^= basis[j]. Then current = xorS + 2*max_Z + andB; ans = max(ans, current).\n\nStep 7: Edge cases - n=0:0; empty B/rem handled; linear dependence via basis auto-managed.\n\nStep 8: Code generation - Match template exactly: import List after # @lc code=start; local vars; n=len(nums); N=1<<n; MOD_MASK=(1<<32)-1; dps lists of size N; loops as above; return ans.\n\nStep 9: Output construction - reasoning_text = \"\"\" + this entire step-by-step text + \"\"\"; code_text = \"\"\" + exact code string below + \"\"\"; output = {\"reasoning\": reasoning_text, \"result\": code_text} - build as flat dict, stringify only final JSON.\n\nStep 10: Verification - Mentally parse: top-level exactly {'reasoning': str(problem steps), 'result': str(code)}; no nesting/escaping/JSON-in-string; reasoning problem-only (no meta); code syntax-valid, imports post-start, sig matches; traces examples e.g. [2,3] max 5; schema/example format compliant.\n\n\", "result": "#\n# @lc app=leetcode id=3630 lang=python3\n#\n# [3630] Partition Array for Maximum XOR and AND\n#\n\n# @lc code=start\nfrom typing import List\n\nclass Solution:\n    def maximizeXorAndXor(self, nums: List[int]) -> int:\n        n = len(nums)\n        if n == 0:\n            return 0\n        N = 1 << n\n        MOD_MASK = (1 << 32) - 1\n        xor_dp = [0] * N\n        and_dp = [0] * N\n        and_dp[0] = MOD_MASK\n        for mask in range(1, N):\n            lowbit = mask & -mask\n            i = lowbit.bit_length() - 1\n            prev = mask ^ lowbit\n            xor_dp[mask] = xor_dp[prev] ^ nums[i]\n            and_dp[mask] = and_dp[prev] & nums[i]\n        ans = 0\n        for maskB in range(N):\n            andB = 0 if maskB == 0 else and_dp[maskB]\n            rem_mask = (N - 1) ^ maskB\n            xorS = xor_dp[rem_mask]\n            m = MOD_MASK ^ xorS\n            basis = [0] * 32\n            for ii in range(n):\n                if rem_mask & (1 << ii):\n                    x = nums[ii] & m\n                    if x == 0:\n                        continue\n                    for j in range(31, -1, -1):\n                        if x & (1 << j):\n                            if basis[j]:\n                                x ^= basis[j]\n                            else:\n                                basis[j] = x\n                                break\n            max_Z = 0\n            for j in range(31, -1, -1):\n                if basis[j] and (max_Z ^ basis[j]) > max_Z:\n                    max_Z ^= basis[j]\n            current = 2 * max_Z + xorS + andB\n            ans = max(ans, current)\n        return ans\n\n# @lc code=end"}
+#
+# @lc app=leetcode id=3630 lang=python3
+#
+# [3630] Partition Array for Maximum XOR and AND
+#
+
+# @lc code=start
+class Solution:
+    def maximizeXorAndXor(self, nums: List[int]) -> int:
+        n = len(nums)
+        ans = 0
+        
+        # Precompute XOR of all elements to easily find XOR of S_AC
+        total_xor = 0
+        for x in nums:
+            total_xor ^= x
+            
+        # Iterate through all possible subsets for B
+        # mask represents the indices of elements chosen for subsequence B
+        for mask in range(1 << n):
+            and_b = -1
+            xor_ac = total_xor
+            s_ac = []
+            
+            for i in range(n):
+                if (mask >> i) & 1:
+                    if and_b == -1:
+                        and_b = nums[i]
+                    else:
+                        and_b &= nums[i]
+                else:
+                    xor_ac ^= 0 # nums[i] is already in total_xor
+            
+            # If B is empty, AND(B) = 0
+            val_b = and_b if and_b != -1 else 0
+            
+            # xor_ac is the XOR of elements not in B
+            # We need to calculate XOR of elements in S_AC
+            # which is actually total_xor ^ (XOR of elements in B)
+            curr_xor_b = 0
+            for i in range(n):
+                if (mask >> i) & 1:
+                    curr_xor_b ^= nums[i]
+            
+            target_t = total_xor ^ curr_xor_b
+            not_t = ~target_t
+            
+            # Maximize X & not_t where X is XOR of some subset of S_AC
+            basis = []
+            for i in range(n):
+                if not ((mask >> i) & 1):
+                    val = nums[i] & not_t
+                    for b in basis:
+                        val = min(val, val ^ b)
+                    if val > 0:
+                        basis.append(val)
+                        basis.sort(reverse=True)
+            
+            max_x_masked = 0
+            for b in basis:
+                if (max_x_masked ^ b) > max_x_masked:
+                    max_x_masked ^= b
+            
+            current_total = val_b + target_t + 2 * max_x_masked
+            if current_total > ans:
+                ans = current_total
+                
+        return ans
+# @lc code=end
