@@ -6,62 +6,38 @@
 
 # @lc code=start
 from typing import List
+from sortedcontainers import SortedList
 
 class Solution:
     def minInversionCount(self, nums: List[int], k: int) -> int:
         n = len(nums)
-        if k <= 1:
-            return 0
+        if k == 1:
+            return 0  # No inversions possible with single-element subarrays.
         
-        # Coordinate compression to handle values up to 10^9
-        sorted_unique = sorted(list(set(nums)))
-        rank_map = {val: i + 1 for i, val in enumerate(sorted_unique)}
-        ranks = [rank_map[x] for x in nums]
-        m = len(sorted_unique)
+        min_inversions = float('inf')
+        current_window = SortedList()
+        current_inversions = 0
         
-        bit = [0] * (m + 1)
-        
-        def update(idx, val):
-            while idx <= m:
-                bit[idx] += val
-                idx += idx & (-idx)
-        
-        def query(idx):
-            s = 0
-            while idx > 0:
-                s += bit[idx]
-                idx -= idx & (-idx)
-            return s
-            
-        curr_inv = 0
-        # Initialize the first window [0...k-1]
+        # Calculate inversions for first window
         for i in range(k):
-            r = ranks[i]
-            # Inversions added by nums[i] are elements already in BIT that are > nums[i]
-            # Which is (elements currently in BIT) - (elements <= nums[i])
-            curr_inv += i - query(r)
-            update(r, 1)
-            
-        min_inv = curr_inv
+            current_inversions += len(current_window) - current_window.bisect_right(nums[i])
+            current_window.add(nums[i])
+        min_inversions = min(min_inversions, current_inversions)
         
-        # Slide the window from [i...i+k-1] to [i+1...i+k]
-        for i in range(n - k):
-            # 1. Remove nums[i]
-            r_out = ranks[i]
-            # Subtract elements in current window strictly smaller than nums[i]
-            # We subtract 1 from BIT first to represent the window [i+1...i+k-1]
-            update(r_out, -1)
-            curr_inv -= query(r_out - 1)
+        # Slide window across `nums`
+        for i in range(k, n):
+            # Remove effect of outgoing element
+            outgoing_element = nums[i - k]
+            current_window.remove(outgoing_element)
+            current_inversions -= current_window.bisect_left(outgoing_element)
             
-            # 2. Add nums[i+k]
-            r_in = ranks[i+k]
-            # Add elements in current window [i+1...i+k-1] strictly larger than nums[i+k]
-            # Current elements in BIT is (k-1)
-            curr_inv += (k - 1) - query(r_in)
-            update(r_in, 1)
+            # Add effect of incoming element
+            incoming_element = nums[i]
+            current_inversions += len(current_window) - current_window.bisect_right(incoming_element)
+            current_window.add(incoming_element)
             
-            if curr_inv < min_inv:
-                min_inv = curr_inv
-                
-        return min_inv
+            # Update minimum inversions found so far
+            min_inversions = min(min_inversions, current_inversions)
+        
+        return min_inversions
 # @lc code=end
