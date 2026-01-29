@@ -5,50 +5,30 @@
 #
 
 # @lc code=start
+from typing import List
 class Solution:
     def minMoves(self, balance: List[int]) -> int:
         n = len(balance)
-        total_sum = sum(balance)
-        
-        # If total balance is negative, it's impossible to make all non-negative
-        if total_sum < 0:
-            return -1
-        
-        # Find the index of the negative balance (the 'sink')
-        sink_idx = -1
-        for i in range(n):
-            if balance[i] < 0:
-                sink_idx = i
-                break
-        
-        # If no negative balance exists, 0 moves are needed
-        if sink_idx == -1:
+        if n == 0 or all(b >= 0 for b in balance):
             return 0
-        
-        deficit = -balance[sink_idx]
-        sources = []
-        
-        # Identify all potential sources and their circular distance to the sink
-        for i in range(n):
-            if balance[i] > 0:
-                # Circular distance formula
-                diff = abs(i - sink_idx)
-                dist = min(diff, n - diff)
-                sources.append((dist, balance[i]))
-        
-        # Greedy: Sort sources by distance to pull from the closest ones first
-        sources.sort(key=lambda x: x[0])
-        
+        total_sum = sum(balance)
+        if total_sum < 0:
+            return -1 
+
         total_moves = 0
-        remaining_deficit = deficit
-        
-        for dist, available in sources:
-            if remaining_deficit <= 0:
-                break
-            
-            take = min(remaining_deficit, available)
-            total_moves += take * dist
-            remaining_deficit -= take
-            
-        return total_moves
+        current_deficit = 0
+        # Traverse over each element assuming circular behavior with twice length 
+        for i in range(2 * n):
+            index = i % n
+            if balance[index] < 0:
+                current_deficit += balance[index]
+            elif current_deficit < 0 and balance[index] > 0:
+                move = min(balance[index], -current_deficit)
+                total_moves += move
+                current_deficit += move
+                balance[index] -= move
+            # Check if we have completed one full circle and still have deficit
+            if i >= n and current_deficit < 0:
+                return -1 
+        return total_moves # Return total moves made once balanced or verified impossible.
 # @lc code=end
