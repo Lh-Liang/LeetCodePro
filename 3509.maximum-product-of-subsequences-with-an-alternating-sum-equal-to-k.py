@@ -7,42 +7,49 @@
 # @lc code=start
 class Solution:
     def maxProduct(self, nums: List[int], k: int, limit: int) -> int:
-        # dp[sum][parity] = set of possible products
-        # parity 0: even length, parity 1: odd length
+        # dp: (alternating_sum, length_parity) -> bitmask of achievable products
+        # length_parity 1: odd number of elements (next index is odd: 1, 3...)
+        # length_parity 0: even number of elements (next index is even: 0, 2...)
         dp = {}
         
         for x in nums:
-            new_updates = []
+            # Use a copy to ensure each element is used at most once per subsequence
+            new_dp = dp.copy()
             
-            # Case 1: Start a new subsequence with x (always parity 1)
+            # 1. Start a new subsequence (index 0 is even)
             if x <= limit:
-                new_updates.append((x, 1, x))
+                new_dp[(x, 1)] = new_dp.get((x, 1), 0) | (1 << x)
             
-            # Case 2: Extend existing subsequences
-            for (s, p), products in dp.items():
-                # If current parity is 1 (odd), next element is at an odd index (subtracted)
-                # If current parity is 0 (even), next element is at an even index (added)
-                ns = s - x if p == 1 else s + x
-                np = 1 - p
+            # 2. Extend existing subsequences
+            for (s, p), mask in dp.items():
+                if p == 1: # Current element is at an odd index (subtract from sum)
+                    ns, np = s - x, 0
+                else:      # Current element is at an even index (add to sum)
+                    ns, np = s + x, 1
                 
-                for prod in products:
-                    nprod = prod * x
-                    if nprod <= limit:
-                        new_updates.append((ns, np, nprod))
-            
-            # Apply updates to dp
-            for ns, np, nprod in new_updates:
-                state = (ns, np)
-                if state not in dp:
-                    dp[state] = {nprod}
+                if x == 0:
+                    new_mask = 1 # Product becomes 0 (set bit 0)
+                elif x == 1:
+                    new_mask = mask # Product remains the same
                 else:
-                    dp[state].add(nprod)
-                    
-        ans = -1
-        # Check both parities for the target alternating sum k
-        for p in [0, 1]:
-            if (k, p) in dp:
-                ans = max(ans, max(dp[(k, p)]))
+                    # For x >= 2, the product increases; calculate only products <= limit
+                    new_mask = 0
+                    curr = mask
+                    while curr:
+                        lsb = curr & -curr
+                        p_val = lsb.bit_length() - 1
+                        if p_val * x <= limit:
+                            new_mask |= (1 << (p_val * x))
+                        curr ^= lsb
+                
+                if new_mask:
+                    new_dp[(ns, np)] = new_dp.get((ns, np), 0) | new_mask
+            
+            dp = new_dp
+            
+        # Combine masks for both parities at the target sum k
+        combined_mask = dp.get((k, 0), 0) | dp.get((k, 1), 0)
         
-        return ans
+        # bit_length() - 1 gives the index of the highest set bit (the max product)
+        return combined_mask.bit_length() - 1 if combined_mask > 0 else -1
 # @lc code=end
