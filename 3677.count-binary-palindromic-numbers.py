@@ -3,50 +3,29 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
+
 # @lc code=start
 class Solution:
     def countBinaryPalindromes(self, n: int) -> int:
-        if n == 0:
-            return 1
-        
-        s = bin(n)[2:]
-        B = len(s)
-        
-        # Start with 1 to account for 0 ("0")
-        ans = 1
-        
-        # 1. Count binary palindromes with bit length L < B
-        for L in range(1, B):
-            if L == 1:
-                ans += 1 # Only "1"
-            else:
-                # First bit fixed as 1, ceil(L/2) - 1 free bits
-                half = (L + 1) // 2
-                ans += (1 << (half - 1))
-        
-        # 2. Count binary palindromes with bit length B
-        K = (B + 1) // 2
-        prefix_str = s[:K]
-        P = int(prefix_str, 2)
-        
-        # Construct the palindrome from the prefix P
-        if B % 2 == 0:
-            cand_str = prefix_str + prefix_str[::-1]
-        else:
-            cand_str = prefix_str + prefix_str[:-1][::-1]
-            
-        cand = int(cand_str, 2)
-        
-        # Smallest K-bit prefix starting with 1
-        min_prefix = 1 << (K - 1)
-        
-        if cand <= n:
-            # All prefixes in [min_prefix, P] are valid
-            ans += (P - min_prefix + 1)
-        else:
-            # All prefixes in [min_prefix, P - 1] are valid
-            if P > min_prefix:
-                ans += (P - min_prefix)
-                
-        return ans
+        def generate_palindrome(length, is_odd):
+            # Generates a palindromic binary number of given length
+            half_length = (length + is_odd) // 2
+            start = 1 << (half_length - 1)
+            end = 1 << half_length
+            for i in range(start, end):
+                left_half = bin(i)[2:]
+                if is_odd:
+                    yield int(left_half + left_half[-2::-1], 2)
+                else:
+                    yield int(left_half + left_half[::-1], 2)
+        count = 0
+        # Early termination loop for generated palindromes exceeding `n`
+        length = len(bin(n)) - 2 # Length of the largest possible binary palindrome
+        for l in range(1, length + 1):
+            for is_odd in [0, 1]:
+                for p in generate_palindrome(l, is_odd):
+                    if p > n:
+                        return count
+                    count += 1
+        return count
 # @lc code=end
