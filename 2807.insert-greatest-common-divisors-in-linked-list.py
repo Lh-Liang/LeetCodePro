@@ -11,27 +11,28 @@
 #         self.val = val
 #         self.next = next
 import math
+from typing import Optional
 
 class Solution:
     def insertGreatestCommonDivisors(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # Boundary condition: if list is empty or has only one node, no pairs exist
+        # If the list is empty or has only one node, no insertion is possible
         if not head or not head.next:
             return head
         
         curr = head
         # Iterate through the list as long as there is a pair of nodes
         while curr and curr.next:
-            # Calculate GCD using the math library
-            gcd_val = math.gcd(curr.val, curr.next.val)
+            # Calculate GCD of current node and the next node
+            divisor = math.gcd(curr.val, curr.next.val)
             
-            # Create the new node to be inserted
-            new_node = ListNode(gcd_val)
+            # Create the new node with the GCD value
+            new_node = ListNode(divisor)
             
             # Insert new_node between curr and curr.next
             new_node.next = curr.next
             curr.next = new_node
             
-            # Move curr to the node that was originally next to process the next pair
+            # Move curr two steps forward to the node that was originally next
             curr = new_node.next
             
         return head
