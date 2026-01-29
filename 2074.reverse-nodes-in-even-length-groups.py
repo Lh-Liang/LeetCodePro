@@ -12,37 +12,41 @@
 #         self.next = next
 class Solution:
     def reverseEvenLengthGroups(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        dummy = ListNode(0, head)
-        prev = dummy
-        gsize = 1
-        while prev.next:
-            start = prev.next
-            curr = start
-            length = 0
-            for _ in range(gsize):
-                if curr is None:
-                    break
-                length += 1
+        if not head or not head.next:
+            return head
+        
+        prev_tail = head
+        k = 2
+        
+        while prev_tail.next:
+            # Count actual nodes in the current group
+            n = 0
+            curr = prev_tail.next
+            while curr and n < k:
                 curr = curr.next
-            group_end = start
-            for _ in range(1, length):
-                group_end = group_end.next
-            next_start = group_end.next
-            if length % 2 == 0:
-                # reverse start to group_end
-                prevv = None
-                cur = start
-                for _ in range(length):
-                    nxt = cur.next
-                    cur.next = prevv
-                    prevv = cur
-                    cur = nxt
-                prev.next = prevv
-                start.next = next_start  # start is now tail
-                prev = start
+                n += 1
+            
+            if n % 2 == 0:
+                # Reverse the current group of size n
+                group_start = prev_tail.next
+                rev_prev = None
+                curr = group_start
+                for _ in range(n):
+                    nxt = curr.next
+                    curr.next = rev_prev
+                    rev_prev = curr
+                    curr = nxt
+                
+                # Connect the reversed segment back into the list
+                prev_tail.next = rev_prev
+                group_start.next = curr
+                prev_tail = group_start
             else:
-                prev = group_end
-            gsize += 1
-        return dummy.next
-
+                # Skip the current group of size n
+                for _ in range(n):
+                    prev_tail = prev_tail.next
+            
+            k += 1
+            
+        return head
 # @lc code=end
