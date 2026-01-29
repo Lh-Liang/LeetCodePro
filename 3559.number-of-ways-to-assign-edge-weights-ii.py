@@ -5,77 +5,50 @@
 #
 
 # @lc code=start
-from collections import deque
-from typing import List
-
 class Solution:
     def assignEdgeWeights(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        n = len(edges) + 1
-        adj = [[] for _ in range(n + 1)]
-        for u, v in edges:
-            adj[u].append(v)
-            adj[v].append(u)
-        
-        LOG = 18
-        up = [[0] * (n + 1) for _ in range(LOG)]
-        depth = [0] * (n + 1)
-        
-        # BFS to compute depth and binary lifting parent (up[0])
-        # Using BFS to avoid recursion depth issues in Python
-        queue = deque([1])
-        visited = [False] * (n + 1)
-        visited[1] = True
-        while queue:
-            u = queue.popleft()
-            for v in adj[u]:
-                if not visited[v]:
-                    visited[v] = True
-                    depth[v] = depth[u] + 1
-                    up[0][v] = u
-                    queue.append(v)
-        
-        # Precompute binary lifting table
-        for i in range(1, LOG):
-            upi = up[i]
-            up_prev = up[i-1]
-            for v in range(1, n + 1):
-                upi[v] = up_prev[up_prev[v]]
-        
+        from collections import defaultdict
+
         MOD = 10**9 + 7
-        pow2 = [1] * (n + 1)
-        for i in range(1, n + 1):
-            pow2[i] = (pow2[i-1] * 2) % MOD
+        # Construct adjacency list for the tree
+        tree = defaultdict(list)
+        for u, v in edges:
+            tree[u].append(v)
+            tree[v].append(u)
+        
+        def find_path(u, v):
+            # BFS to find path from u to v
+            parent = {u: None}
+            stack = [u]
+            while stack:
+                node = stack.pop()
+                if node == v:
+                    break
+                for neighbor in tree[node]:
+                    if neighbor not in parent:
+                        parent[neighbor] = node
+                        stack.append(neighbor)
+            
+            # Reconstruct path from u to v using parent map
+            path = []
+            step = v
+            while step is not None:
+                path.append(step)
+                step = parent[step]
+            return path[::-1]
+        
+        def count_odd_assignments(path_length):
+            if path_length % 2 == 0:
+                return (2 ** (path_length - 1)) % MOD # Half of combinations lead to odd cost when even length
+            else:
+                return (2 ** (path_length - 1)) % MOD # Half when odd length also leads to odd cost due to parity change
         
         results = []
         for u, v in queries:
-            if u == v:
-                results.append(0)
-                continue
-            
-            # Find LCA(u, v) using binary lifting
-            curr_u, curr_v = u, v
-            if depth[curr_u] < depth[curr_v]:
-                curr_u, curr_v = curr_v, curr_u
-            
-            diff = depth[curr_u] - depth[curr_v]
-            for i in range(LOG):
-                if (diff >> i) & 1:
-                    curr_u = up[i][curr_u]
-            
-            if curr_u == curr_v:
-                lca = curr_u
-            else:
-                for i in range(LOG - 1, -1, -1):
-                    upi = up[i]
-                    if upi[curr_u] != upi[curr_v]:
-                        curr_u = upi[curr_u]
-                        curr_v = upi[curr_v]
-                lca = up[0][curr_u]
-            
-            # Path length L is the number of edges
-            dist = depth[u] + depth[v] - 2 * depth[lca]
-            # Number of ways = 2^(dist-1) mod MOD for dist >= 1
-            results.append(pow2[dist - 1])
+            path = find_path(u, v)
+            num_edges = len(path) - 1
+            valid_assignments = count_odd_assignments(num_edges)
+            results.append(valid_assignments)
         
         return results
 # @lc code=end
