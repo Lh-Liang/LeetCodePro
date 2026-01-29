@@ -12,48 +12,42 @@
 #         self.next = next
 class Solution:
     def reverseEvenLengthGroups(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # The first group always has length 1 (odd), so it is never reversed.
-        # 'prev' tracks the node immediately preceding the current group.
+        if not head or not head.next:
+            return head
+        
+        # The first group is always size 1 (odd), so we skip it.
         prev = head
         group_size = 2
         
         while prev.next:
-            # 1. Count the actual number of nodes available for this group
-            count = 0
+            # 1. Count nodes in current group
             curr = prev.next
-            while curr and count < group_size:
-                count += 1
-                curr = curr.next
+            actual_count = 0
+            temp = curr
+            while temp and actual_count < group_size:
+                temp = temp.next
+                actual_count += 1
             
-            # 2. If the actual group length is even, reverse it
-            if count % 2 == 0:
-                node_to_reverse = prev.next
+            if actual_count % 2 == 0:
+                # 2. Reverse even group
                 rev_prev = None
-                rev_curr = node_to_reverse
+                node = curr
+                for _ in range(actual_count):
+                    nxt = node.next
+                    node.next = rev_prev
+                    rev_prev = node
+                    node = nxt
                 
-                # Standard in-place linked list reversal for 'count' nodes
-                for _ in range(count):
-                    next_node = rev_curr.next
-                    rev_curr.next = rev_prev
-                    rev_prev = rev_curr
-                    rev_curr = next_node
-                
-                # 3. Reconnect the reversed segment
-                # 'rev_prev' is the new head of the segment
-                # 'rev_curr' is the first node of the next group
-                # 'node_to_reverse' is the new tail of the segment
-                tail = node_to_reverse
+                # 3. Re-link
+                # prev -> [reversed group] -> node (which is temp/next_start)
                 prev.next = rev_prev
-                tail.next = rev_curr
-                
-                # Move 'prev' to the tail of the processed group
-                prev = tail
+                curr.next = node
+                prev = curr
             else:
-                # 4. If odd, skip reversal and move 'prev' to the last node of the group
-                for _ in range(count):
+                # 4. Skip odd group
+                for _ in range(actual_count):
                     prev = prev.next
             
-            # Prepare for the next potential group
             group_size += 1
             
         return head
