@@ -5,81 +5,54 @@
 #
 
 # @lc code=start
-from typing import List
+import math
 
 class Solution:
     def permute(self, n: int, k: int) -> List[int]:
-        # Precompute factorials, capped at k + 1 to prevent dealing with 100!
-        LIMIT = k + 1
+        # Precompute capped factorials to avoid overflow
+        MAX_K = 10**15 + 7
         fact = [1] * (n + 1)
         for i in range(2, n + 1):
-            fact[i] = min(LIMIT, fact[i - 1] * i)
-
-        def count_ways(rem_o, rem_e, next_is_odd):
-            """
-            Calculates how many ways to complete an alternating sequence.
-            Since the parity must alternate, the parity of every remaining position 
-            is fixed. Thus, we just need to check if the counts of remaining 
-            odd/even numbers match the required parity slots.
-            """
-            total_rem = rem_o + rem_e
-            if total_rem == 0:
-                return 1
+            fact[i] = min(MAX_K, fact[i-1] * i)
             
-            # If we must start with Odd:
-            # If total_rem is 2m, we need m odd and m even.
-            # If total_rem is 2m+1, we need m+1 odd and m even.
+        def get_ways(rem_o, rem_e, next_is_odd):
+            if rem_o < 0 or rem_e < 0: return 0
             if next_is_odd:
-                if not (rem_o == (total_rem + 1) // 2 and rem_e == total_rem // 2):
-                    return 0
+                if rem_o != rem_e and rem_o != rem_e + 1: return 0
             else:
-                # If we must start with Even:
-                if not (rem_e == (total_rem + 1) // 2 and rem_o == total_rem // 2):
-                    return 0
-            
-            # If the parity counts are valid, the number of ways is simply 
-            # the number of ways to arrange the remaining odd numbers multiplied 
-            # by the number of ways to arrange the remaining even numbers.
-            res = fact[rem_o]
-            if res >= LIMIT: 
-                res = LIMIT
-            res *= fact[rem_e]
-            return min(LIMIT, res)
+                if rem_e != rem_o and rem_e != rem_o + 1: return 0
+            return min(MAX_K, fact[rem_o] * fact[rem_e])
 
         res = []
         used = [False] * (n + 1)
         rem_o = (n + 1) // 2
         rem_e = n // 2
-
+        
         for i in range(n):
             found = False
-            for v in range(1, n + 1):
-                if used[v]:
-                    continue
-                
-                is_odd = (v % 2 != 0)
-                # Check alternating constraint against the previous element
-                if i > 0 and is_odd == (res[-1] % 2 != 0):
-                    continue
-
-                # Calculate remaining counts and the required parity for the next position
-                n_rem_o = rem_o - (1 if is_odd else 0)
-                n_rem_e = rem_e - (1 if not is_odd else 0)
-                next_is_odd = not is_odd
-                
-                ways = count_ways(n_rem_o, n_rem_e, next_is_odd)
-                
-                if k <= ways:
-                    res.append(v)
-                    used[v] = True
-                    rem_o, rem_e = n_rem_o, n_rem_e
-                    found = True
-                    break
-                else:
-                    k -= ways
-            
+            for val in range(1, n + 1):
+                if not used[val]:
+                    is_odd = (val % 2 != 0)
+                    # Check parity constraint
+                    if i > 0 and is_odd == (res[-1] % 2 != 0):
+                        continue
+                    
+                    # Calculate ways if we pick 'val'
+                    ways = get_ways(rem_o - (1 if is_odd else 0), 
+                                    rem_e - (0 if is_odd else 1), 
+                                    not is_odd if i < n - 1 else True)
+                    
+                    if k <= ways:
+                        res.append(val)
+                        used[val] = True
+                        if is_odd: rem_o -= 1
+                        else: rem_e -= 1
+                        found = True
+                        break
+                    else:
+                        k -= ways
             if not found:
                 return []
-
+        
         return res
 # @lc code=end
