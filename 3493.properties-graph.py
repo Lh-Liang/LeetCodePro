@@ -15,28 +15,25 @@ class Solution:
                 return i
             parent[i] = find(parent[i])
             return parent[i]
-            
+        
         def union(i, j):
             root_i = find(i)
             root_j = find(j)
             if root_i != root_j:
                 parent[root_i] = root_j
+                return True
+            return False
 
-        # Pre-convert each property list to a set to count distinct integers efficiently
-        property_sets = [set(p) for p in properties]
+        # Convert each property list to a set to handle 'distinct' elements and speed up intersection
+        sets = [set(p) for p in properties]
+        components = n
         
-        # Compare all pairs to build the graph components
         for i in range(n):
             for j in range(i + 1, n):
-                # Intersection of sets gives the distinct common integers
-                if len(property_sets[i] & property_sets[j]) >= k:
-                    union(i, j)
-        
-        # Count how many distinct roots exist in the DSU
-        num_components = 0
-        for i in range(n):
-            if parent[i] == i:
-                num_components += 1
-                
-        return num_components
+                # Calculate number of distinct integers common to both using set intersection
+                if len(sets[i].intersection(sets[j])) >= k:
+                    if union(i, j):
+                        components -= 1
+                        
+        return components
 # @lc code=end
