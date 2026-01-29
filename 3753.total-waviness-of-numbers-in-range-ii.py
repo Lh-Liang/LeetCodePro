@@ -7,59 +7,47 @@
 # @lc code=start
 class Solution:
     def totalWaviness(self, num1: int, num2: int) -> int:
-        def solve(s):
-            digits = list(map(int, str(s)))
-            n = len(digits)
-            # memo key: (index, second_last_digit, last_digit, is_less, is_started)
-            # value: (count_of_numbers, sum_of_waviness)
+        def calc(num: int) -> int:
+            if num <= 0:
+                return 0
+            S = [int(c) for c in str(num)]
+            L = len(S)
             memo = {}
-
-            def dp(idx, second_last, last, is_less, is_started):
-                if idx == n:
-                    return 1, 0
-                
-                state = (idx, second_last, last, is_less, is_started)
-                if state in memo:
-                    return memo[state]
-                
-                limit = digits[idx] if not is_less else 9
-                total_count = 0
-                total_waviness = 0
-                
-                for d in range(limit + 1):
-                    new_less = is_less or (d < limit)
-                    new_started = is_started or (d > 0)
-                    
-                    if not new_started:
-                        # Still in leading zeros
-                        c, w = dp(idx + 1, 10, 10, new_less, False)
-                        total_count += c
-                        total_waviness += w
+            def dfs(pos: int, tight: int, prev: int, pprev: int) -> tuple[int, int]:
+                if pos == L:
+                    return 0, 1 if prev != 10 else 0
+                key = (pos, tight, prev, pprev)
+                if key in memo:
+                    return memo[key]
+                res_sum = 0
+                res_cnt = 0
+                up = S[pos] if tight == 1 else 9
+                for d in range(up + 1):
+                    nt = 1 if tight == 1 and d == S[pos] else 0
+                    if prev == 10 and d == 0:
+                        ssum, scnt = dfs(pos + 1, nt, 10, 10)
+                        res_sum += ssum
+                        res_cnt += scnt
                     else:
-                        # Check if the previous digit (last) becomes a peak or valley
-                        # This requires a valid 3-digit window: second_last, last, d
-                        current_contribution = 0
-                        if second_last != 10 and last != 10:
-                            if (last > second_last and last > d) or (last < second_last and last < d):
-                                current_contribution = 1
-                        
-                        # Determine args for next call
-                        # If this is the very first digit (is_started was False), 
-                        # then effectively second_last remains "empty" (10) for the next state,
-                        # and last becomes d.
-                        # If we had already started, we shift the window.
-                        next_second_last = 10 if not is_started else last
-                        next_last = d
-                        
-                        c, w = dp(idx + 1, next_second_last, next_last, new_less, True)
-                        
-                        total_count += c
-                        total_waviness += w + (c * current_contribution)
-                
-                memo[state] = (total_count, total_waviness)
-                return total_count, total_waviness
-
-            return dp(0, 10, 10, False, False)[1]
-
-        return solve(num2) - solve(num1 - 1)
+                        curr = d
+                        if prev == 10:
+                            np = curr
+                            npp = 10
+                        else:
+                            np = curr
+                            npp = prev
+                        ssum, scnt = dfs(pos + 1, nt, np, npp)
+                        contrib = 0
+                        if prev != 10 and pprev != 10:
+                            p_digit = prev
+                            pp_digit = pprev
+                            c_digit = curr
+                            if (p_digit > pp_digit and p_digit > c_digit) or (p_digit < pp_digit and p_digit < c_digit):
+                                contrib = scnt
+                        res_sum += ssum + contrib
+                        res_cnt += scnt
+                memo[key] = (res_sum, res_cnt)
+                return memo[key]
+            return dfs(0, 1, 10, 10)[0]
+        return calc(num2) - calc(num1 - 1)
 # @lc code=end
