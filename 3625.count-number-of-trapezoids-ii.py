@@ -5,59 +5,74 @@
 #
 
 # @lc code=start
-import math
-from collections import defaultdict
 from typing import List
+from collections import defaultdict
+from math import gcd
 
 class Solution:
     def countTrapezoids(self, points: List[List[int]]) -> int:
         n = len(points)
-        slopes = defaultdict(lambda: defaultdict(int))
+        if n < 4:
+            return 0
         
-        def get_slope_and_line(p1, p2):
-            dx = p1[0] - p2[0]
-            dy = p1[1] - p2[1]
-            if dx == 0:
-                return (0, 1), p1[0]
-            if dy == 0:
-                return (1, 0), p1[1]
-            g = math.gcd(dx, dy)
-            dx //= g
-            dy //= g
-            if dx < 0 or (dx == 0 and dy < 0):
-                dx, dy = -dx, -dy
-            # Line equation: dy*x - dx*y = c
-            c = dy * p1[0] - dx * p1[1]
-            return (dx, dy), c
+        def comb2(k: int) -> int:
+            return k * (k - 1) // 2
+        
+        # Collect all unique slopes and pair counts
+        slopes = set()
+        slope_paircount = defaultdict(int)
+        for i in range(n):
+            for j in range(i + 1, n):
+                x1, y1 = points[i]
+                x2, y2 = points[j]
+                dx = x2 - x1
+                dy = y2 - y1
+                g = gcd(abs(dx), abs(dy))
+                if g != 0:
+                    dx //= g
+                    dy //= g
+                if dx < 0 or (dx == 0 and dy < 0):
+                    dx = -dx
+                    dy = -dy
+                sl = (dy, dx)
+                slopes.add(sl)
+                slope_paircount[sl] += 1
+        
+        # Compute S
+        S = 0
+        for sl in slopes:
+            if slope_paircount[sl] < 2:
+                continue
+            dy, dx = sl
+            b_count = defaultdict(int)
+            for x, y in points:
+                b = dy * x - dx * y
+                b_count[b] += 1
+            sizes = [cnt for cnt in b_count.values() if cnt >= 2]
+            m = len(sizes)
+            for ii in range(m):
+                for jj in range(ii + 1, m):
+                    S += comb2(sizes[ii]) * comb2(sizes[jj])
+        
+        # Compute P: parallelograms via shared midpoints
+        mid_to_diags = defaultdict(list)
+        for i in range(n):
+            for k in range(i + 1, n):
+                sx = points[i][0] + points[k][0]
+                sy = points[i][1] + points[k][1]
+                mid_to_diags[(sx, sy)].append((i, k))
+        
+        P = 0
+        for diags in mid_to_diags.values():
+            ld = len(diags)
+            for a in range(ld):
+                for b in range(a + 1, ld):
+                    i1, k1 = diags[a]
+                    i2, k2 = diags[b]
+                    ends = {i1, k1, i2, k2}
+                    if len(ends) == 4:
+                        P += 1
+        
+        return S - P
 
-        for i in range(n):
-            for j in range(i + 1, n):
-                slope, line = get_slope_and_line(points[i], points[j])
-                slopes[slope][line] += 1
-        
-        total_p_s = 0
-        for slope in slopes:
-            line_counts = list(slopes[slope].values())
-            sum_counts = sum(line_counts)
-            sum_sq_counts = sum(x * x for x in line_counts)
-            # Pairs of segments with same slope on different lines
-            total_p_s += (sum_counts**2 - sum_sq_counts) // 2
-            
-        midpoints = defaultdict(lambda: defaultdict(int))
-        for i in range(n):
-            for j in range(i + 1, n):
-                mx = points[i][0] + points[j][0]
-                my = points[i][1] + points[j][1]
-                slope, _ = get_slope_and_line(points[i], points[j])
-                midpoints[(mx, my)][slope] += 1
-        
-        total_parallelograms = 0
-        for m_coord in midpoints:
-            m_slopes = list(midpoints[m_coord].values())
-            m_sum = sum(m_slopes)
-            m_sum_sq = sum(x * x for x in m_slopes)
-            # Parallelograms with this midpoint: pairs of segments with different slopes
-            total_parallelograms += (m_sum**2 - m_sum_sq) // 2
-            
-        return total_p_s - total_parallelograms
 # @lc code=end
