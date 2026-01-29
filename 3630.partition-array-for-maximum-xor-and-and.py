@@ -8,62 +8,59 @@
 class Solution:
     def maximizeXorAndXor(self, nums: List[int]) -> int:
         n = len(nums)
-        ans = 0
-        
-        # Precompute XOR of all elements to easily find XOR of S_AC
-        total_xor = 0
-        for x in nums:
-            total_xor ^= x
-            
-        # Iterate through all possible subsets for B
-        # mask represents the indices of elements chosen for subsequence B
-        for mask in range(1 << n):
-            and_b = -1
-            xor_ac = total_xor
-            s_ac = []
-            
-            for i in range(n):
-                if (mask >> i) & 1:
-                    if and_b == -1:
-                        and_b = nums[i]
-                    else:
-                        and_b &= nums[i]
-                else:
-                    xor_ac ^= 0 # nums[i] is already in total_xor
-            
-            # If B is empty, AND(B) = 0
-            val_b = and_b if and_b != -1 else 0
-            
-            # xor_ac is the XOR of elements not in B
-            # We need to calculate XOR of elements in S_AC
-            # which is actually total_xor ^ (XOR of elements in B)
-            curr_xor_b = 0
-            for i in range(n):
-                if (mask >> i) & 1:
-                    curr_xor_b ^= nums[i]
-            
-            target_t = total_xor ^ curr_xor_b
-            not_t = ~target_t
-            
-            # Maximize X & not_t where X is XOR of some subset of S_AC
-            basis = []
-            for i in range(n):
-                if not ((mask >> i) & 1):
-                    val = nums[i] & not_t
-                    for b in basis:
-                        val = min(val, val ^ b)
-                    if val > 0:
-                        basis.append(val)
-                        basis.sort(reverse=True)
-            
-            max_x_masked = 0
+        basis = [0] * 31
+        self.ans = 0
+
+        def get_max_xor_masked(basis, mask):
+            res = 0
+            temp_basis = []
             for b in basis:
-                if (max_x_masked ^ b) > max_x_masked:
-                    max_x_masked ^= b
+                if b == 0: continue
+                x = b & mask
+                if x == 0: continue
+                for tb in temp_basis:
+                    x = min(x, x ^ tb)
+                if x > 0:
+                    temp_basis.append(x)
+                    temp_basis.sort(reverse=True)
+            for tb in temp_basis:
+                res = max(res, res ^ tb)
+            return res
+
+        def solve(idx, cur_and, cur_xor_v, b_count):
+            if idx == n:
+                val_b = cur_and if b_count > 0 else 0
+                # Mask is ~cur_xor_v, limited to 30 bits
+                mask = 0x3FFFFFFF ^ cur_xor_v
+                max_xor_val = get_max_xor_masked(basis, mask)
+                total = val_b + cur_xor_v + 2 * max_xor_val
+                if total > self.ans:
+                    self.ans = total
+                return
+
+            val = nums[idx]
             
-            current_total = val_b + target_t + 2 * max_x_masked
-            if current_total > ans:
-                ans = current_total
-                
-        return ans
+            # Branch 1: Put nums[idx] in B
+            new_and = val if b_count == 0 else cur_and & val
+            solve(idx + 1, new_and, cur_xor_v, b_count + 1)
+
+            # Branch 2: Put nums[idx] in V (A or C)
+            # Update basis with backtracking
+            x = val
+            pos = -1
+            for i in range(30, -1, -1):
+                if (x >> i) & 1:
+                    if not basis[i]:
+                        basis[i] = x
+                        pos = i
+                        break
+                    x ^= basis[i]
+            
+            solve(idx + 1, cur_and, cur_xor_v ^ val, b_count)
+            
+            if pos != -1:
+                basis[pos] = 0
+
+        solve(0, 0, 0, 0)
+        return self.ans
 # @lc code=end
