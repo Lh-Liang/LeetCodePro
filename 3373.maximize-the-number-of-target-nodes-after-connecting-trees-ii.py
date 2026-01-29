@@ -5,50 +5,52 @@
 #
 
 # @lc code=start
+from typing import List
 from collections import deque
 
 class Solution:
     def maxTargetNodes(self, edges1: List[List[int]], edges2: List[List[int]]) -> List[int]:
+        def get_color_counts(edges, num_nodes):
+            if num_nodes == 0:
+                return [], [0, 0]
+            adj = [[] for _ in range(num_nodes)]
+            for u, v in edges:
+                adj[u].append(v)
+                adj[v].append(u)
+            
+            colors = [-1] * num_nodes
+            counts = [0, 0]
+            
+            # Iterative BFS to avoid recursion depth issues
+            queue = deque([0])
+            colors[0] = 0
+            counts[0] = 1
+            
+            while queue:
+                u = queue.popleft()
+                for v in adj[u]:
+                    if colors[v] == -1:
+                        colors[v] = 1 - colors[u]
+                        counts[colors[v]] += 1
+                        queue.append(v)
+            return colors, counts
+
         n = len(edges1) + 1
         m = len(edges2) + 1
-        adj1 = [[] for _ in range(n)]
-        for a, b in edges1:
-            adj1[a].append(b)
-            adj1[b].append(a)
-        adj2 = [[] for _ in range(m)]
-        for a, b in edges2:
-            adj2[a].append(b)
-            adj2[b].append(a)
-        # Tree2
-        color2 = [-1] * m
-        sz2 = [0, 0]
-        q = deque([0])
-        color2[0] = 0
-        sz2[0] += 1
-        while q:
-            u = q.popleft()
-            for v in adj2[u]:
-                if color2[v] == -1:
-                    color2[v] = 1 - color2[u]
-                    sz2[color2[v]] += 1
-                    q.append(v)
-        big2 = max(sz2[0], sz2[1])
-        # Tree1
-        color1 = [-1] * n
-        sz1 = [0, 0]
-        q = deque([0])
-        color1[0] = 0
-        sz1[0] += 1
-        while q:
-            u = q.popleft()
-            for v in adj1[u]:
-                if color1[v] == -1:
-                    color1[v] = 1 - color1[u]
-                    sz1[color1[v]] += 1
-                    q.append(v)
+        
+        colors1, counts1 = get_color_counts(edges1, n)
+        _, counts2 = get_color_counts(edges2, m)
+        
+        # For any node i in Tree 1, we can connect it to a node in Tree 2
+        # such that we reach the maximum number of nodes in Tree 2 at an even distance.
+        # The distance from i to k in Tree 2 is 1 + dist(bridge_node_in_Tree2, k).
+        # We want 1 + dist to be even, so dist must be odd.
+        # The max nodes at an odd distance from any node in Tree 2 is max(counts2[0], counts2[1]).
+        max_tree2_contribution = max(counts2)
+        
         ans = [0] * n
         for i in range(n):
-            ans[i] = sz1[color1[i]] + big2
+            ans[i] = counts1[colors1[i]] + max_tree2_contribution
+            
         return ans
-
 # @lc code=end
