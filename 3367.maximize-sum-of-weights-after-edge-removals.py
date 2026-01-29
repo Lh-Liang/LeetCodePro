@@ -5,59 +5,36 @@
 #
 
 # @lc code=start
+import sys
+sys.setrecursionlimit(100010)
+from typing import List
 class Solution:
     def maximizeSumOfWeights(self, edges: List[List[int]], k: int) -> int:
         n = len(edges) + 1
         adj = [[] for _ in range(n)]
-        for u, v, w in edges:
-            adj[u].append((v, w))
-            adj[v].append((u, w))
-        
-        # Standard iterative post-order traversal for tree DP
-        parent = [-1] * n
-        order = []
-        stack = [0]
-        visited = [False] * n
-        visited[0] = True
-        while stack:
-            u = stack.pop()
-            order.append(u)
+        for a, b, w in edges:
+            adj[a].append((b, w))
+            adj[b].append((a, w))
+        def dfs(u, p):
+            deltas = []
+            sum_a = 0
             for v, w in adj[u]:
-                if not visited[v]:
-                    visited[v] = True
-                    parent[v] = u
-                    stack.append(v)
-        
-        f0 = [0] * n
-        f1 = [0] * n
-        
-        for u in reversed(order):
-            base_sum = 0
-            diffs = []
-            for v, w in adj[u]:
-                if v == parent[u]:
+                if v == p:
                     continue
-                base_sum += f0[v]
-                d = f1[v] + w - f0[v]
-                if d > 0:
-                    diffs.append(d)
-            
-            diffs.sort(reverse=True)
-            
-            # f0[u]: max k edges to children (parent edge not kept)
-            # f1[u]: max k-1 edges to children (parent edge kept)
-            
-            # Calculate f1[u] first (up to k-1 neighbors)
-            gain_k_minus_1 = sum(diffs[:k-1])
-            f1[u] = base_sum + gain_k_minus_1
-            
-            # Calculate f0[u] (up to k neighbors)
-            if len(diffs) >= k:
-                f0[u] = f1[u] + diffs[k-1]
-            else:
-                f0[u] = f1[u] + (diffs[len(diffs)-1] if len(diffs) > k-1 else 0)
-            # Re-calculating cleanly for safety
-            f0[u] = base_sum + sum(diffs[:k])
-            
-        return f0[0]
+                a_v, b_v = dfs(v, u)
+                delta = w + b_v - a_v
+                deltas.append(delta)
+                sum_a += a_v
+            deltas.sort(reverse=True)
+            m = len(deltas)
+            prefix = [0] * (m + 1)
+            for i in range(1, m + 1):
+                prefix[i] = prefix[i - 1] + deltas[i - 1]
+            max_idx_a = min(k, m)
+            a_u = sum_a + max(prefix[j] for j in range(max_idx_a + 1))
+            max_idx_b = min(k - 1, m)
+            b_u = sum_a + max(prefix[j] for j in range(max_idx_b + 1))
+            return a_u, b_u
+        return dfs(0, -1)[0]
+
 # @lc code=end
