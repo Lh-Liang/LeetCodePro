@@ -1,51 +1,28 @@
-import collections
-from typing import List
-
 #
 # @lc app=leetcode id=3785 lang=python3
 #
 # [3785] Minimum Swaps to Avoid Forbidden Values
 #
+
 # @lc code=start
 class Solution:
     def minSwaps(self, nums: List[int], forbidden: List[int]) -> int:
+        from collections import Counter
         n = len(nums)
-        conflict_indices = []
-        for i in range(n):
-            if nums[i] == forbidden[i]:
-                conflict_indices.append(i)
-        
-        # Feasibility Check
-        # We need to ensure that for every value v, there are enough valid positions.
-        # A position i is valid for value v if forbidden[i] != v.
-        # The number of allowed positions for v is n - count(v in forbidden).
-        # We must have count(v in nums) <= n - count(v in forbidden).
-        
-        nums_counts = collections.Counter(nums)
-        forbidden_counts = collections.Counter(forbidden)
-        
-        for val, count in nums_counts.items():
-            if count > n - forbidden_counts[val]:
+        num_cnt = Counter(nums)
+        forb_cnt = Counter(forbidden)
+        for v, cnt in num_cnt.items():
+            if cnt > n - forb_cnt[v]:
                 return -1
-                
-        if not conflict_indices:
+        bad_cnt = Counter()
+        total_bad = 0
+        for num, f in zip(nums, forbidden):
+            if num == f:
+                bad_cnt[num] += 1
+                total_bad += 1
+        if total_bad == 0:
             return 0
-            
-        # If feasible, calculate minimum swaps.
-        # Let M be the number of conflicts.
-        # Let max_freq be the maximum frequency of any single value among the conflict values.
-        # Minimum swaps needed is max(ceil(M / 2), max_freq).
-        
-        conflict_vals = [nums[i] for i in conflict_indices]
-        conflict_val_counts = collections.Counter(conflict_vals)
-        
-        max_freq = 0
-        if conflict_val_counts:
-            max_freq = max(conflict_val_counts.values())
-            
-        m = len(conflict_indices)
-        
-        # (m + 1) // 2 implements ceil(m / 2) for integers
-        return max((m + 1) // 2, max_freq)
-        
+        max_excess = max(2 * c - total_bad for c in bad_cnt.values())
+        unmatched = max(total_bad % 2, max_excess)
+        return (total_bad - unmatched) // 2 + unmatched
 # @lc code=end
