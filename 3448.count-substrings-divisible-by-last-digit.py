@@ -7,33 +7,18 @@
 # @lc code=start
 class Solution:
     def countSubstrings(self, s: str) -> int:
-        # dp[d][r] stores the number of substrings ending at the current index
-        # that have a remainder r when divided by divisor d (1-9).
-        dp = [[0] * 10 for _ in range(10)]
-        total_count = 0
+        count = 0
+        n = len(s)
         
-        for char in s:
-            digit = int(char)
-            # next_dp will store the counts for the next index
-            next_dp = [[0] * 10 for _ in range(10)]
-            
-            # For each potential divisor d from 1 to 9
-            for d in range(1, 10):
-                # Update remainders for all substrings ending at the previous character
-                for r in range(d):
-                    if dp[d][r] > 0:
-                        new_remainder = (r * 10 + digit) % d
-                        next_dp[d][new_remainder] += dp[d][r]
-                
-                # Include the new substring starting and ending at the current character
-                next_dp[d][digit % d] += 1
-            
-            # If the current digit is non-zero, it is a valid divisor.
-            # Add all substrings ending here that are divisible by this digit.
-            if digit > 0:
-                total_count += next_dp[digit][0]
-            
-            dp = next_dp
-            
-        return total_count
+        # Iterate over each starting point for substrings
+        for start in range(n):
+            # Form substrings from `start` to `end`
+            for end in range(start, n):
+                # Current substring's last digit
+                last_digit = int(s[end])
+                if last_digit != 0: # Check if last digit is non-zero
+                    # Convert substring to integer and check divisibility
+                    if int(s[start:end+1]) % last_digit == 0:
+                        count += 1
+        return count
 # @lc code=end
