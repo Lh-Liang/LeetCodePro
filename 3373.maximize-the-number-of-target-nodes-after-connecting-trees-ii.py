@@ -5,25 +5,23 @@
 #
 
 # @lc code=start
-from collections import deque
+import collections
 from typing import List
 
 class Solution:
     def maxTargetNodes(self, edges1: List[List[int]], edges2: List[List[int]]) -> List[int]:
-        def get_bipartite_counts(edges):
+        def get_tree_stats(edges):
             n = len(edges) + 1
             adj = [[] for _ in range(n)]
             for u, v in edges:
                 adj[u].append(v)
                 adj[v].append(u)
             
-            # colors[i] stores the partition (0 or 1) for node i
             colors = [-1] * n
             counts = [0, 0]
             
-            # BFS to color the tree and count nodes in each partition
-            # Since it's a tree, it's guaranteed to be bipartite
-            queue = deque([0])
+            # Standard BFS to 2-color the tree
+            queue = collections.deque([0])
             colors[0] = 0
             counts[0] = 1
             
@@ -36,19 +34,13 @@ class Solution:
                         queue.append(v)
             return colors, counts
 
-        # Process Tree 1: Get partition assignment for each node and total counts
-        colors1, counts1 = get_bipartite_counts(edges1)
-        
-        # Process Tree 2: Get total partition counts
-        _, counts2 = get_bipartite_counts(edges2)
-        
-        # For any node i in Tree 1, we can connect it to a node j in Tree 2
-        # such that we capture all nodes in the larger partition of Tree 2.
-        # The distance through the bridge is 1 (odd), so an odd distance in Tree 2
-        # results in an even total distance.
-        max_from_tree2 = max(counts2)
         n = len(edges1) + 1
+        colors1, counts1 = get_tree_stats(edges1)
         
-        # answer[i] = (nodes in i's partition in T1) + (nodes in largest partition in T2)
-        return [counts1[colors1[i]] + max_from_tree2 for i in range(n)]
+        # For Tree 2, we only care about the size of the larger color partition
+        _, counts2 = get_tree_stats(edges2)
+        max_tree2_contribution = max(counts2)
+        
+        # The answer for node i is (nodes in Tree 1 with same color as i) + (max parity set in Tree 2)
+        return [counts1[colors1[i]] + max_tree2_contribution for i in range(n)]
 # @lc code=end
