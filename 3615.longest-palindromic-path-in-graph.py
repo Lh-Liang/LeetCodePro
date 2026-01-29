@@ -5,60 +5,47 @@
 #
 
 # @lc code=start
-from collections import deque
-
 class Solution:
-    def maxLen(self, n: int, edges: list[list[int]], label: str) -> int:
-        if n == 0:
-            return 0
-        
+    def maxLen(self, n: int, edges: List[List[int]], label: str) -> int:
         adj = [[] for _ in range(n)]
-        adj_by_char = [[[] for _ in range(26)] for _ in range(n)]
-        for u, v in edges:
-            adj[u].append(v)
-            adj[v].append(u)
-            adj_by_char[u][ord(label[v]) - 97].append(v)
-            adj_by_char[v][ord(label[u]) - 97].append(u)
-            
-        # visited[u][v] stores sets of masks for a palindromic path between u and v
-        visited = [[set() for _ in range(n)] for _ in range(n)]
-        states = [[] for _ in range(n + 1)]
-        
-        max_len = 1
-        
-        # Base Case: Length 1
-        for i in range(n):
-            mask = 1 << i
-            states[1].append((mask, i, i))
-            visited[i][i].add(mask)
-            
-        # Base Case: Length 2
-        for u, v in edges:
-            if label[u] == label[v]:
-                mask = (1 << u) | (1 << v)
-                if mask not in visited[u][v]:
-                    states[2].append((mask, u, v))
-                    visited[u][v].add(mask)
-                    visited[v][u].add(mask)
-                    max_len = 2
-        
-        # Expand from length L to L+2
-        for L in range(1, n - 1):
-            if not states[L]:
-                continue
-            for mask, u, v in states[L]:
-                for x in adj[u]:
-                    if not (mask & (1 << x)):
-                        char_idx = ord(label[x]) - 97
-                        for y in adj_by_char[v][char_idx]:
-                            if x != y and not (mask & (1 << y)):
-                                new_mask = mask | (1 << x) | (1 << y)
-                                if new_mask not in visited[x][y]:
-                                    visited[x][y].add(new_mask)
-                                    visited[y][x].add(new_mask)
-                                    states[L + 2].append((new_mask, x, y))
-                                    if L + 2 > max_len:
-                                        max_len = L + 2
-                                        
-        return max_len
+        for a, b in edges:
+            adj[a].append(b)
+            adj[b].append(a)
+        pop = [bin(i).count('1') for i in range(1 << n)]
+        ans = 1
+        SHIFT = 1 << n
+        SIZE = n * n * SHIFT
+        def compute_maxk(s_ul, s_ur, s_mask, centers):
+            visited = bytearray(SIZE)
+            local_maxk = [0]
+            def _dfs(ul, ur, mask):
+                idx = ((ul * n + ur) * SHIFT) + mask
+                if visited[idx]:
+                    return
+                visited[idx] = 1
+                used = pop[mask]
+                k = (used - centers) // 2
+                if k > local_maxk[0]:
+                    local_maxk[0] = k
+                for nl in adj[ul]:
+                    if (mask & (1 << nl)) == 0:
+                        chl = label[nl]
+                        for nr in adj[ur]:
+                            if (mask & (1 << nr)) == 0 and nl != nr and label[nr] == chl:
+                                new_mask = mask | (1 << nl) | (1 << nr)
+                                _dfs(nl, nr, new_mask)
+            _dfs(s_ul, s_ur, s_mask)
+            return local_maxk[0]
+        # odd lengths
+        for c in range(n):
+            mk = compute_maxk(c, c, 1 << c, 1)
+            ans = max(ans, 1 + 2 * mk)
+        # even lengths
+        for u in range(n):
+            for v in adj[u]:
+                if u < v and label[u] == label[v]:
+                    mk = compute_maxk(u, v, (1 << u) | (1 << v), 2)
+                    ans = max(ans, 2 + 2 * mk)
+        return ans
+
 # @lc code=end
