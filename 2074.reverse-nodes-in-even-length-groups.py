@@ -15,38 +15,41 @@ class Solution:
         if not head or not head.next:
             return head
         
-        prev_tail = head
-        k = 2
+        # The first group is always size 1 (odd), so we start with the second group.
+        prev = head
+        group_size = 2
         
-        while prev_tail.next:
+        while prev.next:
             # Count actual nodes in the current group
-            n = 0
-            curr = prev_tail.next
-            while curr and n < k:
+            curr = prev.next
+            count = 0
+            while count < group_size and curr:
                 curr = curr.next
-                n += 1
+                count += 1
             
-            if n % 2 == 0:
-                # Reverse the current group of size n
-                group_start = prev_tail.next
+            if count % 2 == 0:
+                # Reverse the nodes in this group
+                curr = prev.next
                 rev_prev = None
-                curr = group_start
-                for _ in range(n):
+                for _ in range(count):
                     nxt = curr.next
                     curr.next = rev_prev
                     rev_prev = curr
                     curr = nxt
                 
-                # Connect the reversed segment back into the list
-                prev_tail.next = rev_prev
-                group_start.next = curr
-                prev_tail = group_start
+                # Re-link the reversed group back into the list
+                # tail is the original first node, which is now the last node of the group
+                tail = prev.next
+                prev.next = rev_prev
+                tail.next = curr
+                prev = tail
             else:
-                # Skip the current group of size n
-                for _ in range(n):
-                    prev_tail = prev_tail.next
+                # If the group size is odd, just skip it
+                for _ in range(count):
+                    prev = prev.next
             
-            k += 1
+            # Increment expected group size for the next iteration
+            group_size += 1
             
         return head
 # @lc code=end
