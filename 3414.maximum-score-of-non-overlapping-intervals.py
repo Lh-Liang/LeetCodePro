@@ -5,54 +5,59 @@
 #
 
 # @lc code=start
-from bisect import bisect_left
-from collections import defaultdict
+import bisect
+from typing import List
 
 class Solution:
     def maximumWeight(self, intervals: List[List[int]]) -> List[int]:
-        # 1. Pre-process: Keep only the best interval for each (l, r) pair
-        # Best is defined by max weight, then min original index.
+        # 1. Aggressive Pruning: For unique [l, r], keep only max weight and min index.
         best_intervals = {}
         for i, (l, r, w) in enumerate(intervals):
-            if (l, r) not in best_intervals or w > best_intervals[(l, r)][0] or (w == best_intervals[(l, r)][0] and i < best_intervals[(l, r)][1]):
+            if (l, r) not in best_intervals:
                 best_intervals[(l, r)] = (w, i)
+            else:
+                curr_w, curr_idx = best_intervals[(l, r)]
+                if w > curr_w or (w == curr_w and i < curr_idx):
+                    best_intervals[(l, r)] = (w, i)
         
-        # 2. Sort intervals by end time for DP
-        # Each item: (r, l, w, original_index)
-        sorted_ints = []
-        for (l, r), (w, idx) in best_intervals.items():
-            sorted_ints.append((r, l, w, idx))
-        sorted_ints.sort()
+        # 2. Prepare sorted intervals for DP
+        # ivs: (l, r, w, original_index)
+        ivs = sorted([(l, r, w, idx) for (l, r), (w, idx) in best_intervals.items()])
+        n = len(ivs)
+        starts = [x[0] for x in ivs]
         
-        n = len(sorted_ints)
-        ends = [x[0] for x in sorted_ints]
+        # Pre-calculate next valid index: first j where ivs[j].l > ivs[i].r
+        next_j = [bisect.bisect_right(starts, ivs[i][1]) for i in range(n)]
         
-        # dp[k][i] = (max_weight, lexicographically_smallest_index_list)
-        # We use k=0..4 and i=0..n
-        # Initialize with weight 0 and empty index list
-        dp = [[(0, []) for _ in range(n + 1)] for _ in range(5)]
+        # dp[i] stores (max_weight, tuple_of_indices) for the current k
+        # Using suffix DP to find best selection from [i...n-1]
+        prev_dp = [(0, ())] * (n + 1)
         
         for k in range(1, 5):
-            for i in range(1, n + 1):
-                r_i, l_i, w_i, idx_i = sorted_ints[i-1]
+            curr_dp = [(0, ())] * (n + 1)
+            for i in range(n - 1, -1, -1):
+                # Option 1: Skip interval i
+                best_w, best_idx = curr_dp[i+1]
                 
-                # Option A: Don't include current interval
-                dp[k][i] = dp[k][i-1]
+                # Option 2: Take interval i
+                w_i = ivs[i][2]
+                idx_i = ivs[i][3]
+                w_next, idx_next = prev_dp[next_j[i]]
                 
-                # Option B: Include current interval
-                # Find last interval that ends before current starts
-                prev_idx = bisect_left(ends, l_i) 
-                prev_w, prev_indices = dp[k-1][prev_idx]
+                new_w = w_i + w_next
+                # To maintain lexicographical order, we need indices sorted.
+                # Since we process intervals by start time, we can merge idx_i with idx_next.
+                # However, the problem asks for the smallest array of indices.
+                new_indices = tuple(sorted(idx_next + (idx_i,)))
                 
-                curr_w = prev_w + w_i
-                curr_indices = sorted(prev_indices + [idx_i])
+                if new_w > best_w:
+                    best_w, best_idx = new_w, new_indices
+                elif new_w == best_w:
+                    if not best_idx or new_indices < best_idx:
+                        best_idx = new_indices
                 
-                # Compare with Option A
-                if curr_w > dp[k][i][0]:
-                    dp[k][i] = (curr_w, curr_indices)
-                elif curr_w == dp[k][i][0]:
-                    if not dp[k][i][1] or curr_indices < dp[k][i][1]:
-                        dp[k][i] = (curr_w, curr_indices)
-                        
-        return dp[4][n][1]
+                curr_dp[i] = (best_w, best_idx)
+            prev_dp = curr_dp
+            
+        return list(prev_dp[0][1])
 # @lc code=end
