@@ -5,50 +5,65 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def maximumCoins(self, coins: List[List[int]], k: int) -> int:
+        # Sort segments to process them in order
         coins.sort()
         n = len(coins)
         
-        def get_max(segments, k):
-            m = len(segments)
-            ans = 0
-            current_sum = 0
-            right = 0
-            
-            # Prefix sums of (r - l + 1) * c for full segments
-            prefix_coins = [0] * (m + 1)
-            for i in range(m):
-                l, r, c = segments[i]
-                prefix_coins[i+1] = prefix_coins[i] + (r - l + 1) * c
-            
-            for left in range(m):
-                l_start, r_start, c_start = segments[left]
-                window_end = l_start + k - 1
-                
-                # Move right pointer to the last segment that starts within the window
-                while right < m and segments[right][0] <= window_end:
-                    right += 1
-                
-                # Full segments are from index 'left' to 'right - 2'
-                # The segment at 'right - 1' might be partially covered
-                full_segments_sum = prefix_coins[right-1] - prefix_coins[left]
-                
-                # Partial segment at right-1
-                last_idx = right - 1
-                l_last, r_last, c_last = segments[last_idx]
-                partial_sum = (min(r_last, window_end) - l_last + 1) * c_last
-                
-                ans = max(ans, full_segments_sum + partial_sum)
-            return ans
-
-        # Case 1: Window starts at the beginning of a segment
-        res1 = get_max(coins, k)
+        # Precompute prefix sums of coins for O(1) range sum calculation
+        # prefix[i+1] = sum of coins in the first i segments
+        prefix = [0] * (n + 1)
+        for i in range(n):
+            l, r, c = coins[i]
+            prefix[i+1] = prefix[i] + (r - l + 1) * c
         
-        # Case 2: Window ends at the end of a segment
-        # Transform: [l, r, c] -> [-r, -l, c] and sort to reuse the 'start' logic
-        reversed_coins = sorted([[-r, -l, c] for l, r, c in coins])
-        res2 = get_max(reversed_coins, k)
+        max_total = 0
         
-        return max(res1, res2)
+        # Case 1: Window starts at the beginning of segment i
+        # Window is [coins[i][0], coins[i][0] + k - 1]
+        right_ptr = 0
+        for i in range(n):
+            start = coins[i][0]
+            end = start + k - 1
+            
+            # Advance right_ptr to find segments within the window
+            while right_ptr < n and coins[right_ptr][1] <= end:
+                right_ptr += 1
+            
+            # Full segments from i to right_ptr - 1
+            current_sum = prefix[right_ptr] - prefix[i]
+            
+            # Partial segment at right_ptr (if it starts before 'end')
+            if right_ptr < n and coins[right_ptr][0] <= end:
+                current_sum += (end - coins[right_ptr][0] + 1) * coins[right_ptr][2]
+            
+            max_total = max(max_total, current_sum)
+            
+        # Case 2: Window ends at the end of segment i
+        # Window is [coins[i][1] - k + 1, coins[i][1]]
+        left_ptr = 0
+        for i in range(n):
+            end = coins[i][1]
+            start = end - k + 1
+            
+            # Advance left_ptr to find segments within the window
+            # We want the first segment that doesn't end before 'start'
+            while left_ptr < n and coins[left_ptr][1] < start:
+                left_ptr += 1
+            
+            # Full segments from left_ptr + 1 to i
+            current_sum = prefix[i+1] - prefix[left_ptr+1]
+            
+            # Partial segment at left_ptr
+            if left_ptr <= i:
+                # The covered part of segment left_ptr is from max(l, start) to r
+                covered_l = max(coins[left_ptr][0], start)
+                current_sum += (coins[left_ptr][1] - covered_l + 1) * coins[left_ptr][2]
+            
+            max_total = max(max_total, current_sum)
+            
+        return max_total
 # @lc code=end
