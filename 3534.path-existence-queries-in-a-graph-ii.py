@@ -5,72 +5,75 @@
 #
 
 # @lc code=start
+import bisect
+from typing import List
+
 class Solution:
     def pathExistenceQueries(self, n: int, nums: List[int], maxDiff: int, queries: List[List[int]]) -> List[int]:
-        if not nums:
-            return []
-
-        # 1. Map values to unique sorted positions
-        unique_nums = sorted(list(set(nums)))
-        m = len(unique_nums)
-        val_to_idx = {v: i for i, v in enumerate(unique_nums)}
-        node_to_pos = [val_to_idx[num] for num in nums]
-
-        # 2. Pre-calculate components (connectivity check)
-        comp = [0] * m
-        curr_comp = 0
-        for i in range(1, m):
-            if unique_nums[i] - unique_nums[i-1] > maxDiff:
-                curr_comp += 1
-            comp[i] = curr_comp
-
-        # 3. Build Binary Lifting table for greedy jumping
-        # next_idx[i] = max index reachable from i in 1 jump
-        next_idx = [0] * m
-        r = 0
-        for l in range(m):
-            while r + 1 < m and unique_nums[r + 1] <= unique_nums[l] + maxDiff:
-                r += 1
-            next_idx[l] = r
-
-        # Sparse table: up[k][i] is the index reached from i after 2^k jumps
-        LOG = m.bit_length()
-        up = [next_idx]
-        for k in range(1, LOG):
-            prev = up[-1]
-            # Efficiency: use a local reference for the previous jump level
-            curr_level = [prev[prev[i]] for i in range(m)]
-            up.append(curr_level)
-
-        ans = []
-        for ui, vi in queries:
-            if ui == vi:
-                ans.append(0)
+        # Unique values sorted to define the state space
+        U = sorted(list(set(nums)))
+        M = len(U)
+        val_to_idx = {val: i for i, val in enumerate(U)}
+        
+        # LOG must be large enough so 2^(LOG-1) >= M. 
+        # For M = 10^5, 2^17 = 131,072 is sufficient.
+        LOG = 17
+        jump = [[0] * M for _ in range(LOG)]
+        
+        for i in range(M):
+            target = U[i] + maxDiff
+            # Find furthest reachable index k such that U[k] <= U[i] + maxDiff
+            k = bisect.bisect_right(U, target) - 1
+            jump[0][i] = k
+            
+        for j in range(1, LOG):
+            prev_row = jump[j-1]
+            curr_row = jump[j]
+            for i in range(M):
+                curr_row[i] = prev_row[prev_row[i]]
+        
+        node_val_idx = [val_to_idx[x] for x in nums]
+        Q = len(queries)
+        ans = [0] * Q
+        
+        # Local reference for speed
+        jump_tables = jump
+        max_reach_row = jump_tables[LOG-1]
+        
+        for i in range(Q):
+            u, v = queries[i]
+            if u == v:
+                ans[i] = 0
                 continue
             
-            u_pos, v_pos = node_to_pos[ui], node_to_pos[vi]
-            if u_pos == v_pos:
-                # Distinct nodes, same value: distance is 1 step
-                ans.append(1)
+            idx_u = node_val_idx[u]
+            idx_v = node_val_idx[v]
+            
+            # Same value, different nodes: distance is 1
+            if idx_u == idx_v:
+                ans[i] = 1
                 continue
             
-            # Normalize: start is always the smaller index
-            start, target = (u_pos, v_pos) if u_pos < v_pos else (v_pos, u_pos)
+            # Ensure we are jumping from smaller value to larger value
+            if idx_u > idx_v:
+                idx_u, idx_v = idx_v, idx_u
             
-            if comp[start] != comp[target]:
-                ans.append(-1)
+            # Check if idx_v is reachable from idx_u at all
+            if max_reach_row[idx_u] < idx_v:
+                ans[i] = -1
                 continue
             
-            # Binary lifting to find min steps
+            # Binary lifting to find min steps to reach or exceed idx_v
             steps = 0
-            curr = start
-            for k in range(LOG - 1, -1, -1):
-                if up[k][curr] < target:
-                    curr = up[k][curr]
-                    steps += (1 << k)
+            curr = idx_u
+            for j in range(LOG - 1, -1, -1):
+                row = jump_tables[j]
+                if row[curr] < idx_v:
+                    curr = row[curr]
+                    steps += (1 << j)
             
-            # One final jump to reach or exceed target
-            ans.append(steps + 1)
+            # One more step is needed to reach or exceed idx_v
+            ans[i] = steps + 1
             
         return ans
 # @lc code=end
