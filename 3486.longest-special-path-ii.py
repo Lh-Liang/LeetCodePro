@@ -5,105 +5,103 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import deque
-import heapq
 import sys
 
-sys.setrecursionlimit(10**5 + 10)
+# Increase recursion depth for deep trees
+sys.setrecursionlimit(100000)
 
 class Solution:
-    def longestSpecialPath(self, edges: List[List[int]], nums: List[int]) -> List[int]:
+    def longestSpecialPath(self, edges: list[list[int]], nums: list[int]) -> list[int]:
         n = len(nums)
         adj = [[] for _ in range(n)]
-        for a, b, d in edges:
-            adj[a].append((b, d))
-            adj[b].append((a, d))
-        MAX_VAL = 50010
-        positions = [deque() for _ in range(MAX_VAL)]
-        current_secondlast = {}
-        current_k3contrib = {}
-        k3_heap = []
-        secondlast_heap = []
-        num_duped = 0
-        path_prefix = []
-        max_len = 0
-        min_nodes = float('inf')
+        for u, v, l in edges:
+            adj[u].append((v, l))
+            adj[v].append((u, l))
 
-        def dfs(u: int, p: int, prefix_len: int):
-            nonlocal num_duped, max_len, min_nodes
-            path_prefix.append(prefix_len)
-            depth = len(path_prefix) - 1
+        # Segment tree to find the 2nd largest last2 depth
+        # tree[i] stores the count of values whose current last2 is at depth i
+        size = 1
+        while size <= n: size *= 2
+        tree = [0] * (2 * size)
+
+        def update_tree(idx, delta):
+            if idx < 0: return
+            idx += size
+            while idx > 0:
+                tree[idx] += delta
+                idx //= 2
+
+        def get_second_largest():
+            # If total count < 2, return -1
+            if tree[1] < 2: return -1
+            # Find the index of the 2nd largest element (k-th where k = total - 1)
+            k = tree[1] - 1
+            idx = 1
+            while idx < size:
+                if tree[2 * idx] < k:
+                    k -= tree[2 * idx]
+                    idx = 2 * idx + 1
+                else:
+                    idx = 2 * idx
+            return idx - size
+
+        # State tracking
+        pos_stacks = [[] for _ in range(max(nums) + 1 if nums else 1)]
+        dist_at_depth = [0] * (n + 1)
+        self.max_len = -1
+        self.min_nodes = float('inf')
+        self.global_m3 = -1
+        # We need to track the current max of all last3 depths
+        # Since we only add/remove from the end of path, we can use a frequency map/heap
+        # for m3, but since it only ever increases or stays same in a downward path,
+        # we just pass it down the recursion.
+
+        def dfs(u, p, depth, curr_dist, m3):
+            dist_at_depth[depth] = curr_dist
             val = nums[u]
-            prev_pos_len = len(positions[val])
-            positions[val].append(depth)
-            curr_pos_len = prev_pos_len + 1
-            pushed_sl = False
-            if prev_pos_len == 1:
-                num_duped += 1
-                sl = positions[val][-2]
-                current_secondlast[val] = sl
-                heapq.heappush(secondlast_heap, (-sl, val))
-                pushed_sl = True
-            if curr_pos_len >= 2 and not pushed_sl:
-                sl = positions[val][-2]
-                current_secondlast[val] = sl
-                heapq.heappush(secondlast_heap, (-sl, val))
-            if curr_pos_len >= 3:
-                contrib = positions[val][-3] + 1
-                current_k3contrib[val] = contrib
-                heapq.heappush(k3_heap, (-contrib, val))
-            # k3
-            k3 = 0
-            while k3_heap:
-                negc, v = k3_heap[0]
-                c = -negc
-                if v in current_k3contrib and current_k3contrib[v] == c:
-                    k3 = c
-                    break
-                heapq.heappop(k3_heap)
-            # k_dupe
-            k_dupe = 0
-            if num_duped > 1:
-                valid_tops = []
-                while len(valid_tops) < 2 and secondlast_heap:
-                    negp, v = heapq.heappop(secondlast_heap)
-                    p = -negp
-                    if v in current_secondlast and current_secondlast[v] == p:
-                        valid_tops.append((p, v))
-                for p, v in valid_tops:
-                    heapq.heappush(secondlast_heap, (-p, v))
-                if len(valid_tops) >= 2:
-                    k_dupe = valid_tops[1][0] + 1
-            k_start = max(k3, k_dupe)
-            if k_start <= depth:
-                s_len = path_prefix[depth] - (path_prefix[k_start] if k_start > 0 else 0)
-                s_nodes = depth - k_start + 1
-                if s_len > max_len:
-                    max_len = s_len
-                    min_nodes = s_nodes
-                elif s_len == max_len:
-                    min_nodes = min(min_nodes, s_nodes)
-            for v, w in adj[u]:
+            v_stack = pos_stacks[val]
+            
+            # Identify old last2 and last3
+            old_l2 = v_stack[-2] if len(v_stack) >= 2 else -1
+            old_l3 = v_stack[-3] if len(v_stack) >= 3 else -1
+            
+            # Update state with current node
+            v_stack.append(depth)
+            new_l2 = v_stack[-2] if len(v_stack) >= 2 else -1
+            new_l3 = v_stack[-3] if len(v_stack) >= 3 else -1
+            
+            # Update Segment Tree for last2
+            if old_l2 != new_l2:
+                update_tree(old_l2, -1)
+                update_tree(new_l2, 1)
+            
+            # Update m3 for this branch
+            current_m3 = max(m3, new_l3)
+            
+            # Calculate best path ending at u
+            m2_2 = get_second_largest()
+            start_depth = max(current_m3, m2_2) + 1
+            
+            length = curr_dist - dist_at_depth[start_depth]
+            nodes = depth - start_depth + 1
+            
+            if length > self.max_len:
+                self.max_len = length
+                self.min_nodes = nodes
+            elif length == self.max_len:
+                if nodes < self.min_nodes:
+                    self.min_nodes = nodes
+            
+            for v, l in adj[u]:
                 if v != p:
-                    dfs(v, u, prefix_len + w)
-            # backtrack
-            path_prefix.pop()
-            positions[val].pop()
-            now_pos_len = len(positions[val])
-            if now_pos_len == 1:
-                num_duped -= 1
-                current_secondlast.pop(val, None)
-            if now_pos_len >= 2:
-                sl = positions[val][-2]
-                current_secondlast[val] = sl
-            if now_pos_len >= 3:
-                contrib = positions[val][-3] + 1
-                current_k3contrib[val] = contrib
-            else:
-                current_k3contrib.pop(val, None)
+                    dfs(v, u, depth + 1, curr_dist + l, current_m3)
+            
+            # Backtrack
+            v_stack.pop()
+            if old_l2 != new_l2:
+                update_tree(new_l2, -1)
+                update_tree(old_l2, 1)
 
-        dfs(0, -1, 0)
-        return [max_len, int(min_nodes)]
-
+        dfs(0, -1, 0, 0, -1)
+        return [self.max_len, self.min_nodes]
 # @lc code=end
