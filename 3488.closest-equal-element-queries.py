@@ -5,47 +5,31 @@
 #
 
 # @lc code=start
-from collections import defaultdict
-from typing import List
-
 class Solution:
     def solveQueries(self, nums: List[int], queries: List[int]) -> List[int]:
-        # Map each value to a sorted list of indices where it occurs
-        pos_map = defaultdict(list)
-        for i, val in enumerate(nums):
-            pos_map[val].append(i)
-            
-        # Map each index to its position within its value's sorted list
-        idx_to_pos_in_list = [0] * len(nums)
-        for val, indices in pos_map.items():
-            for pos, original_idx in enumerate(indices):
-                idx_to_pos_in_list[original_idx] = pos
-                
+        from collections import defaultdict
+        index_map = defaultdict(list)
         n = len(nums)
+        # Step 1: Store all indices for each number
+        for i, num in enumerate(nums):
+            index_map[num].append(i)
         results = []
-        
-        for q_idx in queries:
-            val = nums[q_idx]
-            indices = pos_map[val]
-            m = len(indices)
-            
-            if m == 1:
+        # Step 2-4: Process each query
+        for q in queries:
+            target = nums[q]
+            if target not in index_map or len(index_map[target]) == 1:
+                results.append(-1)  # No other index with same value exists or only itself exists
+                continue            
+            min_distance = float('inf')
+            # Traverse all occurrences of `target` value
+            for idx in index_map[target]:
+                if idx != q:
+                    clockwise_dist = (idx - q + n) % n  # Clockwise distance considering circular wrap-around
+                    counter_clockwise_dist = (q - idx + n) % n  # Counter-clockwise distance considering circular wrap-around
+                    min_distance = min(min_distance, clockwise_dist, counter_clockwise_dist)
+            if min_distance < float('inf'):
+                results.append(min_distance)
+            else:
                 results.append(-1)
-                continue
-            
-            # Position of the query index in the sorted list of indices
-            k = idx_to_pos_in_list[q_idx]
-            
-            # Neighbor to the left (circularly)
-            left_neighbor = indices[(k - 1) % m]
-            # Neighbor to the right (circularly)
-            right_neighbor = indices[(k + 1) % m]
-            
-            # Calculate circular distances
-            dist_left = (q_idx - left_neighbor) % n
-            dist_right = (right_neighbor - q_idx) % n
-            
-            results.append(min(dist_left, dist_right))
-            
-        return results
+        return results 
 # @lc code=end
