@@ -10,28 +10,42 @@
 #     def __init__(self, val=0, next=None):
 #         self.val = val
 #         self.next = next
-
-from typing import List, Optional
-
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
-        if not head or not head.next:
+        # A critical point needs a previous and next node, so list must have at least 3 nodes
+        if not head or not head.next or not head.next.next:
             return [-1, -1]
-        critical_points = []
-        prev = head
+        
+        first_idx = -1
+        prev_idx = -1
+        min_dist = float('inf')
+        
+        # Tracking previous value to identify local maxima/minima
+        prev_val = head.val
         curr = head.next
-        index = 2
+        idx = 1 # 0-indexed position of curr
+        
         while curr.next:
-            nxt = curr.next
-            if (curr.val > prev.val and curr.val > nxt.val) or \
-               (curr.val < prev.val and curr.val < nxt.val):
-                critical_points.append(index)
-            prev = curr
-            curr = nxt
-            index += 1
-        if len(critical_points) < 2:
+            next_val = curr.next.val
+            
+            # Local Maxima or Local Minima
+            is_critical = (curr.val > prev_val and curr.val > next_val) or \
+                          (curr.val < prev_val and curr.val < next_val)
+            
+            if is_critical:
+                if first_idx == -1:
+                    first_idx = idx
+                else:
+                    min_dist = min(min_dist, idx - prev_idx)
+                prev_idx = idx
+            
+            prev_val = curr.val
+            curr = curr.next
+            idx += 1
+            
+        # If fewer than 2 critical points were found
+        if first_idx == -1 or prev_idx == first_idx:
             return [-1, -1]
-        min_distance = min(critical_points[i+1] - critical_points[i] for i in range(len(critical_points)-1))
-        max_distance = critical_points[-1] - critical_points[0]
-        return [min_distance, max_distance]
+            
+        return [min_dist, prev_idx - first_idx]
 # @lc code=end
