@@ -8,63 +8,67 @@
 import random
 
 class Node:
-    __slots__ = 'val', 'forward'
+    __slots__ = ['val', 'next']
     def __init__(self, val, level):
         self.val = val
-        self.forward = [None] * level
+        self.next = [None] * level
 
 class Skiplist:
-
     def __init__(self):
-        self.MAX_LEVEL = 16
-        self.P = 0.5
-        self.head = Node(-1, self.MAX_LEVEL)
-
-    def _random_level(self) -> int:
-        lvl = 1
-        while lvl < self.MAX_LEVEL and random.random() < self.P:
-            lvl += 1
-        return lvl
+        self.max_level = 16
+        self.head = Node(-1, self.max_level)
+        self.level = 0
 
     def search(self, target: int) -> bool:
         curr = self.head
-        for i in range(self.MAX_LEVEL - 1, -1, -1):
-            while curr.forward[i] and curr.forward[i].val < target:
-                curr = curr.forward[i]
-        curr = curr.forward[0]
+        for i in range(self.level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < target:
+                curr = curr.next[i]
+        curr = curr.next[0]
         return curr is not None and curr.val == target
 
     def add(self, num: int) -> None:
-        update = [None] * self.MAX_LEVEL
+        update = [self.head] * self.max_level
         curr = self.head
-        for i in range(self.MAX_LEVEL - 1, -1, -1):
-            while curr.forward[i] and curr.forward[i].val < num:
-                curr = curr.forward[i]
+        for i in range(self.level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < num:
+                curr = curr.next[i]
             update[i] = curr
         
         lvl = self._random_level()
+        if lvl > self.level:
+            self.level = lvl
+            
         new_node = Node(num, lvl)
         for i in range(lvl):
-            new_node.forward[i] = update[i].forward[i]
-            update[i].forward[i] = new_node
+            new_node.next[i] = update[i].next[i]
+            update[i].next[i] = new_node
 
     def erase(self, num: int) -> bool:
-        update = [None] * self.MAX_LEVEL
+        update = [None] * self.max_level
         curr = self.head
-        for i in range(self.MAX_LEVEL - 1, -1, -1):
-            while curr.forward[i] and curr.forward[i].val < num:
-                curr = curr.forward[i]
+        for i in range(self.level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < num:
+                curr = curr.next[i]
             update[i] = curr
         
-        curr = curr.forward[0]
-        if not curr or curr.val != num:
+        target_node = curr.next[0]
+        if not target_node or target_node.val != num:
             return False
         
-        for i in range(len(curr.forward)):
-            if update[i].forward[i] != curr:
-                break
-            update[i].forward[i] = curr.forward[i]
+        for i in range(len(target_node.next)):
+            if update[i].next[i] == target_node:
+                update[i].next[i] = target_node.next[i]
+        
+        while self.level > 0 and self.head.next[self.level - 1] is None:
+            self.level -= 1
         return True
+
+    def _random_level(self):
+        lvl = 1
+        while lvl < self.max_level and random.random() < 0.5:
+            lvl += 1
+        return lvl
 
 # Your Skiplist object will be instantiated and called as such:
 # obj = Skiplist()
