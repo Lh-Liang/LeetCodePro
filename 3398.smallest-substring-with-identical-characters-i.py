@@ -9,39 +9,38 @@ class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
         
-        def check(k: int) -> bool:
+        def check(k):
             if k == 1:
-                # For k=1, the string must alternate between 0 and 1.
-                # We check two patterns: starting with '0' or starting with '1'.
-                cost0 = 0
-                cost1 = 0
+                # For k=1, the string must be alternating: 0101... or 1010...
+                cnt1 = 0 # flips for 0101...
+                cnt2 = 0 # flips for 1010...
                 for i in range(n):
-                    # Pattern 0: 0, 1, 0, 1...
-                    target0 = '0' if i % 2 == 0 else '1'
-                    if s[i] != target0: cost0 += 1
-                    # Pattern 1: 1, 0, 1, 0...
-                    target1 = '1' if i % 2 == 0 else '0'
-                    if s[i] != target1: cost1 += 1
-                return min(cost0, cost1) <= numOps
+                    # Check against '010101...'
+                    if i % 2 == 0:
+                        if s[i] != '0': cnt1 += 1
+                        if s[i] != '1': cnt2 += 1
+                    else:
+                        if s[i] != '1': cnt1 += 1
+                        if s[i] != '0': cnt2 += 1
+                return min(cnt1, cnt2) <= numOps
             
-            # For k >= 2, use a greedy approach on contiguous segments.
-            ops_needed = 0
+            # For k > 1, use the greedy formula: floor(L / (k+1)) flips per run of length L
+            total_ops = 0
             i = 0
             while i < n:
                 j = i
                 while j < n and s[j] == s[i]:
                     j += 1
                 length = j - i
-                # To break a block of length L into blocks of max length k,
-                # we need L // (k + 1) flips.
-                ops_needed += length // (k + 1)
+                total_ops += length // (k + 1)
                 i = j
-            return ops_needed <= numOps
+            return total_ops <= numOps
 
-        # Binary search for the minimum k in range [1, n].
+        # Binary search for the minimum length k
         low = 1
         high = n
         ans = n
+        
         while low <= high:
             mid = (low + high) // 2
             if check(mid):
@@ -49,5 +48,6 @@ class Solution:
                 high = mid - 1
             else:
                 low = mid + 1
+        
         return ans
 # @lc code=end
