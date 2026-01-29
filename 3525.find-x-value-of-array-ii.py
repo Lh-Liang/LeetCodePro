@@ -8,80 +8,68 @@
 class Solution:
     def resultArray(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
         n = len(nums)
-        size = 1
-        while size < n: 
-            size *= 2
-        
-        tree_prod = [1] * (2 * size)
-        tree_counts = [[0] * k for _ in range(2 * size)]
+        # Each node: [total_product_mod_k, counts_array_of_size_k]
+        tree_prod = [1] * (4 * n)
+        tree_counts = [[0] * k for _ in range(4 * n)]
 
-        def merge_into(lc, lp, rc, target):
-            # lc: left counts, lp: left total product, rc: right counts
+        def merge(left_prod, left_counts, right_prod, right_counts):
+            new_prod = (left_prod * right_prod) % k
+            new_counts = list(left_counts)
             for i in range(k):
-                target[i] = lc[i]
-            for i in range(k):
-                if rc[i] > 0:
-                    target[(lp * i) % k] += rc[i]
+                if right_counts[i] > 0:
+                    target = (left_prod * i) % k
+                    new_counts[target] += right_counts[i]
+            return new_prod, new_counts
 
-        def update_node(idx):
-            left = 2 * idx
-            right = 2 * idx + 1
-            tree_prod[idx] = (tree_prod[left] * tree_prod[right]) % k
-            merge_into(tree_counts[left], tree_prod[left], tree_counts[right], tree_counts[idx])
+        def build(node, start, end):
+            if start == end:
+                val = nums[start] % k
+                tree_prod[node] = val
+                tree_counts[node][val] = 1
+                return
+            mid = (start + end) // 2
+            build(2 * node, start, mid)
+            build(2 * node + 1, mid + 1, end)
+            tree_prod[node], tree_counts[node] = merge(
+                tree_prod[2 * node], tree_counts[2 * node],
+                tree_prod[2 * node + 1], tree_counts[2 * node + 1]
+            )
 
-        # Initial build
-        for i in range(n):
-            val = nums[i] % k
-            tree_prod[size + i] = val
-            tree_counts[size + i][val] = 1
-        
-        for i in range(size - 1, 0, -1):
-            update_node(i)
+        def update(node, start, end, idx, val):
+            if start == end:
+                v = val % k
+                tree_prod[node] = v
+                tree_counts[node] = [0] * k
+                tree_counts[node][v] = 1
+                return
+            mid = (start + end) // 2
+            if idx <= mid:
+                update(2 * node, start, mid, idx, val)
+            else:
+                update(2 * node + 1, mid + 1, end, idx, val)
+            tree_prod[node], tree_counts[node] = merge(
+                tree_prod[2 * node], tree_counts[2 * node],
+                tree_prod[2 * node + 1], tree_counts[2 * node + 1]
+            )
 
-        def update(idx, val):
-            idx += size
-            v = val % k
-            tree_prod[idx] = v
-            tree_counts[idx] = [0] * k
-            tree_counts[idx][v] = 1
-            while idx > 1:
-                idx //= 2
-                update_node(idx)
-
-        def query(l, r):
-            l += size
-            r += size
-            l_res_prod = 1
-            l_res_counts = [0] * k
+        def query(node, start, end, l, r):
+            if l <= start and end <= r:
+                return tree_prod[node], tree_counts[node]
+            mid = (start + end) // 2
+            if r <= mid:
+                return query(2 * node, start, mid, l, r)
+            if l > mid:
+                return query(2 * node + 1, mid + 1, end, l, r)
             
-            # Collect indices for the right-side parts to merge in correct order
-            r_parts = []
-            while l <= r:
-                if l % 2 == 1:
-                    new_counts = [0] * k
-                    merge_into(l_res_counts, l_res_prod, tree_counts[l], new_counts)
-                    l_res_counts = new_counts
-                    l_res_prod = (l_res_prod * tree_prod[l]) % k
-                    l += 1
-                if r % 2 == 0:
-                    r_parts.append(r)
-                    r -= 1
-                l //= 2
-                r //= 2
-            
-            for node_idx in reversed(r_parts):
-                new_counts = [0] * k
-                merge_into(l_res_counts, l_res_prod, tree_counts[node_idx], new_counts)
-                l_res_counts = new_counts
-                l_res_prod = (l_res_prod * tree_prod[node_idx]) % k
-                
-            return l_res_counts
+            lp, lc = query(2 * node, start, mid, l, mid)
+            rp, rc = query(2 * node + 1, mid + 1, end, mid + 1, r)
+            return merge(lp, lc, rp, rc)
 
+        build(1, 0, n - 1)
         results = []
-        for indexi, valuei, starti, xi in queries:
-            update(indexi, valuei)
-            res_counts = query(starti, n - 1)
-            results.append(res_counts[xi])
-            
+        for idx, val, start_i, x_i in queries:
+            update(1, 0, n - 1, idx, val)
+            _, counts = query(1, 0, n - 1, start_i, n - 1)
+            results.append(counts[x_i])
         return results
 # @lc code=end
