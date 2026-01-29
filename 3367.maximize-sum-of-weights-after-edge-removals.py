@@ -5,52 +5,60 @@
 #
 
 # @lc code=start
-import sys
-import collections
+from collections import deque
 from typing import List
 
 class Solution:
     def maximizeSumOfWeights(self, edges: List[List[int]], k: int) -> int:
-        adj = collections.defaultdict(list)
+        n = len(edges) + 1
+        adj = [[] for _ in range(n)]
         for u, v, w in edges:
             adj[u].append((v, w))
             adj[v].append((u, w))
         
-        # Increase recursion depth for deep trees (n up to 10^5)
-        sys.setrecursionlimit(200000)
+        # BFS to get post-order traversal and parent pointers
+        order = []
+        parent = [-1] * n
+        parent_w = [0] * n
+        visited = [False] * n
+        visited[0] = True
+        queue = deque([0])
         
-        def dfs(u, p):
-            base_sum = 0
-            gains = []
-            
+        while queue:
+            u = queue.popleft()
+            order.append(u)
             for v, w in adj[u]:
-                if v == p:
+                if not visited[v]:
+                    visited[v] = True
+                    parent[v] = u
+                    parent_w[v] = w
+                    queue.append(v)
+        
+        # f[u][0]: max weight in subtree u, u can have k edges to children (no parent edge)
+        # f[u][1]: max weight in subtree u, u can have k-1 edges to children (parent edge kept)
+        f = [[0, 0] for _ in range(n)]
+        
+        # Process nodes in reverse order (bottom-up)
+        for u in reversed(order):
+            base_sum = 0
+            diffs = []
+            for v, w in adj[u]:
+                if v == parent[u]:
                     continue
                 
-                # d0: child v can use up to k edges (edge u-v is NOT kept)
-                # d1: child v can use up to k-1 edges (edge u-v IS kept)
-                d0, d1 = dfs(v, u)
-                
-                # Start by assuming we don't keep the edge to the child
-                base_sum += d0
-                
-                # Calculate the potential gain if we decide to keep edge (u, v)
-                # Gain = (Weight + Max sum of child with k-1 edges) - (Max sum of child with k edges)
-                gain = w + d1 - d0
-                if gain > 0:
-                    gains.append(gain)
+                # Default: don't keep edge (u, v)
+                base_sum += f[v][0]
+                # Gain if we keep edge (u, v)
+                d = f[v][1] + w - f[v][0]
+                if d > 0:
+                    diffs.append(d)
             
-            # Sort gains descending to pick the most valuable edges to keep
-            gains.sort(reverse=True)
+            diffs.sort(reverse=True)
             
-            # dp[u][0]: Max sum if u can use at most k edges
-            res0 = base_sum + sum(gains[:k])
+            # f[u][0] allows up to k edges to children
+            f[u][0] = base_sum + sum(diffs[:k])
+            # f[u][1] allows up to k-1 edges to children
+            f[u][1] = base_sum + sum(diffs[:k-1])
             
-            # dp[u][1]: Max sum if u can use at most k-1 edges (to allow parent edge)
-            res1 = base_sum + sum(gains[:k-1])
-            
-            return res0, res1
-            
-        ans0, _ = dfs(0, -1)
-        return ans0
+        return f[0][0]
 # @lc code=end
