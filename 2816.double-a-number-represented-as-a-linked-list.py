@@ -12,19 +12,18 @@
 #         self.next = next
 class Solution:
     def doubleIt(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # If the head value is 5 or more, doubling it will result in a carry
-        # that creates a new most-significant digit (e.g., 50 -> 100).
+        # If the head value is 5 or more, doubling it will create a carry
+        # that requires a new leading node.
         if head.val >= 5:
             head = ListNode(0, head)
-
+        
         curr = head
         while curr:
-            # The new value for the current node is the units digit of (val * 2).
-            # Note: (val * 2) % 10 is always between 0 and 8 for val in [0, 9].
+            # Double the current value and keep the unit digit
             curr.val = (curr.val * 2) % 10
             
-            # A carry is added if the next node's value is 5 or more.
-            # We check the original value of next before it gets doubled.
+            # If the next node's value is 5 or more, it will produce a carry
+            # that needs to be added to the current node.
             if curr.next and curr.next.val >= 5:
                 curr.val += 1
             
