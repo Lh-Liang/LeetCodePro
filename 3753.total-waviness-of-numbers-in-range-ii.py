@@ -7,47 +7,54 @@
 # @lc code=start
 class Solution:
     def totalWaviness(self, num1: int, num2: int) -> int:
-        def calc(num: int) -> int:
-            if num <= 0:
+        def solve(n):
+            if n < 100:
                 return 0
-            S = [int(c) for c in str(num)]
-            L = len(S)
+            s = str(n)
+            L = len(s)
             memo = {}
-            def dfs(pos: int, tight: int, prev: int, pprev: int) -> tuple[int, int]:
+
+            def dp(pos, is_less, is_started, prev, pprev):
+                state = (pos, is_less, is_started, prev, pprev)
+                if state in memo:
+                    return memo[state]
+                
                 if pos == L:
-                    return 0, 1 if prev != 10 else 0
-                key = (pos, tight, prev, pprev)
-                if key in memo:
-                    return memo[key]
+                    # Return (count=1, sum=0)
+                    return 1, 0
+                
+                res_count = 0
                 res_sum = 0
-                res_cnt = 0
-                up = S[pos] if tight == 1 else 9
-                for d in range(up + 1):
-                    nt = 1 if tight == 1 and d == S[pos] else 0
-                    if prev == 10 and d == 0:
-                        ssum, scnt = dfs(pos + 1, nt, 10, 10)
-                        res_sum += ssum
-                        res_cnt += scnt
-                    else:
-                        curr = d
-                        if prev == 10:
-                            np = curr
-                            npp = 10
+                limit = int(s[pos]) if not is_less else 9
+                
+                for d in range(limit + 1):
+                    new_is_less = is_less or (d < limit)
+                    if not is_started:
+                        if d == 0:
+                            # Still leading zero
+                            c, s_val = dp(pos + 1, new_is_less, False, -1, -1)
                         else:
-                            np = curr
-                            npp = prev
-                        ssum, scnt = dfs(pos + 1, nt, np, npp)
-                        contrib = 0
-                        if prev != 10 and pprev != 10:
-                            p_digit = prev
-                            pp_digit = pprev
-                            c_digit = curr
-                            if (p_digit > pp_digit and p_digit > c_digit) or (p_digit < pp_digit and p_digit < c_digit):
-                                contrib = scnt
-                        res_sum += ssum + contrib
-                        res_cnt += scnt
-                memo[key] = (res_sum, res_cnt)
-                return memo[key]
-            return dfs(0, 1, 10, 10)[0]
-        return calc(num2) - calc(num1 - 1)
+                            # First non-zero digit
+                            c, s_val = dp(pos + 1, new_is_less, True, d, -1)
+                        res_count += c
+                        res_sum += s_val
+                    else:
+                        # is_started is True
+                        inc = 0
+                        # Evaluate if 'prev' is a peak or valley using 'pprev' and current 'd'
+                        if pprev != -1:
+                            if (pprev < prev > d) or (pprev > prev < d):
+                                inc = 1
+                        
+                        c, s_val = dp(pos + 1, new_is_less, True, d, prev)
+                        res_count += c
+                        # Add the waviness contribution of 'prev' to the total sum
+                        res_sum += s_val + inc * c
+                
+                memo[state] = (res_count, res_sum)
+                return res_count, res_sum
+
+            return dp(0, False, False, -1, -1)[1]
+
+        return solve(num2) - solve(num1 - 1)
 # @lc code=end
