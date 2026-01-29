@@ -5,79 +5,89 @@
 #
 
 # @lc code=start
-from typing import List
 import heapq
 
 class Solution:
     def minimumPairRemoval(self, nums: List[int]) -> int:
         n = len(nums)
-        if n < 2:
+        if n <= 1:
             return 0
-        class Node:
-            def __init__(self, val: int, idx: int):
-                self.val = val
-                self.id = idx
-                self.prev = None
-                self.next = None
-        nodes = [Node(nums[i], i) for i in range(n)]
+            
+        # Doubly linked list nodes: [val, prev_idx, next_idx]
+        nodes = [[nums[i], i - 1, i + 1] for i in range(n)]
+        nodes[n-1][2] = -1
+        
+        def is_sorted():
+            curr = head
+            while curr != -1 and nodes[curr][2] != -1:
+                if nodes[curr][0] > nodes[nodes[curr][2]][0]:
+                    return False
+                curr = nodes[curr][2]
+            return True
+
+        # Track how many pairs are currently decreasing
+        decreasing_count = 0
         for i in range(n - 1):
-            nodes[i].next = nodes[i + 1]
-            nodes[i + 1].prev = nodes[i]
-        # Initial violations
-        violations = 0
-        cur = nodes[0]
-        while cur.next:
-            if cur.val > cur.next.val:
-                violations += 1
-            cur = cur.next
-        if violations == 0:
+            if nums[i] > nums[i+1]:
+                decreasing_count += 1
+        
+        if decreasing_count == 0:
             return 0
+
+        # Heap stores (sum, left_id, version_left, version_right)
+        # Using versions to handle invalidation
+        versions = [0] * n
         pq = []
         for i in range(n - 1):
-            left = nodes[i]
-            s = left.val + left.next.val
-            heapq.heappush(pq, (s, left.id))
-        ops = 0
-        length = n
-        while violations > 0 and length > 1:
-            while pq:
-                s, left_id = heapq.heappop(pq)
-                left = nodes[left_id]
-                right = left.next
-                if right is not None and right.prev == left and left.val + right.val == s:
-                    break
-            else:
-                break  # No valid pair
-            # Compute delta violations (before merge)
-            delta = 0
-            p = left.prev
-            if p:
-                old_bad = 1 if p.val > left.val else 0
-                new_bad = 1 if p.val > left.val + right.val else 0
-                delta += new_bad - old_bad
-            lr_bad = 1 if left.val > right.val else 0
-            delta -= lr_bad
-            right_next = right.next
-            if right_next:
-                rn_bad = 1 if right.val > right_next.val else 0
-                delta -= rn_bad
-                ln_bad = 1 if left.val + right.val > right_next.val else 0
-                delta += ln_bad
-            violations += delta
-            # Perform merge
-            left.val += right.val
-            left.next = right_next
-            if right_next:
-                right_next.prev = left
-            length -= 1
-            ops += 1
-            # Push new pairs
-            if p:
-                new_s = p.val + left.val
-                heapq.heappush(pq, (new_s, p.id))
-            if left.next:
-                new_s = left.val + left.next.val
-                heapq.heappush(pq, (new_s, left.id))
-        return ops
+            heapq.heappush(pq, (nodes[i][0] + nodes[i+1][0], i, i + 1, 0, 0))
 
+        ops = 0
+        head = 0
+        
+        while decreasing_count > 0:
+            s, l, r, v_l, v_r = heapq.heappop(pq)
+            
+            # Check if this pair is still valid and adjacent
+            if versions[l] != v_l or versions[r] != v_r or nodes[l][2] != r:
+                continue
+            
+            # Perform operation
+            ops += 1
+            new_val = nodes[l][0] + nodes[r][0]
+            
+            # Update decreasing_count before merging
+            # Check l's left neighbor
+            prev = nodes[l][1]
+            if prev != -1:
+                if nodes[prev][0] > nodes[l][0]: decreasing_count -= 1
+            # Check l and r
+            if nodes[l][0] > nodes[r][0]: decreasing_count -= 1
+            # Check r's right neighbor
+            nxt = nodes[r][2]
+            if nxt != -1:
+                if nodes[r][0] > nodes[nxt][0]: decreasing_count -= 1
+                
+            # Merge r into l
+            nodes[l][0] = new_val
+            nodes[l][2] = nxt
+            versions[l] += 1
+            if nxt != -1:
+                nodes[nxt][1] = l
+                versions[nxt] += 1
+            
+            # Update decreasing_count after merging
+            if prev != -1:
+                if nodes[prev][0] > nodes[l][0]: decreasing_count += 1
+            if nxt != -1:
+                if nodes[l][0] > nodes[nxt][0]: decreasing_count += 1
+            
+            if decreasing_count == 0: break
+            
+            # Push new potential pairs
+            if prev != -1:
+                heapq.heappush(pq, (nodes[prev][0] + nodes[l][0], prev, l, versions[prev], versions[l]))
+            if nxt != -1:
+                heapq.heappush(pq, (nodes[l][0] + nodes[nxt][0], l, nxt, versions[l], versions[nxt]))
+                
+        return ops
 # @lc code=end
