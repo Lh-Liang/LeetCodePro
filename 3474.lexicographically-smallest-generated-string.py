@@ -7,70 +7,56 @@
 # @lc code=start
 class Solution:
     def generateString(self, str1: str, str2: str) -> str:
-        n = len(str1)
-        m = len(str2)
-        L = n + m - 1
-        forced = [None] * L
+        n, m = len(str1), len(str2)
+        total_len = n + m - 1
+        word = [None] * total_len
+        fixed = [False] * total_len
+        
+        # Satisfy 'T' constraints
         for i in range(n):
             if str1[i] == 'T':
                 for j in range(m):
-                    k = i + j
-                    if forced[k] is not None and forced[k] != str2[j]:
-                        return ''
-                    forced[k] = str2[j]
-        # Compute deadlines for 'F'
-        deadline = [-2] * n
+                    idx = i + j
+                    if word[idx] is not None and word[idx] != str2[j]:
+                        return ""
+                    word[idx] = str2[j]
+                    fixed[idx] = True
+        
+        # Fill non-fixed with 'a'
+        res = [(word[i] if word[i] is not None else 'a') for i in range(total_len)]
+        
+        # Satisfy 'F' constraints greedily from left to right
         for i in range(n):
             if str1[i] == 'F':
-                max_j = -1
-                has_break = False
+                # Check if current substring matches str2
+                is_match = True
                 for j in range(m):
-                    k_pos = i + j
-                    if forced[k_pos] is None or forced[k_pos] != str2[j]:
-                        max_j = max(max_j, j)
-                        has_break = True
-                if not has_break:
-                    return ''
-                deadline[i] = max_j
-        word = [''] * L
-        threatened = []
-        for k in range(L):
-            must_forbidden = set()
-            for ii in threatened:
-                curr_j = k - ii
-                if curr_j >= deadline[ii]:
-                    must_forbidden.add(str2[curr_j])
-            if k < n and str1[k] == 'F' and 0 >= deadline[k]:
-                must_forbidden.add(str2[0])
-            if forced[k] is not None:
-                c = forced[k]
-                if c in must_forbidden:
-                    return ''
-                word[k] = c
-            else:
-                found = False
-                for o in range(ord('a'), ord('z') + 1):
-                    c = chr(o)
-                    if c not in must_forbidden:
-                        word[k] = c
-                        found = True
+                    if res[i + j] != str2[j]:
+                        is_match = False
                         break
-                if not found:
-                    return ''
-            # Update threatened
-            new_threatened = []
-            for ii in threatened:
-                curr_j = k - ii
-                if curr_j < m and word[k] == str2[curr_j]:
-                    new_threatened.append(ii)
-            if k < n and str1[k] == 'F' and word[k] == str2[0]:
-                new_threatened.append(k)
-            threatened = new_threatened
-        # Verification
+                
+                if is_match:
+                    # Must change a non-fixed character to break the match
+                    # Change the rightmost non-fixed character to 'b'
+                    found_to_change = False
+                    for j in range(m - 1, -1, -1):
+                        idx = i + j
+                        if not fixed[idx]:
+                            res[idx] = 'b'
+                            found_to_change = True
+                            break
+                    if not found_to_change:
+                        return ""
+        
+        # Final validation pass
         for i in range(n):
-            substr = ''.join(word[i:i + m])
-            matches = (substr == str2)
-            if (str1[i] == 'T') != matches:
-                return ''
-        return ''.join(word)
+            current_sub = "".join(res[i : i + m])
+            if str1[i] == 'T':
+                if current_sub != str2:
+                    return ""
+            else:
+                if current_sub == str2:
+                    return ""
+                    
+        return "".join(res)
 # @lc code=end
