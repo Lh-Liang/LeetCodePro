@@ -7,39 +7,37 @@
 # @lc code=start
 class Solution:
     def maxFrequency(self, nums: List[int], k: int) -> int:
-        # Count original occurrences of k
-        base_k = 0
-        for x in nums:
-            if x == k:
-                base_k += 1
+        n = len(nums)
+        # Store positions of each number (1 to 50)
+        pos = [[] for _ in range(51)]
+        # Precompute prefix sums for the count of k
+        pref_k = [0] * (n + 1)
         
+        for i, x in enumerate(nums):
+            pos[x].append(i)
+            pref_k[i+1] = pref_k[i] + (1 if x == k else 0)
+        
+        total_k = pref_k[n]
         max_gain = 0
-        # Constraints say nums[i] is between 1 and 50.
-        # We iterate through all possible values that could be changed to k.
-        unique_vals = set(nums)
         
-        for v in unique_vals:
-            if v == k:
+        # Iterate through each possible value v that could be transformed into k
+        for v in range(1, 51):
+            # Skip k itself as transforming k to k yields no gain
+            if v == k or not pos[v]:
                 continue
             
-            current_gain = 0
-            best_v_gain = 0
-            
-            # Kadane's algorithm to maximize: (count of v) - (count of k)
-            for x in nums:
-                if x == v:
-                    current_gain += 1
-                elif x == k:
-                    current_gain -= 1
-                
-                if current_gain < 0:
-                    current_gain = 0
-                
-                if current_gain > best_v_gain:
-                    best_v_gain = current_gain
-            
-            if best_v_gain > max_gain:
-                max_gain = best_v_gain
-                
-        return base_k + max_gain
+            curr_gain = 0
+            prev_p = -1
+            # For each value v, find the maximum (count(v) - count(k)) in any subarray
+            # Using Kadane's algorithm on the sequence of v (+1) and k (-1)
+            for p in pos[v]:
+                # Number of k's between the previous occurrence of v and the current one
+                num_k_between = pref_k[p] - pref_k[prev_p + 1]
+                # Either extend the previous subarray sum (subtracting k's) or start fresh with current v
+                curr_gain = max(0, curr_gain - num_k_between) + 1
+                if curr_gain > max_gain:
+                    max_gain = curr_gain
+                prev_p = p
+        
+        return total_k + max_gain
 # @lc code=end
