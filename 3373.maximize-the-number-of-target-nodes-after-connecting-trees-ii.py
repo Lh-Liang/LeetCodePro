@@ -4,48 +4,42 @@
 # [3373] Maximize the Number of Target Nodes After Connecting Trees II
 #
 
-# @lc code=start
-from collections import deque
-from typing import List
+from collections import defaultdict, deque
 
 class Solution:
     def maxTargetNodes(self, edges1: List[List[int]], edges2: List[List[int]]) -> List[int]:
-        def get_partition_sizes(edges, num_nodes):
-            adj = [[] for _ in range(num_nodes)]
-            for u, v in edges:
+        # Helper function to perform BFS and return distance mapping
+        def bfs(tree_edges, n):
+            adj = defaultdict(list)
+            for u, v in tree_edges:
                 adj[u].append(v)
                 adj[v].append(u)
-            
-            colors = [-1] * num_nodes
-            colors[0] = 0
-            queue = deque([0])
-            count0 = 0
-            while queue:
-                u = queue.popleft()
-                if colors[u] == 0:
-                    count0 += 1
-                for v in adj[u]:
-                    if colors[v] == -1:
-                        colors[v] = 1 - colors[u]
-                        queue.append(v)
-            
-            count1 = num_nodes - count0
-            return colors, count0, count1
-
-        n = len(edges1) + 1
-        m = len(edges2) + 1
+            dist = [[-1] * n for _ in range(n)]
+            for start in range(n):
+                queue = deque([start])
+                dist[start][start] = 0
+                while queue:
+                    node = queue.popleft()
+                    for neighbor in adj[node]:
+                        if dist[start][neighbor] == -1:
+                            dist[start][neighbor] = dist[start][node] + 1
+                            queue.append(neighbor)
+            return dist
         
-        colors1, c1_0, c1_1 = get_partition_sizes(edges1, n)
-        _, c2_0, c2_1 = get_partition_sizes(edges2, m)
+        # Get distances for both trees using BFS
+        n, m = len(edges1) + 1, len(edges2) + 1
+        distance1 = bfs(edges1, n)
+        distance2 = bfs(edges2, m)
         
-        max_tree2_contribution = max(c2_0, c2_1)
-        
-        results = [0] * n
+        # Calculate max target nodes for each node in first tree by connecting it to all nodes in second tree
+        result = []
         for i in range(n):
-            if colors1[i] == 0:
-                results[i] = c1_0 + max_tree2_contribution
-            else:
-                results[i] = c1_1 + max_tree2_contribution
+            max_targets = 0
+            for j in range(m):
+                current_targets = sum(
+distance1[i][k] % 2 == (distance1[i][k] + distance2[j][l]) % 2 \
+in range(n) for l in range(m))
+                max_targets = max(max_targets, current_targets)
+            result.append(max_targets)
         
-        return results
-# @lc code=end
+        return result
