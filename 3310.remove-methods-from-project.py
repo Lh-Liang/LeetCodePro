@@ -5,39 +5,32 @@
 #
 
 # @lc code=start
-from collections import deque
-from typing import List
+from typing import List, Set, Dict
 
 class Solution:
     def remainingMethods(self, n: int, k: int, invocations: List[List[int]]) -> List[int]:
-        # Step 1: Build the adjacency list for reachability
-        adj = [[] for _ in range(n)]
-        for u, v in invocations:
-            adj[u].append(v)
+        # Step 1: Build graph using adjacency list and reverse graph for checking incoming edges
+        graph = {i: [] for i in range(n)}
+        reverse_graph = {i: [] for i in range(n)}
+        for a, b in invocations:
+            graph[a].append(b)
+            reverse_graph[b].append(a)
         
-        # Step 2: Find all suspicious methods using BFS
-        suspicious = [False] * n
-        suspicious[k] = True
-        queue = deque([k])
+        # Step 2: Identify all suspicious methods using DFS starting from k
+        suspicious_methods = set()
+        def dfs(node):
+            if node not in suspicious_methods:
+                suspicious_methods.add(node)
+                for neighbor in graph[node]:
+                    dfs(neighbor)
+        dfs(k)
         
-        while queue:
-            u = queue.popleft()
-            for v in adj[u]:
-                if not suspicious[v]:
-                    suspicious[v] = True
-                    queue.append(v)
+        # Step 3: Check if any external invocation exists pointing into the suspicious group
+        for method in suspicious_methods:
+            for invoker in reverse_graph[method]:
+                if invoker not in suspicious_methods:
+                    return list(range(n))  # Suspicious group cannot be safely removed
         
-        # Step 3: Check if any non-suspicious method invokes a suspicious method
-        # A group can only be removed if no method OUTSIDE invokes a method WITHIN.
-        can_remove = True
-        for u, v in invocations:
-            if not suspicious[u] and suspicious[v]:
-                can_remove = False
-                break
-        
-        # Step 4: Return the result based on the validation
-        if not can_remove:
-            return list(range(n))
-        
-        return [i for i in range(n) if not suspicious[i]]
+        # Step 4: If no external invocations exist, remove suspicious methods and return remaining ones
+        return [i for i in range(n) if i not in suspicious_methods]
 # @lc code=end
