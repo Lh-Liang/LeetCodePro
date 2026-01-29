@@ -8,45 +8,43 @@
 class Solution:
     def lexicographicallySmallestString(self, s: str) -> str:
         n = len(s)
-        if n == 0:
-            return ''
-        def is_consec(c1: str, c2: str) -> bool:
-            o1, o2 = ord(c1), ord(c2)
-            return abs(o1 - o2) == 1 or sorted([c1, c2]) == ['a', 'z']
-        dp = [[False] * n for _ in range(n)]
-        # len=2
-        for i in range(n-1):
-            if is_consec(s[i], s[i+1]):
-                dp[i][i+1] = True
-        # even leng >=4
-        for leng in range(4, n+1, 2):
-            for i in range(n - leng + 1):
-                j = i + leng - 1
-                # ends + inside
-                inside_ok = (i + 1 > j - 1) or dp[i+1][j-1]
-                if is_consec(s[i], s[j]) and inside_ok:
-                    dp[i][j] = True
-                # splits
+        if not s:
+            return ""
+
+        def is_consecutive(c1, c2):
+            v1, v2 = ord(c1) - ord('a'), ord(c2) - ord('a')
+            diff = abs(v1 - v2)
+            return diff == 1 or diff == 25
+
+        # can_empty[i][j] is True if substring s[i...j] can be completely removed
+        # Using an offset for j to handle empty ranges easily
+        can_empty = [[False] * (n + 1) for _ in range(n + 1)]
+        for i in range(n + 1):
+            can_empty[i][i] = True # Range of length 0 is emptyable
+
+        for length in range(2, n + 1, 2):
+            for i in range(n - length + 1):
+                j = i + length
+                # Try to pair s[i] with some s[k]
                 for k in range(i + 1, j, 2):
-                    if dp[i][k] and dp[k + 1][j]:
-                        dp[i][j] = True
+                    if is_consecutive(s[i], s[k]) and can_empty[i+1][k] and can_empty[k+1][j]:
+                        can_empty[i][j] = True
                         break
-        # dp_str
-        dp_str = [''] * (n + 1)
+
+        # dp[i] is the lexicographically smallest string from s[i:]
+        dp = [""] * (n + 1)
         for i in range(n - 1, -1, -1):
-            candidates = []
-            for p in range(i, n + 1):
-                plen = p - i
-                if plen % 2 != 0:
-                    continue
-                prel, prer = i, p - 1
-                can_reduce = (prel > prer) or dp[prel][prer]
-                if can_reduce:
-                    if p < n:
-                        cand = s[p] + dp_str[p + 1]
-                    else:
-                        cand = ''
-                    candidates.append(cand)
-            dp_str[i] = min(candidates)
-        return dp_str[0]
+            # Case 1: Keep the current character
+            best = s[i] + dp[i+1]
+            
+            # Case 2: Try to remove a prefix starting at i
+            for k in range(i + 2, n + 1, 2):
+                if can_empty[i][k]:
+                    cand = dp[k]
+                    if cand < best:
+                        best = cand
+            
+            dp[i] = best
+
+        return dp[0]
 # @lc code=end
