@@ -6,28 +6,33 @@
 
 # @lc code=start
 # Definition for singly-linked list.
-# class ListNode:
-#     def __init__(self, val=0, next=None):
-#         self.val = val
-#         self.next = next
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
 class Solution:
     def doubleIt(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # If the head value is 5 or more, doubling it will create a carry
-        # that requires a new leading node.
-        if head.val >= 5:
-            head = ListNode(0, head)
+        # Step 1: Initialize carry variable
+        carry = 0
+        current = head
+        prev = None
         
-        curr = head
-        while curr:
-            # Double the current value and keep the unit digit
-            curr.val = (curr.val * 2) % 10
+        # Step 2-5: Traverse and process each node in the list
+        while current is not None:
+            # Step 3: Calculate new value with carry
+            new_value = (current.val * 2) + carry
             
-            # If the next node's value is 5 or more, it will produce a carry
-            # that needs to be added to the current node.
-            if curr.next and curr.next.val >= 5:
-                curr.val += 1
+            # Step 4: Update current node's value and carry
+            current.val = new_value % 10
+            carry = new_value // 10
             
-            curr = curr.next
-            
+            # Step 5: Move to the next node, keep track of previous node for adding extra node if needed.
+            prev = current
+            current = current.next
+        
+        # Step 6: If there's any remaining carry, add it as a new node at the end.
+        if carry > 0:
+            prev.next = ListNode(carry)
+        
         return head
 # @lc code=end
