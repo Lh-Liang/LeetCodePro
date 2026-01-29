@@ -7,40 +7,58 @@
 # @lc code=start
 class Solution:
     def countEffective(self, nums: List[int]) -> int:
-        n = len(nums)
-        full_or = 0
-        for num in nums:
-            full_or |= num
-        bit_list = [b for b in range(32) if full_or & (1 << b)]
-        k = len(bit_list)
-        if k == 0:
-            return 0
         MOD = 10**9 + 7
-        freq = [0] * (1 << k)
-        for num in nums:
-            proj = 0
-            for j in range(k):
-                if num & (1 << bit_list[j]):
-                    proj |= (1 << j)
-            freq[proj] += 1
-        prefix = freq[:]
-        for i in range(k):
-            for s in range(1 << k):
-                if s & (1 << i):
-                    prefix[s] += prefix[s ^ (1 << i)]
-        popc = [0] * (1 << k)
-        for s in range(1 << k):
-            popc[s] = popc[s >> 1] + (s & 1)
-        ans = 0
-        ALL = (1 << k) - 1
-        for state in range(1, 1 << k):
-            comp = ALL ^ state
-            num_zero = prefix[comp]
-            cnt = n - num_zero
-            pop = popc[state]
-            sign = 1 if pop % 2 == 1 else -1
-            poww = pow(2, n - cnt, MOD)
-            contrib = (sign * poww) % MOD
-            ans = (ans + contrib) % MOD
+        n = len(nums)
+        total_or = 0
+        for x in nums:
+            total_or |= x
+        
+        if total_or == 0:
+            return 0
+            
+        # Identify relevant bits (those present in total_or)
+        bits = []
+        for i in range(21):
+            if (total_or >> i) & 1:
+                bits.append(i)
+        
+        m = len(bits)
+        # count[mask] will store how many nums[i] have their relevant bits as a submask of mask
+        # We map the bits of total_or to 0...m-1
+        count = [0] * (1 << m)
+        for x in nums:
+            mask = 0
+            for i in range(m):
+                if (x >> bits[i]) & 1:
+                    mask |= (1 << i)
+            count[mask] += 1
+            
+        # SOS DP (Sum Over Subsets) to find f(mask): number of elements that are submasks of mask
+        for i in range(m):
+            for mask in range(1 << m):
+                if (mask >> i) & 1:
+                    count[mask] += count[mask ^ (1 << i)]
+        
+        # Power of 2 precomputation
+        pow2 = [1] * (n + 1)
+        for i in range(1, n + 1):
+            pow2[i] = (pow2[i-1] * 2) % MOD
+            
+        # Inclusion-Exclusion to find number of subsets whose OR is exactly total_or (mask (1<<m)-1)
+        ineffective_subsets_count = 0
+        full_mask = (1 << m) - 1
+        for mask in range(1 << m):
+            # Parity of bits missing from full_mask
+            bits_diff = bin(full_mask ^ mask).count('1')
+            term = pow2[count[mask]]
+            if bits_diff % 2 == 1:
+                ineffective_subsets_count = (ineffective_subsets_count - term) % MOD
+            else:
+                ineffective_subsets_count = (ineffective_subsets_count + term) % MOD
+        
+        # Total subsequences = 2^n
+        # Effective = Total - Ineffective
+        total_subsequences = pow2[n]
+        ans = (total_subsequences - ineffective_subsets_count) % MOD
         return ans
 # @lc code=end
