@@ -5,46 +5,46 @@
 #
 
 # @lc code=start
+from typing import List
+from collections import defaultdict, deque
+import heapq
+
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # Reverse the graph: original u -> v becomes v -> u.
-        # Node 0 being reachable from all nodes in the original graph is equivalent to
-        # node 0 being able to reach all nodes in the reversed graph.
-        rev_adj = [[] for _ in range(n)]
-        max_possible_w = 0
-        for u, v, w in edges:
-            rev_adj[v].append((u, w))
-            if w > max_possible_w:
-                max_possible_w = w
+        def canReachAllNodes(maxWeight):
+            graph = defaultdict(list)
+            for u, v, w in edges:
+                if w <= maxWeight:
+                    graph[u].append((v, w))
+            
+            visited = set()
+            queue = deque([0])
+            visited.add(0)
+            while queue:
+                node = queue.popleft()
+                for neighbor, weight in graph[node]:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+            return len(visited) == n
         
-        def can_reach_all(max_w: int) -> bool:
-            visited = [False] * n
-            visited[0] = True
-            stack = [0]
-            count = 1
-            while stack:
-                u = stack.pop()
-                for v, w in rev_adj[u]:
-                    if w <= max_w and not visited[v]:
-                        visited[v] = True
-                        count += 1
-                        stack.append(v)
-                        if count == n:
-                            return True
-            return count == n
-
-        # Binary search on the range of possible weights
-        low = 1
-        high = max_possible_w
-        ans = -1
+        def validWithThreshold(maxWeight):
+            outDegrees = defaultdict(list)
+            for u, v, w in edges:
+                if w <= maxWeight:
+                    heapq.heappush(outDegrees[u], (-w, v))
+                    if len(outDegrees[u]) > threshold:
+                        heapq.heappop(outDegrees[u])
+            return all(len(outDegrees[u]) <= threshold for u in range(n))
         
-        while low <= high:
-            mid = (low + high) // 2
-            if can_reach_all(mid):
-                ans = mid
-                high = mid - 1
+        left, right = 1, max(w for _, _, w in edges)
+        result = -1
+        while left <= right:
+            mid = (left + right) // 2
+            if canReachAllNodes(mid) and validWithThreshold(mid):
+                result = mid
+                right = mid - 1
             else:
-                low = mid + 1
-        
-        return ans
+                left = mid + 1
+        return result
 # @lc code=end
