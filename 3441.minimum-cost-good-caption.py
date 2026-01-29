@@ -10,78 +10,63 @@ class Solution:
         n = len(caption)
         if n < 3:
             return ""
-
-        # Precompute prefix costs for each character a-z
-        # cost_pref[c][i] is the cost to change caption[0...i-1] to char c
-        cost_pref = [[0] * (n + 1) for _ in range(26)]
-        for c in range(26):
-            target_val = ord('a') + c
-            for i in range(n):
-                cost_pref[c][i+1] = cost_pref[c][i] + abs(ord(caption[i]) - target_val)
-
-        def get_cost(i, L, c_idx):
-            return cost_pref[c_idx][i + L] - cost_pref[c_idx][i]
-
-        # dp[i] = (min_cost, best_char_idx, best_length)
+        
         inf = float('inf')
-        dp = [(inf, 26, 0)] * (n + 1)
-        dp[n] = (0, 26, 0) # Base case: end of string
-
+        dp = [inf] * (n + 1)
+        best_char = [26] * (n + 1)
+        
+        dp[n] = 0
+        ords = [ord(c) - ord('a') for c in caption]
+        
+        # DP to find min cost
         for i in range(n - 3, -1, -1):
-            best_cost = inf
-            best_c = 26
-            best_L = 0
-
-            for c in range(26):
-                # Check possible lengths that could start a new block
-                for L in (3, 4, 5):
-                    if i + L > n:
+            for c_idx in range(25, -1, -1):
+                cost = 0
+                for k in range(1, 6):
+                    if i + k > n:
                         break
-                    
-                    res_cost, next_c, _ = dp[i + L]
-                    if res_cost == inf:
-                        continue
-                    
-                    current_total = get_cost(i, L, c) + res_cost
-                    
-                    # Comparison logic for lexicographical smallest string
-                    is_better = False
-                    if current_total < best_cost:
-                        is_better = True
-                    elif current_total == best_cost:
-                        if c < best_c:
-                            is_better = True
-                        elif c == best_c:
-                            # Tie-break lengths: Compare current char c with the 
-                            # first char of the suffix starting at the divergence point.
-                            # The divergence point between (c, L_old) and (c, L_new) 
-                            # is i + min(L_old, L_new).
-                            L_small, L_large = (L, best_L) if L < best_L else (best_L, L)
-                            # At index i + L_small, the 'large' path has char 'c'
-                            # The 'small' path has char dp[i + L_small].best_c
-                            char_in_small_path = dp[i + L_small][1]
-                            
-                            # If L is the larger one and c < char_in_small_path, L is better
-                            # If L is the smaller one and c < char_in_small_path, L_old was better
-                            if L > best_L:
-                                if c < char_in_small_path: is_better = True
-                            else:
-                                if c > char_in_small_path: is_better = True
-
-                    if is_better:
-                        best_cost, best_c, best_L = current_total, c, L
-            
-            dp[i] = (best_cost, best_c, best_L)
-
-        if dp[0][0] == inf:
+                    cost += abs(ords[i + k - 1] - c_idx)
+                    if k >= 3:
+                        res = cost + dp[i + k]
+                        if res < dp[i]:
+                            dp[i] = res
+                            best_char[i] = c_idx
+                        elif res == dp[i]:
+                            best_char[i] = c_idx # Lexicographically smaller character is checked last
+        
+        if dp[0] == inf:
             return ""
-
-        # Reconstruct string
+            
+        # Reconstruction
         res = []
-        curr = 0
-        while curr < n:
-            _, c_idx, L = dp[curr]
-            res.append(chr(ord('a') + c_idx) * L)
-            curr += L
+        i = 0
+        while i < n:
+            char_idx = best_char[i]
+            char = chr(ord('a') + char_idx)
+            
+            # Determine the best length k among 3, 4, 5
+            best_k = -1
+            for k in [3, 4, 5]:
+                if i + k <= n:
+                    cost_k = sum(abs(ords[j] - char_idx) for j in range(i, i + k))
+                    if cost_k + dp[i + k] == dp[i]:
+                        if best_k == -1:
+                            best_k = k
+                        else:
+                            # Compare current best_k suffix vs this k suffix
+                            # Both start with 'char' * best_k. 
+                            # Next char of shorter one is best_char[i + best_k]
+                            # We want to keep the one that leads to smaller string
+                            next_c = best_char[i + best_k]
+                            if next_c < char_idx:
+                                # Shorter is better, stay with best_k
+                                pass
+                            else:
+                                # Longer (k) is better or same
+                                best_k = k
+            
+            res.append(char * best_k)
+            i += best_k
+            
         return "".join(res)
 # @lc code=end
