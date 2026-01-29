@@ -7,44 +7,44 @@
 # @lc code=start
 class Solution:
     def maxSubstringLength(self, s: str, k: int) -> bool:
-        if k == 0:
-            return True
-            
+        if k == 0: return True
+        
         n = len(s)
         first = {}
         last = {}
         for i, char in enumerate(s):
-            if char not in first:
-                first[char] = i
+            if char not in first: first[char] = i
             last[char] = i
             
         intervals = []
         for char in first:
             l, r = first[char], last[char]
-            is_valid = True
+            
+            valid = True
             i = l
-            # Expand the interval to include all occurrences of all characters within it
             while i <= r:
-                char_in_range = s[i]
-                if first[char_in_range] < l:
-                    is_valid = False
+                c = s[i]
+                if first[c] < l:
+                    valid = False
                     break
-                r = max(r, last[char_in_range])
+                r = max(r, last[c])
                 i += 1
             
-            # Substring cannot be the entire string
-            if is_valid and not (l == 0 and r == n - 1):
+            # A special substring cannot be the entire string
+            if valid and not (l == 0 and r == n - 1):
                 intervals.append((l, r))
         
-        # Greedy selection of non-overlapping intervals
+        if not intervals: return k <= 0
+        
+        # Interval Scheduling Maximization: Sort by end time
         intervals.sort(key=lambda x: x[1])
         
         count = 0
-        current_end = -1
-        for start, end in intervals:
-            if start > current_end:
+        last_end = -1
+        for l, r in intervals:
+            if l > last_end:
                 count += 1
-                current_end = end
-        
+                last_end = r
+                
         return count >= k
 # @lc code=end
