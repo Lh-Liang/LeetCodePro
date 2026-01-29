@@ -5,73 +5,48 @@
 #
 
 # @lc code=start
-import sys
-
-# Increase recursion depth for deep DP trees
-sys.setrecursionlimit(20000)
-
 class Solution:
     def lexicographicallySmallestString(self, s: str) -> str:
         n = len(s)
-        
-        # Memoization tables
-        memo_removable = {}
-        memo_solve = {}
-
-        def are_consecutive(c1, c2):
-            diff = abs(ord(c1) - ord(c2))
-            return diff == 1 or diff == 25
-
-        def can_fully_remove(i, j):
-            if i > j:
-                return True
-            if (i, j) in memo_removable:
-                return memo_removable[(i, j)]
-            
-            # If length is odd, cannot remove all pairs
-            if (j - i + 1) % 2 != 0:
-                memo_removable[(i, j)] = False
-                return False
-            
-            res = False
-            # Try to pair s[i] with s[k]
-            # For s[i] and s[k] to be removed together, s[i+1...k-1] must be fully removable
-            # and s[k+1...j] must be fully removable.
-            # We iterate k with step 2 because the inner chunk size must be even.
-            for k in range(i + 1, j + 1, 2):
-                if are_consecutive(s[i], s[k]):
-                    if can_fully_remove(i + 1, k - 1) and can_fully_remove(k + 1, j):
-                        res = True
+        if n == 0:
+            return ''
+        def is_consec(c1: str, c2: str) -> bool:
+            o1, o2 = ord(c1), ord(c2)
+            return abs(o1 - o2) == 1 or sorted([c1, c2]) == ['a', 'z']
+        dp = [[False] * n for _ in range(n)]
+        # len=2
+        for i in range(n-1):
+            if is_consec(s[i], s[i+1]):
+                dp[i][i+1] = True
+        # even leng >=4
+        for leng in range(4, n+1, 2):
+            for i in range(n - leng + 1):
+                j = i + leng - 1
+                # ends + inside
+                inside_ok = (i + 1 > j - 1) or dp[i+1][j-1]
+                if is_consec(s[i], s[j]) and inside_ok:
+                    dp[i][j] = True
+                # splits
+                for k in range(i + 1, j, 2):
+                    if dp[i][k] and dp[k + 1][j]:
+                        dp[i][j] = True
                         break
-            
-            memo_removable[(i, j)] = res
-            return res
-
-        def solve(i, j):
-            if i > j:
-                return ""
-            if (i, j) in memo_solve:
-                return memo_solve[(i, j)]
-            
-            # Option 1: Keep s[i]
-            # We just append the best result for the rest of the string
-            res = s[i] + solve(i + 1, j)
-            
-            # Option 2: Try to remove s[i] by pairing with some s[k]
-            # s[i] can be removed with s[k] if they are consecutive
-            # AND everything between them (s[i+1...k-1]) can be fully removed.
-            # If that happens, we are left with the problem of solving s[k+1...j].
-            for k in range(i + 1, j + 1):
-                if are_consecutive(s[i], s[k]):
-                    # Check if the middle part is removable
-                    if can_fully_remove(i + 1, k - 1):
-                        candidate = solve(k + 1, j)
-                        if candidate < res:
-                            res = candidate
-            
-            memo_solve[(i, j)] = res
-            return res
-
-        return solve(0, n - 1)
-
+        # dp_str
+        dp_str = [''] * (n + 1)
+        for i in range(n - 1, -1, -1):
+            candidates = []
+            for p in range(i, n + 1):
+                plen = p - i
+                if plen % 2 != 0:
+                    continue
+                prel, prer = i, p - 1
+                can_reduce = (prel > prer) or dp[prel][prer]
+                if can_reduce:
+                    if p < n:
+                        cand = s[p] + dp_str[p + 1]
+                    else:
+                        cand = ''
+                    candidates.append(cand)
+            dp_str[i] = min(candidates)
+        return dp_str[0]
 # @lc code=end
