@@ -5,59 +5,64 @@
 #
 
 # @lc code=start
-import bisect
+from bisect import bisect_left
 from typing import List
 
 class Solution:
     def maximumWeight(self, intervals: List[List[int]]) -> List[int]:
-        # 1. Aggressive Pruning: For unique [l, r], keep only max weight and min index.
-        best_intervals = {}
-        for i, (l, r, w) in enumerate(intervals):
-            if (l, r) not in best_intervals:
-                best_intervals[(l, r)] = (w, i)
-            else:
-                curr_w, curr_idx = best_intervals[(l, r)]
-                if w > curr_w or (w == curr_w and i < curr_idx):
-                    best_intervals[(l, r)] = (w, i)
+        # Store as (l, r, w, original_index)
+        n = len(intervals)
+        arr = []
+        for i in range(n):
+            arr.append((intervals[i][0], intervals[i][1], intervals[i][2], i))
         
-        # 2. Prepare sorted intervals for DP
-        # ivs: (l, r, w, original_index)
-        ivs = sorted([(l, r, w, idx) for (l, r), (w, idx) in best_intervals.items()])
-        n = len(ivs)
-        starts = [x[0] for x in ivs]
+        # Sort by start time to use suffix DP
+        arr.sort()
+        starts = [x[0] for x in arr]
         
-        # Pre-calculate next valid index: first j where ivs[j].l > ivs[i].r
-        next_j = [bisect.bisect_right(starts, ivs[i][1]) for i in range(n)]
-        
-        # dp[i] stores (max_weight, tuple_of_indices) for the current k
-        # Using suffix DP to find best selection from [i...n-1]
+        # dp[k][i] = (max_weight, lexicographically_smallest_tuple_of_indices)
+        # We use k from 1 to 4 and i from n down to 0
+        # Using a 1D DP for space optimization (prev_dp for k-1, curr_dp for k)
         prev_dp = [(0, ())] * (n + 1)
         
+        # Final answer tracker
+        best_total_weight = 0
+        best_indices = ()
+
         for k in range(1, 5):
             curr_dp = [(0, ())] * (n + 1)
             for i in range(n - 1, -1, -1):
-                # Option 1: Skip interval i
-                best_w, best_idx = curr_dp[i+1]
+                l, r, w, idx = arr[i]
                 
-                # Option 2: Take interval i
-                w_i = ivs[i][2]
-                idx_i = ivs[i][3]
-                w_next, idx_next = prev_dp[next_j[i]]
+                # Option 1: Skip current interval
+                res_w, res_idx = curr_dp[i+1]
                 
-                new_w = w_i + w_next
-                # To maintain lexicographical order, we need indices sorted.
-                # Since we process intervals by start time, we can merge idx_i with idx_next.
-                # However, the problem asks for the smallest array of indices.
-                new_indices = tuple(sorted(idx_next + (idx_i,)))
+                # Option 2: Take current interval
+                # Find first interval starting after current ends
+                next_idx = bisect_left(starts, r + 1)
+                take_w, take_idx = prev_dp[next_idx]
+                new_w = w + take_w
+                new_idx = tuple(sorted((idx,) + take_idx))
                 
-                if new_w > best_w:
-                    best_w, best_idx = new_w, new_indices
-                elif new_w == best_w:
-                    if not best_idx or new_indices < best_idx:
-                        best_idx = new_indices
+                # Compare weight then lexicographical order
+                if new_w > res_w:
+                    res_w, res_idx = new_w, new_idx
+                elif new_w == res_w:
+                    if not res_idx or new_idx < res_idx:
+                        res_idx = new_idx
                 
-                curr_dp[i] = (best_w, best_idx)
+                curr_dp[i] = (res_w, res_idx)
+            
+            # Update global best
+            w_k, idx_k = curr_dp[0]
+            if w_k > best_total_weight:
+                best_total_weight = w_k
+                best_indices = idx_k
+            elif w_k == best_total_weight and w_k > 0:
+                if not best_indices or idx_k < best_indices:
+                    best_indices = idx_k
+            
             prev_dp = curr_dp
             
-        return list(prev_dp[0][1])
+        return list(best_indices)
 # @lc code=end
