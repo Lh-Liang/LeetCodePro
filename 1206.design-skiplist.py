@@ -8,58 +8,67 @@
 import random
 
 class Node:
-    def __init__(self, val: int):
+    __slots__ = 'val', 'next'
+    def __init__(self, val, levels):
         self.val = val
-        self.forward = None
+        # next[i] stores the pointer to the next node at level i
+        self.next = [None] * levels
 
 class Skiplist:
 
     def __init__(self):
-        self.MAXLVL = 16
-        self.head = Node(-1)
-        self.head.forward = [None] * self.MAXLVL
-
-    def randomLevel(self):
-        level = 1
-        while random.random() < 0.5 and level < self.MAXLVL:
-            level += 1
-        return level
+        self.max_level = 16
+        # Dummy head node with value -1 (less than any possible input)
+        self.head = Node(-1, self.max_level)
 
     def search(self, target: int) -> bool:
         curr = self.head
-        for lvl in range(self.MAXLVL - 1, -1, -1):
-            while curr.forward[lvl] is not None and curr.forward[lvl].val < target:
-                curr = curr.forward[lvl]
-        curr = curr.forward[0]
+        # Traverse from top level down to level 0
+        for i in range(self.max_level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < target:
+                curr = curr.next[i]
+        # Check if the node at level 0 is the target
+        curr = curr.next[0]
         return curr is not None and curr.val == target
 
     def add(self, num: int) -> None:
-        level = self.randomLevel()
-        new_node = Node(num)
-        new_node.forward = [None] * self.MAXLVL
-        pred = [None] * self.MAXLVL
+        # update[i] will store the rightmost node at level i with value < num
+        update = [None] * self.max_level
         curr = self.head
-        for i in range(self.MAXLVL - 1, -1, -1):
-            while curr.forward[i] is not None and curr.forward[i].val < num:
-                curr = curr.forward[i]
-            pred[i] = curr
-        for i in range(level):
-            new_node.forward[i] = pred[i].forward[i]
-            pred[i].forward[i] = new_node
+        for i in range(self.max_level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < num:
+                curr = curr.next[i]
+            update[i] = curr
+        
+        # Randomly determine the height of the new node
+        lvl = 1
+        while lvl < self.max_level and random.random() < 0.5:
+            lvl += 1
+            
+        new_node = Node(num, lvl)
+        for i in range(lvl):
+            new_node.next[i] = update[i].next[i]
+            update[i].next[i] = new_node
 
     def erase(self, num: int) -> bool:
-        pred = [None] * self.MAXLVL
+        # Find the predecessors of the node to be removed
+        update = [None] * self.max_level
         curr = self.head
-        for i in range(self.MAXLVL - 1, -1, -1):
-            while curr.forward[i] is not None and curr.forward[i].val < num:
-                curr = curr.forward[i]
-            pred[i] = curr
-        node = pred[0].forward[0]
-        if node is None or node.val != num:
+        for i in range(self.max_level - 1, -1, -1):
+            while curr.next[i] and curr.next[i].val < num:
+                curr = curr.next[i]
+            update[i] = curr
+        
+        # target_node is the first node with value >= num at level 0
+        target_node = curr.next[0]
+        if not target_node or target_node.val != num:
             return False
-        for i in range(self.MAXLVL):
-            if pred[i].forward[i] == node:
-                pred[i].forward[i] = node.forward[i]
+        
+        # Remove the node from all levels it belongs to
+        for i in range(len(target_node.next)):
+            if update[i].next[i] == target_node:
+                update[i].next[i] = target_node.next[i]
+        
         return True
 
 # Your Skiplist object will be instantiated and called as such:
