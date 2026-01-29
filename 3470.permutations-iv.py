@@ -5,103 +5,81 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def permute(self, n: int, k: int) -> List[int]:
-        # Precompute factorials
+        odds = list(range(1, n + 1, 2))
+        evens = list(range(2, n + 1, 2))
         fact = [1] * (n + 1)
-        for i in range(2, n + 1):
+        for i in range(1, n + 1):
             fact[i] = fact[i - 1] * i
-
-        # Initial counts
-        odd_count = (n + 1) // 2
-        even_count = n // 2
         
-        # Calculate total possible alternating permutations to check feasibility quickly
-        # Or simpler: just run the logic. If we can't find the k-th, return [].
-        # However, checking total count helps handle the "return empty list" case cleanly.
+        def count_ways(ro: int, re: int, next_p: int) -> int:
+            if ro < 0 or re < 0:
+                return 0
+            m = ro + re
+            if m == 0:
+                return 1
+            req_nextp_slots = (m + 1) // 2
+            req_other_slots = m // 2
+            if next_p == 1:
+                req_odd = req_nextp_slots
+                req_even = req_other_slots
+            else:
+                req_odd = req_other_slots
+                req_even = req_nextp_slots
+            if req_odd != ro or req_even != re:
+                return 0
+            return fact[ro] * fact[re]
         
-        def count_ways(o, e, next_parity):
-            # Returns number of ways to form alternating sequence of length (o+e)
-            # starting with parity `next_parity` (1 for odd, 0 for even)
-            # Pattern is fixed based on start.
-            length = o + e
-            if length == 0: return 1
-            
-            needed_o = 0
-            needed_e = 0
-            
-            if next_parity == 1: # Start with Odd: O, E, O, E...
-                needed_o = (length + 1) // 2
-                needed_e = length // 2
-            else: # Start with Even: E, O, E, O...
-                needed_o = length // 2
-                needed_e = (length + 1) // 2
-            
-            if o == needed_o and e == needed_e:
-                return fact[o] * fact[e]
-            return 0
-
-        # Initial check
-        # We can start with Odd or Even if n is even. If n is odd, must start with Odd.
-        # But inside the loop logic, this is handled naturally by trying 1..n
-        
-        total_ways = 0
-        if n % 2 == 1:
-            # Must start with Odd
-            total_ways = count_ways(odd_count, even_count, 1)
-        else:
-            # Can start with Odd or Even
-            total_ways = count_ways(odd_count, even_count, 1) + count_ways(odd_count, even_count, 0)
-            
-        if k > total_ways:
-            return []
-        
-        result = []
-        used = [False] * (n + 1)
-        
-        # Current available counts
-        cur_odds = odd_count
-        cur_evens = even_count
-        
-        last_val = -1 # No previous value
-        
-        for i in range(n):
-            found = False
-            # Try placing number x at position i
-            for x in range(1, n + 1):
-                if used[x]:
-                    continue
-                
-                # Check alternating condition
-                is_odd = (x % 2 != 0)
-                if last_val != -1:
-                    last_odd = (last_val % 2 != 0)
-                    if is_odd == last_odd:
+        perm = []
+        curr_k = k
+        last_parity = -1
+        for pos in range(n):
+            if pos == 0:
+                found = False
+                for cand in range(1, n + 1):
+                    is_odd = (cand % 2 == 1)
+                    ro = len(odds) - 1 if is_odd else len(odds)
+                    re = len(evens) - 1 if not is_odd else len(evens)
+                    next_p = 1 - int(is_odd)
+                    ways = count_ways(ro, re, next_p)
+                    if ways == 0:
                         continue
-                
-                # Check if valid remaining configuration exists
-                rem_o = cur_odds - (1 if is_odd else 0)
-                rem_e = cur_evens - (1 if not is_odd else 0)
-                
-                # Next position must have opposite parity
-                next_parity = 0 if is_odd else 1
-                
-                ways = count_ways(rem_o, rem_e, next_parity)
-                
-                if k <= ways:
-                    # x is the correct number
-                    result.append(x)
-                    used[x] = True
-                    cur_odds = rem_o
-                    cur_evens = rem_e
-                    last_val = x
-                    found = True
-                    break
-                else:
-                    k -= ways
-            
-            if not found:
-                return []
-                
-        return result
+                    if curr_k <= ways:
+                        perm.append(cand)
+                        if is_odd:
+                            odds.remove(cand)
+                        else:
+                            evens.remove(cand)
+                        last_parity = 1 if is_odd else 0
+                        found = True
+                        break
+                    else:
+                        curr_k -= ways
+                if not found:
+                    return []
+            else:
+                req_p = 1 - last_parity
+                candidates = odds if req_p == 1 else evens
+                num_cand = len(candidates)
+                if num_cand == 0:
+                    return []
+                ro = len(odds) - 1 if req_p == 1 else len(odds)
+                re = len(evens) - 1 if req_p == 0 else len(evens)
+                next_p = 1 - req_p
+                S = count_ways(ro, re, next_p)
+                if S == 0:
+                    return []
+                idx = (curr_k - 1) // S
+                if idx >= num_cand:
+                    return []
+                cand = candidates[idx]
+                perm.append(cand)
+                del candidates[idx]
+                last_parity = req_p
+                curr_k = ((curr_k - 1) % S) + 1
+        return perm
+
 # @lc code=end
