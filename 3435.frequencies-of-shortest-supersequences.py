@@ -7,53 +7,55 @@
 # @lc code=start
 class Solution:
     def supersequences(self, words: List[str]) -> List[List[int]]:
-        unique_chars = sorted(list(set("".join(words))))
-        n = len(unique_chars)
-        char_to_idx = {c: i for i, c in enumerate(unique_chars)}
+        from collections import defaultdict, Counter
+        alphabet_size = 26
+        unique_freqs = set()  # Store unique frequency tuples of SCSs
         
-        # preds[v] stores bitmask of nodes u such that u -> v is an edge
-        preds = [0] * n
-        for w in words:
-            u, v = char_to_idx[w[0]], char_to_idx[w[1]]
-            preds[v] |= (1 << u)
+        def calculate_scs(w1, w2):
+            m, n = len(w1), len(w2)
+            dp = [[0] * (n + 1) for _ in range(m + 1)]
             
-        # can_be_dag[mask] is True if the subset of nodes in mask forms a DAG
-        can_be_dag = [False] * (1 << n)
-        can_be_dag[0] = True
-        
-        max_mask_size = 0
-        
-        for mask in range(1, 1 << n):
-            m = mask
-            while m > 0:
-                # Get the index of the lowest set bit
-                i = (m & -m).bit_length() - 1
-                # If node i has no incoming edges from nodes within the current mask,
-                # it can be a source in the topological sort of this mask.
-                if not (preds[i] & mask):
-                    if can_be_dag[mask ^ (1 << i)]:
-                        can_be_dag[mask] = True
-                        break
-                m &= m - 1
+            for i in range(m + 1):
+                dp[i][0] = i
+            for j in range(n + 1):
+                dp[0][j] = j
             
-            if can_be_dag[mask]:
-                size = bin(mask).count('1')
-                if size > max_mask_size:
-                    max_mask_size = size
-        
-        results = []
-        for mask in range(1 << n):
-            if can_be_dag[mask] and bin(mask).count('1') == max_mask_size:
-                freq = [0] * 26
-                # Characters in mask have frequency 1 in the SCS
-                # Characters in unique_chars but not in mask have frequency 2
-                for i in range(n):
-                    char_idx = ord(unique_chars[i]) - ord('a')
-                    if (mask >> i) & 1:
-                        freq[char_idx] = 1
+            for i in range(1, m + 1):
+                for j in range(1, n + 1):
+                    if w1[i - 1] == w2[j - 1]:
+                        dp[i][j] = dp[i - 1][j - 1] + 1
                     else:
-                        freq[char_idx] = 2
-                results.append(freq)
-                
-        return results
-# @lc code=end
+                        dp[i][j] = min(dp[i - 1][j], dp[i][j - 1]) + 1
+            
+            # Construct the SCS from the DP table
+            scs = []
+            i, j = m, n
+            while i > 0 and j > 0:
+                if w1[i - 1] == w2[j - 1]:
+                    scs.append(w1[i - 1])
+                    i -= 1; j -= 1
+                elif dp[i - 1][j] < dp[i][j - 1]:
+                    scs.append(w1[i - 1])
+                    i -= 1
+                else:
+                    scs.append(w2[j - 1])
+                    j -= 1
+            while i > 0:
+                scs.append(w1[i - 1])
+                i -= 1
+            while j > 0:
+                scs.append(w2[j - 1])
+                j -= 1
+            return ''.join(reversed(scs))
+        
+        # Generate all combinations of words to calculate their SCS frequencies.
+        from itertools import combinations
+        def get_frequencies(scs):
+            freq_array = [0] * alphabet_size
+            for char in scs:
+                freq_array[ord(char) - ord('a')] += 1
+            return tuple(freq_array)
+        
+        # Calculate pairwise SCS frequencies and store unique ones.
+        for w_combination in combinations(words, len(words)):
+sctxtxtxtxtxtxtxtxtxttxtxttxttxttxttxttxttxttxttttttttttttstststststscttxxftftfttftftftftftfttttbbbbbbsdsdsdsdsdsdssdsdsdsdssfdfffdffdfdfdfdfdfdfdfdfdffffff
