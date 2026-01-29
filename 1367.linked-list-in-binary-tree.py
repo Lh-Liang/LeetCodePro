@@ -18,19 +18,27 @@
 #         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        def dfs(node, lnode):
-            if not lnode:
-                return True
-            if not node or node.val != lnode.val:
-                return False
-            return dfs(node.left, lnode.next) or dfs(node.right, lnode.next)
+        if not head:
+            return True
+        if not root:
+            return False
         
-        def traverse(node):
-            if not node:
-                return False
-            if node.val == head.val and dfs(node, head):
-                return True
-            return traverse(node.left) or traverse(node.right)
+        # Check if a path starts at the current root, or search in left/right subtrees
+        return self.checkPath(head, root) or \
+               self.isSubPath(head, root.left) or \
+               self.isSubPath(head, root.right)
+
+    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
+        # If we reached the end of the list, we found the path
+        if not head:
+            return True
+        # If the tree ends but the list hasn't, this path is invalid
+        if not node:
+            return False
+        # If values don't match, this path is invalid
+        if head.val != node.val:
+            return False
         
-        return traverse(root)
+        # Continue matching the next list node with either child of the current tree node
+        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
 # @lc code=end
