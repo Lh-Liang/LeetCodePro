@@ -5,83 +5,39 @@
 #
 
 # @lc code=start
-from collections import Counter
-
 class Solution:
     def canPartitionGrid(self, grid: List[List[int]]) -> bool:
-        def solve(mat):
-            m = len(mat)
-            n = len(mat[0])
-            if m < 2:
-                return False
-            
-            row_sums = [sum(row) for row in mat]
-            total_sum = sum(row_sums)
-            
-            # b_counter tracks counts of values in the current bottom section (rows [i+1, m-1])
-            b_counter = Counter()
-            for r in range(1, m):
-                for val in mat[r]:
-                    b_counter[val] += 1
-            
-            # a_elements_seen tracks existence of values in the current top section (rows [0, i])
-            # For 2D sections, existence is enough for connectivity.
-            a_elements_seen = Counter()
-            s_a = 0
-            
-            for i in range(m - 1):
-                s_a += row_sums[i]
-                s_b = total_sum - s_a
-                
-                for val in mat[i]:
-                    a_elements_seen[val] += 1
-                
-                # Case 1: No discounting needed
-                if s_a == s_b:
-                    return True
-                
-                # Case 2: Discount x from Section A
-                if s_a > s_b:
-                    x = s_a - s_b
-                    # Connectivity check for A (rows 0 to i)
-                    if n == 1: # A is a column
-                        if x == mat[0][0] or x == mat[i][0]:
-                            return True
-                    elif i == 0: # A is a single row
-                        if x == mat[0][0] or x == mat[0][n-1]:
-                            return True
-                    else: # A is 2D, any cell removal preserves connectivity
-                        if a_elements_seen[x] > 0:
-                            return True
-                
-                # Case 3: Discount y from Section B
-                if s_b > s_a:
-                    y = s_b - s_a
-                    # Connectivity check for B (rows i+1 to m-1)
-                    if n == 1: # B is a column
-                        if y == mat[i+1][0] or y == mat[m-1][0]:
-                            return True
-                    elif i == m - 2: # B is a single row
-                        if y == mat[m-1][0] or y == mat[m-1][n-1]:
-                            return True
-                    else: # B is 2D
-                        if b_counter[y] > 0:
-                            return True
-                
-                # Update b_counter for the next cut position
-                if i < m - 2:
-                    for val in mat[i+1]:
-                        b_counter[val] -= 1
-                        if b_counter[val] == 0:
-                            del b_counter[val]
-            
-            return False
-
-        # Check horizontal cuts
-        if solve(grid):
-            return True
+        def is_connected(grid_section):
+            m, n = len(grid_section), len(grid_section[0])
+            visited = set()
+            stack = [(0, 0)]
+            visited.add((0, 0))
+            directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+            connected_cells = 1
+            while stack:
+                x, y = stack.pop()
+                for dx, dy in directions:
+                    nx, ny = x + dx, y + dy
+                    if 0 <= nx < m and 0 <= ny < n and (nx, ny) not in visited and grid_section[nx][ny] != -1:
+                        visited.add((nx, ny))
+                        stack.append((nx, ny))
+                        connected_cells += 1
+            return connected_cells == m * n - 1
         
-        # Check vertical cuts by transposing the grid
-        transposed = list(zip(*grid))
-        return solve(transposed)
-# @lc code=end
+        m = len(grid)
+        n = len(grid[0])
+        total_sum = sum(sum(row) for row in grid)
+        
+        for r in range(1, m):  # Horizontal cuts
+            top_sum = sum(sum(row) for row in grid[:r])
+            bottom_sum = total_sum - top_sum
+            if top_sum == bottom_sum:
+                return True
+            # Check by discounting one cell from either top or bottom part and checking connectivity
+            for c in range(n):
+                new_top_sum = top_sum - grid[r-1][c]
+                new_bottom_sum = bottom_sum - grid[r][c]
+                if new_top_sum == new_bottom_sum:
+                    if is_connected([row[:c] + row[c+1:] for row in grid[:r]]) or \
+is_connected([row[:c] + row[c+1:] for row in grid[r:]]):"]                      return True
+        \\[vertical cut logic similar]\/"]";\""]          "}\u000a \u000a     "#: @lc code=end"\u000a "
