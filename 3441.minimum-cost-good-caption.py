@@ -3,90 +3,86 @@
 #
 # [3441] Minimum Cost Good Caption
 #
-
 # @lc code=start
 class Solution:
     def minCostGoodCaption(self, caption: str) -> str:
         n = len(caption)
         if n < 3:
             return ""
+
+        # Precompute prefix sums for costs to convert to each character 'a'-'z'
+        costs = [[0] * (n + 1) for _ in range(26)]
+        for c_idx in range(26):
+            target_char_code = ord('a') + c_idx
+            s = 0
+            for i in range(n):
+                s += abs(ord(caption[i]) - target_char_code)
+                costs[c_idx][i + 1] = s
+
+        def get_cost(c_idx, start, length):
+            return costs[c_idx][start + length] - costs[c_idx][start]
+
+        inf = float('inf')
+        dp = [inf] * (n + 1)
+        dp[n] = 0
         
-        a_ord = ord('a')
-        cap_ords = [ord(c) - a_ord for c in caption]
-        
-        INF = float('inf')
-        f_cost = [[INF] * 26 for _ in range(n + 1)]
-        g_cost = [[INF] * 26 for _ in range(n + 1)]
-        # choice encoding: 0 for continue, 1-26 for new block (mapped to char 0-25 + 1)
-        g_choice = [[0] * 26 for _ in range(n + 1)]
-        
-        for c in range(26):
-            g_cost[n][c] = 0
-            
-        for i in range(n - 1, -1, -1):
-            min_f_val1, min_f_c1 = INF, -1
-            min_f_val2, min_f_c2 = INF, -1
-            
-            if i + 3 <= n:
-                cost_3 = abs(cap_ords[i] - 0) + abs(cap_ords[i+1] - 0) + abs(cap_ords[i+2] - 0)
-                for c in range(26):
-                    # Cost to change i, i+1, i+2 to char c
-                    diff = (abs(cap_ords[i] - c) + abs(cap_ords[i+1] - c) + abs(cap_ords[i+2] - c))
-                    f_cost[i][c] = diff + g_cost[i+3][c]
-            
-            # Precompute best and second best f_costs for transitions
+        # best_trans[i] = (char_index, block_length)
+        best_trans = [None] * (n + 1)
+        # first_char[i] = char_index of the first block in optimal suffix i
+        first_char = [None] * (n + 1)
+        # diff_char[i] = char_index of the first character in optimal suffix i that != first_char[i]
+        diff_char = [None] * (n + 1)
+
+        for i in range(n - 3, -1, -1):
             for c in range(26):
-                val = f_cost[i][c]
-                if val < min_f_val1:
-                    min_f_val2, min_f_c2 = min_f_val1, min_f_c1
-                    min_f_val1, min_f_c1 = val, c
-                elif val < min_f_val2:
-                    min_f_val2, min_f_c2 = val, c
-            
-            for c in range(26):
-                cost_cont = abs(cap_ords[i] - c) + g_cost[i+1][c]
-                
-                cost_new, best_c_new = (min_f_val1, min_f_c1) if min_f_c1 != c else (min_f_val2, min_f_c2)
-                
-                if cost_cont < cost_new:
-                    g_cost[i][c] = cost_cont
-                    g_choice[i][c] = 0
-                elif cost_new < cost_cont:
-                    g_cost[i][c] = cost_new
-                    g_choice[i][c] = best_c_new + 1
-                else:
-                    if cost_cont == INF:
-                        g_cost[i][c] = INF
-                    elif c <= best_c_new:
-                        g_cost[i][c] = cost_cont
-                        g_choice[i][c] = 0
+                for k in (3, 4, 5):
+                    if i + k > n:
+                        break
+                    
+                    cost_ik = get_cost(c, i, k) + dp[i + k]
+                    if cost_ik > dp[i]:
+                        continue
+                    
+                    is_better = False
+                    if cost_ik < dp[i]:
+                        is_better = True
                     else:
-                        g_cost[i][c] = cost_new
-                        g_choice[i][c] = best_c_new + 1
-                        
-        min_total_cost = INF
-        start_c = -1
-        for c in range(26):
-            if f_cost[0][c] < min_total_cost:
-                min_total_cost = f_cost[0][c]
-                start_c = c
-        
-        if min_total_cost >= INF:
+                        # Tie-break: Lexicographical comparison of (c*k + Suffix[i+k])
+                        old_c, old_k = best_trans[i]
+                        if c < old_c:
+                            is_better = True
+                        elif c == old_c:
+                            # Compare shorter vs longer block when character is same
+                            k_min, k_max = (k, old_k) if k < old_k else (old_k, k)
+                            # We essentially compare (c * (k_max-k_min) + Suffix[i+k_max]) 
+                            # vs (Suffix[i+k_min]). Since Suffix[i+k_min] starts with c, 
+                            # we look for the first char in Suffix[i+k_min] that is not c.
+                            d_idx = diff_char[i + k_min]
+                            # If d_idx is None, suffix is all 'c's; if d_idx < c, shorter is better.
+                            if d_idx is not None:
+                                if k == k_min:
+                                    if d_idx < c: is_better = True
+                                else:
+                                    if c < d_idx: is_better = True
+
+                    if is_better:
+                        dp[i] = cost_ik
+                        best_trans[i] = (c, k)
+                        first_char[i] = c
+                        # The first character in suffix i+k that is not c
+                        if first_char[i + k] is not None and first_char[i + k] != c:
+                            diff_char[i] = first_char[i + k]
+                        else:
+                            diff_char[i] = diff_char[i + k]
+
+        if dp[0] == inf:
             return ""
-            
+
         res = []
-        curr_c = start_c
-        res.append(chr(a_ord + curr_c) * 3)
-        i = 3
-        while i < n:
-            choice = g_choice[i][curr_c]
-            if choice == 0:
-                res.append(chr(a_ord + curr_c))
-                i += 1
-            else:
-                curr_c = choice - 1
-                res.append(chr(a_ord + curr_c) * 3)
-                i += 3
-                
+        curr = 0
+        while curr < n:
+            c_idx, k = best_trans[curr]
+            res.append(chr(ord('a') + c_idx) * k)
+            curr += k
         return "".join(res)
 # @lc code=end
