@@ -11,47 +11,52 @@ class Solution:
             return True
             
         n = len(s)
-        first = {}
-        last = {}
+        first = [-1] * 26
+        last = [-1] * 26
         
-        # Precompute the first and last occurrence of each character
         for i, char in enumerate(s):
-            if char not in first:
-                first[char] = i
-            last[char] = i
+            idx = ord(char) - ord('a')
+            if first[idx] == -1:
+                first[idx] = i
+            last[idx] = i
             
         intervals = []
-        # A special substring must start at the first occurrence of some character
-        for char in first:
-            L = first[char]
-            R = last[char]
+        for char_idx in range(26):
+            if first[char_idx] == -1:
+                continue
             
+            L = first[char_idx]
+            R = last[char_idx]
+            
+            possible = True
+            curr_R = R
             i = L
-            is_valid = True
-            while i <= R:
-                char_at_i = s[i]
-                # If this character appeared before our start, this L is invalid
-                if first[char_at_i] < L:
-                    is_valid = False
+            while i <= curr_R:
+                c_at_i = ord(s[i]) - ord('a')
+                # If a character inside the range appears before our start, 
+                # this start cannot form a valid special substring.
+                if first[c_at_i] < L:
+                    possible = False
                     break
-                # Expand R to include all occurrences of the current character
-                R = max(R, last[char_at_i])
+                if last[c_at_i] > curr_R:
+                    curr_R = last[c_at_i]
                 i += 1
             
-            # Condition: Special substring cannot be the entire string
-            if is_valid and (R - L + 1 < n):
-                intervals.append((L, R))
+            if possible:
+                # Constraint: The substring is not the entire string s.
+                if not (L == 0 and curr_R == n - 1):
+                    intervals.append((L, curr_R))
         
-        # Greedy approach to find max disjoint intervals
-        # Sort by end time
+        # Greedy Interval Scheduling to find max disjoint intervals
+        # Sorting by end time is the optimal strategy for maximizing count.
         intervals.sort(key=lambda x: x[1])
         
         count = 0
-        current_end = -1
+        last_end = -1
         for start, end in intervals:
-            if start > current_end:
+            if start > last_end:
                 count += 1
-                current_end = end
+                last_end = end
                 
         return count >= k
 # @lc code=end
