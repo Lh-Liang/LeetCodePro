@@ -7,25 +7,36 @@
 # @lc code=start
 class Solution:
     def lastInteger(self, n: int) -> int:
-        lengths = []
-        cur = n
-        while cur >= 1:
-            lengths.append(cur)
-            if cur == 1:
-                break
-            cur = (cur + 1) // 2
-        pos = 1
-        for i in range(len(lengths) - 2, -1, -1):
-            prev_len = lengths[i]
-            j = i
-            if j % 2 == 0:
-                # left operation
-                pos = 2 * pos - 1
+        # The sequence is always an Arithmetic Progression (AP).
+        # head: the first element of the current AP.
+        # step: the common difference between elements.
+        # count: total number of elements in the current AP.
+        head = 1
+        step = 1
+        count = n
+        left_to_right = True
+        
+        # Time Complexity: O(log n) as count is halved each iteration.
+        # Space Complexity: O(1).
+        while count > 1:
+            if left_to_right:
+                # Operation 1: Starting from left, delete every second number (2nd, 4th...).
+                # The first element (head) is always kept.
+                pass
             else:
-                # right operation
-                if prev_len % 2 == 0:
-                    pos = 2 * pos
-                else:
-                    pos = 2 * pos - 1
-        return pos
+                # Operation 2: Starting from right, delete every second number (2nd, 4th... from right).
+                # If count is even (e.g., 4 elements), the 2nd from right is the 3rd from left,
+                # and the 4th from right is the 1st from left (head). So head is deleted.
+                # If count is odd (e.g., 3 elements), the 2nd from right is the 2nd from left.
+                # The 1st and 3rd from left are kept. So head is kept.
+                if count % 2 == 0:
+                    head += step
+            
+            # In both operations, exactly half (if even) or the smaller half (if odd) are removed.
+            # Specifically, we always keep (count + 1) // 2 elements.
+            count = (count + 1) // 2
+            step *= 2
+            left_to_right = not left_to_right
+            
+        return head
 # @lc code=end
