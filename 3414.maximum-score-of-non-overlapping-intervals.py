@@ -5,46 +5,54 @@
 #
 
 # @lc code=start
-from typing import List
-import bisect
+from bisect import bisect_left
+from collections import defaultdict
 
 class Solution:
     def maximumWeight(self, intervals: List[List[int]]) -> List[int]:
-        n = len(intervals)
-        # (l, r, w, idx)
-        ints = [(inter[0], inter[1], inter[2], i) for i, inter in enumerate(intervals)]
-        ints.sort(key=lambda x: x[1])
-        ends = [x[1] for x in ints]
-        dp = [[(-1 if j > 0 else 0, []) for j in range(5)] for _ in range(n + 1)]
-        dp[0][0] = (0, [])
-        for i in range(1, n + 1):
-            curr_l, curr_r, curr_w, curr_idx = ints[i - 1]
-            # binary search largest pos < i-1 s.t. ends[pos] < curr_l (strict)
-            pos = bisect.bisect_left(ends, curr_l, 0, i - 1) - 1
-            prev_max_i = pos + 1 if pos >= 0 else 0
-            dp[i][0] = (0, [])
-            for j in range(1, 5):
-                score_not, path_not = dp[i - 1][j]
-                best_score = score_not
-                best_path = path_not[:]
-                # take
-                prev_score = dp[prev_max_i][j - 1][0]
-                if prev_score >= 0:
-                    prev_path = dp[prev_max_i][j - 1][1]
-                    take_score = prev_score + curr_w
-                    take_path = sorted(prev_path + [curr_idx])
-                    if (take_score > best_score or
-                        (take_score == best_score and take_path < best_path)):
-                        best_score = take_score
-                        best_path = take_path
-                dp[i][j] = (best_score, best_path)
-        # find best
-        max_score = 0
-        best_path = []
-        for j in range(5):
-            score, path = dp[n][j]
-            if score > max_score or (score == max_score and (not best_path or path < best_path)):
-                max_score = score
-                best_path = path
-        return best_path
+        # 1. Pre-process: Keep only the best interval for each (l, r) pair
+        # Best is defined by max weight, then min original index.
+        best_intervals = {}
+        for i, (l, r, w) in enumerate(intervals):
+            if (l, r) not in best_intervals or w > best_intervals[(l, r)][0] or (w == best_intervals[(l, r)][0] and i < best_intervals[(l, r)][1]):
+                best_intervals[(l, r)] = (w, i)
+        
+        # 2. Sort intervals by end time for DP
+        # Each item: (r, l, w, original_index)
+        sorted_ints = []
+        for (l, r), (w, idx) in best_intervals.items():
+            sorted_ints.append((r, l, w, idx))
+        sorted_ints.sort()
+        
+        n = len(sorted_ints)
+        ends = [x[0] for x in sorted_ints]
+        
+        # dp[k][i] = (max_weight, lexicographically_smallest_index_list)
+        # We use k=0..4 and i=0..n
+        # Initialize with weight 0 and empty index list
+        dp = [[(0, []) for _ in range(n + 1)] for _ in range(5)]
+        
+        for k in range(1, 5):
+            for i in range(1, n + 1):
+                r_i, l_i, w_i, idx_i = sorted_ints[i-1]
+                
+                # Option A: Don't include current interval
+                dp[k][i] = dp[k][i-1]
+                
+                # Option B: Include current interval
+                # Find last interval that ends before current starts
+                prev_idx = bisect_left(ends, l_i) 
+                prev_w, prev_indices = dp[k-1][prev_idx]
+                
+                curr_w = prev_w + w_i
+                curr_indices = sorted(prev_indices + [idx_i])
+                
+                # Compare with Option A
+                if curr_w > dp[k][i][0]:
+                    dp[k][i] = (curr_w, curr_indices)
+                elif curr_w == dp[k][i][0]:
+                    if not dp[k][i][1] or curr_indices < dp[k][i][1]:
+                        dp[k][i] = (curr_w, curr_indices)
+                        
+        return dp[4][n][1]
 # @lc code=end
