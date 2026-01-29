@@ -8,38 +8,21 @@
 class Solution:
     def numberOfComponents(self, properties: List[List[int]], k: int) -> int:
         n = len(properties)
-        # Pre-convert each row to a set to handle distinct integers and speed up intersections
-        sets = [set(p) for p in properties]
-        
-        # Union-Find data structure initialization
         parent = list(range(n))
-        components = n
-        
-        def find(i):
-            if parent[i] == i:
-                return i
-            parent[i] = find(parent[i])
-            return parent[i]
-        
-        def union(i, j):
-            nonlocal components
-            root_i = find(i)
-            root_j = find(j)
-            if root_i != root_j:
-                parent[root_i] = root_j
-                components -= 1
-                return True
-            return False
-        
-        # Iterate through all unique pairs of nodes
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])
+            return parent[x]
+        def union(x, y):
+            px = find(x)
+            py = find(y)
+            if px != py:
+                parent[px] = py
         for i in range(n):
             for j in range(i + 1, n):
-                # Calculate distinct integers common to both arrays
-                common_count = len(sets[i] & sets[j])
-                
-                # If condition met, add an edge (union the components)
-                if common_count >= k:
+                inter = len(set(properties[i]) & set(properties[j]))
+                if inter >= k:
                     union(i, j)
-                    
-        return components
+        roots = set(find(i) for i in range(n))
+        return len(roots)
 # @lc code=end
