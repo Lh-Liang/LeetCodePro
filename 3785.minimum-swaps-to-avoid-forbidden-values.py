@@ -5,24 +5,38 @@
 #
 
 # @lc code=start
+from collections import Counter
+from typing import List
+import math
+
 class Solution:
     def minSwaps(self, nums: List[int], forbidden: List[int]) -> int:
-        from collections import Counter
         n = len(nums)
-        num_cnt = Counter(nums)
-        forb_cnt = Counter(forbidden)
-        for v, cnt in num_cnt.items():
-            if cnt > n - forb_cnt[v]:
+        
+        # Step 1: Feasibility check
+        # A value v cannot be placed if (count in nums) + (count in forbidden) > n
+        nums_counts = Counter(nums)
+        forb_counts = Counter(forbidden)
+        
+        all_vals = set(nums_counts.keys()) | set(forb_counts.keys())
+        for v in all_vals:
+            if nums_counts.get(v, 0) + forb_counts.get(v, 0) > n:
                 return -1
-        bad_cnt = Counter()
-        total_bad = 0
-        for num, f in zip(nums, forbidden):
-            if num == f:
-                bad_cnt[num] += 1
-                total_bad += 1
-        if total_bad == 0:
+        
+        # Step 2: Identify indices where nums[i] == forbidden[i]
+        bad_forbidden_vals = []
+        for i in range(n):
+            if nums[i] == forbidden[i]:
+                bad_forbidden_vals.append(forbidden[i])
+        
+        k = len(bad_forbidden_vals)
+        if k == 0:
             return 0
-        max_excess = max(2 * c - total_bad for c in bad_cnt.values())
-        unmatched = max(total_bad % 2, max_excess)
-        return (total_bad - unmatched) // 2 + unmatched
+            
+        # Step 3: Calculate bottleneck based on frequency in bad indices
+        bad_counts = Counter(bad_forbidden_vals)
+        max_c = max(bad_counts.values())
+        
+        # Step 4: The result is the maximum of the two lower bounds
+        return max((k + 1) // 2, max_c)
 # @lc code=end
