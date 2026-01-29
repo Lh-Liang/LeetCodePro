@@ -4,86 +4,71 @@
 # [3464] Maximize the Distance Between Points on a Square
 #
 
+import bisect
+
 # @lc code=start
 class Solution:
     def maxDistance(self, side: int, points: List[List[int]], k: int) -> int:
-        def get_pos(p):
-            x, y = p
-            if y == 0: return x
-            if x == side: return side + y
-            if y == side: return 3 * side - x
-            return 4 * side - y
+        # Map 2D points to 1D positions along the perimeter [0, 4 * side)
+        pos_list = []
+        for x, y in points:
+            if y == 0:
+                p = x
+            elif x == side:
+                p = side + y
+            elif y == side:
+                p = 3 * side - x
+            else: # x == 0
+                p = 4 * side - y
+            pos_list.append(p)
+        
+        pos_list.sort()
+        n = len(pos_list)
+        L = 4 * side
 
-        def get_md(p1, p2):
-            return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
-
-        pts = sorted([(get_pos(p), p) for p in points])
-        n = len(pts)
-        perimeter = 4 * side
-
-        def check(d):
-            # If a solution exists, at least one point must be in the first 1/k of the perimeter
-            # or specifically, we can just check starting points within the first gap
-            limit = pts[0][0] + perimeter // k
+        def can_place(d):
+            # If a solution exists, one point must be in the first 1/k of the perimeter
+            # starting from the first point in our sorted list.
+            max_start_pos = pos_list[0] + (L // k)
+            
             for i in range(n):
-                if pts[i][0] > limit: break
+                if pos_list[i] > max_start_pos:
+                    break
                 
+                start_val = pos_list[i]
                 count = 1
                 curr_idx = i
-                first_p = pts[i][1]
-                last_p = first_p
+                last_pos = start_val
                 
+                # Greedily pick the remaining k-1 points
+                possible = True
                 for _ in range(k - 1):
-                    target_pos = pts[curr_idx][0] + d
-                    # Binary search for first point with perimeter dist >= d
-                    low, high = curr_idx + 1, n + i - 1
-                    found_idx = -1
-                    while low <= high:
-                        mid = (low + high) // 2
-                        if pts[mid % n][0] + (perimeter if mid >= n else 0) >= target_pos:
-                            found_idx = mid
-                            high = mid - 1
-                        else:
-                            low = mid + 1
-                    
-                    if found_idx == -1: break
-                    
-                    # Manhattan distance >= d is required. Since MD <= BD,
-                    # we search forward from found_idx until MD >= d.
-                    # On a square, MD >= d is usually satisfied quickly after BD >= d.
-                    match = -1
-                    for j in range(found_idx, n + i):
-                        p_j = pts[j % n][1]
-                        if get_md(last_p, p_j) >= d:
-                            match = j
-                            break
-                        # Optimization: if BD gets too large, stop
-                        if pts[j % n][0] + (perimeter if j >= n else 0) > pts[curr_idx][0] + 2 * d:
-                            break
-                            
-                    if match != -1:
-                        curr_idx = match
-                        last_p = pts[curr_idx % n][1]
-                        count += 1
-                    else:
+                    target = last_pos + d
+                    # Find the first point >= last_pos + d
+                    next_idx = bisect.bisect_left(pos_list, target, lo=curr_idx + 1)
+                    if next_idx == n:
+                        possible = False
                         break
+                    last_pos = pos_list[next_idx]
+                    curr_idx = next_idx
                 
-                if count == k and get_md(last_p, first_p) >= d:
+                # Check circular distance back to the starting point
+                if possible and (start_val + L - last_pos >= d):
                     return True
             return False
 
+        # Binary search for the maximum possible minimum distance
+        low = 1
+        high = side
         ans = 0
-        low, high = 0, 2 * side
+        
         while low <= high:
             mid = (low + high) // 2
-            if mid == 0:
-                ans = max(ans, 0)
-                low = 1
-                continue
-            if check(mid):
+            if can_place(mid):
                 ans = mid
                 low = mid + 1
             else:
                 high = mid - 1
+                
         return ans
 # @lc code=end
