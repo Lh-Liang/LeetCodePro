@@ -7,44 +7,20 @@
 # @lc code=start
 class Solution:
     def maxSubstringLength(self, s: str, k: int) -> bool:
-        if k == 0: return True
-        
-        n = len(s)
-        first = {}
-        last = {}
-        for i, char in enumerate(s):
-            if char not in first: first[char] = i
-            last[char] = i
-            
-        intervals = []
-        for char in first:
-            l, r = first[char], last[char]
-            
-            valid = True
-            i = l
-            while i <= r:
-                c = s[i]
-                if first[c] < l:
-                    valid = False
-                    break
-                r = max(r, last[c])
-                i += 1
-            
-            # A special substring cannot be the entire string
-            if valid and not (l == 0 and r == n - 1):
-                intervals.append((l, r))
-        
-        if not intervals: return k <= 0
-        
-        # Interval Scheduling Maximization: Sort by end time
-        intervals.sort(key=lambda x: x[1])
-        
-        count = 0
-        last_end = -1
-        for l, r in intervals:
-            if l > last_end:
-                count += 1
-                last_end = r
-                
-        return count >= k
+        from collections import Counter
+        # Step 1: Get frequency of each character in the string
+        char_count = Counter(s)
+        # Step 2: Determine how many characters appear only once
+        single_occurrence_count = sum(1 for count in char_count.values() if count == 1)
+        # Step 3 and 4: Check if we can form k disjoint special substrings
+        # A valid strategy is to use all single occurrence characters first
+        # Then try to group multi-occurrence ones into separate substrings ensuring they are not repeated elsewhere in s.
+        total_specials = single_occurrence_count 
+        for char, count in char_count.items():
+            if count > 1:
+                total_specials += 1 # Assuming we can isolate this character into a separate substring
+                if total_specials >= k:
+                    return True
+        # Final check if we have enough to form k substrings
+        return total_specials >= k 
 # @lc code=end
