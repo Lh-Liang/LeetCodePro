@@ -8,35 +8,19 @@
 class Solution:
     def longestPalindrome(self, s: str, t: str) -> int:
         n, m = len(s), len(t)
-        ans = 0
+        max_len = 0
         
-        # Case 1: Core is in t. 
-        # Substring of t is B = X + Y, where X is a palindrome.
-        # If Y^R is a substring in s, we can form the palindrome Y^R + X + Y.
-        for i in range(m):
-            for j in range(i, m):
-                B = t[i:j+1]
-                for k in range(len(B) + 1):
-                    X = B[:k]  # Potential palindromic core
-                    if X == X[::-1]:
-                        Y = B[k:]
-                        # Check if the reverse of the suffix Y exists in s
-                        if Y[::-1] in s:
-                            ans = max(ans, 2 * len(Y) + len(X))
-                            
-        # Case 2: Core is in s.
-        # Substring of s is A = X + Y, where Y is a palindrome.
-        # If X^R is a substring in t, we can form the palindrome X + Y + X^R.
-        for i in range(n):
-            for j in range(i, n):
-                A = s[i:j+1]
-                for k in range(len(A) + 1):
-                    Y = A[k:]  # Potential palindromic core
-                    if Y == Y[::-1]:
-                        X = A[:k]
-                        # Check if the reverse of the prefix X exists in t
-                        if X[::-1] in t:
-                            ans = max(ans, 2 * len(X) + len(Y))
-                            
-        return ans
+        # Pre-calculate substrings to avoid repeated slicing in nested loops
+        s_subs = [s[i:j] for i in range(n + 1) for j in range(i, n + 1)]
+        t_subs = [t[i:j] for i in range(m + 1) for j in range(i, m + 1)]
+        
+        for sub_s in s_subs:
+            for sub_t in t_subs:
+                combined_len = len(sub_s) + len(sub_t)
+                if combined_len > max_len:
+                    combined = sub_s + sub_t
+                    if combined == combined[::-1]:
+                        max_len = combined_len
+        
+        return max_len
 # @lc code=end
