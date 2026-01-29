@@ -8,11 +8,11 @@
 class Solution:
     def generateString(self, str1: str, str2: str) -> str:
         n, m = len(str1), len(str2)
-        total_len = n + m - 1
-        word = [None] * total_len
-        fixed = [False] * total_len
-        
-        # Satisfy 'T' constraints
+        L = n + m - 1
+        word = [None] * L
+        fixed = [False] * L
+
+        # Step 1: Apply 'T' constraints
         for i in range(n):
             if str1[i] == 'T':
                 for j in range(m):
@@ -21,42 +21,51 @@ class Solution:
                         return ""
                     word[idx] = str2[j]
                     fixed[idx] = True
-        
-        # Fill non-fixed with 'a'
-        res = [(word[i] if word[i] is not None else 'a') for i in range(total_len)]
-        
-        # Satisfy 'F' constraints greedily from left to right
-        for i in range(n):
+
+        # Step 2: Initial greedy fill
+        res = [c if c is not None else 'a' for c in word]
+
+        # Step 3: Resolve 'F' violations with localized re-checking
+        i = 0
+        while i < n:
             if str1[i] == 'F':
-                # Check if current substring matches str2
-                is_match = True
+                # Check for match
+                match = True
                 for j in range(m):
                     if res[i + j] != str2[j]:
-                        is_match = False
+                        match = False
                         break
                 
-                if is_match:
-                    # Must change a non-fixed character to break the match
-                    # Change the rightmost non-fixed character to 'b'
-                    found_to_change = False
+                if match:
+                    # Must change a non-fixed character in range [i, i+m-1]
+                    # To stay lexicographically smallest, change the rightmost one
+                    changed = False
                     for j in range(m - 1, -1, -1):
                         idx = i + j
                         if not fixed[idx]:
+                            # Change 'a' to 'b'. If it wasn't 'a', we need the next char
+                            # but since we initialized with 'a', 'b' is always the next choice.
                             res[idx] = 'b'
-                            found_to_change = True
+                            changed = True
+                            # A change at idx can affect 'F' constraints starting at idx-m+1
+                            i = max(-1, i - m) # Move i back to re-check affected window
                             break
-                    if not found_to_change:
-                        return ""
-        
-        # Final validation pass
-        for i in range(n):
-            current_sub = "".join(res[i : i + m])
-            if str1[i] == 'T':
-                if current_sub != str2:
-                    return ""
-            else:
-                if current_sub == str2:
-                    return ""
                     
+                    if not changed:
+                        return ""
+            i += 1
+
+        # Step 4: Final O(NM) Verification
+        for i in range(n):
+            match = True
+            for j in range(m):
+                if res[i + j] != str2[j]:
+                    match = False
+                    break
+            if str1[i] == 'T':
+                if not match: return ""
+            else:
+                if match: return ""
+
         return "".join(res)
 # @lc code=end
