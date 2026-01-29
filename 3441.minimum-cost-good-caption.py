@@ -10,92 +10,83 @@ class Solution:
         n = len(caption)
         if n < 3:
             return ""
-        ords = [ord(ch) - ord('a') for ch in caption]
-        INF = 10**9 * 100 + 7
-        C = 26
-        dp = [[[INF for _ in range(3)] for _ in range(C)] for _ in range(n + 1)]
-        # init first
-        for cc in range(C):
-            dp[1][cc][0] = abs(ords[0] - cc)
-        for i in range(1, n):
-            for prev in range(C):
-                for pk in range(3):
-                    if dp[i][prev][pk] == INF:
-                        continue
-                    for nc in range(C):
-                        add = abs(ords[i] - nc)
-                        if nc == prev:
-                            newk = min(pk + 1, 2)
-                            dp[i + 1][nc][newk] = min(dp[i + 1][nc][newk], dp[i][prev][pk] + add)
-                        elif pk == 2:
-                            newk = 0
-                            dp[i + 1][nc][newk] = min(dp[i + 1][nc][newk], dp[i][prev][pk] + add)
-        min_cost = min(dp[n][c][2] for c in range(C))
-        if min_cost == INF:
-            return ""
-        # back
-        back = [[[INF for _ in range(3)] for _ in range(C)] for _ in range(n + 1)]
-        for c in range(C):
-            back[n][c][2] = 0
+        
+        a_ord = ord('a')
+        cap_ords = [ord(c) - a_ord for c in caption]
+        
+        INF = float('inf')
+        f_cost = [[INF] * 26 for _ in range(n + 1)]
+        g_cost = [[INF] * 26 for _ in range(n + 1)]
+        # choice encoding: 0 for continue, 1-26 for new block (mapped to char 0-25 + 1)
+        g_choice = [[0] * 26 for _ in range(n + 1)]
+        
+        for c in range(26):
+            g_cost[n][c] = 0
+            
         for i in range(n - 1, -1, -1):
-            for prev in range(C):
-                for pk in range(3):
-                    min_val = INF
-                    for nc in range(C):
-                        add = abs(ords[i] - nc)
-                        allowed = False
-                        newk = 0
-                        if nc == prev:
-                            allowed = True
-                            newk = min(pk + 1, 2)
-                        elif pk == 2:
-                            allowed = True
-                            newk = 0
-                        if allowed:
-                            min_val = min(min_val, add + back[i + 1][nc][newk])
-                    back[i][prev][pk] = min_val
-        # construct
-        res = []
-        cur_i = 0
-        cur_cost = 0
-        # first
-        chosen = False
-        for cc in range(C):
-            add = abs(ords[0] - cc)
-            tent_cost = add
-            nk = 0
-            if dp[1][cc][nk] == tent_cost and tent_cost + back[1][cc][nk] == min_cost:
-                res.append(chr(ord('a') + cc))
-                cur_c = cc
-                cur_k = nk
-                cur_cost = tent_cost
-                cur_i = 1
-                chosen = True
-                break
-        if not chosen:
-            return ""
-        while cur_i < n:
-            chosen = False
-            for cc in range(C):
-                add = abs(ords[cur_i] - cc)
-                tent_cost = cur_cost + add
-                nc_ = cc
-                if nc_ == cur_c:
-                    nk = min(cur_k + 1, 2)
-                elif cur_k == 2:
-                    nk = 0
+            min_f_val1, min_f_c1 = INF, -1
+            min_f_val2, min_f_c2 = INF, -1
+            
+            if i + 3 <= n:
+                cost_3 = abs(cap_ords[i] - 0) + abs(cap_ords[i+1] - 0) + abs(cap_ords[i+2] - 0)
+                for c in range(26):
+                    # Cost to change i, i+1, i+2 to char c
+                    diff = (abs(cap_ords[i] - c) + abs(cap_ords[i+1] - c) + abs(cap_ords[i+2] - c))
+                    f_cost[i][c] = diff + g_cost[i+3][c]
+            
+            # Precompute best and second best f_costs for transitions
+            for c in range(26):
+                val = f_cost[i][c]
+                if val < min_f_val1:
+                    min_f_val2, min_f_c2 = min_f_val1, min_f_c1
+                    min_f_val1, min_f_c1 = val, c
+                elif val < min_f_val2:
+                    min_f_val2, min_f_c2 = val, c
+            
+            for c in range(26):
+                cost_cont = abs(cap_ords[i] - c) + g_cost[i+1][c]
+                
+                cost_new, best_c_new = (min_f_val1, min_f_c1) if min_f_c1 != c else (min_f_val2, min_f_c2)
+                
+                if cost_cont < cost_new:
+                    g_cost[i][c] = cost_cont
+                    g_choice[i][c] = 0
+                elif cost_new < cost_cont:
+                    g_cost[i][c] = cost_new
+                    g_choice[i][c] = best_c_new + 1
                 else:
-                    continue
-                if dp[cur_i + 1][nc_][nk] == tent_cost and tent_cost + back[cur_i + 1][nc_][nk] == min_cost:
-                    res.append(chr(ord('a') + cc))
-                    cur_c = nc_
-                    cur_k = nk
-                    cur_cost = tent_cost
-                    cur_i += 1
-                    chosen = True
-                    break
-            if not chosen:
-                return ""
-        return ''.join(res)
-
+                    if cost_cont == INF:
+                        g_cost[i][c] = INF
+                    elif c <= best_c_new:
+                        g_cost[i][c] = cost_cont
+                        g_choice[i][c] = 0
+                    else:
+                        g_cost[i][c] = cost_new
+                        g_choice[i][c] = best_c_new + 1
+                        
+        min_total_cost = INF
+        start_c = -1
+        for c in range(26):
+            if f_cost[0][c] < min_total_cost:
+                min_total_cost = f_cost[0][c]
+                start_c = c
+        
+        if min_total_cost >= INF:
+            return ""
+            
+        res = []
+        curr_c = start_c
+        res.append(chr(a_ord + curr_c) * 3)
+        i = 3
+        while i < n:
+            choice = g_choice[i][curr_c]
+            if choice == 0:
+                res.append(chr(a_ord + curr_c))
+                i += 1
+            else:
+                curr_c = choice - 1
+                res.append(chr(a_ord + curr_c) * 3)
+                i += 3
+                
+        return "".join(res)
 # @lc code=end
