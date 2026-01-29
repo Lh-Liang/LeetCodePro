@@ -7,33 +7,31 @@
 # @lc code=start
 class Solution:
     def countMajoritySubarrays(self, nums: List[int], target: int) -> int:
-        n = len(nums)
-        if n == 0:
-            return 0
-        offset = n + 1
-        tree = [0] * (2 * n + 3)
-
-        def fen_update(val, delta=1):
-            idx = val + offset
-            while idx < len(tree):
-                tree[idx] += delta
-                idx += idx & -idx
-
-        def fen_query(val):
-            idx = val + offset
-            res = 0
-            while idx > 0:
-                res += tree[idx]
-                idx -= idx & -idx
-            return res
-
+        # The condition (count > length / 2) is equivalent to (2 * count - length > 0).
+        # Assign +1 to target and -1 to others. We need to count subarrays with sum > 0.
+        # This is equivalent to counting pairs (i, j) such that prefix_sum[j] > prefix_sum[i].
+        
         ans = 0
-        pre = 0
-        fen_update(0)
+        prefix_sum = 0
+        # Number of prefix sums seen so far that are strictly less than current prefix_sum
+        smaller_count = 0
+        # Frequency of each prefix sum value
+        freq = {0: 1}
+        
         for num in nums:
-            pre += 1 if num == target else -1
-            ans += fen_query(pre - 1)
-            fen_update(pre)
+            if num == target:
+                # prefix_sum increases: S -> S+1
+                # New smaller elements = old smaller elements + those equal to S
+                smaller_count += freq.get(prefix_sum, 0)
+                prefix_sum += 1
+            else:
+                # prefix_sum decreases: S -> S-1
+                # New smaller elements = old smaller elements - those equal to S-1
+                prefix_sum -= 1
+                smaller_count -= freq.get(prefix_sum, 0)
+            
+            ans += smaller_count
+            freq[prefix_sum] = freq.get(prefix_sum, 0) + 1
+            
         return ans
-
 # @lc code=end
