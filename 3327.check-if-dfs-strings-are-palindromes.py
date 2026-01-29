@@ -5,62 +5,62 @@
 #
 
 # @lc code=start
-from typing import List
-
 class Solution:
     def findAnswer(self, parent: List[int], s: str) -> List[bool]:
         n = len(parent)
         adj = [[] for _ in range(n)]
         for i in range(1, n):
             adj[parent[i]].append(i)
-        for u in range(n):
-            adj[u].sort()
-        MOD1 = 1000000007
-        MOD2 = 1000000009
-        BASE1 = 31
-        BASE2 = 37
-        len_sub = [0] * n
-        hf1 = [0] * n
-        hf2 = [0] * n
-        hr1 = [0] * n
-        hr2 = [0] * n
-        import sys
-        sys.setrecursionlimit(100010)
-        def dfs(u: int) -> None:
-            for c in adj[u]:
-                dfs(c)
-            # compute fwd hash
-            h1 = 0
-            h2 = 0
-            child_len_sum = 0
-            for c in adj[u]:
-                cl = len_sub[c]
-                p1 = pow(BASE1, cl, MOD1)
-                h1 = (h1 * p1 + hf1[c]) % MOD1
-                p2 = pow(BASE2, cl, MOD2)
-                h2 = (h2 * p2 + hf2[c]) % MOD2
-                child_len_sum += cl
-            ch = ord(s[u]) - ord('a') + 1
-            h1 = (h1 * BASE1 + ch) % MOD1
-            h2 = (h2 * BASE2 + ch) % MOD2
-            len_sub[u] = child_len_sum + 1
-            hf1[u] = h1
-            hf2[u] = h2
-            # compute rev hash
-            r1 = ch % MOD1
-            r2 = ch % MOD2
-            for c in reversed(adj[u]):
-                cl = len_sub[c]
-                p1 = pow(BASE1, cl, MOD1)
-                r1 = (r1 * p1 + hr1[c]) % MOD1
-                p2 = pow(BASE2, cl, MOD2)
-                r2 = (r2 * p2 + hr2[c]) % MOD2
-            hr1[u] = r1
-            hr2[u] = r2
-        dfs(0)
-        answer = [False] * n
+        
+        # Children must be visited in increasing order
         for i in range(n):
-            if hf1[i] == hr1[i] and hf2[i] == hr2[i]:
-                answer[i] = True
-        return answer
+            adj[i].sort()
+
+        # Iterative post-order DFS to build post-order string P and track subtree sizes
+        P = []
+        end_pos = [0] * n
+        size = [1] * n
+        stack = [(0, 0)]  # (node, state: 0 for pre-order, 1 for post-order)
+        
+        while stack:
+            u, state = stack.pop()
+            if state == 0:
+                stack.append((u, 1))
+                # Push children in reverse to process them in increasing order
+                for v in reversed(adj[u]):
+                    stack.append((v, 0))
+            else:
+                P.append(s[u])
+                end_pos[u] = len(P) - 1
+                p_idx = parent[u]
+                if p_idx != -1:
+                    size[p_idx] += size[u]
+        
+        # Manacher's Algorithm to find palindromes in O(n)
+        s_P = "".join(P)
+        T = "#" + "#".join(s_P) + "#"
+        m = len(T)
+        d = [0] * m
+        l, r = 0, -1
+        for i in range(m):
+            k = 1 if i > r else min(d[l + r - i], r - i + 1)
+            while 0 <= i - k and i + k < m and T[i - k] == T[i + k]:
+                k += 1
+            d[i] = k
+            if i + k - 1 > r:
+                l = i - k + 1
+                r = i + k - 1
+        
+        ans = [False] * n
+        for i in range(n):
+            sz = size[i]
+            # Substring in P is [L, R]
+            R = end_pos[i]
+            L = R - sz + 1
+            # Center in T is L + R + 1
+            center_in_T = L + R + 1
+            if d[center_in_T] >= sz + 1:
+                ans[i] = True
+        
+        return ans
 # @lc code=end
