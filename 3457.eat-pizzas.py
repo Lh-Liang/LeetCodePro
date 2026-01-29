@@ -5,26 +5,31 @@
 #
 
 # @lc code=start
+import math
+
 class Solution:
     def maxWeight(self, pizzas: List[int]) -> int:
-        # Sort descending to pick the largest weights greedily
+        # Sort descending to pick the largest weights first
         pizzas.sort(reverse=True)
         
         n = len(pizzas)
-        total_days = n // 4
-        odd_days = (total_days + 1) // 2
-        even_days = total_days // 2
+        days = n // 4
+        # Number of odd-numbered days (1, 3, 5...)
+        odd_days = (days + 1) // 2
+        # Number of even-numbered days (2, 4, 6...)
+        even_days = days // 2
         
-        # Gain from odd days: The absolute heaviest pizzas
-        # These are the first 'odd_days' elements in the sorted list
-        total_weight = sum(pizzas[:odd_days])
+        # For odd days, we gain weight Z (the heaviest of the 4).
+        # We take the top 'odd_days' pizzas.
+        total_gain = sum(pizzas[:odd_days])
         
-        # Gain from even days: The second heaviest in their respective groups
-        # We must skip one 'Z' pizza for every 'Y' pizza we take.
-        # Starting after the odd_days pizzas, we take every second pizza.
-        even_start_idx = odd_days + 1
-        even_end_idx = odd_days + 2 * even_days
-        total_weight += sum(pizzas[even_start_idx : even_end_idx : 2])
+        # For even days, we gain weight Y (the second heaviest).
+        # To maximize Y, we must 'sacrifice' one heavier pizza to be Z for each even day.
+        # We start picking from index 'odd_days', skipping one for every one we take.
+        # Indices: odd_days + 1, odd_days + 3, ..., odd_days + 2*even_days - 1
+        start_idx = odd_days
+        even_day_gains = pizzas[start_idx + 1 : start_idx + 1 + 2 * even_days : 2]
+        total_gain += sum(even_day_gains)
         
-        return total_weight
+        return total_gain
 # @lc code=end
