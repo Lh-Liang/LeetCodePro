@@ -5,39 +5,21 @@
 #
 
 # @lc code=start
-# Definition for singly-linked list.
-# class ListNode:
-#     def __init__(self, val=0, next=None):
-#         self.val = val
-#         self.next = next
-# Definition for a binary tree node.
-# class TreeNode:
-#     def __init__(self, val=0, left=None, right=None):
-#         self.val = val
-#         self.left = left
-#         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        if not root:
-            return False
+        def dfs(head, root):
+            if not head:  # If head is None, we've matched all nodes of linked list
+                return True
+            if not root:  # If root is None, we've reached leaf without matching all nodes
+                return False
+            if head.val == root.val:  # Current nodes match, move to next nodes in both structures
+                return dfs(head.next, root.left) or dfs(head.next, root.right)
+            return False  # If values don't match, can't continue this path
         
-        # Try starting the match from the current root, or search in subtrees
-        if self.checkPath(head, root):
-            return True
-            
-        return self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
-
-    def checkPath(self, head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
-        # If we reached the end of the list, we found a valid path
-        if not head:
-            return True
-        # If we reached a leaf in the tree before the end of the list
-        if not node:
-            return False
-        # If values don't match, this specific path is invalid
-        if head.val != node.val:
-            return False
+        def traverse(root):
+            if not root:  # Base case for traversal. No more nodes left in tree.
+                return False
+            return dfs(head, root) or traverse(root.left) or traverse(root.right)  # Check current node or move to children nodes
         
-        # Continue matching the next list node in the tree's children
-        return self.checkPath(head.next, node.left) or self.checkPath(head.next, node.right)
+        return traverse(root)  # Start traversal from root of the tree
 # @lc code=end
