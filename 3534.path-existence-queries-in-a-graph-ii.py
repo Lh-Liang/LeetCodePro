@@ -5,75 +5,46 @@
 #
 
 # @lc code=start
-import bisect
-from typing import List
-
 class Solution:
     def pathExistenceQueries(self, n: int, nums: List[int], maxDiff: int, queries: List[List[int]]) -> List[int]:
-        # Unique values sorted to define the state space
-        U = sorted(list(set(nums)))
-        M = len(U)
-        val_to_idx = {val: i for i, val in enumerate(U)}
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])  # Path compression
+            return parent[x]
         
-        # LOG must be large enough so 2^(LOG-1) >= M. 
-        # For M = 10^5, 2^17 = 131,072 is sufficient.
-        LOG = 17
-        jump = [[0] * M for _ in range(LOG)]
+        def union(x, y):
+            rootX = find(x)
+            rootY = find(y)
+            if rootX != rootY:
+                if rank[rootX] > rank[rootY]:
+                    parent[rootY] = rootX
+                elif rank[rootX] < rank[rootY]:
+                    parent[rootX] = rootY
+                else:
+                    parent[rootY] = rootX
+                    rank[rootX] += 1
         
-        for i in range(M):
-            target = U[i] + maxDiff
-            # Find furthest reachable index k such that U[k] <= U[i] + maxDiff
-            k = bisect.bisect_right(U, target) - 1
-            jump[0][i] = k
-            
-        for j in range(1, LOG):
-            prev_row = jump[j-1]
-            curr_row = jump[j]
-            for i in range(M):
-                curr_row[i] = prev_row[prev_row[i]]
+        # Sort nodes based on their nums values
+        sorted_nodes = sorted(range(n), key=lambda x: nums[x])
         
-        node_val_idx = [val_to_idx[x] for x in nums]
-        Q = len(queries)
-        ans = [0] * Q
+        # Initialize union-find structure
+        parent = list(range(n))
+        rank = [0] * n
         
-        # Local reference for speed
-        jump_tables = jump
-        max_reach_row = jump_tables[LOG-1]
+        # Create edges in sorted order to ensure efficiency
+        for i in range(n):
+            for j in range(i + 1, n):
+                if nums[sorted_nodes[j]] - nums[sorted_nodes[i]] > maxDiff:
+                    break  # No need to check further due to sorting
+                union(sorted_nodes[i], sorted_nodes[j])
         
-        for i in range(Q):
-            u, v = queries[i]
-            if u == v:
-                ans[i] = 0
-                continue
+        # Answer each query using the union-find structure
+        answer = []
+        for u, v in queries:
+            if find(u) == find(v):
+                answer.append(1)  # Nodes are connected within maxDiff constraint
+            else:
+                answer.append(-1)  # Nodes are not connected
             
-            idx_u = node_val_idx[u]
-            idx_v = node_val_idx[v]
-            
-            # Same value, different nodes: distance is 1
-            if idx_u == idx_v:
-                ans[i] = 1
-                continue
-            
-            # Ensure we are jumping from smaller value to larger value
-            if idx_u > idx_v:
-                idx_u, idx_v = idx_v, idx_u
-            
-            # Check if idx_v is reachable from idx_u at all
-            if max_reach_row[idx_u] < idx_v:
-                ans[i] = -1
-                continue
-            
-            # Binary lifting to find min steps to reach or exceed idx_v
-            steps = 0
-            curr = idx_u
-            for j in range(LOG - 1, -1, -1):
-                row = jump_tables[j]
-                if row[curr] < idx_v:
-                    curr = row[curr]
-                    steps += (1 << j)
-            
-            # One more step is needed to reach or exceed idx_v
-            ans[i] = steps + 1
-            
-        return ans
+        return answer
 # @lc code=end
