@@ -5,109 +5,55 @@
 #
 
 # @lc code=start
-import heapq
-
-MAX_V = 100001
-IS_PRIME = [True] * MAX_V
-IS_PRIME[0] = IS_PRIME[1] = False
-for p in range(2, int(MAX_V**0.5) + 1):
-    if IS_PRIME[p]:
-        for i in range(p * p, MAX_V, p):
-            IS_PRIME[i] = False
-
-class SegmentTree:
-    """Iterative Segment Tree for Range Addition and Global Maximum Query."""
-    def __init__(self, n):
-        self.n = n
-        self.size = 1 << (n + 1).bit_length()
-        self.max_val = [0] * (2 * self.size)
-        self.lazy = [0] * (2 * self.size)
-
-    def _apply(self, p, val):
-        self.max_val[p] += val
-        self.lazy[p] += val
-
-    def _build(self, p):
-        while p > 1:
-            p >>= 1
-            self.max_val[p] = max(self.max_val[p<<1], self.max_val[p<<1|1]) + self.lazy[p]
-
-    def update(self, l, r, val):
-        if l > r: return
-        l += self.size
-        r += self.size
-        l0, r0 = l, r
-        while l <= r:
-            if l & 1:
-                self._apply(l, val)
-                l += 1
-            if not (r & 1):
-                self._apply(r, val)
-                r -= 1
-            l >>= 1
-            r >>= 1
-        self._build(l0)
-        self._build(r0)
-
-    def query(self):
-        # Max value in range [1, n-1]
-        return self.max_val[1]
+from typing import List, Set
 
 class Solution:
+    def sieve_of_eratosthenes(self, max_number: int) -> Set[int]:
+        is_prime = [True] * (max_number + 1)
+        p = 2
+        while (p * p <= max_number):
+            if (is_prime[p] == True):
+                for i in range(p * p, max_number + 1, p):
+                    is_prime[i] = False
+            p += 1
+        prime_set = {p for p in range(2, max_number + 1) if is_prime[p]}
+        return prime_set
+    
     def maximumCount(self, nums: List[int], queries: List[List[int]]) -> List[int]:
-        n = len(nums)
-        st = SegmentTree(n - 1)
-        
-        indices = [set() for _ in range(MAX_V)]
-        min_heaps = [[] for _ in range(MAX_V)]
-        max_heaps = [[] for _ in range(MAX_V)]
-        distinct_primes_count = 0
-        
-        def get_endpoints(p):
-            while min_heaps[p] and min_heaps[p][0] not in indices[p]:
-                heapq.heappop(min_heaps[p])
-            while max_heaps[p] and -max_heaps[p][0] not in indices[p]:
-                heapq.heappop(max_heaps[p])
-            if not indices[p]:
-                return None, None
-            return min_heaps[p][0], -max_heaps[p][0]
-
-        def update_prime_state(p, idx, is_add):
-            nonlocal distinct_primes_count
-            l_old, r_old = get_endpoints(p)
-            
-            if is_add:
-                if not indices[p]: distinct_primes_count += 1
-                indices[p].add(idx)
-                heapq.heappush(min_heaps[p], idx)
-                heapq.heappush(max_heaps[p], -idx)
-            else:
-                indices[p].remove(idx)
-                if not indices[p]: distinct_primes_count -= 1
-            
-            l_new, r_new = get_endpoints(p)
-            
-            # Update segment tree only if the interval [L+1, R] has changed
-            if (l_old, r_old) != (l_new, r_new):
-                if l_old is not None and l_old < r_old:
-                    st.update(l_old + 1, r_old, -1)
-                if l_new is not None and l_new < r_new:
-                    st.update(l_new + 1, r_new, 1)
-
-        for i, v in enumerate(nums):
-            if IS_PRIME[v]:
-                update_prime_state(v, i, True)
+        # Step 1: Prepare a set of all primes up to the maximum possible value in nums.
+        max_num_value = 105  # As per constraints
+        prime_set = self.sieve_of_eratosthenes(max_num_value)
         
         results = []
+        n = len(nums)
+        
+        # Step 2: Process each query and calculate results after updating nums.
         for idx, val in queries:
-            old_val = nums[idx]
-            if old_val != val:
-                if IS_PRIME[old_val]:
-                    update_prime_state(old_val, idx, False)
-                nums[idx] = val
-                if IS_PRIME[val]:
-                    update_prime_state(val, idx, True)
-            results.append(distinct_primes_count + st.query())
+            # Update nums[idx] with val as per query instruction.
+            nums[idx] = val
             
+            # Step 3: Find maximum count of distinct primes after split for current nums state.
+            max_distinct_primes = 0
+            for k in range(1, n):
+                prefix_primes = set()
+                suffix_primes = set()
+                
+                # Collect primes from prefix part nums[0..k-1]
+                for i in range(k):
+                    if nums[i] in prime_set:
+                        prefix_primes.add(nums[i])
+                
+                # Collect primes from suffix part nums[k..end]
+                for i in range(k, n):
+                    if nums[i] in prime_set:
+                        suffix_primes.add(nums[i])
+                
+                # Calculate total distinct primes count
+                total_distinct_primes = len(prefix_primes) + len(suffix_primes)
+                max_distinct_primes = max(max_distinct_primes, total_distinct_primes)
+            
+            # Record result for this query
+            results.append(max_distinct_primes)
+        
         return results
 # @lc code=end
