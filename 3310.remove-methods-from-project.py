@@ -5,33 +5,39 @@
 #
 
 # @lc code=start
+from collections import deque
+from typing import List
+
 class Solution:
     def remainingMethods(self, n: int, k: int, invocations: List[List[int]]) -> List[int]:
+        # Step 1: Build the adjacency list for the directed graph
         adj = [[] for _ in range(n)]
-        for a, b in invocations:
-            adj[a].append(b)
+        for u, v in invocations:
+            adj[u].append(v)
         
-        visited = [False] * n
-        S = set()
-        stack = [k]
-        visited[k] = True
-        while stack:
-            u = stack.pop()
-            S.add(u)
-            for v in adj[u]:
-                if not visited[v]:
-                    visited[v] = True
-                    stack.append(v)
+        # Step 2: Use BFS to identify all suspicious methods (reachable from k)
+        suspicious = [False] * n
+        suspicious[k] = True
+        queue = deque([k])
         
+        while queue:
+            curr = queue.popleft()
+            for neighbor in adj[curr]:
+                if not suspicious[neighbor]:
+                    suspicious[neighbor] = True
+                    queue.append(neighbor)
+        
+        # Step 3: Check if any non-suspicious method invokes a suspicious method
+        # This ensures the 'suspicious group' is isolated from the rest of the project
         can_remove = True
-        for a, b in invocations:
-            if a not in S and b in S:
+        for u, v in invocations:
+            if not suspicious[u] and suspicious[v]:
                 can_remove = False
                 break
         
-        if not can_remove:
+        # Step 4: Return result based on the removal condition
+        if can_remove:
+            return [i for i in range(n) if not suspicious[i]]
+        else:
             return list(range(n))
-        
-        return [i for i in range(n) if i not in S]
-
 # @lc code=end
