@@ -7,40 +7,46 @@
 # @lc code=start
 class Solution:
     def minMoves(self, sx: int, sy: int, tx: int, ty: int) -> int:
-        if sx == tx and sy == ty:
-            return 0
-        from collections import deque
-        q = deque([(tx, ty)])
-        visited = set([(tx, ty)])
-        step = 0
-        while q:
-            sz = len(q)
-            for _ in range(sz):
-                x, y = q.popleft()
-                if x == sx and y == sy:
-                    return step
-                prevs = []
-                # Reverse add to x: (x - m, y) with m = max(x - m, y)
-                px = x - y
-                if px >= 0 and px <= y:
-                    prevs.append((px, y))
-                if x % 2 == 0:
-                    px = x // 2
-                    if px >= y:
-                        prevs.append((px, y))
-                # Reverse add to y: (x, y - m) with m = max(x, y - m)
-                py = y - x
-                if py >= 0 and py <= x:
-                    prevs.append((x, py))
-                if y % 2 == 0:
-                    py = y // 2
-                    if py >= x:
-                        prevs.append((x, py))
-                for prev_x, prev_y in prevs:
-                    if prev_x >= sx and prev_y >= sy and (prev_x, prev_y) not in visited:
-                        visited.add((prev_x, prev_y))
-                        q.append((prev_x, prev_y))
-            step += 1
+        moves = 0
+        while tx >= sx and ty >= sy:
+            if tx == sx and ty == sy:
+                return moves
+            
+            if tx > ty:
+                # Unique predecessor logic for tx > ty
+                if tx >= 2 * ty:
+                    if tx % 2 != 0:
+                        return -1
+                    tx //= 2
+                else:
+                    tx -= ty
+                moves += 1
+            elif ty > tx:
+                # Unique predecessor logic for ty > tx
+                if ty >= 2 * tx:
+                    if ty % 2 != 0:
+                        return -1
+                    ty //= 2
+                else:
+                    ty -= tx
+                moves += 1
+            else:
+                # tx == ty. This can only be reached from (0, tx) or (tx, 0)
+                # Check if target is reachable from sx, sy via one of these
+                if sx == 0 and sy == ty:
+                    # Already handled by the while condition and tx==sx check
+                    pass 
+                elif sy == 0 and sx == tx:
+                    pass
+                elif sx == 0 and tx > 0:
+                    tx = 0
+                    moves += 1
+                    continue
+                elif sy == 0 and ty > 0:
+                    ty = 0
+                    moves += 1
+                    continue
+                return -1
+                
         return -1
-
 # @lc code=end
