@@ -1,82 +1,67 @@
-#
-# @lc app=leetcode id=3695 lang=cpp
-#
-# [3695] Maximize Alternating Sum Using Swaps
-#
-# @lc code=start
+#include <vector>
+#include <numeric>
+#include <algorithm>
+#include <map>
+
+using namespace std;
+
 class Solution {
 public:
-    vector<int> parent;
-    
-    int find(int x) {
-        if (parent[x] != x) {
-            parent[x] = find(parent[x]);
-        }
-        return parent[x];
-    }
-    
-    void unite(int x, int y) {
-        int px = find(x);
-        int py = find(y);
-        if (px != py) {
-            parent[px] = py;
-        }
-    }
-    
     long long maxAlternatingSum(vector<int>& nums, vector<vector<int>>& swaps) {
         int n = nums.size();
-        parent.resize(n);
-        for (int i = 0; i < n; i++) {
-            parent[i] = i;
+        vector<int> parent(n);
+        iota(parent.begin(), parent.end(), 0);
+
+        // DSU Find with path compression
+        auto find_root = [&](auto self, int i) -> int {
+            if (parent[i] == i) return i;
+            return parent[i] = self(self, parent[i]);
+        };
+
+        // Build connected components of indices
+        for (const auto& s : swaps) {
+            int root_u = find_root(find_root, s[0]);
+            int root_v = find_root(find_root, s[1]);
+            if (root_u != root_v) {
+                parent[root_u] = root_v;
+            }
         }
-        
-        // Build union-find structure
-        for (const auto& swap : swaps) {
-            unite(swap[0], swap[1]);
-        }
-        
-        // Group indices by their root
-        unordered_map<int, vector<int>> components;
-        for (int i = 0; i < n; i++) {
-            components[find(i)].push_back(i);
-        }
-        
-        // For each component, optimize assignment
-        vector<int> result(n);
-        for (auto& [root, indices] : components) {
-            // Collect values
+
+        // Group indices and values by their component root
+        // component_data[root] = {vector_of_values, count_of_even_indices}
+        struct Component {
             vector<int> values;
-            for (int idx : indices) {
-                values.push_back(nums[idx]);
-            }
-            
-            // Sort indices by coefficient (even = +1, odd = -1) in descending order
-            sort(indices.begin(), indices.end(), [](int a, int b) {
-                int coefA = (a % 2 == 0) ? 1 : -1;
-                int coefB = (b % 2 == 0) ? 1 : -1;
-                return coefA > coefB;
-            });
-            
-            // Sort values in descending order
-            sort(values.begin(), values.end(), greater<int>());
-            
-            // Assign values
-            for (int i = 0; i < indices.size(); i++) {
-                result[indices[i]] = values[i];
-            }
-        }
-        
-        // Calculate alternating sum
-        long long sum = 0;
-        for (int i = 0; i < n; i++) {
+            int even_count = 0;
+        };
+        map<int, Component> groups;
+
+        for (int i = 0; i < n; ++i) {
+            int root = find_root(find_root, i);
+            groups[root].values.push_back(nums[i]);
             if (i % 2 == 0) {
-                sum += result[i];
-            } else {
-                sum -= result[i];
+                groups[root].even_count++;
             }
         }
-        
-        return sum;
+
+        long long total_max_sum = 0;
+
+        // Process each component independently
+        for (auto& [root, comp] : groups) {
+            sort(comp.values.begin(), comp.values.end());
+            
+            int total_in_comp = comp.values.size();
+            int odd_count = total_in_comp - comp.even_count;
+
+            // Smallest 'odd_count' values are assigned to odd indices (subtracted)
+            for (int i = 0; i < odd_count; ++i) {
+                total_max_sum -= (long long)comp.values[i];
+            }
+            // Largest 'even_count' values are assigned to even indices (added)
+            for (int i = odd_count; i < total_in_comp; ++i) {
+                total_max_sum += (long long)comp.values[i];
+            }
+        }
+
+        return total_max_sum;
     }
 };
-# @lc code=end
