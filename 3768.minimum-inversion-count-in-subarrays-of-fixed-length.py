@@ -6,38 +6,54 @@
 
 # @lc code=start
 from typing import List
-from sortedcontainers import SortedList
 
 class Solution:
     def minInversionCount(self, nums: List[int], k: int) -> int:
+        # Coordinate compression
+        arr = sorted(set(nums))
+        mapping = {v: i for i, v in enumerate(arr)}
+        nums = [mapping[v] for v in nums]
         n = len(nums)
-        if k == 1:
-            return 0  # No inversions possible with single-element subarrays.
-        
-        min_inversions = float('inf')
-        current_window = SortedList()
-        current_inversions = 0
-        
-        # Calculate inversions for first window
+
+        class BIT:
+            def __init__(self, size):
+                self.n = size
+                self.tree = [0] * (self.n+2)
+            def update(self, i, v):
+                i += 1
+                while i <= self.n+1:
+                    self.tree[i] += v
+                    i += i & -i
+            def query(self, i):
+                i += 1
+                res = 0
+                while i > 0:
+                    res += self.tree[i]
+                    i -= i & -i
+                return res
+            def query_range(self, l, r):
+                return self.query(r) - self.query(l-1)
+
+        def count_inversions(window):
+            bit = BIT(len(arr))
+            inv = 0
+            for x in window:
+                inv += bit.query_range(x+1, len(arr)-1)
+                bit.update(x, 1)
+            return inv
+
+        bit = BIT(len(arr))
+        window = []
         for i in range(k):
-            current_inversions += len(current_window) - current_window.bisect_right(nums[i])
-            current_window.add(nums[i])
-        min_inversions = min(min_inversions, current_inversions)
-        
-        # Slide window across `nums`
+            window.append(nums[i])
+        inversion = count_inversions(window)
+        answer = inversion
+
         for i in range(k, n):
-            # Remove effect of outgoing element
-            outgoing_element = nums[i - k]
-            current_window.remove(outgoing_element)
-            current_inversions -= current_window.bisect_left(outgoing_element)
-            
-            # Add effect of incoming element
-            incoming_element = nums[i]
-            current_inversions += len(current_window) - current_window.bisect_right(incoming_element)
-            current_window.add(incoming_element)
-            
-            # Update minimum inversions found so far
-            min_inversions = min(min_inversions, current_inversions)
-        
-        return min_inversions
+            # Slide window: remove nums[i-k], add nums[i]
+            window.pop(0)
+            window.append(nums[i])
+            inversion = count_inversions(window)
+            answer = min(answer, inversion)
+        return answer
 # @lc code=end
