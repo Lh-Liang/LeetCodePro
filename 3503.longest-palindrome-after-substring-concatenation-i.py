@@ -9,18 +9,17 @@ class Solution:
     def longestPalindrome(self, s: str, t: str) -> int:
         def is_palindrome(x):
             return x == x[::-1]
-        maxlen = 0
+        max_len = 0
         n, m = len(s), len(t)
-        # All possible substrings from s
+        # s_sub + t_sub, t_sub may be empty
         for i in range(n+1):
             for j in range(i, n+1):
-                substr_s = s[i:j]
-                # All possible substrings from t
-                for k in range(m+1):
-                    for l in range(k, m+1):
-                        substr_t = t[k:l]
-                        candidate = substr_s + substr_t
-                        if candidate and is_palindrome(candidate):
-                            maxlen = max(maxlen, len(candidate))
-        return maxlen
+                s_sub = s[i:j]
+                for p in range(m+1):
+                    for q in range(p, m+1):
+                        t_sub = t[p:q]
+                        concat = s_sub + t_sub
+                        if concat and is_palindrome(concat):
+                            max_len = max(max_len, len(concat))
+        return max_len
 # @lc code=end
