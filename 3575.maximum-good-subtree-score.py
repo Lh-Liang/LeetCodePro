@@ -1,1 +1,48 @@
-#\n# @lc app=leetcode id=3575 lang=python3\n#\n# [3575] Maximum Good Subtree Score\n#\n\n# @lc code=start\nclass Solution:\n    def goodSubtreeSum(self, vals: List[int], par: List[int]) -> int:\n        from collections import defaultdict\n        MOD = 10**9 + 7\n        n = len(vals)\n        tree = defaultdict(list)\n        for child, parent in enumerate(par):\n            if parent != -1:\n                tree[parent].append(child)\n        \n        def dfs(node):\n            bitmask = 0 \n            score = vals[node]\n            digit_set = set(str(vals[node])) # Track unique digits in string form\n            bitmask |= sum(1 << (ord(digit) - ord('0')) for digit in digit_set) # Set bits for each digit present\n            max_score = score # Start with current node's value as initial max_score\n            \n            for child in tree[node]: # Visit all children of current node\n                child_score, child_mask = dfs(child) # Recursive DFS call for child's score and mask\n                if bitmask & child_mask == 0: # No overlapping digits (bitwise AND should be zero)\n                    max_score = max(max_score, score + child_score) # Update max_score if this child's subtree is valid \n                    bitmask |= child_mask # Combine masks when valid \n            return max_score, bitmask # Return computed max_score and combined bitmask for this subtree \n        \n        total_max_score = sum(dfs(node)[0] for node in range(n)) % MOD # Sum up all maximum scores modulo MOD \n        return total_max_score \n# @lc code=end
+#
+# @lc app=leetcode id=3575 lang=python3
+#
+# [3575] Maximum Good Subtree Score
+#
+
+# @lc code=start
+class Solution:
+    def goodSubtreeSum(self, vals: List[int], par: List[int]) -> int:
+        from collections import defaultdict
+        MOD = 10**9 + 7
+        n = len(vals)
+        
+        # Step 2: Build the tree using adjacency list representation
+        tree = defaultdict(list)
+        for child, parent in enumerate(par):
+            if parent != -1:
+                tree[parent].append(child)
+
+        # Step 5: Helper function to check if digits in numbers are unique across a subset
+        def has_unique_digits(subset_vals):
+            digit_set = set()
+            for val in subset_vals:
+                digits = set(str(val))
+                if digit_set & digits:
+                    return False
+                digit_set.update(digits)
+            return True
+
+        # Step 4 & Step 6: DFS function to compute maxScore for each subtree rooted at node u
+        def dfs(node):
+            current_subtree_vals = [vals[node]]
+            max_sum = vals[node]
+            for child in tree[node]:
+                child_sum, child_vals = dfs(child)
+                current_subtree_vals += child_vals
+                max_sum = max(max_sum, child_sum)
+            
+            # Check if all nodes in current subtree form a good subset and calculate their score
+            if has_unique_digits(current_subtree_vals):
+                max_sum = sum(current_subtree_vals)
+            
+            return max_sum, current_subtree_vals
+        
+        # Calculate maxScore for subtree rooted at each node and sum them up for final result
+        total_max_score = dfs(0)[0] % MOD
+        return total_max_score
+# @lc code=end
