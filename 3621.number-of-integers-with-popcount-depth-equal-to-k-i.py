@@ -3,47 +3,48 @@
 #
 # [3621] Number of Integers With Popcount-Depth Equal to K I
 #
+
 # @lc code=start
 class Solution:
     def popcountDepth(self, n: int, k: int) -> int:
         from functools import lru_cache
-        import sys
-        sys.setrecursionlimit(10000)
-        # Precompute popcount-depth for all possible popcounts
-        MAX_BITS = 70  # more than needed since n <= 1e15
-        popcount_depth = [0] * (MAX_BITS+1)
-        def get_depth(x):
-            if x == 1:
-                return 0
-            if popcount_depth[x] != 0:
-                return popcount_depth[x]
-            popcount_depth[x] = 1 + get_depth(bin(x).count('1'))
-            return popcount_depth[x]
-        for i in range(1, MAX_BITS+1):
-            get_depth(i)
-        # Count numbers <= n with exactly cnt ones
-        def count(N, cnt):
-            bits = list(map(int, bin(N)[2:]))
-            L = len(bits)
-            @lru_cache(None)
-            def dp(pos, tight, ones):
-                if ones < 0:
-                    return 0
-                if pos == L:
-                    return 1 if ones == 0 else 0
-                res = 0
-                up = bits[pos] if tight else 1
-                for d in range(up+1):
-                    res += dp(pos+1, tight and d==up, ones-d)
-                return res
-            return dp(0, True, cnt)
-        if k == 0:
-            return 1 if n >= 1 else 0
+        import math
+        # Precompute popcount-depth for all s in [1, 100]
+        def popcount(x):
+            return bin(x).count('1')
+        depth = {0: -1, 1: 0}
+        for s in range(2, 70):
+            x = s
+            d = 0
+            while x != 1:
+                x = popcount(x)
+                d += 1
+            depth[s] = d
+        # For each s, count numbers <= n with exactly s set bits
+        bits = list(map(int, bin(n)[2:]))
+        L = len(bits)
+        @lru_cache(None)
+        def dp(pos, cnt, tight):
+            if pos == L:
+                return 1 if cnt == 0 else 0
+            res = 0
+            maxb = bits[pos] if tight else 1
+            for b in range(maxb + 1):
+                res += dp(pos + 1, cnt - b, tight and (b == maxb))
+            return res
         ans = 0
-        for i in range(1, MAX_BITS+1):
-            if popcount_depth[i] == k-1:
-                ans += count(n, i)
-        if k == 1:
-            ans -= 1  # exclude number 1 (since its depth is 0)
+        # Edge case: k == 0, only x=1 has popcount-depth 0
+        if k == 0:
+            if n >= 1:
+                return 1
+            else:
+                return 0
+        for s in range(1, L * 2):
+            if depth.get(s, -1) == k - 1 and s > 0:
+                cnt = dp(0, s, True)
+                # Exclude 0
+                if s == 1:
+                    cnt -= 1
+                ans += cnt
         return ans
 # @lc code=end
