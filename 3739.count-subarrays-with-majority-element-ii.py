@@ -5,19 +5,51 @@
 #
 
 # @lc code=start
-from typing import List
 class Solution:
     def countMajoritySubarrays(self, nums: List[int], target: int) -> int:
-        count = 0
+        # Transform nums to +1 for target, -1 for non-target
+        arr = [1 if x == target else -1 for x in nums]
         n = len(nums)
-        for i in range(n):
-            freq = 0
-            total = 0
-            for j in range(i, n):
-                if nums[j] == target:
-                    freq += 1
-                total += 1
-                if freq > total / 2:
-                    count += 1
-        return count
+        # Prefix sum array
+        prefix = [0]
+        for v in arr:
+            prefix.append(prefix[-1] + v)
+        # For a subarray nums[l..r], target is majority iff
+        # prefix[r+1] - prefix[l] > (r-l+1) // 2: strictly more than half
+        # Set up counting
+        import bisect
+        vals = []
+        for i, p in enumerate(prefix):
+            vals.append(p - ((i+1)//2))
+            vals.append(p)
+        sorted_vals = sorted(set(vals))
+        idx = {v: i for i, v in enumerate(sorted_vals)}
+        # Fenwick Tree Implementation
+        class BIT:
+            def __init__(self, size):
+                self.N = size + 2
+                self.tree = [0]*(self.N)
+            def update(self, i, d):
+                i += 1
+                while i < self.N:
+                    self.tree[i] += d
+                    i += (i & -i)
+            def query(self, i):
+                i += 1
+                res = 0
+                while i > 0:
+                    res += self.tree[i]
+                    i -= (i & -i)
+                return res
+        bit = BIT(len(sorted_vals))
+        ans = 0
+        for i, p in enumerate(prefix):
+            if i == 0:
+                bit.update(idx[p], 1)
+                continue
+            threshold = p - ((i+1)//2)
+            pos = bisect.bisect_left(sorted_vals, threshold)
+            ans += bit.query(pos-1)
+            bit.update(idx[p], 1)
+        return ans
 # @lc code=end
