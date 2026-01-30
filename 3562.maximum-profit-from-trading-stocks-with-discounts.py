@@ -5,39 +5,43 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import defaultdict
-import heapq
-import math
-
 class Solution:
     def maxProfit(self, n: int, present: List[int], future: List[int], hierarchy: List[List[int]], budget: int) -> int:
-        # Build adjacency list for hierarchy relationships
+        from collections import defaultdict
+        
+        # Step 1: Build adjacency list for hierarchy.
         adj = defaultdict(list)
         for u, v in hierarchy:
-            adj[u - 1].append(v - 1)
+            adj[u].append(v)
         
-        # Calculate potential profits and sort by profitability descending then cost ascending
-        transactions = []
-        for i in range(n):
-            profit = future[i] - present[i]
-            transactions.append((profit, present[i], i))
+        # Step 2: Recursive function with memoization.
+        memo = {}
+        def dfs(emp_id, remaining_budget):
+            if emp_id > n:
+                return 0
+            if (emp_id, remaining_budget) in memo:
+                return memo[(emp_id, remaining_budget)]
+            
+            # Profit without buying this employee's stock.
+            max_profit = dfs(emp_id + 1, remaining_budget)
+            
+            # Profit when buying this employee's stock without discount.
+            cost = present[emp_id - 1]
+            if remaining_budget >= cost:
+                profit_without_discount = future[emp_id - 1] - cost + dfs(emp_id + 1, remaining_budget - cost)
+                max_profit = max(max_profit, profit_without_discount)
+            
+            # Check discount applicability for subordinates and apply DFS for them.
+            for subordinate in adj[emp_id]:
+                discounted_cost = present[subordinate - 1] // 2
+                if remaining_budget >= discounted_cost:
+                    # Apply discount and recurse for subordinate with updated budget
+                    profit_with_discount = future[subordinate - 1] - discounted_cost + dfs(subordinate + 1, remaining_budget - discounted_cost)
+                    max_profit = max(max_profit, profit_with_discount)
+                    
+            memo[(emp_id, remaining_budget)] = max_profit
+            return max_profit
         
-        # Sort transactions by descending profit and then ascending cost
-        transactions.sort(key=lambda x: (-x[0], x[1]))
-        
-        total_profit = 0
-        used_budget = 0
-        purchased = [False] * n  # Tracks if an employee's stock is purchased or not
-        
-        # Process each transaction considering possible discounts due to hierarchy
-        for profit, cost, employee in transactions:
-            # Check if any boss purchased their own stock so this employee can get a discount
-            discounted_cost = cost if not any(purchased[boss] for boss in adj[employee]) else math.floor(cost / 2)
-            if used_budget + discounted_cost <= budget:
-                used_budget += discounted_cost
-                total_profit += future[employee] - discounted_cost  # Calculate actual realized profit after discount cost if applicable
-                purchased[employee] = True  # Mark as purchased only if successfully bought within budget constraints
-                
-        return total_profit  # Return maximum achievable profit within given constraints of hierarchy and budget management.
+        # Step 3: Start DFS exploration from the first employee with full budget.
+        return dfs(1, budget)
 # @lc code=end
