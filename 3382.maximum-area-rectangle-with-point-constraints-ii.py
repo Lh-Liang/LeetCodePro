@@ -7,23 +7,43 @@
 # @lc code=start
 class Solution:
     def maxRectangleArea(self, xCoord: List[int], yCoord: List[int]) -> int:
-        from collections import defaultdict
-        point_map = defaultdict(set)
-        for x, y in zip(xCoord, yCoord):
-            point_map[x].add(y)
+        points = set(zip(xCoord, yCoord))
+        n = len(xCoord)
         max_area = -1
-        seen_pairs = {}
-        for x in sorted(point_map):
-            ys = sorted(point_map[x])
-            for i in range(len(ys)):
-                for j in range(i + 1, len(ys)):
-                    y1, y2 = ys[i], ys[j]
-                    if (y1, y2) in seen_pairs:
-                        prev_x = seen_pairs[(y1, y2)]
-                        area = (x - prev_x) * (y2 - y1)
-                        # Perform additional checks here to ensure no point lies inside or on the border of this rectangle
-                        if not any((prev_x < px < x or px == prev_x or px == x) and (y1 <= py <= y2) for px, py in zip(xCoord, yCoord)):
-                            max_area = max(max_area, area)
-                    seen_pairs[(y1, y2)] = x
-        return max_area if max_area != -1 else -1
+        # For fast lookup, group coordinates by x and by y
+        x_dict = {}
+        y_dict = {}
+        for x, y in points:
+            x_dict.setdefault(x, set()).add(y)
+            y_dict.setdefault(y, set()).add(x)
+        # Only consider pairs of points from input data
+        for i in range(n):
+            for j in range(i+1, n):
+                x1, y1 = xCoord[i], yCoord[i]
+                x2, y2 = xCoord[j], yCoord[j]
+                if x1 == x2 or y1 == y2:
+                    continue
+                # Consistent ordering to avoid duplicates
+                x_low, x_high = sorted([x1, x2])
+                y_low, y_high = sorted([y1, y2])
+                # Check if rectangle corners exist
+                if (x_low, y_high) not in points or (x_high, y_low) not in points:
+                    continue
+                # Check for other points strictly inside or on the border (excluding the four corners)
+                has_inner = False
+                # Only check actual points in dataset, not all in range
+                for x, y in points:
+                    if (x_low < x < x_high) and (y_low < y < y_high):
+                        has_inner = True
+                        break
+                    # Border check (excluding corners)
+                    if ((x == x_low or x == x_high) and (y_low < y < y_high)) or ((y == y_low or y == y_high) and (x_low < x < x_high)):
+                        if (x, y) not in [(x_low, y_low), (x_low, y_high), (x_high, y_low), (x_high, y_high)]:
+                            has_inner = True
+                            break
+                if not has_inner:
+                    area = (x_high - x_low) * (y_high - y_low)
+                    if area > max_area:
+                        max_area = area
+        return max_area
 # @lc code=end
