@@ -4,45 +4,62 @@
 # [3604] Minimum Time to Reach Destination in Directed Graph
 #
 # @lc code=start
+#include <vector>
+#include <queue>
+#include <climits>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
+    struct Edge {
+        int to;
+        int start;
+        int end;
+    };
+
     int minTime(int n, vector<vector<int>>& edges) {
-        // Build adjacency list
-        vector<vector<tuple<int, int, int>>> graph(n);
+        // Adjacency list to store the directed edges
+        vector<vector<Edge>> adj(n);
         for (const auto& e : edges) {
-            graph[e[0]].push_back({e[1], e[2], e[3]});
+            adj[e[0]].push_back({e[1], e[2], e[3]});
         }
-        
-        // Dijkstra's algorithm
-        vector<int> dist(n, INT_MAX);
-        priority_queue<pair<int, int>, vector<pair<int, int>>, greater<>> pq;
-        
-        dist[0] = 0;
-        pq.push({0, 0}); // {time, node}
-        
+
+        // minDist[i] stores the minimum time to reach node i
+        vector<long long> minDist(n, LLONG_MAX);
+        // Min-priority queue for Dijkstra's: {time, node}
+        priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<pair<long long, int>>> pq;
+
+        // Start at node 0 at time 0
+        minDist[0] = 0;
+        pq.push({0, 0});
+
         while (!pq.empty()) {
-            auto [time, node] = pq.top();
+            auto [d, u] = pq.top();
             pq.pop();
-            
-            // Early return if we reached the destination
-            if (node == n - 1) return time;
-            
-            // Skip if we've already found a better path to this node
-            if (time > dist[node]) continue;
-            
-            // Explore all outgoing edges
-            for (const auto& [next, start, end] : graph[node]) {
-                if (time <= end) { // We can potentially use this edge
-                    int arrival = max(time, start) + 1;
-                    if (arrival < dist[next]) {
-                        dist[next] = arrival;
-                        pq.push({arrival, next});
+
+            // Standard Dijkstra optimization
+            if (d > minDist[u]) continue;
+
+            // Early exit if we reach the target
+            if (u == n - 1) return (int)d;
+
+            for (const auto& edge : adj[u]) {
+                // We can use the edge if current time d <= availability end time
+                if (d <= (long long)edge.end) {
+                    // Earliest start time is max(current time, edge start time)
+                    // Arrival time is start time + 1 unit of travel time
+                    long long arrival = max(d, (long long)edge.start) + 1;
+                    if (arrival < minDist[edge.to]) {
+                        minDist[edge.to] = arrival;
+                        pq.push({arrival, edge.to});
                     }
                 }
             }
         }
-        
-        return -1; // Cannot reach destination
+
+        return minDist[n - 1] == LLONG_MAX ? -1 : (int)minDist[n - 1];
     }
 };
 # @lc code=end
