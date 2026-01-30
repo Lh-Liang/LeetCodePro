@@ -6,39 +6,26 @@
 # @lc code=start
 class Solution:
     def longestBalanced(self, nums: List[int]) -> int:
-        from collections import defaultdict
-        n = len(nums)
-        maxlen = 0
         left = 0
-        even_count = defaultdict(int)
-        odd_count = defaultdict(int)
-        even_distinct = 0
-        odd_distinct = 0
+        max_len = 0
+        even_set = set()
+        odd_set = set()
+        count = {}
         for right, num in enumerate(nums):
             if num % 2 == 0:
-                if even_count[num] == 0:
-                    even_distinct += 1
-                even_count[num] += 1
+                even_set.add(num)
             else:
-                if odd_count[num] == 0:
-                    odd_distinct += 1
-                odd_count[num] += 1
-            while left <= right and even_distinct != odd_distinct:
-                num_left = nums[left]
-                if num_left % 2 == 0:
-                    even_count[num_left] -= 1
-                    if even_count[num_left] == 0:
-                        even_distinct -= 1
-                else:
-                    odd_count[num_left] -= 1
-                    if odd_count[num_left] == 0:
-                        odd_distinct -= 1
+                odd_set.add(num)
+            count[num] = count.get(num, 0) + 1
+            while left <= right and abs(len(even_set) - len(odd_set)) > 0:
+                count[nums[left]] -= 1
+                if count[nums[left]] == 0:
+                    if nums[left] % 2 == 0:
+                        even_set.remove(nums[left])
+                    else:
+                        odd_set.remove(nums[left])
                 left += 1
-            # After window adjustment, verify data structures are correct
-            assert even_distinct == len([k for k,v in even_count.items() if v > 0])
-            assert odd_distinct == len([k for k,v in odd_count.items() if v > 0])
-            if even_distinct == odd_distinct:
-                maxlen = max(maxlen, right - left + 1)
-        # Final verification step could be added here if needed
-        return maxlen
+            if len(even_set) == len(odd_set):
+                max_len = max(max_len, right - left + 1)
+        return max_len
 # @lc code=end
