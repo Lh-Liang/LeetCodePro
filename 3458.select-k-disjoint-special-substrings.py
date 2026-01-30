@@ -8,19 +8,28 @@
 class Solution:
     def maxSubstringLength(self, s: str, k: int) -> bool:
         from collections import Counter
-        # Step 1: Get frequency of each character in the string
-        char_count = Counter(s)
-        # Step 2: Determine how many characters appear only once
-        single_occurrence_count = sum(1 for count in char_count.values() if count == 1)
-        # Step 3 and 4: Check if we can form k disjoint special substrings
-        # A valid strategy is to use all single occurrence characters first
-        # Then try to group multi-occurrence ones into separate substrings ensuring they are not repeated elsewhere in s.
-        total_specials = single_occurrence_count 
-        for char, count in char_count.items():
-            if count > 1:
-                total_specials += 1 # Assuming we can isolate this character into a separate substring
-                if total_specials >= k:
-                    return True
-        # Final check if we have enough to form k substrings
-        return total_specials >= k 
+        freq = Counter(s)
+        
+        # Start scanning for potential special substrings
+        special_count = 0
+        i = 0
+        n = len(s)
+        while i < n:
+            # Check if current character can start a special substring
+            if freq[s[i]] == 1:
+                # Find the right boundary of this special substring
+                j = i + 1
+                while j < n and freq[s[j]] == 1:
+                    j += 1
+                # This is a valid special substring from i to j-1 (inclusive)
+                special_count += 1
+                i = j  # Move i to the end of this segment to ensure disjointness
+            else:
+                i += 1  # Move to next character if current one can't start a special substring
+            
+            # If we already found enough special substrings, return True early
+            if special_count >= k:
+                return True
+        
+        return False  # Not enough special substrings found
 # @lc code=end
