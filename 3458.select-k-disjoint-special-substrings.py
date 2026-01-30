@@ -7,29 +7,42 @@
 # @lc code=start
 class Solution:
     def maxSubstringLength(self, s: str, k: int) -> bool:
-        from collections import Counter
-        freq = Counter(s)
-        
-        # Start scanning for potential special substrings
-        special_count = 0
-        i = 0
+        if k == 0:
+            return True
         n = len(s)
+        # Track first and last occurrence for each character
+        first = {}
+        last = {}
+        for i, ch in enumerate(s):
+            if ch not in first:
+                first[ch] = i
+            last[ch] = i
+        res = 0
+        used = [False] * n  # Track used indices to ensure disjointness
+        i = 0
         while i < n:
-            # Check if current character can start a special substring
-            if freq[s[i]] == 1:
-                # Find the right boundary of this special substring
-                j = i + 1
-                while j < n and freq[s[j]] == 1:
-                    j += 1
-                # This is a valid special substring from i to j-1 (inclusive)
-                special_count += 1
-                i = j  # Move i to the end of this segment to ensure disjointness
-            else:
-                i += 1  # Move to next character if current one can't start a special substring
-            
-            # If we already found enough special substrings, return True early
-            if special_count >= k:
-                return True
-        
-        return False  # Not enough special substrings found
+            # Find candidate substring starting at i
+            r = last[s[i]]
+            j = i
+            while j < r:
+                r = max(r, last[s[j]])
+                j += 1
+            # Check if the substring is not the entire string
+            if not (i == 0 and r == n - 1):
+                # Verify special: chars within [i,r] do not appear outside
+                is_special = True
+                for idx in range(i, r + 1):
+                    ch = s[idx]
+                    if first[ch] < i or last[ch] > r:
+                        is_special = False
+                        break
+                # Ensure disjointness: indices not used before
+                if is_special and all(not used[x] for x in range(i, r + 1)):
+                    for x in range(i, r + 1):
+                        used[x] = True
+                    res += 1
+                    if res >= k:
+                        return True
+            i = r + 1
+        return res >= k
 # @lc code=end
