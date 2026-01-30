@@ -5,32 +5,34 @@
 #
 
 # @lc code=start
-from typing import List, Set, Dict
-
 class Solution:
     def remainingMethods(self, n: int, k: int, invocations: List[List[int]]) -> List[int]:
-        # Step 1: Build graph using adjacency list and reverse graph for checking incoming edges
-        graph = {i: [] for i in range(n)}
-        reverse_graph = {i: [] for i in range(n)}
+        from collections import defaultdict, deque
+        
+        # Build the graph and reverse graph (for checking incoming edges)
+        graph = defaultdict(list)
+        reverse_graph = defaultdict(list)
         for a, b in invocations:
             graph[a].append(b)
             reverse_graph[b].append(a)
         
-        # Step 2: Identify all suspicious methods using DFS starting from k
-        suspicious_methods = set()
-        def dfs(node):
-            if node not in suspicious_methods:
-                suspicious_methods.add(node)
-                for neighbor in graph[node]:
-                    dfs(neighbor)
-        dfs(k)
-        
-        # Step 3: Check if any external invocation exists pointing into the suspicious group
-        for method in suspicious_methods:
+        # Find all suspicious methods using BFS/DFS starting from k
+        suspicious = set()
+        queue = deque([k])
+        while queue:
+            method = queue.pop()
+            if method not in suspicious:
+                suspicious.add(method)
+                for invoked in graph[method]:
+                    if invoked not in suspicious:
+                        queue.append(invoked)
+                        
+        # Check if any method outside this set invokes a suspicious method            
+        for method in suspicious:
             for invoker in reverse_graph[method]:
-                if invoker not in suspicious_methods:
-                    return list(range(n))  # Suspicious group cannot be safely removed
-        
-        # Step 4: If no external invocations exist, remove suspicious methods and return remaining ones
-        return [i for i in range(n) if i not in suspicious_methods]
+                if invoker not in suspicious:
+                    return list(range(n))  # Cannot remove any if there's external invocation into the group
+                    
+        # Return non-suspicious methods if removable; otherwise return all. 
+        return [i for i in range(n) if i not in suspicious]
 # @lc code=end
