@@ -7,13 +7,28 @@
 # @lc code=start
 class Solution:
     def maxFrequency(self, nums: List[int], k: int) -> int:
-        # Step 1: Carefully read and interpret the problem statement to ensure a precise understanding of the allowed operation, especially any constraints on how the operation can be applied and what outcomes it permits.
-        # Step 2: Explicitly identify and validate the problem's constraints and transformation rules, ensuring you do not rely on unstated or hidden assumptions.
-        # Step 3: Decompose the problem by considering all possible valid ways to apply the operation or transformation, rather than focusing only on particular patterns or obvious cases.
-        # Step 4: For each potential approach or abstraction (e.g., considering only certain subarrays or values), systematically check whether this covers every valid case and does not inadvertently miss edge cases or exclude legitimate solutions.
-        # Step 5: Formulate a general strategy that could apply across all valid configurations, and clearly outline how you will verify that all possibilities are accounted for.
-        # Step 6: If using general problem-solving techniques (such as prefix sums or sliding windows), ensure you provide a clear, domain-agnostic breakdown of how and why these apply here, rather than referencing them without implementation.
-        # Step 7: After devising your approach, include a verification step: review whether your solution truly explores all allowed operations or transformations, and explicitly check for potential gaps or missed edge cases before finalizing the answer.
-        # Step 8: Throughout, maintain a logical and organized progression of reasoning, grouping related concepts and eliminating redundant or confusing parts.
-        pass
+        from collections import Counter
+        n = len(nums)
+        max_freq = 0
+        # Count how many nums are already k
+        count_k = sum(1 for num in nums if num == k)
+        for d in range(-49, 50):
+            target = [1 if k - num == d else 0 for num in nums]
+            # Find the longest contiguous segment where value is 1
+            curr = best = 0
+            for val in target:
+                if val == 1:
+                    curr += 1
+                    best = max(best, curr)
+                else:
+                    curr = 0
+            # After applying this operation, frequency of k is best + (count_k if best == 0 else 0)
+            # Actually, the operation replaces those elements, so 'best' is the count from that subarray,
+            # and outside the subarray, only the elements already equal to k remain.
+            # But since the operation can be anywhere, and we can pick the segment with the most replacements,
+            # So for each d, max freq is max(best, count_k)
+            max_freq = max(max_freq, best)
+        # Also consider the case where we don't do any operation: count_k
+        max_freq = max(max_freq, count_k)
+        return max_freq
 # @lc code=end
