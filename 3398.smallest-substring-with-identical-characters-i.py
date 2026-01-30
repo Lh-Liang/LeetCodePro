@@ -8,26 +8,26 @@
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-        def check(L):
-            cnt = 0
+        def can_make(k):
+            # Return True if we can make all blocks <= k with numOps flips
             i = 0
+            flips = 0
             while i < n:
                 j = i
                 while j < n and s[j] == s[i]:
                     j += 1
-                run_len = j - i
-                if run_len > L:
-                    cnt += (run_len // (L + 1))
+                length = j - i
+                if length > k:
+                    flips += (length - 1) // k
                 i = j
-            return cnt <= numOps
+            return flips <= numOps
+
         left, right = 1, n
-        ans = n
-        while left <= right:
+        while left < right:
             mid = (left + right) // 2
-            if check(mid):
-                ans = mid
-                right = mid - 1
+            if can_make(mid):
+                right = mid
             else:
                 left = mid + 1
-        return ans
+        return left
 # @lc code=end
