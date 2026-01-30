@@ -8,16 +8,18 @@
 class Solution:
     def countNonDecreasingSubarrays(self, nums: List[int], k: int) -> int:
         n = len(nums)
-        count = 0
-        ops_needed = 0
-        left = 0
-        for right in range(n):
-            if right > 0 and nums[right] < nums[right - 1]:
-                ops_needed += nums[right - 1] - nums[right]
-            while ops_needed > k:
-                if left < right and nums[left + 1] < nums[left]:
-                    ops_needed -= nums[left + 1] - nums[left]
-                left += 1
-            count += right - left + 1
-        return count
+        total_count = 0
+        start = 0
+        current_ops = 0
+        # Use two pointers to track valid subarrays
+        for end in range(n):
+            if end > 0 and nums[end] < nums[end - 1]:
+                current_ops += nums[end - 1] - nums[end]
+            while current_ops > k:
+                if start < end and nums[start + 1] < nums[start]:
+                    current_ops -= nums[start + 1] - nums[start]
+                start += 1
+            # Count all subarrays ending at 'end' starting from 'start'
+            total_count += end - start + 1
+        return total_count 
 # @lc code=end
