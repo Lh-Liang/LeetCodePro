@@ -7,19 +7,18 @@
 # @lc code=start
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        def dfs(head, root):
-            if not head:  # If head is None, we've matched all nodes of linked list
-                return True
-            if not root:  # If root is None, we've reached leaf without matching all nodes
-                return False
-            if head.val == root.val:  # Current nodes match, move to next nodes in both structures
-                return dfs(head.next, root.left) or dfs(head.next, root.right)
-            return False  # If values don't match, can't continue this path
+        def dfs(tree_node, list_node):
+            if not list_node: return True
+            if not tree_node: return False
+            if tree_node.val == list_node.val:
+                return dfs(tree_node.left, list_node.next) or dfs(tree_node.right, list_node.next)
+            return False
         
-        def traverse(root):
-            if not root:  # Base case for traversal. No more nodes left in tree.
-                return False
-            return dfs(head, root) or traverse(root.left) or traverse(root.right)  # Check current node or move to children nodes
+        def traverse_tree(node):
+            if not node: return False
+            return (dfs(node, head) or 
+                    traverse_tree(node.left) or 
+                    traverse_tree(node.right))
         
-        return traverse(root)  # Start traversal from root of the tree
+        return traverse_tree(root)
 # @lc code=end
