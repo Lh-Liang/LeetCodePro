@@ -3,39 +3,29 @@
 #
 # [3604] Minimum Time to Reach Destination in Directed Graph
 #
-
 # @lc code=start
-from typing import List
-import heapq
-from collections import defaultdict
-
 class Solution:
     def minTime(self, n: int, edges: List[List[int]]) -> int:
+        import heapq
+        from collections import defaultdict
         graph = defaultdict(list)
-        for u, v, start, end in edges:
-            graph[u].append((v, start, end))
-
-        INF = float('inf')
-        # Track the earliest arrival time at each node
-        arrival = [INF] * n
-        arrival[0] = 0
-        # Min-heap: (current_time, node)
+        for u, v, s, e in edges:
+            graph[u].append((v, s, e))
+        # (current_time, current_node)
         heap = [(0, 0)]
+        visited = dict()  # node: earliest_arrival_time
         while heap:
-            t, u = heapq.heappop(heap)
-            if u == n - 1:
-                return t
-            if t > arrival[u]:
+            time, node = heapq.heappop(heap)
+            if node == n-1:
+                return time
+            if node in visited and visited[node] <= time:
                 continue
-            # Try all outgoing edges
-            for v, start, end in graph[u]:
-                # Wait until max(start, t)
-                depart = max(start, t)
-                if depart > end:
+            visited[node] = time
+            for v, s, e in graph[node]:
+                # Wait if current time < s, or proceed if s <= time <= e
+                if time > e:
                     continue
-                arrive = depart + 1
-                if arrival[v] > arrive:
-                    arrival[v] = arrive
-                    heapq.heappush(heap, (arrive, v))
+                next_time = max(time, s) + 1
+                heapq.heappush(heap, (next_time, v))
         return -1
 # @lc code=end
