@@ -14,8 +14,8 @@ class Solution:
         while remaining > 1:
             if left or remaining % 2 == 1:
                 head += step
-            step *= 2
             remaining //= 2
+            step *= 2
             left = not left
         return head
 # @lc code=end
