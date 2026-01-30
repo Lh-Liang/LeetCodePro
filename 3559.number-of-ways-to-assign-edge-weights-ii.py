@@ -5,48 +5,67 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import defaultdict, deque
-
 class Solution:
-    MOD = 10**9 + 7
-    
     def assignEdgeWeights(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        # Build adjacency list for the tree
-        tree = defaultdict(list)
+        from collections import defaultdict, deque
+        import sys
+        sys.setrecursionlimit(1 << 20)
+        MOD = 10 ** 9 + 7
+
+        n = len(edges) + 1
+        # Build tree
+        tree = [[] for _ in range(n + 1)]
         for u, v in edges:
             tree[u].append(v)
             tree[v].append(u)
-        
-        # Function to perform DFS and find path from source to target
-        def find_path(source, target):
-            stack = [(source, [source])]
-            visited = set()
-            while stack:
-                node, path = stack.pop()
-                if node == target:
-                    return path
-                if node not in visited:
-                    visited.add(node)
-                    for neighbor in tree[node]:
-                        if neighbor not in visited:
-                            stack.append((neighbor, path + [neighbor]))
-            return []
-        
-        # Calculate number of ways to assign weights such that cost is odd
-        def count_odd_weight_assignments(path_length):
-            # We need an odd number of edges with weight 1
-            return pow(2, path_length - 1, self.MOD)
-        
-        results = []
+
+        LOG = 17  # since n <= 1e5, log2(1e5) ~= 17
+        parent = [[-1] * (n + 1) for _ in range(LOG)]
+        depth = [0] * (n + 1)
+
+        def dfs(u, p):
+            parent[0][u] = p
+            for v in tree[u]:
+                if v != p:
+                    depth[v] = depth[u] + 1
+                    dfs(v, u)
+        dfs(1, -1)
+
+        for k in range(1, LOG):
+            for v in range(1, n + 1):
+                if parent[k-1][v] != -1:
+                    parent[k][v] = parent[k-1][parent[k-1][v]]
+
+        def lca(u, v):
+            if depth[u] < depth[v]:
+                u, v = v, u
+            for k in range(LOG-1, -1, -1):
+                if parent[k][u] != -1 and depth[parent[k][u]] >= depth[v]:
+                    u = parent[k][u]
+            if u == v:
+                return u
+            for k in range(LOG-1, -1, -1):
+                if parent[k][u] != -1 and parent[k][u] != parent[k][v]:
+                    u = parent[k][u]
+                    v = parent[k][v]
+            return parent[0][u]
+
+        def odd_ways(L):
+            if L == 0:
+                return 0
+            return pow(2, L - 1, MOD)
+
+        res = []
         for u, v in queries:
-            path = find_path(u, v)
-            if not path or len(path) < 2:
-                results.append(0)
-                continue
-            # Number of edges is path length - 1
-            num_edges = len(path) - 1
-            results.append(count_odd_weight_assignments(num_edges))
-        
-        return results
+            if u == v:
+                res.append(0)
+            else:
+                anc = lca(u, v)
+                L = depth[u] + depth[v] - 2 * depth[anc]
+                # Sanity check: L should be >= 1 and <= n-1
+                if not (0 <= L < n):
+                    res.append(0)
+                    continue
+                res.append(odd_ways(L))
+        return res
 # @lc code=end
