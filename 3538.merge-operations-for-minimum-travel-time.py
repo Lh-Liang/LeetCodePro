@@ -5,41 +5,32 @@
 #
 
 # @lc code=start
-from typing import List
+from typing import List, Tuple
 class Solution:
     def minTravelTime(self, l: int, n: int, k: int, position: List[int], time: List[int]) -> int:
         from functools import lru_cache
-        import sys
-        INF = sys.maxsize
-
-        def invariant_check(pos, times):
-            # Ensure positions are strictly increasing and times are aligned
-            if len(pos) != len(times):
-                return False
-            if any(pos[i] >= pos[i+1] for i in range(len(pos)-1)):
-                return False
-            return True
-
+        
+        # Precompute segment distances
+        dists = [position[i+1] - position[i] for i in range(len(position)-1)]
+        # The time[i] corresponds to segment i: between position[i] and position[i+1]
+        # We'll keep segments as (distance, time) pairs
+        segs_init = tuple((dists[i], time[i]) for i in range(len(dists)))
+        
         @lru_cache(maxsize=None)
-        def dfs(pos, times, merges_left):
+        def dp(segs: Tuple[Tuple[int,int],...], merges_left: int) -> int:
             if merges_left == 0:
-                total = 0
-                for i in range(len(pos)-1):
-                    total += (pos[i+1] - pos[i]) * times[i]
-                return total
-            min_total = INF
-            # For each valid merge, merge signs at i and i+1 (1 <= i < len(pos)-1)
-            for i in range(1, len(pos)-1):
-                # Substep 1: Remove sign at i and merge time at i+1
-                new_pos = pos[:i] + pos[i+1:]
-                new_times = times[:i] + (times[i] + times[i+1],) + times[i+2:]
-                # Substep 2: Invariant check after transformation
-                if not invariant_check(new_pos, new_times):
-                    continue
-                min_total = min(min_total, dfs(new_pos, new_times, merges_left-1))
-            return min_total
-
-        result = dfs(tuple(position), tuple(time), k)
-        assert result != INF, "No valid solution found; check merge logic and constraints."
-        return result
+                return sum(dist * t for dist, t in segs)
+            min_ans = float('inf')
+            for i in range(1, len(segs)):
+                # Merge segs[i-1] and segs[i]
+                merged = list(segs)
+                # The new merged segment: distance is segs[i-1][0] + segs[i][0], time is segs[i-1][1] + segs[i][1]
+                merged[i] = (merged[i-1][0] + merged[i][0], merged[i-1][1] + merged[i][1])
+                del merged[i-1]
+                ans = dp(tuple(merged), merges_left - 1)
+                if ans < min_ans:
+                    min_ans = ans
+            return min_ans
+        
+        return dp(segs_init, k)
 # @lc code=end
