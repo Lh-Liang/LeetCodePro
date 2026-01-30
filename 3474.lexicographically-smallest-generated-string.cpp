@@ -4,75 +4,85 @@
 # [3474] Lexicographically Smallest Generated String
 #
 # @lc code=start
+#include <string>
+#include <vector>
+
+using namespace std;
+
 class Solution {
 public:
     string generateString(string str1, string str2) {
         int n = str1.length();
         int m = str2.length();
-        string result(n + m - 1, ' ');
-        
-        if (backtrack(0, n, m, str1, str2, result)) {
-            return result;
-        }
-        return "";
-    }
-    
-private:
-    bool backtrack(int pos, int n, int m, const string& str1, const string& str2, string& result) {
-        if (pos == n + m - 1) {
-            return true;
-        }
-        
-        for (char c = 'a'; c <= 'z'; c++) {
-            result[pos] = c;
-            
-            if (isValid(pos, n, m, str1, str2, result)) {
-                if (backtrack(pos + 1, n, m, str1, str2, result)) {
-                    return true;
+        int len = n + m - 1;
+        string res(len, ' ');
+        vector<bool> fixed(len, false);
+
+        // Phase 1: Apply 'T' constraints
+        for (int i = 0; i < n; ++i) {
+            if (str1[i] == 'T') {
+                for (int j = 0; j < m; ++j) {
+                    if (fixed[i + j] && res[i + j] != str2[j]) return "";
+                    res[i + j] = str2[j];
+                    fixed[i + j] = true;
                 }
             }
         }
-        
-        return false;
-    }
-    
-    bool isValid(int pos, int n, int m, const string& str1, const string& str2, const string& result) {
-        for (int i = max(0, pos - m + 1); i <= min(pos, n - 1); i++) {
-            int windowEnd = i + m - 1;
-            
-            if (windowEnd == pos) {
+
+        // Phase 2: Greedy fill non-fixed with 'a'
+        for (int i = 0; i < len; ++i) {
+            if (!fixed[i]) res[i] = 'a';
+        }
+
+        // Phase 3: Resolve 'F' constraints
+        for (int i = 0; i < n; ++i) {
+            if (str1[i] == 'F') {
                 bool match = true;
-                for (int j = 0; j < m; j++) {
-                    if (result[i + j] != str2[j]) {
+                for (int j = 0; j < m; ++j) {
+                    if (res[i + j] != str2[j]) {
                         match = false;
                         break;
                     }
                 }
-                
-                if (str1[i] == 'T' && !match) return false;
-                if (str1[i] == 'F' && match) return false;
-            } else {
-                int offset = pos - i;
-                
-                if (str1[i] == 'T') {
-                    if (result[pos] != str2[offset]) return false;
-                } else {
-                    bool allPrevMatch = true;
-                    for (int j = i; j < pos; j++) {
-                        if (result[j] != str2[j - i]) {
-                            allPrevMatch = false;
-                            break;
+
+                if (match) {
+                    bool resolved = false;
+                    for (int j = m - 1; j >= 0; --j) {
+                        if (!fixed[i + j]) {
+                            // Change to 'b' or next char to break match
+                            // Since it was 'a', if str2[j] == 'a', change to 'b'
+                            // If str2[j] != 'a', it wouldn't match 'a', but here it matches
+                            // so res[i+j] must equal str2[j].
+                            for (char c = 'b'; c <= 'z'; ++c) {
+                                if (c != str2[j]) {
+                                    res[i + j] = c;
+                                    resolved = true;
+                                    break;
+                                }
+                            }
+                            if (resolved) break;
                         }
                     }
-                    
-                    if (allPrevMatch && offset == m - 1) {
-                        if (result[pos] == str2[offset]) return false;
-                    }
+                    if (!resolved) return "";
                 }
             }
         }
-        
-        return true;
+
+        // Final verification for 'F' constraints (needed due to potential overlaps)
+        for (int i = 0; i < n; ++i) {
+            if (str1[i] == 'F') {
+                bool match = true;
+                for (int j = 0; j < m; ++j) {
+                    if (res[i + j] != str2[j]) {
+                        match = false;
+                        break;
+                    }
+                }
+                if (match) return "";
+            }
+        }
+
+        return res;
     }
 };
 # @lc code=end
