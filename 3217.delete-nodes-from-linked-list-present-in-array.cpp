@@ -3,6 +3,7 @@
 #
 # [3217] Delete Nodes From Linked List Present in Array
 #
+
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -14,38 +15,29 @@
  *     ListNode(int x, ListNode *next) : val(x), next(next) {}
  * };
  */
+#include <unordered_set>
+#include <vector>
+
 class Solution {
 public:
-    ListNode* modifiedList(vector<int>& nums, ListNode* head) {
-        // Convert nums to a set for O(1) lookup
-        unordered_set<int> toRemove(nums.begin(), nums.end());
-        
-        // Find the new head by skipping nodes to be removed
-        while (head != nullptr && toRemove.count(head->val)) {
-            head = head->next;
-        }
-        
-        // If all nodes were removed
-        if (head == nullptr) {
-            return nullptr;
-        }
-        
-        // Remove nodes in the middle/end of the list
-        ListNode* prev = head;
-        ListNode* curr = head->next;
-        
-        while (curr != nullptr) {
-            if (toRemove.count(curr->val)) {
-                // Skip this node
-                prev->next = curr->next;
+    ListNode* modifiedList(std::vector<int>& nums, ListNode* head) {
+        std::unordered_set<int> numSet(nums.begin(), nums.end());
+        ListNode dummy(0, head);
+        ListNode* curr = &dummy;
+
+        while (curr->next != nullptr) {
+            if (numSet.find(curr->next->val) != numSet.end()) {
+                // The next node should be deleted
+                ListNode* temp = curr->next;
+                curr->next = curr->next->next;
+                // In a real environment, we might delete temp here if not using a GC-like system
             } else {
-                // Move prev forward
-                prev = curr;
+                // Move to the next node
+                curr = curr->next;
             }
-            curr = curr->next;
         }
-        
-        return head;
+
+        return dummy.next;
     }
 };
 # @lc code=end
