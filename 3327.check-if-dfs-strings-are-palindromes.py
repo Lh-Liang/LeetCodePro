@@ -7,24 +7,27 @@
 # @lc code=start
 class Solution:
     def findAnswer(self, parent: List[int], s: str) -> List[bool]:
+        # Step 1: Build the tree from parent array
+        # Step 2: For each node, perform a DFS traversal (postorder, children in increasing order), building the DFS string
+        # Step 3: For each string, check if it is a palindrome
+        # Step 4: Analyze and optimize time/space complexity, avoid redundant computations if possible
         from collections import defaultdict
         n = len(parent)
         tree = defaultdict(list)
         for i in range(1, n):
             tree[parent[i]].append(i)
-        
-        def is_palindrome(string):
-            return string == string[::-1]
-        
-        def dfs(node):
-            dfsStr.append(s[node])
-            for child in sorted(tree[node]):
-                dfs(child)
-
-        answer = [False] * n
+        for children in tree.values():
+            children.sort()
+        # Step 5: For each node, build its DFS string
+        ans = [False] * n
+        def build_dfs(u):
+            res = []
+            for v in sorted(tree[u]):
+                res.extend(build_dfs(v))
+            res.append(s[u])
+            return res
         for i in range(n):
-            dfsStr = []  # Reset dfsStr for new DFS call
-            dfs(i)  # Perform DFS starting from node i
-            answer[i] = is_palindrome(''.join(dfsStr))
-        return answer
+            st = build_dfs(i)
+            ans[i] = st == st[::-1]
+        return ans
 # @lc code=end
