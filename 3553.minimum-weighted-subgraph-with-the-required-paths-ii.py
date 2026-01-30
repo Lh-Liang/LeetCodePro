@@ -5,45 +5,55 @@
 #
 
 # @lc code=start
-from collections import defaultdict, deque
 from typing import List
+import sys
+sys.setrecursionlimit(1 << 20)
 
 class Solution:
     def minimumWeight(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        def build_graph(edges):
-            graph = defaultdict(list)
-            for u, v, w in edges:
-                graph[u].append((v, w))
-                graph[v].append((u, w))
-            return graph
-        
-        def bfs(source):
-            dist = {i: float('inf') for i in range(n)}
-            queue = deque([(source, 0)])
-            dist[source] = 0
-            while queue:
-                node, curr_dist = queue.popleft()
-                for neighbor, weight in graph[node]:
-                    if curr_dist + weight < dist[neighbor]:
-                        dist[neighbor] = curr_dist + weight
-                        queue.append((neighbor, dist[neighbor]))
-            return dist
-        
-        n = len(edges) + 1  # since it's a tree with n nodes and n-1 edges
-        graph = build_graph(edges)
-        results = []
-        
+        n = len(edges) + 1
+        graph = [[] for _ in range(n)]
+        for u, v, w in edges:
+            graph[u].append((v, w))
+            graph[v].append((u, w))
+        LOG = 17
+        parent = [[-1]*n for _ in range(LOG)]
+        depth = [0]*n
+        pre_sum = [0]*n
+        def dfs(u, p):
+            for v, w in graph[u]:
+                if v != p:
+                    parent[0][v] = u
+                    depth[v] = depth[u] + 1
+                    pre_sum[v] = pre_sum[u] + w
+                    dfs(v, u)
+        dfs(0, -1)
+        for k in range(1, LOG):
+            for v in range(n):
+                if parent[k-1][v] != -1:
+                    parent[k][v] = parent[k-1][parent[k-1][v]]
+        def lca(u, v):
+            if depth[u] < depth[v]:
+                u, v = v, u
+            for k in reversed(range(LOG)):
+                if parent[k][u] != -1 and depth[parent[k][u]] >= depth[v]:
+                    u = parent[k][u]
+            if u == v:
+                return u
+            for k in reversed(range(LOG)):
+                if parent[k][u] != -1 and parent[k][u] != parent[k][v]:
+                    u = parent[k][u]
+                    v = parent[k][v]
+            return parent[0][u]
+        res = []
         for src1, src2, dest in queries:
-            dist_from_src1 = bfs(src1)
-            dist_from_src2 = bfs(src2)
-            dist_from_dest = bfs(dest)
-            
-            min_weight = float('inf')
-            for i in range(n):
-                # Check if node i can be an intersection point such that src1 -> i -> dest and src2 -> i -> dest are valid paths.
-                if dist_from_src1[i] != float('inf') and dist_from_src2[i] != float('inf') and dist_from_dest[i] != float('inf'):
-                    total_weight = dist_from_src1[i] + dist_from_src2[i] + dist_from_dest[i]
-                    min_weight = min(min_weight, total_weight)
-            results.append(min_weight if min_weight != float('inf') else -1)
-        return results
+            lca1 = lca(src1, dest)
+            lca2 = lca(src2, dest)
+            lca12 = lca(src1, src2)
+            w1 = pre_sum[src1] + pre_sum[dest] - 2*pre_sum[lca1]
+            w2 = pre_sum[src2] + pre_sum[dest] - 2*pre_sum[lca2]
+            w3 = pre_sum[src1] + pre_sum[src2] - 2*pre_sum[lca12]
+            # Verify that the set of edges forms a connected subtree (by construction in a tree, the union of these paths does).
+            res.append(w1 + w2 - w3)
+        return res
 # @lc code=end
