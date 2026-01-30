@@ -8,17 +8,17 @@
 class Solution:
     def minMoves(self, sx: int, sy: int, tx: int, ty: int) -> int:
         moves = 0
-        while tx != sx or ty != sy:
-            if tx < sx or ty < sy:
-                return -1
+        while tx > sx and ty > sy:
+            # Reverse move logic: Reduce larger coordinate by smaller one
             if tx > ty:
-                if ty == sy:
-                    return moves + (tx - sx) // ty if (tx - sx) % ty == 0 else -1
-                tx -= max((tx - sx) // ty * ty, ty)
+                tx -= ty  # Reverse move that would have increased y
             else:
-                if tx == sx:
-                    return moves + (ty - sy) // tx if (ty - sy) % tx == 0 else -1
-                ty -= max((ty - sy) // tx * tx, tx)
+                ty -= tx  # Reverse move that would have increased x
             moves += 1
-        return moves
+        # Final checks for exact match along one dimension
+        if sx == tx and sy <= ty and (ty - sy) % sx == 0:
+            return moves + (ty - sy) // sx
+        elif sy == ty and sx <= tx and (tx - sx) % sy == 0:
+            return moves + (tx - sx) // sy
+        return -1
 # @lc code=end
