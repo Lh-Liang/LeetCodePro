@@ -7,36 +7,25 @@
 # @lc code=start
 class Solution:
     def maximumCoins(self, coins: List[List[int]], k: int) -> int:
-        coins.sort()
-        n = len(coins)
-        prefix = []
-        starts = []
-        ends = []
-        total = 0
-        for l, r, c in coins:
-            starts.append(l)
-            ends.append(r)
-            total += (r - l + 1) * c
-            prefix.append(total)
-        max_coins = 0
-        # Try using each possible starting bag, which is any l or r-k+1
-        # Use only unique possible windows
-        positions = set()
-        for l, r, c in coins:
-            positions.add(l)
-            positions.add(r - k + 2)
-        positions = [p for p in positions if p is not None]
-        for start in positions:
-            left = start
-            right = start + k - 1
-            if left > right:
-                continue
-            curr = 0
-            for l, r, c in coins:
-                inter_l = max(l, left)
-                inter_r = min(r, right)
-                if inter_l <= inter_r:
-                    curr += (inter_r - inter_l + 1) * c
-            max_coins = max(max_coins, curr)
-        return max_coins
+        # Initialize max position based on constraints
+        max_position = max(ri for li, ri, ci in coins) + 1
+        # Use a difference array approach to track coin additions
+        diff = [0] * (max_position + 1)
+        # Populate the difference array with coin values at start and end+1 positions
+        for li, ri, ci in coins:
+            diff[li] += ci
+            if ri + 1 <= max_position:
+                diff[ri + 1] -= ci
+        # Create an array representing total coins at each position after applying differences
+        total_coins = [0] * (max_position + 1)
+        total_coins[0] = diff[0]
+        for i in range(1, max_position):
+            total_coins[i] = total_coins[i - 1] + diff[i]
+        # Use sliding window technique to find maximum sum of k consecutive positions
+        current_sum = sum(total_coins[:k])
+        max_sum = current_sum
+        for i in range(k, max_position):
+            current_sum += total_coins[i] - total_coins[i - k]
+            max_sum = max(max_sum, current_sum)
+        return max_sum
 # @lc code=end
