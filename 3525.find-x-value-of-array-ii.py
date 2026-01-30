@@ -6,20 +6,22 @@
 
 # @lc code=start
 from typing import List
-
 class Solution:
     def resultArray(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
-        results = []
-        for indexi, valuei, starti, xi in queries:
-            # Update nums with new value at indexi
-            nums[indexi] = valuei
-            # Calculate x-value for current query using modular arithmetic
+        # Efficiently handle multiple queries with updates and repeated computations
+        res = []
+        n = len(nums)
+        nums = nums[:]
+        for index, value, start, xi in queries:
+            nums[index] = value
             count = 0
-            product_mod_k = 1
-            for j in range(starti, len(nums)):
-                product_mod_k = (product_mod_k * nums[j]) % k
-                if product_mod_k == xi:
+            # Precompute prefix products modulo k for nums[start:]
+            prefix_prod = [1]
+            for i in range(start, n):
+                prefix_prod.append((prefix_prod[-1] * nums[i]) % k)
+            for end in range(1, n - start + 1):
+                if prefix_prod[end] == xi:
                     count += 1
-            results.append(count)
-        return results
+            res.append(count)
+        return res
 # @lc code=end
