@@ -7,25 +7,22 @@
 # @lc code=start
 class Solution:
     def countBinaryPalindromes(self, n: int) -> int:
-        def generate_palindrome(length, is_odd):
-            # Generates a palindromic binary number of given length
-            half_length = (length + is_odd) // 2
-            start = 1 << (half_length - 1)
-            end = 1 << half_length
-            for i in range(start, end):
-                left_half = bin(i)[2:]
-                if is_odd:
-                    yield int(left_half + left_half[-2::-1], 2)
-                else:
-                    yield int(left_half + left_half[::-1], 2)
+        def generate_palindrome(half, odd_length):
+            """ Generate a full palindrome from half depending on length type """
+            half_bin = bin(half)[2:]
+            if odd_length:
+                return int(half_bin + half_bin[-2::-1], 2)
+            else:
+                return int(half_bin + half_bin[::-1], 2)
+        
         count = 0
-        # Early termination loop for generated palindromes exceeding `n`
-        length = len(bin(n)) - 2 # Length of the largest possible binary palindrome
+        length = len(bin(n)) - 2  # Calculate the length of the binary representation of n
         for l in range(1, length + 1):
-            for is_odd in [0, 1]:
-                for p in generate_palindrome(l, is_odd):
-                    if p > n:
-                        return count
-                    count += 1
+            # Even and odd length palindromes
+            for half in range(1 << ((l + 1) // 2)):
+                palindrome = generate_palindrome(half, l % 2 != 0)
+                if palindrome > n:
+                    break
+                count += 1
         return count
 # @lc code=end
