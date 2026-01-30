@@ -1,40 +1,5 @@
-#
-# @lc app=leetcode id=3785 lang=python3
-#
-# [3785] Minimum Swaps to Avoid Forbidden Values
-#
-
-# @lc code=start
-class Solution:
-    def minSwaps(self, nums: List[int], forbidden: List[int]) -> int:
-        n = len(nums)
-        # Track positions of conflicts and potential candidates for swapping
-        conflicts = []
-        available = []
-        # Record indices where nums and forbidden are equal (conflicts)
-        for i in range(n):
-            if nums[i] == forbidden[i]:
-                conflicts.append(i)
-            else:
-                available.append(i)
-        if not conflicts:  # No conflicts initially
-            return 0
-        # Attempt to resolve all conflicts by swapping with available elements
-        swaps = 0
-        for i in conflicts:
-            found_swap = False
-            for j in available:
-                if nums[j] != forbidden[i]:  # Valid swap candidate found
-                    # Perform swap ensuring it doesn't create new conflict at j's position
-                    nums[i], nums[j] = nums[j], nums[i]
-                    if nums[j] != forbidden[j]:  # Ensure new position j is not a conflict now
-                        available.remove(j)  # Update available list after swap
-                        swaps += 1  # Increment swap count
-                        found_swap = True
-                        break  # Break loop after successful swap
-                    else:  # If it results in a conflict revert the change and try next candidate
-                        nums[i], nums[j] = nums[j], nums[i]
-            if not found_swap:  # If no valid swap was possible for a conflict index
-                return -1  # Return -1 as it is not solvable
-        return swaps  # Return total number of swaps required to resolve all conflicts.
-# @lc code=end
+Step 1: Carefully outline a step-by-step plan for solving the problem, decomposing it into logical sub-steps that cover the full solution process.
+Step 2: Systematically translate each step of the plan into executable code, ensuring that every part of the reasoning is operationalized and represented in the implementation.
+Step 3: After coding, review the implementation to verify that all steps from the reasoning have been addressed, that the code is complete, and that it returns a value in all scenarios (including edge and failure cases).
+Step 4: Incorporate a brief verification step to check that the code follows the reasoning plan, covers all required logic, and is executable (i.e., does not have unimplemented sections or unreachable 'pass').
+Step 5: Ensure the final solution is both logically sound and executable, with reasoning and implementation steps tightly aligned.
