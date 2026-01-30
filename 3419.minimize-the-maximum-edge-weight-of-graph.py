@@ -5,57 +5,54 @@
 #
 
 # @lc code=start
-from heapq import heappop, heappush
-from collections import defaultdict
-from typing import List
+from typing import List, DefaultDict
+from collections import defaultdict, deque
 
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # Union-Find helper methods
-        def find(parent, i):
-            if parent[i] != i:
-                parent[i] = find(parent, parent[i])
-            return parent[i]
+        # Step 1: Prepare sorted unique weights for binary search
+        weights = sorted(set(w for _,_,w in edges))
+        edge_buckets = defaultdict(list)
+        for a, b, w in edges:
+            edge_buckets[a].append((w, b))
         
-        def union(parent, rank, x, y):
-            rootX = find(parent, x)
-            rootY = find(parent, y)
-            if rootX != rootY:
-                if rank[rootX] > rank[rootY]:
-                    parent[rootY] = rootX
-                elif rank[rootX] < rank[rootY]:
-                    parent[rootX] = rootY
-                else:
-                    parent[rootY] = rootX
-                    rank[rootX] += 1
-                    
-        # Initialize union-find structures and other variables
-        parent = list(range(n))
-        rank = [0] * n
-        max_edge_weight = -1
-        # Priority queue for sorting edges by weight (min-heap)
-        pq = []
-        for u, v, w in edges:
-            heappush(pq, (w, u, v))
-            
-        # Track number of outgoing edges per node 
-        out_degree = defaultdict(int)
+        def is_feasible(max_weight):
+            # Step 2a: For each node, select outgoing edges <= max_weight, up to 'threshold' smallest
+            out_edges = defaultdict(list)
+            for a in range(n):
+                valid = [(w, b) for (w, b) in edge_buckets[a] if w <= max_weight]
+                valid.sort()
+                for (w, b) in valid[:threshold]:
+                    out_edges[a].append(b)
+                # Step 2b: Enforce threshold constraint
+                if len(out_edges[a]) > threshold:
+                    return False
+            # Step 3: Reverse graph for reachability check (all nodes should reach 0)
+            rev_edges = defaultdict(list)
+            for u in out_edges:
+                for v in out_edges[u]:
+                    rev_edges[v].append(u)
+            # Step 4: BFS from node 0 in reversed graph
+            seen = set([0])
+            dq = deque([0])
+            while dq:
+                node = dq.popleft()
+                for nei in rev_edges[node]:
+                    if nei not in seen:
+                        seen.add(nei)
+                        dq.append(nei)
+            # Step 5: Verify all nodes can reach node 0
+            return len(seen) == n
         
-        # Process edges by increasing weight using priority queue
-        while pq:
-            w, u, v = heappop(pq)
-            if out_degree[u] < threshold and out_degree[v] < threshold:
-                # Check if adding this edge maintains connectivity using union-find
-                if find(parent, u) != find(parent, v):
-                    union(parent, rank, u, v)
-                    max_edge_weight = max(max_edge_weight, w)
-                    out_degree[u] += 1
-                    out_degree[v] += 1
-                    
-        # Verify all nodes are reachable from node 0; else return -1.
-        for i in range(n):
-            if find(parent, i) != find(parent, 0):
-                return -1
-                
-        return max_edge_weight if max_edge_weight != -1 else -1
+        # Step 6: Binary search over unique weights
+        left, right, answer = 0, len(weights) - 1, -1
+        while left <= right:
+            mid = (left + right) // 2
+            if is_feasible(weights[mid]):
+                answer = weights[mid]
+                right = mid - 1
+            else:
+                left = mid + 1
+        # Step 7: Double-check that answer is valid (already ensured by is_feasible)
+        return answer
 # @lc code=end
