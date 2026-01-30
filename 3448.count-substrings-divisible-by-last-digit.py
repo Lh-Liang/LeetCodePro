@@ -7,16 +7,19 @@
 # @lc code=start
 class Solution:
     def countSubstrings(self, s: str) -> int:
-        count = 0
         n = len(s)
-        for i in range(n):
-            last_digit = int(s[i])
+        res = 0
+        for j in range(n):
+            last_digit = int(s[j])
             if last_digit == 0:
-                continue  # Skip substrings ending in 0 as they cannot be valid divisors
-            num = 0
-            for j in range(i, n):
-                num = num * 10 + int(s[j])   # Form the number represented by s[i:j+1]
-                if num % last_digit == 0:
-                    count += 1               # Count this substring if it is divisible by its last digit
-        return count
+                continue
+            mod = 0
+            power = 1
+            # Check all substrings ending at j
+            for i in range(j, -1, -1):
+                mod = (int(s[i]) * power + mod) % last_digit
+                if mod == 0:
+                    res += 1
+                power = (power * 10) % last_digit
+        return res
 # @lc code=end
