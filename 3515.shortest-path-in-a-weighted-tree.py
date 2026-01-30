@@ -8,78 +8,74 @@
 class Solution:
     def treeQueries(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
         from collections import defaultdict
+        import sys
+        sys.setrecursionlimit(1 << 20)
+
         # Build adjacency list and edge mapping
         tree = defaultdict(list)
-        edge_id = {}
-        for i, (u, v, w) in enumerate(edges):
-            tree[u].append((v, w, i))
-            tree[v].append((u, w, i))
-            edge_id[(u, v)] = i
-            edge_id[(v, u)] = i
+        edge_map = {}
+        for u, v, w in edges:
+            tree[u].append((v, w))
+            tree[v].append((u, w))
+            edge_map[frozenset((u,v))] = w
 
-        # Euler Tour to flatten tree
-        in_time = [0] * (n+1)
-        out_time = [0] * (n+1)
-        time = 1
+        # DFS to assign parent, depth, subtree range
+        tin = [0] * (n+1)
+        tout = [0] * (n+1)
         parent = [0] * (n+1)
         edge_to_parent = [0] * (n+1)
-        def dfs(u, p, cumw):
+        depth = [0] * (n+1)
+        time = 0
+        def dfs(u, p, d):
             nonlocal time
-            in_time[u] = time
             time += 1
-            for v, w, idx in tree[u]:
-                if v == p: continue
-                parent[v] = u
-                edge_to_parent[v] = w
-                dfs(v, u, cumw + w)
-            out_time[u] = time - 1
+            tin[u] = time
+            for v, w in tree[u]:
+                if v != p:
+                    parent[v] = u
+                    edge_to_parent[v] = w
+                    depth[v] = d + w
+                    dfs(v, u, d + w)
+            tout[u] = time
         dfs(1, 0, 0)
 
-        # Fenwick Tree for path sum updates
+        # BIT for range update and query
         class BIT:
-            def __init__(self, size):
-                self.N = size + 2
-                self.bit = [0] * (self.N)
-            def add(self, i, x):
-                while i < self.N:
-                    self.bit[i] += x
-                    i += i & -i
-            def range_add(self, l, r, x):
-                self.add(l, x)
-                self.add(r+1, -x)
+            def __init__(self, n):
+                self.n = n+2
+                self.tree = [0]*(self.n+2)
+            def update(self, i, x):
+                while i < self.n:
+                    self.tree[i] += x
+                    i += i&-i
             def query(self, i):
                 res = 0
                 while i > 0:
-                    res += self.bit[i]
-                    i -= i & -i
+                    res += self.tree[i]
+                    i -= i&-i
                 return res
-
+            def range_add(self, l, r, x):
+                self.update(l, x)
+                self.update(r+1, -x)
         bit = BIT(n+2)
-        # Initialize the path sums
-        for u in range(2, n+1):
-            bit.range_add(in_time[u], in_time[u], edge_to_parent[u])
-
-        # For edge updates, keep track of edge weights
-        edge_weight = {}
-        for i, (u, v, w) in enumerate(edges):
-            edge_weight[i] = w
-
         res = []
         for q in queries:
             if q[0] == 1:
                 _, u, v, w_new = q
-                # Find which node is deeper
+                key = frozenset((u, v))
+                # Find child in (u, v)
                 if parent[u] == v:
                     child = u
                 else:
                     child = v
-                idx = edge_id[(u, v)]
-                diff = w_new - edge_weight[idx]
-                edge_weight[idx] = w_new
-                # update subtree rooted at child
-                bit.range_add(in_time[child], out_time[child], diff)
+                old_w = edge_to_parent[child]
+                diff = w_new - old_w
+                edge_to_parent[child] = w_new
+                # Range add to all subtree of child
+                bit.range_add(tin[child], tout[child], diff)
             else:
                 _, x = q
-                res.append(bit.query(in_time[x]))
+                ans = depth[x] + bit.query(tin[x])
+                res.append(ans)
         return res
 # @lc code=end
