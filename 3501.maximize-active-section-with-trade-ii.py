@@ -6,63 +6,48 @@
 # @lc code=start
 class Solution:
     def maxActiveSectionsAfterTrade(self, s: str, queries: List[List[int]]) -> List[int]:
-        def find_surrounded_blocks(t: str, char: str) -> List[tuple]:
-            # Returns list of (start, end) indices of contiguous char-blocks surrounded by opposite char
-            n = len(t)
-            blocks = []
-            i = 0
-            while i < n:
-                if t[i] == char:
-                    j = i
-                    while j < n and t[j] == char:
-                        j += 1
-                    left = i-1 >= 0 and t[i-1] != char
-                    right = j < n and t[j] != char
-                    if left and right:
-                        blocks.append((i, j-1))
-                    i = j
-                else:
-                    i += 1
-            return blocks
-
-        def count_sections(t: str) -> int:
-            cnt = 0
-            i = 0
-            n = len(t)
-            while i < n:
-                if t[i] == '1':
-                    cnt += 1
-                    while i < n and t[i] == '1':
-                        i += 1
-                else:
-                    i += 1
-            return cnt
-
         res = []
         for li, ri in queries:
             sub = s[li:ri+1]
+            # Augment with '1' on both ends
             t = '1' + sub + '1'
             n = len(t)
-            # Step 1: Baseline answer (no trade)
-            best = count_sections(t[1:-1])
-            # Step 2: Find all '1'-blocks surrounded by '0'
-            one_blocks = find_surrounded_blocks(t, '1')
-            # Step 3: For each eligible trade, simulate only if it can improve result
-            for l, r in one_blocks:
-                t2 = list(t)
-                for k in range(l, r+1):
-                    t2[k] = '0'
-                # Step 4: Find all '0'-blocks surrounded by '1' in t2
-                zero_blocks = find_surrounded_blocks(''.join(t2), '0')
-                for zl, zr in zero_blocks:
-                    t3 = t2[:]
-                    for k in range(zl, zr+1):
-                        t3[k] = '1'
-                    # Step 5: Final count, verify boundaries
-                    ans = count_sections(''.join(t3[1:-1]))
-                    if ans > best:
-                        best = ans
-            # Step 6: Final verification step (optional assertion)
-            res.append(best)
+            # Find all blocks and their types
+            blocks = []
+            i = 0
+            while i < n:
+                j = i
+                while j < n and t[j] == t[i]:
+                    j += 1
+                blocks.append((t[i], i, j-1))
+                i = j
+            # Count initial '1's (excluding augmentation)
+            base_ones = sub.count('1')
+            max_ones = base_ones
+            # Try all possible trades
+            for idx, (char, l, r) in enumerate(blocks):
+                if char != '0':
+                    continue
+                # Surrounded '0's block means previous and next blocks are '1'
+                if idx > 0 and idx < len(blocks)-1:
+                    if blocks[idx-1][0] == '1' and blocks[idx+1][0] == '1':
+                        zero_block_len = r - l + 1
+                        # Find any surrounded block of '1's to swap
+                        for jdx, (c2, l2, r2) in enumerate(blocks):
+                            if c2 != '1':
+                                continue
+                            if jdx > 0 and jdx < len(blocks)-1:
+                                if blocks[jdx-1][0] == '0' and blocks[jdx+1][0] == '0':
+                                    one_block_len = r2 - l2 + 1
+                                    # After trade: lose one_block_len '1's, gain zero_block_len '1's
+                                    new_ones = base_ones - one_block_len + zero_block_len
+                                    if new_ones > max_ones:
+                                        max_ones = new_ones
+                        # If no surrounded '1's, we can only gain
+                        if max_ones == base_ones:
+                            new_ones = base_ones + zero_block_len
+                            if new_ones > max_ones:
+                                max_ones = new_ones
+            res.append(max_ones)
         return res
 # @lc code=end
