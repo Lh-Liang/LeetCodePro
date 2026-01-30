@@ -3,6 +3,7 @@
 #
 # [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
 #
+
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -20,43 +21,41 @@ public:
         if (!head || !head->next || !head->next->next) {
             return {-1, -1};
         }
-        
-        int firstCritical = -1;
-        int prevCritical = -1;
-        int minDistance = INT_MAX;
+
+        int first_cp = -1;
+        int prev_cp = -1;
+        int min_dist = 2147483647; // INT_MAX
         
         ListNode* prev = head;
         ListNode* curr = head->next;
-        int position = 1;
-        
+        int index = 1;
+
         while (curr->next) {
-            ListNode* next = curr->next;
-            
-            // Check if current node is a critical point
-            if ((curr->val > prev->val && curr->val > next->val) ||
-                (curr->val < prev->val && curr->val < next->val)) {
-                
-                if (firstCritical == -1) {
-                    firstCritical = position;
+            bool is_maxima = (curr->val > prev->val && curr->val > curr->next->val);
+            bool is_minima = (curr->val < prev->val && curr->val < curr->next->val);
+
+            if (is_maxima || is_minima) {
+                if (first_cp == -1) {
+                    first_cp = index;
                 } else {
-                    minDistance = min(minDistance, position - prevCritical);
+                    int current_dist = index - prev_cp;
+                    if (current_dist < min_dist) {
+                        min_dist = current_dist;
+                    }
                 }
-                prevCritical = position;
+                prev_cp = index;
             }
-            
+
             prev = curr;
-            curr = next;
-            position++;
+            curr = curr->next;
+            index++;
         }
-        
-        // If fewer than 2 critical points
-        if (firstCritical == -1 || prevCritical == firstCritical) {
+
+        if (first_cp == -1 || first_cp == prev_cp) {
             return {-1, -1};
         }
-        
-        int maxDistance = prevCritical - firstCritical;
-        
-        return {minDistance, maxDistance};
+
+        return {min_dist, prev_cp - first_cp};
     }
 };
 # @lc code=end
