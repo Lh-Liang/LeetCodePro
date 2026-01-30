@@ -3,108 +3,82 @@
 #
 # [3609] Minimum Moves to Reach Target in Grid
 #
+
 # @lc code=start
+#include <queue>
+#include <map>
+
+using namespace std;
+
 class Solution {
 public:
     int minMoves(int sx, int sy, int tx, int ty) {
-        long long moves = 0;
-        long long tx_ll = tx, ty_ll = ty, sx_ll = sx, sy_ll = sy;
-        
-        while (tx_ll != sx_ll || ty_ll != sy_ll) {
-            if (tx_ll < sx_ll || ty_ll < sy_ll) {
-                return -1;
-            }
-            if (tx_ll == ty_ll) {
-                if ((sx_ll == 0 && sy_ll == ty_ll) || (sx_ll == tx_ll && sy_ll == 0)) {
-                    return moves + 1;
+        // Handle the stationary state (0,0)
+        if (sx == 0 && sy == 0) return (tx == 0 && ty == 0) ? 0 : -1;
+        // Already at target
+        if (sx == tx && sy == ty) return 0;
+
+        queue<pair<long long, long long>> q;
+        map<pair<long long, long long>, int> dist;
+
+        q.push({(long long)tx, (long long)ty});
+        dist[{(long long)tx, (long long)ty}] = 0;
+
+        while (!q.empty()) {
+            pair<long long, long long> curr = q.front();
+            q.pop();
+            long long x = curr.first;
+            long long y = curr.second;
+            int d = dist[curr];
+
+            if (x == sx && y == sy) return d;
+
+            if (x > y) {
+                // Predecessor must have come from the x-direction
+                if (x % 2 == 0 && x / 2 >= y) {
+                    long long nx = x / 2, ny = y;
+                    if (nx >= sx && ny >= sy && dist.find({nx, ny}) == dist.end()) {
+                        dist[{nx, ny}] = d + 1;
+                        q.push({nx, ny});
+                    }
+                } else if (x - y < y) {
+                    long long nx = x - y, ny = y;
+                    if (nx >= sx && ny >= sy && dist.find({nx, ny}) == dist.end()) {
+                        dist[{nx, ny}] = d + 1;
+                        q.push({nx, ny});
+                    }
                 }
-                return -1;
-            }
-            if (tx_ll > ty_ll) {
-                if (ty_ll > sy_ll) {
-                    if (tx_ll <= 2 * ty_ll) {
-                        long long k = std::min((tx_ll - ty_ll - 1) / ty_ll, (tx_ll - sx_ll) / ty_ll);
-                        if (k < 1) k = 1;
-                        tx_ll -= k * ty_ll;
-                        moves += k;
-                    } else {
-                        if (tx_ll % 2 == 0) {
-                            tx_ll /= 2;
-                            moves++;
-                        } else {
-                            return -1;
-                        }
+            } else if (y > x) {
+                // Predecessor must have come from the y-direction
+                if (y % 2 == 0 && y / 2 >= x) {
+                    long long nx = x, ny = y / 2;
+                    if (nx >= sx && ny >= sy && dist.find({nx, ny}) == dist.end()) {
+                        dist[{nx, ny}] = d + 1;
+                        q.push({nx, ny});
                     }
-                } else if (ty_ll == sy_ll) {
-                    long long cur_x = tx_ll;
-                    long long steps = 0;
-                    while (cur_x > sx_ll) {
-                        if (cur_x <= 2 * sy_ll) {
-                            long long k = std::min((cur_x - sy_ll - 1) / sy_ll, (cur_x - sx_ll) / sy_ll);
-                            if (k < 1) k = 1;
-                            cur_x -= k * sy_ll;
-                            steps += k;
-                        } else {
-                            if (cur_x % 2 == 0) {
-                                cur_x /= 2;
-                                steps++;
-                            } else {
-                                return -1;
-                            }
-                        }
+                } else if (y - x < x) {
+                    long long nx = x, ny = y - x;
+                    if (nx >= sx && ny >= sy && dist.find({nx, ny}) == dist.end()) {
+                        dist[{nx, ny}] = d + 1;
+                        q.push({nx, ny});
                     }
-                    if (cur_x == sx_ll) {
-                        return moves + steps;
-                    } else {
-                        return -1;
-                    }
-                } else {
-                    return -1;
                 }
-            } else {
-                if (tx_ll > sx_ll) {
-                    if (ty_ll <= 2 * tx_ll) {
-                        long long k = std::min((ty_ll - tx_ll - 1) / tx_ll, (ty_ll - sy_ll) / tx_ll);
-                        if (k < 1) k = 1;
-                        ty_ll -= k * tx_ll;
-                        moves += k;
-                    } else {
-                        if (ty_ll % 2 == 0) {
-                            ty_ll /= 2;
-                            moves++;
-                        } else {
-                            return -1;
-                        }
-                    }
-                } else if (tx_ll == sx_ll) {
-                    long long cur_y = ty_ll;
-                    long long steps = 0;
-                    while (cur_y > sy_ll) {
-                        if (cur_y <= 2 * tx_ll) {
-                            long long k = std::min((cur_y - tx_ll - 1) / tx_ll, (cur_y - sy_ll) / tx_ll);
-                            if (k < 1) k = 1;
-                            cur_y -= k * tx_ll;
-                            steps += k;
-                        } else {
-                            if (cur_y % 2 == 0) {
-                                cur_y /= 2;
-                                steps++;
-                            } else {
-                                return -1;
-                            }
-                        }
-                    }
-                    if (cur_y == sy_ll) {
-                        return moves + steps;
-                    } else {
-                        return -1;
-                    }
-                } else {
-                    return -1;
+            } else if (x == y && x > 0) {
+                // Branching point: can come from either axis
+                long long nx1 = 0, ny1 = y;
+                if (nx1 >= sx && ny1 >= sy && dist.find({nx1, ny1}) == dist.end()) {
+                    dist[{nx1, ny1}] = d + 1;
+                    q.push({nx1, ny1});
+                }
+                long long nx2 = x, ny2 = 0;
+                if (nx2 >= sx && ny2 >= sy && dist.find({nx2, ny2}) == dist.end()) {
+                    dist[{nx2, ny2}] = d + 1;
+                    q.push({nx2, ny2});
                 }
             }
         }
-        return moves;
+
+        return -1;
     }
 };
 # @lc code=end
