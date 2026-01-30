@@ -6,54 +6,59 @@
 
 # @lc code=start
 from typing import List
-import sys
-sys.setrecursionlimit(1 << 20)
-
 class Solution:
     def minimumWeight(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
+        import sys
+        sys.setrecursionlimit(1 << 20)
         n = len(edges) + 1
-        graph = [[] for _ in range(n)]
+        tree = [[] for _ in range(n)]
         for u, v, w in edges:
-            graph[u].append((v, w))
-            graph[v].append((u, w))
+            tree[u].append((v, w))
+            tree[v].append((u, w))
+
         LOG = 17
-        parent = [[-1]*n for _ in range(LOG)]
-        depth = [0]*n
-        pre_sum = [0]*n
+        up = [[-1] * n for _ in range(LOG)]
+        depth = [0] * n
+        sum_w = [0] * n
         def dfs(u, p):
-            for v, w in graph[u]:
+            up[0][u] = p
+            for v, w in tree[u]:
                 if v != p:
-                    parent[0][v] = u
                     depth[v] = depth[u] + 1
-                    pre_sum[v] = pre_sum[u] + w
+                    sum_w[v] = sum_w[u] + w
                     dfs(v, u)
         dfs(0, -1)
         for k in range(1, LOG):
             for v in range(n):
-                if parent[k-1][v] != -1:
-                    parent[k][v] = parent[k-1][parent[k-1][v]]
+                if up[k-1][v] != -1:
+                    up[k][v] = up[k-1][up[k-1][v]]
+
         def lca(u, v):
             if depth[u] < depth[v]:
                 u, v = v, u
-            for k in reversed(range(LOG)):
-                if parent[k][u] != -1 and depth[parent[k][u]] >= depth[v]:
-                    u = parent[k][u]
+            for k in range(LOG-1, -1, -1):
+                if up[k][u] != -1 and depth[up[k][u]] >= depth[v]:
+                    u = up[k][u]
             if u == v:
                 return u
-            for k in reversed(range(LOG)):
-                if parent[k][u] != -1 and parent[k][u] != parent[k][v]:
-                    u = parent[k][u]
-                    v = parent[k][v]
-            return parent[0][u]
+            for k in range(LOG-1, -1, -1):
+                if up[k][u] != -1 and up[k][u] != up[k][v]:
+                    u = up[k][u]
+                    v = up[k][v]
+            return up[0][u]
+
         res = []
         for src1, src2, dest in queries:
             lca1 = lca(src1, dest)
             lca2 = lca(src2, dest)
             lca12 = lca(src1, src2)
-            w1 = pre_sum[src1] + pre_sum[dest] - 2*pre_sum[lca1]
-            w2 = pre_sum[src2] + pre_sum[dest] - 2*pre_sum[lca2]
-            w3 = pre_sum[src1] + pre_sum[src2] - 2*pre_sum[lca12]
-            # Verify that the set of edges forms a connected subtree (by construction in a tree, the union of these paths does).
-            res.append(w1 + w2 - w3)
+            lca_common = lca(lca1, src2)
+            # Actually, we want the union of paths src1-dest and src2-dest
+            # The total weight is sum_w[src1] + sum_w[src2] + sum_w[dest] 
+            # minus the weights backtracked along their common ancestors
+            ancestor = lca(lca1, lca2)
+            total = sum_w[src1] + sum_w[src2] + sum_w[dest]
+            total -= sum_w[lca1] + sum_w[lca2] + sum_w[ancestor]
+            res.append(total)
         return res
 # @lc code=end
