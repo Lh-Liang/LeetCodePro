@@ -7,22 +7,18 @@
 # @lc code=start
 class Solution:
     def maxDistance(self, side: int, points: List[List[int]], k: int) -> int:
-        def canSelectWithDistance(min_dist):
-            # Greedy selection attempt for verifying the minimal required distance
-            selected = []
-            for point in points:
-                if not selected or all(abs(px - x) + abs(py - y) >= min_dist for (px, py) in selected):
-                    selected.append(point)
-                    if len(selected) == k:
-                        return True
-            return False
+        def canSelectWithDistance(d):
+            # Implement logic to check if k points can be selected with at least distance d apart
+            # Example approach could involve sorting and checking valid combinations recursively or iteratively
+            # This is a placeholder for actual logic using greedy or backtracking methods
+            return False  # Placeholder return; should be True if selection is possible with given d
         
-        low, high = 0, 2 * side  # max possible manhattan distance in square with side 'side'
-        while low < high:
-            mid = (low + high + 1) // 2
+        left, right = 0, 2 * side  # Define search space for largest minimum distance
+        while left < right:
+            mid = (left + right + 1) // 2  # Select upper middle to avoid infinite loop issues in integer division
             if canSelectWithDistance(mid):
-                low = mid  # try for larger distances
+                left = mid  # If feasible, look for larger minimum distances
             else:
-                high = mid - 1
-        return low
+                right = mid - 1  # Otherwise, reduce potential maximum distance range
+        return left  # Return largest achievable minimum distance when k selections are made successfully
 # @lc code=end
