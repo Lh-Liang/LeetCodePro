@@ -1,1 +1,28 @@
-#\n# @lc app=leetcode id=3530 lang=python3\n#\n# [3530] Maximum Profit from Valid Topological Order in DAG\n#\n\n# @lc code=start\nfrom typing import List\nfrom collections import deque, defaultdict\n\nclass Solution:\n    def maxProfit(self, n: int, edges: List[List[int]], score: List[int]) -> int:\n        # Step 1: Create adjacency list and compute indegrees for each node\n        graph = defaultdict(list)\n        indegree = [0] * n\n        for u, v in edges:\n            graph[u].append(v)\n            indegree[v] += 1\n        \n        # Step 2: Perform topological sort using Kahn's algorithm\n        zero_indegree_queue = deque([i for i in range(n) if indegree[i] == 0])\n        sorted_nodes = []\n        while zero_indegree_queue:\n            node = zero_indegree_queue.popleft()\n            sorted_nodes.append(node)\n            for neighbor in graph[node]:\n                indegree[neighbor] -= 1\n                if indegree[neighbor] == 0:\n                    zero_indegree_queue.append(neighbor)\n        \n        # Step 3: Sort nodes by score within topologically sorted groups for maximum profit calculation\n        sorted_nodes.sort(key=lambda x: score[x], reverse=True) # Sort nodes by score within a valid topo order group \n        \n        # Step 4: Calculate maximum profit based on sorted order by scores and positions assigned during traversal \n        max_profit = 0\n        position = 1 # Position starts at 1 (1-based index)\n        for node in sorted_nodes:\n            max_profit += score[node] * position\n            position += 1 \n            \n        return max_profit \n# @lc code=end
+#
+# @lc app=leetcode id=3530 lang=python3
+#
+# [3530] Maximum Profit from Valid Topological Order in DAG
+#
+
+# @lc code=start
+class Solution:
+    def maxProfit(self, n: int, edges: List[List[int]], score: List[int]) -> int:
+        from collections import defaultdict
+        # Precompute dependency bitmask for each node
+        dep = [0] * n
+        for u, v in edges:
+            dep[v] |= 1 << u
+
+        size = 1 << n
+        dp = [-1] * size
+        dp[0] = 0
+        for mask in range(size):
+            k = bin(mask).count('1')  # current position (0-based), so position = k+1
+            for i in range(n):
+                if not (mask & (1 << i)) and (dep[i] & mask) == dep[i]:
+                    nxt = mask | (1 << i)
+                    profit = dp[mask] + score[i] * (k + 1)
+                    if dp[nxt] < profit:
+                        dp[nxt] = profit
+        return dp[size-1]
+# @lc code=end
