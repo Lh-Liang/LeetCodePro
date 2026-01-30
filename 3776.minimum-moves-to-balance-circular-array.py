@@ -7,46 +7,33 @@
 # @lc code=start
 class Solution:
     def minMoves(self, balance: List[int]) -> int:
-        # Step 1: Check for impossibility
+        n = len(balance)
         total = sum(balance)
         if total < 0:
             return -1
         if min(balance) >= 0:
             return 0
-        n = len(balance)
-        # Step 2: Find the index with negative balance
-        neg_idx = next((i for i, v in enumerate(balance) if v < 0), -1)
-        need = -balance[neg_idx]
-        # Step 3: Simulate the movement chain according to adjacency constraints
-        temp = balance[:]
-        moves = 0
-        left = (neg_idx - 1) % n
-        right = (neg_idx + 1) % n
-        left_steps = 1
-        right_steps = 1
-        while need > 0:
-            # Find which side can provide a positive unit, in order of increasing distance
-            l_idx = (neg_idx - left_steps) % n
-            r_idx = (neg_idx + right_steps) % n
-            l_val = temp[l_idx] if left_steps < n else 0
-            r_val = temp[r_idx] if right_steps < n else 0
-            # Choose the closer available positive unit
-            if (l_val > 0 and (l_val >= r_val or r_val <= 0)) or (r_val <= 0):
-                take = min(l_val, need)
-                moves += take * left_steps
-                temp[l_idx] -= take
-                need -= take
-                left_steps += 1
-            elif r_val > 0:
-                take = min(r_val, need)
-                moves += take * right_steps
-                temp[r_idx] -= take
-                need -= take
-                right_steps += 1
-            else:
-                # No more positive balances to use
+        neg_idx = -1
+        for i, x in enumerate(balance):
+            if x < 0:
+                neg_idx = i
                 break
-        if need > 0:
-            return -1
+        need = -balance[neg_idx]
+        moves = 0
+        l, r = (neg_idx - 1) % n, (neg_idx + 1) % n
+        while need > 0:
+            # Move from the side with more units
+            if balance[l] >= balance[r]:
+                take = min(need, balance[l])
+                moves += take * min((neg_idx - l) % n, (l - neg_idx) % n)
+                balance[l] -= take
+                need -= take
+                l = (l - 1) % n
+            else:
+                take = min(need, balance[r])
+                moves += take * min((r - neg_idx) % n, (neg_idx - r) % n)
+                balance[r] -= take
+                need -= take
+                r = (r + 1) % n
         return moves
 # @lc code=end
