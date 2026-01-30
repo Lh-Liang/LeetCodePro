@@ -5,73 +5,93 @@
 #
 
 # @lc code=start
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
     vector<bool> findAnswer(vector<int>& parent, string s) {
         int n = parent.size();
-        vector<vector<int>> children(n);
-        
-        // Build adjacency list
-        for (int i = 1; i < n; i++) {
-            children[parent[i]].push_back(i);
+        vector<vector<int>> adj(n);
+        for (int i = 1; i < n; ++i) {
+            adj[parent[i]].push_back(i);
         }
-        
-        // Sort children to visit in increasing order
-        for (int i = 0; i < n; i++) {
-            sort(children[i].begin(), children[i].end());
+        // Ensure children are visited in increasing order
+        for (int i = 0; i < n; ++i) {
+            sort(adj[i].begin(), adj[i].end());
         }
-        
-        // Perform DFS from root to build global DFS string
-        string dfsStr;
+
+        string T = "";
+        T.reserve(n);
         vector<int> start(n), end(n);
         
-        function<void(int)> dfs = [&](int x) {
-            start[x] = dfsStr.size();
-            for (int child : children[x]) {
-                dfs(child);
+        // Iterative post-order DFS to build the global string and record ranges
+        struct Frame {
+            int u;
+            int child_idx;
+        };
+        vector<Frame> st;
+        st.reserve(n);
+        st.push_back({0, 0});
+        
+        while (!st.empty()) {
+            int u = st.back().u;
+            int c_idx = st.back().child_idx;
+            
+            if (c_idx == 0) {
+                start[u] = (int)T.size();
             }
-            dfsStr += s[x];
-            end[x] = dfsStr.size();
-        };
+            
+            if (c_idx < (int)adj[u].size()) {
+                st.back().child_idx++;
+                st.push_back({adj[u][c_idx], 0});
+            } else {
+                T += s[u];
+                end[u] = (int)T.size() - 1;
+                st.pop_back();
+            }
+        }
+
+        // Manacher's Algorithm to find all palindromic substrings in O(n)
+        string p = "#";
+        p.reserve(2 * n + 1);
+        for (char c : T) {
+            p += c;
+            p += "#";
+        }
         
-        dfs(0);
-        
-        // Polynomial hashing for palindrome checking
-        int m = dfsStr.size();
-        const long long MOD = 1e9 + 7;
-        const long long BASE = 31;
-        
-        vector<long long> hashFwd(m + 1, 0);
-        vector<long long> hashBwd(m + 1, 0);
-        vector<long long> powBase(m + 1);
-        powBase[0] = 1;
-        
+        int m = p.size();
+        vector<int> d(m, 0);
+        int center = 0, right = 0;
         for (int i = 0; i < m; i++) {
-            powBase[i + 1] = (powBase[i] * BASE) % MOD;
-            hashFwd[i + 1] = (hashFwd[i] * BASE + (dfsStr[i] - 'a' + 1)) % MOD;
+            int mirror = 2 * center - i;
+            if (i < right)
+                d[i] = min(right - i, d[mirror]);
+            
+            while (i + 1 + d[i] < m && i - 1 - d[i] >= 0 && p[i + 1 + d[i]] == p[i - 1 - d[i]])
+                d[i]++;
+            
+            if (i + d[i] > right) {
+                center = i;
+                right = i + d[i];
+            }
         }
-        
-        for (int i = m - 1; i >= 0; i--) {
-            hashBwd[i] = (hashBwd[i + 1] * BASE + (dfsStr[i] - 'a' + 1)) % MOD;
-        }
-        
-        auto getHashFwd = [&](int l, int r) -> long long {
-            long long h = (hashFwd[r] - hashFwd[l] * powBase[r - l]) % MOD;
-            if (h < 0) h += MOD;
-            return h;
-        };
-        
-        auto getHashBwd = [&](int l, int r) -> long long {
-            long long h = (hashBwd[l] - hashBwd[r] * powBase[r - l]) % MOD;
-            if (h < 0) h += MOD;
-            return h;
-        };
-        
+
+        // Map node ranges to Manacher radii
         vector<bool> answer(n);
         for (int i = 0; i < n; i++) {
-            answer[i] = (getHashFwd(start[i], end[i]) == getHashBwd(start[i], end[i]));
+            int L = start[i];
+            int R = end[i];
+            int len = R - L + 1;
+            // The center of range [L, R] in the '#' padded string is always L + R + 1
+            int C = L + R + 1;
+            // d[C] is the radius of the palindrome in the original string T
+            answer[i] = (d[C] >= len);
         }
-        
+
         return answer;
     }
 };
