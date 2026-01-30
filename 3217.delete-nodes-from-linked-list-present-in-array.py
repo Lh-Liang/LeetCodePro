@@ -11,16 +11,18 @@
 #         self.val = val
 #         self.next = next
 from typing import List, Optional
+
 class Solution:
     def modifiedList(self, nums: List[int], head: Optional[ListNode]) -> Optional[ListNode]:
-        nums_set = set(nums)  # Convert list to set for O(1) lookups.
-        dummy = ListNode(0)  # Dummy node to handle edge cases.
+        remove_set = set(nums)
+        dummy = ListNode(0)
         dummy.next = head
-        current = dummy
-        while current.next:  # Traverse the linked list.
-            if current.next.val in nums_set:
-                current.next = current.next.next  # Skip nodes with values in nums_set.
+        prev, curr = dummy, head
+        while curr:
+            if curr.val in remove_set:
+                prev.next = curr.next
             else:
-                current = current.next  # Move to next node otherwise.
-        return dummy.next  # Return the head of the modified list.
+                prev = curr
+            curr = curr.next
+        return dummy.next
 # @lc code=end
