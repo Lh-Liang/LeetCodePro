@@ -7,23 +7,30 @@
 # @lc code=start
 class Solution:
     def minOperations(self, word1: str, word2: str) -> int:
-        # Identify mismatches and potential substrings for transformation
         n = len(word1)
-        ops = 0
-        i = 0
-        while i < n:
-            if word1[i] != word2[i]:
-                # Start of a mismatch segment - find matching segment end
-                j = i
-                while j < n and word1[j] != word2[j]:
-                    j += 1
-                # Now [i:j] is a mismatch segment in word1; apply operations
-                segment_length = j - i
-                # Choose optimal transformations for this segment (simplified logic)
-                # Replace all or swap/reverse intelligently based on pattern (to be refined)
-                ops += min(segment_length, 2) # Simplified placeholder logic for operation count determination
-                i = j # Move past this segment
-            else:
-                i += 1 # Characters match; move forward without operations
-        return ops
+        dp = [0] * (n + 1)
+        
+        # Initialize DP table; dp[i] means minimum steps to convert word1[:i] to word2[:i]
+        for i in range(1, n + 1):
+            dp[i] = i  # Worst case all operations are replacements
+        
+        # Traverse and compute minimal operations needed for each position
+        for i in range(1, n + 1):
+            new_dp = dp.copy()
+            for j in range(i):
+                if word1[j:i] == word2[j:i]:
+                    new_dp[i] = min(new_dp[i], dp[j])
+                else:
+                    # Try replacing characters or swapping or reversing within this segment
+                    new_dp[i] = min(new_dp[i], dp[j] + self.evaluate_operations(word1[j:i], word2[j:i]))
+            dp = new_dp
+        
+        return dp[n]
+    
+    def evaluate_operations(self, substr1: str, substr2: str) -> int:
+        # Placeholder function; implement logic to calculate minimal operations for substrings
+        # Example simplified logic:
+        replace_ops = sum(1 for a, b in zip(substr1, substr2) if a != b)
+        # Include logic for swaps/reverses if necessary based on patterns found
+        return replace_ops  # Simplified logic only counting replacements here
 # @lc code=end
