@@ -3,47 +3,43 @@
 #
 # [3387] Maximize Amount After Two Days of Conversions
 #
-
 # @lc code=start
-from typing import List
-from collections import defaultdict, deque
+from typing import List, Dict
 
 class Solution:
     def maxAmount(self, initialCurrency: str, pairs1: List[List[str]], rates1: List[float], pairs2: List[List[str]], rates2: List[float]) -> float:
+        from collections import defaultdict, deque
+        
         def build_graph(pairs, rates):
-            g = defaultdict(list)
-            for (a, b), r in zip(pairs, rates):
-                g[a].append((b, r))
-                g[b].append((a, 1.0/r))
-            return g
-
-        # Step 1: Day 1 conversions
+            graph = defaultdict(list)
+            for (a,b), r in zip(pairs, rates):
+                graph[a].append((b, r))
+                graph[b].append((a, 1.0/r))
+            return graph
+        
+        def get_max_amounts(graph, start, amount):
+            max_amount = defaultdict(float)
+            max_amount[start] = amount
+            queue = deque([start])
+            while queue:
+                curr = queue.popleft()
+                for neighbor, rate in graph[curr]:
+                    new_amount = max_amount[curr] * rate
+                    if new_amount > max_amount[neighbor]:
+                        max_amount[neighbor] = new_amount
+                        queue.append(neighbor)
+            return max_amount
+        
         graph1 = build_graph(pairs1, rates1)
-        max_after_day1 = defaultdict(float)
-        max_after_day1[initialCurrency] = 1.0
-        queue = deque([initialCurrency])
-        while queue:
-            cur = queue.popleft()
-            for nxt, rate in graph1[cur]:
-                amt = max_after_day1[cur] * rate
-                if amt > max_after_day1[nxt] + 1e-9:
-                    max_after_day1[nxt] = amt
-                    queue.append(nxt)
-
-        # Step 2: Day 2 conversions
         graph2 = build_graph(pairs2, rates2)
-        max_final = defaultdict(float)
+        
+        # Day 1: get max amount of all currencies from initialCurrency
+        max_after_day1 = get_max_amounts(graph1, initialCurrency, 1.0)
+        result = max_after_day1[initialCurrency]  # If we do nothing
+        
+        # For each currency we could have after day 1, maximize back to initialCurrency after day 2
         for currency, amount in max_after_day1.items():
-            max_final[currency] = max(max_final[currency], amount)
-        queue = deque(max_final.keys())
-        while queue:
-            cur = queue.popleft()
-            for nxt, rate in graph2[cur]:
-                amt = max_final[cur] * rate
-                if amt > max_final[nxt] + 1e-9:
-                    max_final[nxt] = amt
-                    queue.append(nxt)
-
-        # Step 4: Compare with doing nothing (keeping initial amount)
-        return max(1.0, max_final[initialCurrency])
+            max_after_day2 = get_max_amounts(graph2, currency, amount)
+            result = max(result, max_after_day2[initialCurrency])
+        return result
 # @lc code=end
