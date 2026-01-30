@@ -3,30 +3,30 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
-
 # @lc code=start
 class Solution:
     def countBinaryPalindromes(self, n: int) -> int:
-        res = 0
-        L = n.bit_length()
-        seen = set()  # To ensure uniqueness
-        # Generate palindromic numbers for each possible length
-        for l in range(1, L+1):
-            half = (l + 1) // 2
-            for i in range(1 << (half - 1), 1 << half):
-                s = bin(i)[2:]
-                if l % 2 == 0:
-                    p = s + s[::-1]
-                else:
-                    p = s + s[::-1][1:]
-                val = int(p, 2)
-                if val <= n and val not in seen:
-                    seen.add(val)
-                    res += 1
-        # Ensure 0 is counted exactly once if in range
-        if 0 <= n:
-            res += 1 if 0 not in seen else 0
-        # Verification: All palindromic numbers are unique and <= n
-        assert all(x <= n for x in seen)
-        return res
+        def create_palindrome(first_half, is_odd):
+            res = first_half
+            if is_odd:
+                first_half //= 2
+            while first_half > 0:
+                res = (res << 1) | (first_half & 1)
+                first_half //= 2
+            return res
+
+        count = 0
+        max_len = n.bit_length()
+        # For odd and even length palindromes
+        for length in range(1, max_len + 1):
+            half_len = (length + 1) // 2
+            # The first bit must be 1 (except for length 1), so range starts at 1 for length > 1
+            start = 1 << (half_len - 1) if length > 1 else 0
+            end = 1 << half_len
+            for first_half in range(start, end):
+                p = create_palindrome(first_half, length % 2)
+                if p > n:
+                    break
+                count += 1
+        return count
 # @lc code=end
