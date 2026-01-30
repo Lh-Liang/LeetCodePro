@@ -7,30 +7,36 @@
 # @lc code=start
 class TextEditor:
     def __init__(self):
-        self.left = []  # stack to store characters on the left of the cursor
-        self.right = []  # stack to store characters on the right of the cursor
+        self.left = []  # stack for text to the left of cursor
+        self.right = []  # stack for text to the right of cursor
 
     def addText(self, text: str) -> None:
-        for char in text:
-            self.left.append(char)  # add characters to the left stack
-        
+        for c in text:
+            self.left.append(c)
+
     def deleteText(self, k: int) -> int:
-        delete_count = 0
-        while k > 0 and self.left:
-            self.left.pop()  # remove characters from left stack
-            delete_count += 1
-            k -= 1
-        return delete_count
-    
+        count = 0
+        while self.left and count < k:
+            self.left.pop()
+            count += 1
+        return count
+
     def cursorLeft(self, k: int) -> str:
-        while k > 0 and self.left:
-            self.right.append(self.left.pop())  # move character from left stack to right stack
-            k -= 1
-        return ''.join(self.left[-10:])  # return last up to 10 chars from left stack as string
-    
+        move = min(k, len(self.left))
+        for _ in range(move):
+            self.right.append(self.left.pop())
+        return ''.join(self.left[-10:])
+
     def cursorRight(self, k: int) -> str:
-        while k > 0 and self.right:
-            self.left.append(self.right.pop())  # move character from right stack to left stack
-            k -= 1
-        return ''.join(self.left[-10:])  # return last up to 10 chars from left stack as string
+        move = min(k, len(self.right))
+        for _ in range(move):
+            self.left.append(self.right.pop())
+        return ''.join(self.left[-10:])
+
+# Your TextEditor object will be instantiated and called as such:
+# obj = TextEditor()
+# obj.addText(text)
+# param_2 = obj.deleteText(k)
+# param_3 = obj.cursorLeft(k)
+# param_4 = obj.cursorRight(k)
 # @lc code=end
