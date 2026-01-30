@@ -1,8 +1,8 @@
-#
 # @lc app=leetcode id=3640 lang=python3
 #
 # [3640] Trionic Array II
 #
+from typing import List
 
 # @lc code=start
 class Solution:
@@ -11,39 +11,42 @@ class Solution:
         if n < 4:
             return 0
         
-        # Arrays to store max increasing/decreasing sums up to or from each index
-        increasing_left = [0] * n
-        decreasing = [0] * n
-        increasing_right = [0] * n
+        # Auxiliary arrays for tracking maximum sums of increasing sequences
+        left_increase = [0] * n
+        right_increase = [0] * n
         
-        # Calculate increasing sums from left to right
+        # Initialize left_increase array by iterating from left to right
+        left_sum = nums[0]
+        left_increase[0] = nums[0]
         for i in range(1, n):
             if nums[i] > nums[i - 1]:
-                increasing_left[i] = increasing_left[i - 1] + nums[i]
+                left_sum += nums[i]
             else:
-                increasing_left[i] = nums[i]
-            
-        # Calculate decreasing sums from right to left and prepare right-increasing sums
-        for i in range(n - 2, -1, -1):
-            if nums[i] > nums[i + 1]:
-                decreasing[i] = decreasing[i + 1] + nums[i]
-            else:
-                decreasing[i] = nums[i]
-            
-            if nums[i] < nums[i + 1]:
-                increasing_right[i] = increasing_right[i + 1] + nums[i]
-            else:
-                increasing_right[i] = nums[i]
+                left_sum = nums[i]
+            left_increase[i] = max(left_increase[i - 1], left_sum)
         
-        max_sum = float('-inf')
-        # Find max trionic subarray sum by combining results from above arrays
+        # Initialize right_increase array by iterating from right to left
+        right_sum = nums[-1]
+        right_increase[-1] = nums[-1]
+        for i in range(n - 2, -1, -1):
+            if nums[i] < nums[i + 1]:
+                right_sum += nums[i]
+            else:
+                right_sum = nums[i]
+            right_increase[i] = max(right_increase[i + 1], right_sum)
+        
+        # Track maximum trionic sum found
+        max_trionic_sum = float('-inf')
+
+        # Check each potential peak point for middle decreasing sequences and calculate total sum
         for p in range(1, n - 2):
-            for q in range(p + 1, n - 1):
-                if nums[q] > nums[q - 1]: # Ensure q starts an increase again after decrease
-                    l_sum = increasing_left[p]
-                    d_sum = decreasing[q]
-                    r_sum = increasing_right[q + 1]
-                    max_sum = max(max_sum, l_sum + d_sum + r_sum)
-                    
-        return max_sum
-# @lc code=end
+            if nums[p - 1] < nums[p] > nums[p + 1]:
+                middle_sum = nums[p]
+                q = p + 1
+                # Extend middle decrease as far as valid
+                while q < n - 1 and nums[q] > nums[q + 1]:
+                    middle_sum += nums[q]
+                    q += 1
+                # If valid sequence found, calculate total trionic sum using precomputed values
+                if q < n - 1 and q > p + 1:
+                    total_sum = left_increase[p - 1] + middle_sum + right_increase[q]b max_trionic_sum = max(max_trionic_sum, total_sum)b b return max_trionic_sumb # @lc code=end
