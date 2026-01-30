@@ -5,61 +5,53 @@
 #
 
 # @lc code=start
+from typing import List
+from collections import defaultdict
+
 class Solution:
-    def subtreeInversionSum(self, edges, nums, k):
-        from collections import defaultdict, deque
-        
-        # Step 1: Construct adjacency list
-        tree = defaultdict(list)
+    def subtreeInversionSum(self, edges: List[List[int]], nums: List[int], k: int) -> int:
+        n = len(nums)
+        tree = [[] for _ in range(n)]
         for u, v in edges:
             tree[u].append(v)
             tree[v].append(u)
-        
-        # Step 2: DFS to calculate initial subtree sums and parent information
-        n = len(nums)
-        subtree_sum = [0] * n
-        visited = [False] * n
-        parent = [-1] * n
-        depth = [0] * n
-        
-        def dfs(node, d):
-            visited[node] = True
-            total_sum = nums[node]
-            depth[node] = d
-            for neighbor in tree[node]:
-                if not visited[neighbor]:
-                    parent[neighbor] = node
-                    total_sum += dfs(neighbor, d + 1)
-            subtree_sum[node] = total_sum
-            return total_sum
-        
-        dfs(0, 0)  # Start DFS from root node 0 with initial depth 0
-        
-        # Step 3 & 4: Identify nodes for inversion and respect distance constraint `k`
-        def can_invert(node, selected_nodes):
-            # Check if any selected node is within distance k of current node.
-            queue = deque([(node, 0)])
-            visited_check = set([node])
-            while queue:
-                current, dist = queue.popleft()
-                if dist >= k:
-                    continue
-                for neighbor in tree[current]:
-                    if neighbor in visited_check or neighbor == parent[current]:
-                        continue
-                    if neighbor in selected_nodes:
-                        return False
-                    visited_check.add(neighbor)
-                    queue.append((neighbor, dist + 1))
-            return True
-       
-       # Step 5: Strategically select nodes for inversion based on potential gain and constraints.
-       result_max_sum = sum(nums)  # Initial sum without any inversions
-       selected_nodes = set()
-       for i in range(n):
-           if can_invert(i, selected_nodes) and subtree_sum[i] < 0:
-               result_max_sum += -2 * subtree_sum[i]
-               selected_nodes.add(i)
-       
-       return result_max_sum   
+
+        def dfs(u, parent):
+            # dp[dist]: max sum if last inversion is dist above this node (dist in 0..k)
+            dp = [float('-inf')] * (k + 1)
+            child_dp_list = []
+            for v in tree[u]:
+                if v != parent:
+                    child_dp_list.append(dfs(v, u))
+
+            # Leaf node case
+            if not child_dp_list:
+                res = [0] * (k + 1)
+                # dist=0: invert here
+                res[0] = -nums[u]
+                # dist>=1: do not invert here
+                for i in range(1, k + 1):
+                    res[i] = nums[u]
+                return res
+
+            # Case 1: Invert here (dist=0)
+            invert_sum = -nums[u]
+            for child_dp in child_dp_list:
+                # After inverting here, child dp must use dist=k
+                invert_sum += child_dp[k]
+            dp[0] = invert_sum
+
+            # Case 2: Do not invert here (dist>=1)
+            for dist in range(1, k + 1):
+                not_invert_sum = nums[u]
+                for child_dp in child_dp_list:
+                    # If parent is dist above last inversion, child is dist-1 above
+                    not_invert_sum += child_dp[dist - 1]
+                dp[dist] = not_invert_sum
+            return dp
+
+        # Verify that all possible state transitions and edge cases are handled
+        # Root at 0, no inversion above root, so closest inversion at least k
+        result = max(dfs(0, -1))
+        return result
 # @lc code=end
