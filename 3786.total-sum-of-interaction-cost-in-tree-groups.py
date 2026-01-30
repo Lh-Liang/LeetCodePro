@@ -15,28 +15,32 @@ class Solution:
             adj[u].append(v)
             adj[v].append(u)
 
-        res = 0
-        group_to_nodes = defaultdict(list)
+        group2nodes = defaultdict(list)
         for i, g in enumerate(group):
-            group_to_nodes[g].append(i)
+            group2nodes[g].append(i)
 
-        for g, nodes in group_to_nodes.items():
-            if len(nodes) < 2:
-                continue
-            in_group = [0] * n
+        res = 0
+        visited_global = [False] * n
+        for g, nodes in group2nodes.items():
+            in_group = [False] * n
             for u in nodes:
-                in_group[u] = 1
-            total_count = len(nodes)
-            def dfs(u, parent):
-                cnt = in_group[u]
+                in_group[u] = True
+            visited = [False] * n
+            def dfs(u):
+                visited[u] = True
+                cnt = 1 if in_group[u] else 0
                 for v in adj[u]:
-                    if v == parent: continue
-                    sub = dfs(v, u)
-                    res_contrib = sub * (total_count - sub)
-                    nonlocal res
-                    res += res_contrib
-                    cnt += sub
+                    if not visited[v]:
+                        c = dfs(v)
+                        # Each edge (u-v) contributes c * (total_in_group - c) for this group
+                        edge_contrib = c * (total_in_group - c)
+                        nonlocal res
+                        res += edge_contrib
+                        cnt += c
                 return cnt
-            dfs(nodes[0], -1)
+            total_in_group = len(nodes)
+            for u in nodes:
+                if not visited[u]:
+                    dfs(u)
         return res
 # @lc code=end
