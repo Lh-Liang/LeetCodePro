@@ -9,33 +9,21 @@ class Solution:
     def generateString(self, str1: str, str2: str) -> str:
         n = len(str1)
         m = len(str2)
-        size = n + m - 1
-        res = ['a'] * size
+        word = []
+        # Attempting to build the word lexicographically smallest
         for i in range(n):
             if str1[i] == 'T':
-                for j in range(m):
-                    idx = i + j
-                    if idx >= size: return ''
-                    if res[idx] == 'a' or res[idx] == str2[j]:
-                        res[idx] = str2[j]
+                # Append str2 since it must match here
+                word.append(str2)
+            else:
+                # Append smallest possible character that does not form str2 starting at i
+                # Choose characters that don't match str2 at this position
+                if i + m <= n + m - 1:
+                    if word[i:i+m] == list(str2):
+                        # Adjust first character to break match with str2
+                        alt_char = 'a' if str2[0] != 'a' else 'b'  # Choose a different start char than first of str2
+                        word.append(alt_char + str2[1:])  # Replace first char of this segment with alternative char
                     else:
-                        if res[idx] != str2[j]:
-                            return ''
-        for i in range(n):
-            if str1[i] == 'F':
-                match = True
-                for j in range(m):
-                    idx = i + j
-                    if idx >= size or res[idx] != str2[j]:
-                        match = False
-                        break
-                if match:
-                    for j in range(m):
-                        idx = i + j
-                        for c in 'abcdefghijklmnopqrstuvwxyz':
-                            if c != str2[j]:
-                                res[idx] = c
-                                break
-                        break
-        return ''.join(res)
+                        word.append(str2)  # If no conflict, append normally due to lack of other valid options.
+        return ''.join(word[:(m+n-1)])  # Return constructed word or empty if not possible as per conditions. 
 # @lc code=end
