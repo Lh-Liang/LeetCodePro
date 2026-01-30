@@ -8,49 +8,78 @@
 class Solution:
     def treeQueries(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
         from collections import defaultdict
-        import heapq
-        
-        # Step 1: Construct adjacency list and weights dictionary
-        graph = defaultdict(list)
-        weight = {}
-        for u, v, w in edges:
-            graph[u].append(v)
-            graph[v].append(u)
-            weight[(u, v)] = w
-            weight[(v, u)] = w
-        
-        # Step 2: Function to update edge weights
-        def update_edge(u: int, v: int, w_prime: int):
-            weight[(u, v)] = w_prime
-            weight[(v, u)] = w_prime
-        
-        # Step 3: Function to compute shortest path using Dijkstra's algorithm
-        def compute_shortest_path(x: int) -> int:
-            min_heap = [(0, 1)]  # (current_distance, current_node)
-            distances = {i: float('inf') for i in range(1, n + 1)}
-            distances[1] = 0
-            visited = set()
-            while min_heap:
-                dist, node = heapq.heappop(min_heap)
-                if node in visited:
-                    continue
-                visited.add(node)
-                if node == x:
-                    return dist
-                for neighbor in graph[node]:
-                    if neighbor not in visited:
-                        new_dist = dist + weight[(node, neighbor)]
-                        if new_dist < distances[neighbor]:
-                            distances[neighbor] = new_dist
-                            heapq.heappush(min_heap, (new_dist, neighbor))
-            return -1  # If node x is unreachable (should not happen in valid tree)
-        
-        result = []
-        for query in queries:
-            if query[0] == 1:
-                _, u, v, w_prime = query
-                update_edge(u, v, w_prime)  # Update edge weight as specified by query[1,u,v,w']
-            elif query[0] == 2:
-                _, x = query  # Compute shortest path from root (1) to x as specified by query[2,x]
-                result.append(compute_shortest_path(x))
-                                                                                                    \t\t\t\t\t\t\t\t\t\t\tttttttttttttttttttttttttttttttttttttttttrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrreeeeeeeeturn result     \nnnnnnnnnnnnnnnnnnnnnnnnnn
+        # Build adjacency list and edge mapping
+        tree = defaultdict(list)
+        edge_id = {}
+        for i, (u, v, w) in enumerate(edges):
+            tree[u].append((v, w, i))
+            tree[v].append((u, w, i))
+            edge_id[(u, v)] = i
+            edge_id[(v, u)] = i
+
+        # Euler Tour to flatten tree
+        in_time = [0] * (n+1)
+        out_time = [0] * (n+1)
+        time = 1
+        parent = [0] * (n+1)
+        edge_to_parent = [0] * (n+1)
+        def dfs(u, p, cumw):
+            nonlocal time
+            in_time[u] = time
+            time += 1
+            for v, w, idx in tree[u]:
+                if v == p: continue
+                parent[v] = u
+                edge_to_parent[v] = w
+                dfs(v, u, cumw + w)
+            out_time[u] = time - 1
+        dfs(1, 0, 0)
+
+        # Fenwick Tree for path sum updates
+        class BIT:
+            def __init__(self, size):
+                self.N = size + 2
+                self.bit = [0] * (self.N)
+            def add(self, i, x):
+                while i < self.N:
+                    self.bit[i] += x
+                    i += i & -i
+            def range_add(self, l, r, x):
+                self.add(l, x)
+                self.add(r+1, -x)
+            def query(self, i):
+                res = 0
+                while i > 0:
+                    res += self.bit[i]
+                    i -= i & -i
+                return res
+
+        bit = BIT(n+2)
+        # Initialize the path sums
+        for u in range(2, n+1):
+            bit.range_add(in_time[u], in_time[u], edge_to_parent[u])
+
+        # For edge updates, keep track of edge weights
+        edge_weight = {}
+        for i, (u, v, w) in enumerate(edges):
+            edge_weight[i] = w
+
+        res = []
+        for q in queries:
+            if q[0] == 1:
+                _, u, v, w_new = q
+                # Find which node is deeper
+                if parent[u] == v:
+                    child = u
+                else:
+                    child = v
+                idx = edge_id[(u, v)]
+                diff = w_new - edge_weight[idx]
+                edge_weight[idx] = w_new
+                # update subtree rooted at child
+                bit.range_add(in_time[child], out_time[child], diff)
+            else:
+                _, x = q
+                res.append(bit.query(in_time[x]))
+        return res
+# @lc code=end
