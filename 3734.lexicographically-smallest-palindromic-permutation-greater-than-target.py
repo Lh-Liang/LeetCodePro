@@ -9,41 +9,66 @@ class Solution:
     def lexPalindromicPermutation(self, s: str, target: str) -> str:
         from collections import Counter
         n = len(s)
-        counter = Counter(s)
-        odd_chars = [ch for ch, cnt in counter.items() if cnt % 2 == 1]
-        if len(odd_chars) > 1:
+        count = Counter(s)
+        # Check palindromic possibility
+        odd = [c for c, v in count.items() if v % 2 == 1]
+        if len(odd) > 1:
             return ''
-        # Build smallest palindromic permutation
-        half = []
-        mid = odd_chars[0] if odd_chars else ''
-        for ch in sorted(counter):
-            half.extend([ch] * (counter[ch] // 2))
-        half_str = ''.join(half)
-        def build_palindrome(h):
-            return h + mid + h[::-1]
-        def is_valid_permutation(pal):
-            from collections import Counter
-            return Counter(pal) == counter
-        cand = build_palindrome(half_str)
-        if cand > target and is_valid_permutation(cand):
-            return cand
-        # Next lexicographical palindromic permutation
-        half_list = list(half_str)
-        def next_permutation(arr):
-            i = len(arr) - 2
-            while i >= 0 and arr[i] >= arr[i+1]:
-                i -= 1
-            if i == -1:
-                return False
-            j = len(arr) - 1
-            while arr[j] <= arr[i]:
-                j -= 1
-            arr[i], arr[j] = arr[j], arr[i]
-            arr[i+1:] = reversed(arr[i+1:])
-            return True
-        while next_permutation(half_list):
-            cand = build_palindrome(''.join(half_list))
-            if cand > target and is_valid_permutation(cand):
-                return cand
+
+        # Helper to construct minimal palindromic permutation from counts
+        def build_min_palindrome(cntr):
+            half = []
+            for c in sorted(cntr):
+                half.append(c * (cntr[c] // 2))
+            half_str = ''.join(half)
+            mid = ''
+            for c in sorted(cntr):
+                if cntr[c] % 2 == 1:
+                    mid = c
+                    break
+            return half_str + mid + half_str[::-1]
+
+        # Backtracking function
+        def dfs(pos, cntr, half, mid, tight, increased):
+            m = n // 2
+            if pos == m:
+                # Construct palindrome from current half and mid
+                half_str = ''.join(half)
+                if n % 2 == 0:
+                    cand = half_str + half_str[::-1]
+                else:
+                    cand = half_str + mid + half_str[::-1]
+                if cand > target:
+                    return cand
+                else:
+                    return None
+            start_c = target[pos] if tight and not increased else 'a'
+            for c in sorted(cntr):
+                if cntr[c] >= 2:
+                    # Try this character at position pos and its mirror
+                    cntr[c] -= 2
+                    half.append(c)
+                    n_tight = tight and (c == target[pos])
+                    n_increased = increased or (tight and c > target[pos])
+                    res = dfs(pos + 1, cntr, half, mid, n_tight, n_increased)
+                    if res:
+                        return res
+                    half.pop()
+                    cntr[c] += 2
+            return None
+
+        # For odd length, try all possible mid candidates
+        if n % 2 == 1:
+            mids = [c for c in count if count[c] % 2 == 1]
+            if not mids: mids = [c for c in count]
+        else:
+            mids = ['']
+        for m in mids:
+            cntr = count.copy()
+            if m:
+                cntr[m] -= 1
+                if cntr[m] < 0: continue
+            res = dfs(0, cntr, [], m, True, False)
+            if res: return res
         return ''
 # @lc code=end
