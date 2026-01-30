@@ -5,41 +5,41 @@
 #
 
 # @lc code=start
+from collections import defaultdict, Counter
 class Solution:
     def longestSpecialPath(self, edges: List[List[int]], nums: List[int]) -> List[int]:
-        # Build tree adjacency list
         n = len(nums)
         tree = [[] for _ in range(n)]
         for u, v, w in edges:
             tree[u].append((v, w))
             tree[v].append((u, w))
 
-        best_length = 0
-        min_nodes = float('inf')
-        from collections import defaultdict
-        
-        def dfs(node, parent, seen, used_dup, curr_length, curr_nodes):
-            nonlocal best_length, min_nodes
-            val = nums[node]
-            is_dup = val in seen
-            if is_dup and used_dup:
-                return
-            if curr_length > best_length:
-                best_length = curr_length
-                min_nodes = curr_nodes
-            elif curr_length == best_length and curr_nodes < min_nodes:
-                min_nodes = curr_nodes
-            # Visit children
-            if not is_dup:
-                seen.add(val)
-            for neighbor, w in tree[node]:
-                if neighbor == parent:
-                    continue
-                dfs(neighbor, node, seen, used_dup or is_dup, curr_length + w, curr_nodes + 1)
-            if not is_dup:
-                seen.remove(val)
+        self.max_length = 0
+        self.min_nodes = float('inf')
 
-        # Use only a single traversal from the root to ensure efficiency and correct directionality
-        dfs(0, -1, set(), False, 0, 1)
-        return [best_length, min_nodes]
+        def dfs(node, parent, val_counter, duplicated, length, nodes):
+            val = nums[node]
+            val_counter[val] += 1
+            if val_counter[val] == 2:
+                if duplicated:
+                    val_counter[val] -= 1
+                    return
+                else:
+                    duplicated = True
+            elif val_counter[val] > 2:
+                val_counter[val] -= 1
+                return
+            # Update answer
+            if length > self.max_length:
+                self.max_length = length
+                self.min_nodes = nodes
+            elif length == self.max_length:
+                self.min_nodes = min(self.min_nodes, nodes)
+            for nei, w in tree[node]:
+                if nei != parent:
+                    dfs(nei, node, val_counter, duplicated, length + w, nodes + 1)
+            val_counter[val] -= 1
+
+        dfs(0, -1, Counter(), False, 0, 1)
+        return [self.max_length, self.min_nodes]
 # @lc code=end
