@@ -1,4 +1,3 @@
-#
 # @lc app=leetcode id=3504 lang=python3
 #
 # [3504] Longest Palindrome After Substring Concatenation II
@@ -6,39 +5,27 @@
 # @lc code=start
 class Solution:
     def longestPalindrome(self, s: str, t: str) -> int:
-        def is_palindrome(x):
-            return x == x[::-1]
-
-        m, n = len(s), len(t)
-        ans = 1
-        # Check all palindromic substrings in s
-        for i in range(m):
-            for j in range(i, m):
-                if is_palindrome(s[i:j+1]):
-                    ans = max(ans, j - i + 1)
-        # Check all palindromic substrings in t
-        for i in range(n):
-            for j in range(i, n):
-                if is_palindrome(t[i:j+1]):
-                    ans = max(ans, j - i + 1)
-        # Now check palindromes that cross s and t
-        # For all possible suffixes of s and prefixes of t
-        for i in range(m):
-            for j in range(n):
-                l = 0
-                while i - l >= 0 and j + l < n and s[i - l] == t[j + l]:
-                    l += 1
-                # Odd length palindrome centered between s[i] and t[j]
-                if l > 0:
-                    ans = max(ans, l * 2)
-        # For all possible prefixes of s and suffixes of t
-        for i in range(m):
-            for j in range(n):
-                l = 0
-                while i + l < m and j - l >= 0 and s[i + l] == t[j - l]:
-                    l += 1
-                # Odd length palindrome centered between s[i] and t[j]
-                if l > 0:
-                    ans = max(ans, l * 2)
-        return ans
+        # Initialize variables
+        s_len = len(s)
+        t_len = len(t)
+        max_len = 0
+        
+        # Helper function to check if a string is a palindrome
+        def is_palindrome(sub: str) -> bool:
+            return sub == sub[::-1]
+        
+        # Check each possible concatenated substring combination
+        for i in range(s_len):
+            for j in range(t_len):
+                # Get all possible substrings from s[i:] and t[:j+1]
+                combined_s_t = s[i:] + t[:j+1]
+                combined_t_s = t[j:] + s[:i+1]
+                
+                # Check if these combinations form palindromes
+                if is_palindrome(combined_s_t):
+                    max_len = max(max_len, len(combined_s_t))
+                if is_palindrome(combined_t_s):
+                    max_len = max(max_len, len(combined_t_s))
+        
+        return max_len
 # @lc code=end
