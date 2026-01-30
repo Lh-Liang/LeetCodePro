@@ -6,26 +6,18 @@
 
 # @lc code=start
 from typing import List
-from collections import defaultdict
-
 class Solution:
     def countMajoritySubarrays(self, nums: List[int], target: int) -> int:
         count = 0
-        balance = 0
-        balance_count = defaultdict(int)
-        balance_count[0] = 1 # To handle entire prefix being valid directly
-        
-        for num in nums:
-            if num == target:
-                balance += 1
-            else:
-                balance -= 1
-            
-            # Check how many times we have seen this balance before (indicating possible majority subarray)
-            count += balance_count[balance - 1]
-            
-            # Record current balance in hashmap
-            balance_count[balance] += 1
-        
+        n = len(nums)
+        for i in range(n):
+            freq = 0
+            total = 0
+            for j in range(i, n):
+                if nums[j] == target:
+                    freq += 1
+                total += 1
+                if freq > total / 2:
+                    count += 1
         return count
 # @lc code=end
