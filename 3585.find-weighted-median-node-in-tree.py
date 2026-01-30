@@ -6,92 +6,111 @@
 
 # @lc code=start
 from typing import List
+import sys
+sys.setrecursionlimit(1 << 20)
+
 class Solution:
     def findMedian(self, n: int, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        import sys
-        sys.setrecursionlimit(1 << 20)
-        LOG = 17  # Since n <= 1e5, 2^17 > 1e5
-        adj = [[] for _ in range(n)]
+        import math
+        LOG = max(1, (n-1).bit_length())
+        tree = [[] for _ in range(n)]
         for u, v, w in edges:
-            adj[u].append((v, w))
-            adj[v].append((u, w))
-
-        parent = [[-1] * n for _ in range(LOG)]
-        weight = [[0] * n for _ in range(LOG)]
-        depth = [0] * n
-        cumw = [0] * n
-
+            tree[u].append((v, w))
+            tree[v].append((u, w))
+        up = [[-1]*LOG for _ in range(n)]
+        depth = [0]*n
+        dist = [0]*n
         def dfs(u, p):
-            for v, w in adj[u]:
-                if v == p:
-                    continue
-                parent[0][v] = u
-                weight[0][v] = w
-                depth[v] = depth[u] + 1
-                cumw[v] = cumw[u] + w
-                dfs(v, u)
+            up[u][0] = p
+            for k in range(1, LOG):
+                if up[u][k-1] != -1:
+                    up[u][k] = up[up[u][k-1]][k-1]
+            for v, w in tree[u]:
+                if v != p:
+                    depth[v] = depth[u] + 1
+                    dist[v] = dist[u] + w
+                    dfs(v, u)
         dfs(0, -1)
-
-        for k in range(1, LOG):
-            for v in range(n):
-                if parent[k-1][v] != -1:
-                    parent[k][v] = parent[k-1][parent[k-1][v]]
-                    weight[k][v] = weight[k-1][v] + weight[k-1][parent[k-1][v]]
-
-        def lca(u, v):
+        def get_lca(u, v):
             if depth[u] < depth[v]:
                 u, v = v, u
-            for k in range(LOG-1, -1, -1):
-                if parent[k][u] != -1 and depth[parent[k][u]] >= depth[v]:
-                    u = parent[k][u]
+            for k in reversed(range(LOG)):
+                if up[u][k] != -1 and depth[up[u][k]] >= depth[v]:
+                    u = up[u][k]
             if u == v:
                 return u
-            for k in range(LOG-1, -1, -1):
-                if parent[k][u] != -1 and parent[k][u] != parent[k][v]:
-                    u = parent[k][u]
-                    v = parent[k][v]
-            return parent[0][u]
-
-        # Build path from u to v (inclusive), going up to lca and then down to v
-        def build_path(u, v, ancestor):
-            path_up = []  # u to lca (excluding lca)
-            x = u
-            while x != ancestor:
-                path_up.append(x)
-                x = parent[0][x]
-            path_down = []  # v to lca (excluding lca)
-            y = v
-            while y != ancestor:
-                path_down.append(y)
-                y = parent[0][y]
-            full_path = path_up + [ancestor] + path_down[::-1]  # from u to v, inclusive
-            return full_path
-
+            for k in reversed(range(LOG)):
+                if up[u][k] != -1 and up[u][k] != up[v][k]:
+                    u = up[u][k]
+                    v = up[v][k]
+            return up[u][0]
+        def jump(u, steps):
+            for k in range(LOG):
+                if steps & (1<<k):
+                    u = up[u][k]
+            return u
         res = []
         for u, v in queries:
-            ancestor = lca(u, v)
-            total = cumw[u] + cumw[v] - 2 * cumw[ancestor]
+            lca = get_lca(u, v)
+            total = dist[u] + dist[v] - 2*dist[lca]
             half = total / 2
-            path = build_path(u, v, ancestor)
+            # Walk from u to v, keep sum from u, stop at first node >= half
+            # We can walk up from u to lca, then down from lca to v
+            path = []
+            # u to lca
+            node = u
+            su = 0
+            steps_up = depth[u] - depth[lca]
+            node_u = u
+            for k in reversed(range(LOG)):
+                while steps_up >= (1<<k):
+                    node_u = up[node_u][k]
+                    steps_up -= (1<<k)
+            # Down path from lca to v
+            down_path = []
+            node_v = v
+            par = up
+            trace = []
+            while node_v != lca:
+                trace.append(node_v)
+                node_v = up[node_v][0]
+            trace.reverse()
+            path_nodes = []
+            # u to lca (including u)
+            node_u2 = u
+            path_nodes.append(node_u2)
+            while node_u2 != lca:
+                node_u2 = up[node_u2][0]
+                path_nodes.append(node_u2)
+            # lca to v (excluding lca)
+            node_v2 = v
+            down_nodes = []
+            while node_v2 != lca:
+                down_nodes.append(node_v2)
+                node_v2 = up[node_v2][0]
+            down_nodes = down_nodes[::-1]
+            path_nodes += down_nodes
+            # Now path_nodes is the node list from u to v
+            # Get edge weights along the path
+            # For each step, get the edge weight from previous node to current
+            weights = []
+            for i in range(1, len(path_nodes)):
+                a, b = path_nodes[i-1], path_nodes[i]
+                for nxt, w in tree[a]:
+                    if nxt == b:
+                        weights.append(w)
+                        break
+            # Now, step through the path to find the first node whose sum from u >= half
             curr_sum = 0
-            prev = path[0]
+            idx = 0
             found = False
-            for idx, node in enumerate(path):
-                if idx == 0:
-                    curr_sum = 0
-                else:
-                    # edge weight between prev and node
-                    w = abs(cumw[node] - cumw[prev])
-                    curr_sum += w
-                # Check weighted median condition
-                if curr_sum >= half and not found:
-                    # Explicitly verify the weighted median condition
-                    res.append(node)
+            for i in range(1, len(path_nodes)):
+                curr_sum += weights[i-1]
+                if curr_sum >= half:
+                    res.append(path_nodes[i])
                     found = True
                     break
-                prev = node
             if not found:
-                # As a safeguard, check that the last node (must be v) is valid
-                res.append(path[-1])
+                res.append(path_nodes[-1])
         return res
 # @lc code=end
