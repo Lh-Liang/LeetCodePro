@@ -3,55 +3,94 @@
 #
 # [3553] Minimum Weighted Subgraph With the Required Paths II
 #
+
 # @lc code=start
+#include <vector>
+#include <algorithm>
+#include <queue>
+
+using namespace std;
+
 class Solution {
 public:
     vector<int> minimumWeight(vector<vector<int>>& edges, vector<vector<int>>& queries) {
         int n = edges.size() + 1;
-        
-        // Build adjacency list
-        vector<vector<pair<int, int>>> graph(n);
-        for (auto& e : edges) {
-            int u = e[0], v = e[1], w = e[2];
-            graph[u].push_back({v, w});
-            graph[v].push_back({u, w});
+        vector<vector<pair<int, int>>> adj(n);
+        for (const auto& edge : edges) {
+            adj[edge[0]].push_back({edge[1], edge[2]});
+            adj[edge[1]].push_back({edge[0], edge[2]});
         }
-        
-        // Function to compute distances from a source node to all other nodes using DFS
-        auto computeDistances = [&](int src) {
-            vector<long long> dist(n, -1);
-            function<void(int, int, long long)> dfs = [&](int u, int parent, long long d) {
-                dist[u] = d;
-                for (auto [v, w] : graph[u]) {
-                    if (v != parent) {
-                        dfs(v, u, d + w);
-                    }
+
+        int LOG = 0;
+        while ((1 << (LOG + 1)) <= n) LOG++;
+        LOG++; // Ensure enough space for lifting
+
+        vector<int> depth(n, 0);
+        vector<long long> dist_from_root(n, 0);
+        vector<vector<int>> up(n, vector<int>(LOG));
+
+        queue<int> q;
+        vector<bool> visited(n, false);
+        q.push(0);
+        visited[0] = true;
+        up[0][0] = 0;
+
+        while (!q.empty()) {
+            int u = q.front();
+            q.pop();
+            for (auto& edge : adj[u]) {
+                int v = edge.first;
+                int w = edge.second;
+                if (!visited[v]) {
+                    visited[v] = true;
+                    depth[v] = depth[u] + 1;
+                    dist_from_root[v] = dist_from_root[u] + w;
+                    up[v][0] = u;
+                    q.push(v);
                 }
-            };
-            dfs(src, -1, 0);
-            return dist;
-        };
-        
-        vector<int> result;
-        
-        for (auto& query : queries) {
-            int src1 = query[0], src2 = query[1], dest = query[2];
-            
-            // Compute distances from src1, src2, and dest to all nodes
-            vector<long long> dist1 = computeDistances(src1);
-            vector<long long> dist2 = computeDistances(src2);
-            vector<long long> distDest = computeDistances(dest);
-            
-            // Find the Steiner point that minimizes the sum
-            long long minWeight = LLONG_MAX;
-            for (int i = 0; i < n; i++) {
-                minWeight = min(minWeight, dist1[i] + dist2[i] + distDest[i]);
             }
-            
-            result.push_back((int)minWeight);
         }
-        
-        return result;
+
+        for (int i = 1; i < LOG; i++) {
+            for (int u = 0; u < n; u++) {
+                up[u][i] = up[up[u][i - 1]][i - 1];
+            }
+        }
+
+        auto get_lca = [&](int u, int v) {
+            if (depth[u] < depth[v]) swap(u, v);
+            for (int i = LOG - 1; i >= 0; i--) {
+                if (depth[u] - (1 << i) >= depth[v]) {
+                    u = up[u][i];
+                }
+            }
+            if (u == v) return u;
+            for (int i = LOG - 1; i >= 0; i--) {
+                if (up[u][i] != up[v][i]) {
+                    u = up[u][i];
+                    v = up[v][i];
+                }
+            }
+            return up[u][0];
+        };
+
+        auto get_dist = [&](int u, int v) -> long long {
+            return dist_from_root[u] + dist_from_root[v] - 2 * dist_from_root[get_lca(u, v)];
+        };
+
+        vector<int> results;
+        results.reserve(queries.size());
+        for (const auto& query : queries) {
+            int s1 = query[0], s2 = query[1], d = query[2];
+            long long d12 = get_dist(s1, s2);
+            long long d23 = get_dist(s2, d);
+            long long d13 = get_dist(s1, d);
+            // The sum of distances between three points in a tree is always even
+            // result fits into int because max distance is (n-1)*10^4 = 10^9 < 2*10^9
+            results.push_back((int)((d12 + d23 + d13) / 2));
+        }
+
+        return results;
     }
 };
 # @lc code=end
