@@ -3,29 +3,28 @@
 #
 # [3604] Minimum Time to Reach Destination in Directed Graph
 #
+
 # @lc code=start
+import heapq
+from typing import List
 class Solution:
     def minTime(self, n: int, edges: List[List[int]]) -> int:
-        import heapq
-        from collections import defaultdict
-        graph = defaultdict(list)
-        for u, v, s, e in edges:
-            graph[u].append((v, s, e))
-        # (current_time, current_node)
-        heap = [(0, 0)]
-        visited = dict()  # node: earliest_arrival_time
-        while heap:
-            time, node = heapq.heappop(heap)
-            if node == n-1:
-                return time
-            if node in visited and visited[node] <= time:
+        graph = [[] for _ in range(n)]
+        for u, v, start, end in edges:
+            graph[u].append((v, start, end))
+        min_time = [float('inf')] * n
+        min_time[0] = 0
+        pq = [(0, 0)]  # (time, node)
+        while pq:
+            curr_time, u = heapq.heappop(pq)
+            if u == n - 1:
+                return curr_time
+            if curr_time > min_time[u]:
                 continue
-            visited[node] = time
-            for v, s, e in graph[node]:
-                # Wait if current time < s, or proceed if s <= time <= e
-                if time > e:
-                    continue
-                next_time = max(time, s) + 1
-                heapq.heappush(heap, (next_time, v))
-        return -1
-# @lc code=end
+            for v, start, end in graph[u]:
+                wait_time = max(0, start - curr_time) if curr_time <= end else float('inf')
+                new_time = curr_time + wait_time + 1  # travel takes one unit time
+                if new_time < min_time[v]:
+                    min_time[v] = new_time
+                    heapq.heappush(pq, (new_time, v))
+        return -1  # unreachable case if while loop ends without return statement. # @lc code=end
