@@ -5,60 +5,62 @@
 #
 
 # @lc code=start
-from collections import defaultdict, deque
+from typing import List
+from collections import deque, defaultdict
+
 class Solution:
     def pathExistenceQueries(self, n: int, nums: List[int], maxDiff: int, queries: List[List[int]]) -> List[int]:
-        # Step 1: Build adjacency list efficiently
-        idx = sorted(range(n), key=lambda x: nums[x])
+        # Step 1: Build adjacency lists efficiently using sorting and sliding window
+        idxs = list(range(n))
+        idxs.sort(key=lambda i: nums[i])
         adj = [[] for _ in range(n)]
-        l = 0
-        for r in range(n):
-            while nums[idx[r]] - nums[idx[l]] > maxDiff:
-                l += 1
-            for k in range(l, r):
-                adj[idx[r]].append(idx[k])
-                adj[idx[k]].append(idx[r])
-        # Step 2: Preprocess connected components using BFS
-        comp_id = [-1] * n
+        # Use sliding window to connect nodes with |nums[i] - nums[j]| <= maxDiff
+        j = 0
+        for i in range(n):
+            while j < n and nums[idxs[j]] - nums[idxs[i]] <= maxDiff:
+                j += 1
+            for k in range(i+1, j):
+                u, v = idxs[i], idxs[k]
+                if abs(nums[u] - nums[v]) <= maxDiff:
+                    adj[u].append(v)
+                    adj[v].append(u)
+        # Step 2: For each query, do BFS from ui to vi (could be batched, but let's use on-demand BFS for each query)
+        def bfs(u, v):
+            if u == v:
+                return 0
+            visited = [False] * n
+            visited[u] = True
+            dq = deque([(u, 0)])
+            while dq:
+                curr, dist = dq.popleft()
+                for nei in adj[curr]:
+                    if not visited[nei]:
+                        if nei == v:
+                            return dist + 1
+                        visited[nei] = True
+                        dq.append((nei, dist + 1))
+            return -1
+        # Optionally, precompute connected components to quickly answer -1 for disconnected pairs
+        comp = [-1] * n
         cid = 0
-        for node in range(n):
-            if comp_id[node] == -1:
-                dq = deque([node])
-                comp_id[node] = cid
+        for i in range(n):
+            if comp[i] == -1:
+                dq = deque([i])
+                comp[i] = cid
                 while dq:
                     curr = dq.popleft()
                     for nei in adj[curr]:
-                        if comp_id[nei] == -1:
-                            comp_id[nei] = cid
+                        if comp[nei] == -1:
+                            comp[nei] = cid
                             dq.append(nei)
                 cid += 1
-        # Step 3: For same-component queries, use BFS from source if needed
-        q_by_src = defaultdict(list)
-        for i, (u, v) in enumerate(queries):
-            q_by_src[u].append((v, i))
-        res = [-1] * len(queries)
-        for u in q_by_src:
-            # Group queries by connected component
-            rel_queries = [ (v, idxq) for v, idxq in q_by_src[u] if comp_id[u] == comp_id[v] ]
-            unreachable_queries = [ (v, idxq) for v, idxq in q_by_src[u] if comp_id[u] != comp_id[v] ]
-            # For unreachable, set -1
-            for v, idxq in unreachable_queries:
-                res[idxq] = -1
-            if rel_queries:
-                visited = [-1] * n
-                dq = deque()
-                dq.append(u)
-                visited[u] = 0
-                while dq:
-                    node = dq.popleft()
-                    for nei in adj[node]:
-                        if visited[nei] == -1:
-                            visited[nei] = visited[node] + 1
-                            dq.append(nei)
-                for v, idxq in rel_queries:
-                    if u == v:
-                        res[idxq] = 0
-                    else:
-                        res[idxq] = visited[v]
+        res = []
+        for u, v in queries:
+            if comp[u] != comp[v]:
+                res.append(-1)
+            elif u == v:
+                res.append(0)
+            else:
+                res.append(bfs(u, v))
         return res
 # @lc code=end
