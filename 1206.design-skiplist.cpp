@@ -3,100 +3,98 @@
 #
 # [1206] Design Skiplist
 #
+
 # @lc code=start
+#include <vector>
+#include <cstdlib>
+#include <ctime>
+
 class Skiplist {
 private:
+    static const int MAX_LEVEL = 16;
+    
     struct Node {
         int val;
-        vector<Node*> forward;
-        Node(int v, int level) : val(v), forward(level, nullptr) {}
-    };
-    
-    Node* head;
-    int maxLevel;
-    int currentLevel;
-    
-    int randomLevel() {
-        int level = 1;
-        while (rand() % 2 == 0 && level < maxLevel) {
-            level++;
+        Node* next[MAX_LEVEL];
+        Node(int v, int level) : val(v) {
+            for (int i = 0; i < level; ++i) next[i] = nullptr;
         }
-        return level;
+    };
+
+    Node* head;
+
+    int randomLevel() {
+        int lvl = 1;
+        while (lvl < MAX_LEVEL && (rand() % 100 < 50)) {
+            lvl++;
+        }
+        return lvl;
     }
-    
+
 public:
     Skiplist() {
-        maxLevel = 16;
-        currentLevel = 1;
-        head = new Node(-1, maxLevel);
+        head = new Node(-1, MAX_LEVEL);
+        srand(time(nullptr));
+    }
+
+    ~Skiplist() {
+        Node* curr = head;
+        while (curr) {
+            Node* temp = curr->next[0];
+            delete curr;
+            curr = temp;
+        }
     }
     
     bool search(int target) {
         Node* curr = head;
-        for (int i = currentLevel - 1; i >= 0; i--) {
-            while (curr->forward[i] && curr->forward[i]->val < target) {
-                curr = curr->forward[i];
+        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
+            while (curr->next[i] && curr->next[i]->val < target) {
+                curr = curr->next[i];
             }
         }
-        curr = curr->forward[0];
-        return curr && curr->val == target;
+        curr = curr->next[0];
+        return curr != nullptr && curr->val == target;
     }
     
     void add(int num) {
-        vector<Node*> update(maxLevel, nullptr);
+        Node* update[MAX_LEVEL];
         Node* curr = head;
-        
-        for (int i = currentLevel - 1; i >= 0; i--) {
-            while (curr->forward[i] && curr->forward[i]->val < num) {
-                curr = curr->forward[i];
+        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
+            while (curr->next[i] && curr->next[i]->val < num) {
+                curr = curr->next[i];
             }
             update[i] = curr;
         }
-        
-        int level = randomLevel();
-        if (level > currentLevel) {
-            for (int i = currentLevel; i < level; i++) {
-                update[i] = head;
-            }
-            currentLevel = level;
-        }
-        
-        Node* newNode = new Node(num, level);
-        for (int i = 0; i < level; i++) {
-            newNode->forward[i] = update[i]->forward[i];
-            update[i]->forward[i] = newNode;
+
+        int lvl = randomLevel();
+        Node* newNode = new Node(num, lvl);
+        for (int i = 0; i < lvl; ++i) {
+            newNode->next[i] = update[i]->next[i];
+            update[i]->next[i] = newNode;
         }
     }
     
     bool erase(int num) {
-        vector<Node*> update(maxLevel, nullptr);
+        Node* update[MAX_LEVEL];
         Node* curr = head;
-        
-        for (int i = currentLevel - 1; i >= 0; i--) {
-            while (curr->forward[i] && curr->forward[i]->val < num) {
-                curr = curr->forward[i];
+        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
+            while (curr->next[i] && curr->next[i]->val < num) {
+                curr = curr->next[i];
             }
             update[i] = curr;
         }
-        
-        curr = curr->forward[0];
+
+        curr = curr->next[0];
         if (!curr || curr->val != num) {
             return false;
         }
-        
-        for (int i = 0; i < currentLevel; i++) {
-            if (update[i]->forward[i] != curr) {
-                break;
-            }
-            update[i]->forward[i] = curr->forward[i];
+
+        for (int i = 0; i < MAX_LEVEL; ++i) {
+            if (update[i]->next[i] != curr) break;
+            update[i]->next[i] = curr->next[i];
         }
-        
         delete curr;
-        
-        while (currentLevel > 1 && !head->forward[currentLevel - 1]) {
-            currentLevel--;
-        }
-        
         return true;
     }
 };
