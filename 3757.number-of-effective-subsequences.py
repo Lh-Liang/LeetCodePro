@@ -5,27 +5,20 @@
 #
 
 # @lc code=start
-from typing import List
-
 class Solution:
     def countEffective(self, nums: List[int]) -> int:
         MOD = 10**9 + 7
-        n = len(nums)
         full_or = 0
         for num in nums:
             full_or |= num
         
-        count = {0: 1}  # Start with empty set contributing to zero OR
+        # Find elements essential to maintaining the full OR value
+        critical_elements = set()
         for num in nums:
-            new_count = count.copy()
-            for existing_or in count:
-                new_or = existing_or | num
-                if new_or != full_or:  # Only consider if it reduces OR value
-                    if new_or in new_count:
-                        new_count[new_or] = (new_count[new_or] + count[existing_or]) % MOD
-                    else:
-                        new_count[new_or] = count[existing_or]
-            count = new_count
+            if (full_or & ~num) != full_or:
+                critical_elements.add(num)
         
-        return sum(count.values()) % MOD - 1 # Subtract one to not include full set OR itself
+        # Count effective subsequences through combinatorial logic
+        effective_count = (1 << len(critical_elements)) - 1  # All non-empty subsets of critical elements
+        return effective_count % MOD
 # @lc code=end
