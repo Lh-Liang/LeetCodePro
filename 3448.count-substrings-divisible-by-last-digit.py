@@ -8,18 +8,17 @@
 class Solution:
     def countSubstrings(self, s: str) -> int:
         n = len(s)
-        ans = 0
-        for i in range(n):
-            last_digit = int(s[i])
+        count = 0
+        # Iterate over every possible end position of a substring
+        for end in range(n):
+            last_digit = int(s[end])
             if last_digit == 0:
-                continue
-            mod = 0
-            power = 1
-            # Traverse backwards for substrings ending at i
-            for j in range(i, -1, -1):
-                mod = (int(s[j]) * power + mod) % last_digit
-                if mod == 0:
-                    ans += 1
-                power = (power * 10) % last_digit
-        return ans
+                continue  # Cannot divide by zero
+            # Check all substrings ending at `end`
+            num = 0
+            for start in range(end, -1, -1):
+                num = num + int(s[start]) * (10 ** (end - start)) 
+                if num % last_digit == 0:
+                    count += 1
+        return count
 # @lc code=end
