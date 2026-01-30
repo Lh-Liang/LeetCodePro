@@ -7,51 +7,36 @@
 # @lc code=start
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        from collections import defaultdict, deque
-        if not edges:
-            return -1 if n > 1 else 0
-        # Collect all unique weights
-        weights = sorted(set(w for _, _, w in edges))
-        left, right = 0, len(weights) - 1
-        answer = -1
-        # Build original edge list for fast filtering
-        edge_list = [[] for _ in range(n)]
-        for u, v, w in edges:
-            edge_list[u].append((v, w))
-        def feasible(maxW):
-            # Build subgraph with edge weight <= maxW
-            adj = [[] for _ in range(n)]
-            out_deg = [0] * n
-            in_rev = [[] for _ in range(n)]
+        def can_construct(max_weight):
+            from collections import defaultdict, deque
+            graph = defaultdict(list)
+            for u, v, w in edges:
+                if w <= max_weight:
+                    graph[u].append((v, w))
+            # Check if all nodes can reach node 0 with BFS/DFS
+            visited = set()
+            def bfs(start):
+                queue = deque([start])
+                visited.add(start)
+                while queue:
+                    node = queue.popleft()
+                    for neighbor, _ in graph[node]:
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            queue.append(neighbor)
+            bfs(0)  # Start from node 0 to check reachability
+            if len(visited) != n:
+                return False  # Not all nodes can reach node 0
+            # Ensure each node has at most 'threshold' outgoing connections with smaller weights prioritized.
             for u in range(n):
-                for v, w in edge_list[u]:
-                    if w <= maxW:
-                        adj[u].append(v)
-                        out_deg[u] += 1
-                        in_rev[v].append(u)
-            # Out-degree check
-            if any(d > threshold for d in out_deg):
-                return False
-            # Check reachability: all nodes must reach node 0 (i.e., from every node there is a path to 0)
-            # We do this by BFS/DFS from 0 in the reversed graph
-            seen = [False] * n
-            stack = [0]
-            seen[0] = True
-            while stack:
-                u = stack.pop()
-                for v in in_rev[u]:
-                    if not seen[v]:
-                        seen[v] = True
-                        stack.append(v)
-            return all(seen)
-        # Binary search on weights
-        while left <= right:
-            mid = (left + right) // 2
-            maxW = weights[mid]
-            if feasible(maxW):
-                answer = maxW
-                right = mid - 1
+                if len(graph[u]) > threshold:
+                    return False  # More than threshold connections from this node.
+            return True
+        # Binary search over possible max weights.
+        low, high = min(w for _, _, w in edges), max(w for _, _, w in edges) + 1
+        while low < high:
+            mid = (low + high) // 2
+            if can_construct(mid):
+                high = mid  # Try smaller weights.
             else:
-                left = mid + 1
-        return answer
-# @lc code=end
+                low = mid + 1  # Increase weight to satisfy constraints. ​return -1 if low == max(w for _, _, w in edges) + 1 else low ​# @lc code=end
