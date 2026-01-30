@@ -10,28 +10,17 @@
 #     def __init__(self, val=0, next=None):
 #         self.val = val
 #         self.next = next
+from typing import List, Optional
 class Solution:
     def modifiedList(self, nums: List[int], head: Optional[ListNode]) -> Optional[ListNode]:
-        # Convert nums to a set for O(1) lookups
-        num_set = set(nums)
-        
-        # Create a dummy node that points to head
-        dummy = ListNode(0)
+        nums_set = set(nums)  # Convert list to set for O(1) lookups.
+        dummy = ListNode(0)  # Dummy node to handle edge cases.
         dummy.next = head
-        
-        # Initialize pointers
-        current = head
-        prev = dummy
-        
-        # Traverse the linked list
-        while current:
-            if current.val in num_set:
-                # Remove current node by linking previous node's next to current's next
-                prev.next = current.next
+        current = dummy
+        while current.next:  # Traverse the linked list.
+            if current.next.val in nums_set:
+                current.next = current.next.next  # Skip nodes with values in nums_set.
             else:
-                # Move prev pointer only when no deletion occurs
-                prev = current
-            # Move to next node
-            current = current.next
-        
-        return dummy.next  # Return new head skipping dummy node
+                current = current.next  # Move to next node otherwise.
+        return dummy.next  # Return the head of the modified list.
+# @lc code=end
