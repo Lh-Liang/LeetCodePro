@@ -5,23 +5,30 @@
 #
 
 # @lc code=start
-import heapq
-from typing import List
-
 class Solution:
     def maxSum(self, grid: List[List[int]], limits: List[int], k: int) -> int:
-        # Create a list to store potential candidates for max sum
-        candidates = []
-        
-        # Process each row to gather elements respecting individual limits
+        # Flatten the grid into a list of tuples (value, row_index)
+        elements = []
         for i, row in enumerate(grid):
-            sorted_row = sorted(row, reverse=True)
-            max_elements = min(limits[i], len(sorted_row))
-            candidates.extend(sorted_row[:max_elements])
+            # Sort each row in descending order to consider largest values first
+            sorted_row = sorted(row, reverse=True)[:limits[i]]
+            for value in sorted_row:
+                elements.append((value, i))
         
-        # Use a heap to find the k largest elements from candidates
-        if len(candidates) <= k:
-            return sum(candidates)
+        # Sort all collected elements by their value in descending order
+        elements.sort(reverse=True, key=lambda x: x[0])
         
-        return sum(heapq.nlargest(k, candidates))
+        max_sum = 0
+        count = 0  # Track number of selected elements
+        used_limits = [0] * len(grid)  # Track used limits per row
+        
+        # Select up to k largest values respecting per-row limits
+        for value, idx in elements:
+            if count < k and used_limits[idx] < limits[idx]:
+                max_sum += value
+                used_limits[idx] += 1
+                count += 1
+            if count == k:
+                break
+        return max_sum
 # @lc code=end
