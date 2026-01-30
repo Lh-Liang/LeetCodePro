@@ -8,32 +8,36 @@
 class Solution:
     def maximumScore(self, nums: List[int], k: int) -> int:
         n = len(nums)
-        nums2 = nums + nums
-        # Precompute range for all windows
-        range_table = [[0]*n for _ in range(n)]
+        # Compute the gaps between adjacent elements (cyclic)
+        gaps = []
         for i in range(n):
-            mx = mn = nums[i]
-            for j in range(i, i+n):
-                mx = max(mx, nums2[j])
-                mn = min(mn, nums2[j])
-                if j-i < n:
-                    range_table[i][j-i] = mx - mn
-        # Optional: Verify range_table for sample intervals
-        # assert range_table[0][n-1] == max(nums) - min(nums)
-        res = 0
+            gap = abs(nums[i] - nums[(i+1)%n])
+            gaps.append((gap, i))
+        # For each possible rotation (start position), find the k-1 largest gaps
+        max_score = 0
         for start in range(n):
-            dp = [[-float('inf')] * (k+1) for _ in range(n+1)]
-            dp[0][0] = 0
-            for i in range(1, n+1):
-                for p in range(1, min(k, i)+1):
-                    for j in range(p-1, i):
-                        prev = dp[j][p-1]
-                        rng = range_table[(start+j)%n][i-j-1]
-                        if prev + rng > dp[i][p]:
-                            dp[i][p] = prev + rng
-            # Optional: Check DP states after computation
-            # for p in range(1, k+1):
-            #     assert dp[n][p] >= 0
-            res = max(res, max(dp[n][1:k+1]))
-        return res
+            # Compute prefix max and min for this rotation
+            arr = nums[start:] + nums[:start]
+            prefix_max = [arr[0]]
+            prefix_min = [arr[0]]
+            for i in range(1, n):
+                prefix_max.append(max(prefix_max[-1], arr[i]))
+                prefix_min.append(min(prefix_min[-1], arr[i]))
+            # Find k-1 largest gaps in this rotation
+            gap_list = []
+            for i in range(n-1):
+                gap_list.append(abs(arr[i] - arr[i+1]))
+            gap_list.append(abs(arr[-1] - arr[0]))  # cyclic gap
+            # Sort gaps and take k-1 largest
+            sorted_gaps = sorted(gap_list, reverse=True)
+            total_range = max(arr) - min(arr)
+            if k == 1:
+                max_score = max(max_score, total_range)
+                continue
+            # The sum of (max-min) over k parts is: total_range + sum of k-1 largest gaps
+            score = total_range
+            for i in range(k-1):
+                score += sorted_gaps[i]
+            max_score = max(max_score, score)
+        return max_score
 # @lc code=end
