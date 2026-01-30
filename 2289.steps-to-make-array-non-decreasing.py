@@ -1,3 +1,4 @@
+#
 # @lc app=leetcode id=2289 lang=python3
 #
 # [2289] Steps to Make Array Non-decreasing
@@ -6,19 +7,19 @@
 # @lc code=start
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        stack = []  # To store (element, steps) pairs
-        max_steps = 0  # To track maximum steps taken
-        for num in nums:
-            current_steps = 0
-            # Remove all elements from stack which are less than or equal to current num
-            while stack and stack[-1][0] <= num:
-                current_steps = max(current_steps, stack.pop()[1])
-            # If there are still elements in the stack after popping,
-            # it means current num needs one more step compared to those popped because it causes a decrease
-            if stack:
-                current_steps += 1
-            max_steps = max(max_steps, current_steps)
-            # Push current num with its step count onto stack
-            stack.append((num, current_steps))
+        n = len(nums)
+        stack = []
+        steps = [0] * n  # To store steps needed at each index.
+        max_steps = 0
+        
+        for i in range(n):
+            # While current element is greater than element at stack top,
+            # pop from stack and calculate steps needed.
+            while stack and nums[stack[-1]] > nums[i]:
+                last_index = stack.pop()
+                steps[i] = max(steps[i], steps[last_index] + 1)
+            max_steps = max(max_steps, steps[i])
+            stack.append(i)
+        
         return max_steps
 # @lc code=end
