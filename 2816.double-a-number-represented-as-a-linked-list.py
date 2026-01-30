@@ -12,28 +12,19 @@
 #         self.next = next
 class Solution:
     def doubleIt(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        # Helper to reverse a linked list
-        def reverse(node):
-            prev = None
-            curr = node
-            while curr:
-                nxt = curr.next
-                curr.next = prev
-                prev = curr
-                curr = nxt
-            return prev
-
-        head = reverse(head)
-        curr = head
+        current = head
         carry = 0
-        prev = None
-        while curr:
-            sum_ = curr.val * 2 + carry
-            curr.val = sum_ % 10
-            carry = sum_ // 10
-            prev = curr
-            curr = curr.next
-        if carry:
-            prev.next = ListNode(carry)
-        return reverse(head)
+        while current is not None:
+            current.val = current.val * 2 + carry
+            if current.val >= 10:
+                current.val -= 10
+                carry = 1
+            else:
+                carry = 0
+            if current.next is None: # If this is the last node and there is a carry, we need to add a new node.
+                if carry == 1:
+                    current.next = ListNode(1) # Adding new node with value of `carry` which should be `1` here.
+                    break
+            current = current.next # Move to next node in list.
+        return head # Return modified head of list after processing all nodes. 
 # @lc code=end
