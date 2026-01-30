@@ -5,35 +5,51 @@
 #
 
 # @lc code=start
+# Definition for singly-linked list.
+# class ListNode:
+#     def __init__(self, val=0, next=None):
+#         self.val = val
+#         self.next = next
 class Solution:
     def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
-        if not head or not head.next or not head.next.next:
-            return [-1, -1]
-        
-        first_cp = None
-        last_cp = None
+        # Initialize variables
+        first_cp_index = last_cp_index = -1
         min_distance = float('inf')
-        prev = head
-        curr = head.next
-        index = 1
+        current_index = 0
         critical_points = []
         
-        while curr.next:
-            next_node = curr.next
-            if (curr.val > prev.val and curr.val > next_node.val) or (curr.val < prev.val and curr.val < next_node.val):
-                if first_cp is None:
-                    first_cp = index
-                if last_cp is not None:
-                    min_distance = min(min_distance, index - last_cp)
-                last_cp = index
-                critical_points.append(index)
-            prev = curr
-            curr = next_node
-            index += 1
+        # Pointer setup for iteration
+        prev_node = None
+        current_node = head
         
+        # Traverse the linked list to find all critical points
+        while current_node and current_node.next:
+            next_node = current_node.next
+            if prev_node:
+                # Check if current node is a local maxima or minima
+                if (current_node.val > prev_node.val and current_node.val > next_node.val) or \
+                   (current_node.val < prev_node.val and current_node.val < next_node.val):
+                    if first_cp_index == -1:
+                        first_cp_index = current_index  # First critical point found
+                    else:
+                        # Calculate distance from last critical point found
+                        min_distance = min(min_distance, current_index - last_cp_index)
+                    last_cp_index = current_index  # Update last critical point index
+                    
+                    # Store index of this critical point for maximum distance calculation later
+                    critical_points.append(current_index)
+            
+            # Move to the next sequence in the list
+            prev_node = current_node
+            current_node = next_node
+            current_index += 1
+        
+        # If fewer than two critical points were found, return [-1, -1]
         if len(critical_points) < 2:
             return [-1, -1]
         
+        # Calculate max distance as difference between first and last critical point indices
         max_distance = critical_points[-1] - critical_points[0]
+        
         return [min_distance, max_distance]
 # @lc code=end
