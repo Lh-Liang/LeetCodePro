@@ -8,29 +8,38 @@
 class Solution:
     def maximumScore(self, nums: List[int], k: int) -> int:
         n = len(nums)
-        # Dynamic programming table to store max scores for different partitions
-        dp = [[-float('inf')] * (k + 1) for _ in range(n)]
+        # Double nums for easier cyclic handling
+        extended_nums = nums + nums
         
-        # Precompute max-min ranges in a cyclic manner for all possible starts and lengths
-        for start in range(n):
-            current_max = nums[start]
-            current_min = nums[start]
-            # Calculate ranges for subarray lengths from start position
-            for length in range(n):
-                idx = (start + length) % n
-                current_max = max(current_max, nums[idx])
-                current_min = min(current_min, nums[idx])
-                range_score = current_max - current_min
-                if length == n - 1:
-                    # Single partition covering whole array case
-                    dp[start][1] = range_score
-                else:
-                    # Update dp table for possible additional partitions
-                    for p in range(2, k + 1):
-                        next_start_idx = (idx + 1) % n
-                        if length + 1 < n:
-                            dp[start][p] = max(dp[start][p], range_score + dp[next_start_idx][p - 1])
+        # Initialize DP table for storing maximum scores
+        dp = [[0] * (k + 1) for _ in range(2 * n)]
         
-        # Return the best score obtainable starting from any index with k full partitions available.
+        # Base case for one partition
+        for i in range(n):
+            current_min = float('inf')
+            current_max = float('-inf')
+            # Calculate range directly for single partitions up to n elements forward
+            for j in range(i, i + n):
+                idx = j % n
+                current_min = min(current_min, extended_nums[idx])
+                current_max = max(current_max, extended_nums[idx])
+                current_range = current_max - current_min
+                dp[i][1] = max(dp[i][1], current_range)
+        
+        # Fill DP table for more than one partition allowed
+        for p in range(2, k + 1):
+            for i in range(n):
+                current_min = float('inf')
+                current_max = float('-inf')
+                # Iterate and calculate possible partition scores
+                for j in range(i, i + n):
+                    idx = j % n
+                    current_min = min(current_min, extended_nums[idx])
+                    current_max = max(current_max, extended_nums[idx])
+                    current_range = current_max - current_min
+                    prev_idx = (j + 1) % n if j + 1 < i + n else i % n
+                    dp[i][p] = max(dp[i][p], dp[prev_idx][p - 1] + current_range)
+        
+        # Return the maximum score found across all starting points with k partitions allowed
         return max(dp[i][k] for i in range(n))
 # @lc code=end
