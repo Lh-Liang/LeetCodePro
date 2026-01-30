@@ -3,68 +3,94 @@
 #
 # [3562] Maximum Profit from Trading Stocks with Discounts
 #
+
 # @lc code=start
+#include <vector>
+#include <algorithm>
+#include <cmath>
+
+using namespace std;
+
 class Solution {
-public:
-    int maxProfit(int n, vector<int>& present, vector<int>& future, vector<vector<int>>& hierarchy, int budget) {
-        vector<vector<int>> children(n + 1);
-        for (const auto& h : hierarchy) {
-            children[h[0]].push_back(h[1]);
+    int N;
+    int B;
+    vector<int> P, F;
+    vector<vector<int>> adj;
+    // memo[node][parent_bought] = vector of size B+1
+    vector<int> memo[161][2];
+    const int INF = 1e9;
+
+    vector<int> solve(int u, int parent_bought) {
+        if (!memo[u][parent_bought].empty()) return memo[u][parent_bought];
+
+        // Case 1: Employee u buys their stock
+        int cost_buy = parent_bought ? (P[u-1] / 2) : P[u-1];
+        int profit_buy = F[u-1] - cost_buy;
+        
+        vector<int> dp_buy(B + 1, -INF);
+        if (cost_buy <= B) {
+            dp_buy[cost_buy] = profit_buy;
         }
         
-        map<tuple<int, int, int>, int> memo;
+        for (int v : adj[u]) {
+            vector<int> sub = solve(v, 1);
+            vector<int> next_dp(B + 1, -INF);
+            for (int b1 = 0; b1 <= B; ++b1) {
+                if (dp_buy[b1] <= -INF) continue;
+                for (int b2 = 0; b1 + b2 <= B; ++b2) {
+                    if (sub[b2] <= -INF) continue;
+                    next_dp[b1 + b2] = max(next_dp[b1 + b2], dp_buy[b1] + sub[b2]);
+                }
+            }
+            dp_buy = next_dp;
+        }
+
+        // Case 2: Employee u does not buy their stock
+        vector<int> dp_not_buy(B + 1, -INF);
+        dp_not_buy[0] = 0;
         
-        function<int(int, int, bool)> dfs = [&](int node, int remaining_budget, bool parent_bought) -> int {
-            auto key = make_tuple(node, remaining_budget, parent_bought);
-            if (memo.count(key)) return memo[key];
-            
-            int cost = parent_bought ? present[node - 1] / 2 : present[node - 1];
-            int local_profit = future[node - 1] - cost;
-            
-            if (children[node].empty()) {
-                int result = 0;
-                if (cost <= remaining_budget && local_profit > 0) {
-                    result = local_profit;
-                }
-                return memo[key] = result;
-            }
-            
-            int num_children = children[node].size();
-            
-            vector<vector<int>> dp_without(num_children + 1, vector<int>(remaining_budget + 1, 0));
-            for (int i = 0; i < num_children; i++) {
-                int child = children[node][i];
-                for (int b = 0; b <= remaining_budget; b++) {
-                    dp_without[i + 1][b] = dp_without[i][b];
-                    for (int b2 = 0; b2 <= b; b2++) {
-                        dp_without[i + 1][b] = max(dp_without[i + 1][b], 
-                                                    dp_without[i][b - b2] + dfs(child, b2, false));
-                    }
+        for (int v : adj[u]) {
+            vector<int> sub = solve(v, 0);
+            vector<int> next_dp(B + 1, -INF);
+            for (int b1 = 0; b1 <= B; ++b1) {
+                if (dp_not_buy[b1] <= -INF) continue;
+                for (int b2 = 0; b1 + b2 <= B; ++b2) {
+                    if (sub[b2] <= -INF) continue;
+                    next_dp[b1 + b2] = max(next_dp[b1 + b2], dp_not_buy[b1] + sub[b2]);
                 }
             }
-            int max_profit = dp_without[num_children][remaining_budget];
-            
-            if (cost <= remaining_budget) {
-                int new_budget = remaining_budget - cost;
-                vector<vector<int>> dp_with(num_children + 1, vector<int>(new_budget + 1, 0));
-                for (int i = 0; i < num_children; i++) {
-                    int child = children[node][i];
-                    for (int b = 0; b <= new_budget; b++) {
-                        dp_with[i + 1][b] = dp_with[i][b];
-                        for (int b2 = 0; b2 <= b; b2++) {
-                            dp_with[i + 1][b] = max(dp_with[i + 1][b], 
-                                                     dp_with[i][b - b2] + dfs(child, b2, true));
-                        }
-                    }
-                }
-                int total_with_buy = local_profit + dp_with[num_children][new_budget];
-                max_profit = max(max_profit, total_with_buy);
-            }
-            
-            return memo[key] = max_profit;
-        };
+            dp_not_buy = next_dp;
+        }
+
+        vector<int> res(B + 1, -INF);
+        for (int b = 0; b <= B; ++b) {
+            res[b] = max(dp_buy[b], dp_not_buy[b]);
+        }
+        return memo[u][parent_bought] = res;
+    }
+
+public:
+    int maxProfit(int n, vector<int>& present, vector<int>& future, vector<vector<int>>& hierarchy, int budget) {
+        N = n;
+        B = budget;
+        P = present;
+        F = future;
+        adj.assign(n + 1, vector<int>());
+        for (auto& edge : hierarchy) {
+            adj[edge[0]].push_back(edge[1]);
+        }
         
-        return dfs(1, budget, false);
+        for (int i = 0; i <= n; ++i) {
+            memo[i][0].clear();
+            memo[i][1].clear();
+        }
+        
+        vector<int> res = solve(1, 0);
+        int max_total_profit = 0;
+        for (int b = 0; b <= B; ++b) {
+            max_total_profit = max(max_total_profit, res[b]);
+        }
+        return max_total_profit;
     }
 };
 # @lc code=end
