@@ -7,7 +7,7 @@
 # @lc code=start
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        stack = []
+        stack = []  # Each element: (value, steps to remove)
         res = 0
         for num in nums:
             steps = 0
@@ -18,7 +18,7 @@ class Solution:
                 steps += 1
             else:
                 steps = 0
-            stack.append((num, steps))
             res = max(res, steps)
+            stack.append((num, steps))
         return res
 # @lc code=end
