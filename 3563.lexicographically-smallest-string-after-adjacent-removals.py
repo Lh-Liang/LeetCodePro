@@ -1,1 +1,16 @@
-R
+#
+# @lc app=leetcode id=3563 lang=python3
+#
+# [3563] Lexicographically Smallest String After Adjacent Removals
+#
+
+# @lc code=start
+class Solution:
+    def lexicographicallySmallestString(self, s: str) -> str:
+        stack = []
+        for char in s:
+            while (stack and (ord(stack[-1]) + 1 == ord(char) or ord(stack[-1]) - 1 == ord(char))):
+                stack.pop()
+            stack.append(char)
+        return ''.join(stack)
+# @lc code=end
