@@ -3,41 +3,49 @@
 #
 # [3434] Maximum Frequency After Subarray Operation
 #
+
 # @lc code=start
+#include <vector>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
     int maxFrequency(vector<int>& nums, int k) {
-        // Count initial frequency of k
-        int base_count = 0;
-        for (int num : nums) {
-            if (num == k) base_count++;
-        }
+        int total_k = 0;
+        // current_gain[v] tracks the running Kadane sum for value v
+        // max_gain[v] tracks the maximum subarray gain found for value v
+        vector<int> current_gain(51, 0);
+        vector<int> max_gain(51, 0);
         
-        int max_freq = base_count;
-        
-        // Try converting each unique value to k
-        set<int> unique_values(nums.begin(), nums.end());
-        for (int target_value : unique_values) {
-            if (target_value == k) continue;
-            
-            // Use Kadane's algorithm to find the best subarray
-            // contribution = +1 if we convert target_value to k
-            // contribution = -1 if we lose an existing k
-            int max_gain = 0;
-            int current_sum = 0;
-            for (int num : nums) {
-                int contribution = 0;
-                if (num == target_value) contribution = 1;
-                else if (num == k) contribution = -1;
-                
-                current_sum = max(0, current_sum + contribution);
-                max_gain = max(max_gain, current_sum);
+        for (int x : nums) {
+            if (x == k) {
+                total_k++;
+                // If we see k, it decreases the gain for all potential target values v
+                for (int v = 1; v <= 50; ++v) {
+                    if (v == k) continue;
+                    current_gain[v]--;
+                    // If current_gain falls below 0, reset (Standard Kadane's)
+                    if (current_gain[v] < 0) current_gain[v] = 0;
+                }
+            } else if (x >= 1 && x <= 50) {
+                // If we see x, it increases the gain for target value x
+                current_gain[x]++;
+                if (current_gain[x] > max_gain[x]) {
+                    max_gain[x] = current_gain[x];
+                }
             }
-            
-            max_freq = max(max_freq, base_count + max_gain);
         }
         
-        return max_freq;
+        int best_overall_gain = 0;
+        for (int v = 1; v <= 50; ++v) {
+            if (v != k) {
+                best_overall_gain = max(best_overall_gain, max_gain[v]);
+            }
+        }
+        
+        return total_k + best_overall_gain;
     }
 };
 # @lc code=end
