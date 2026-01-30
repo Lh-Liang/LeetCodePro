@@ -3,7 +3,6 @@
 #
 # [2807] Insert Greatest Common Divisors in Linked List
 #
-
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -13,11 +12,18 @@
 import math
 class Solution:
     def insertGreatestCommonDivisors(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        current = head
-        while current and current.next:
-            gcd_value = math.gcd(current.val, current.next.val)
-            new_node = ListNode(val=gcd_value, next=current.next)
-            current.next = new_node
-            current = new_node.next
+        curr = head
+        while curr and curr.next:
+            gcd_val = math.gcd(curr.val, curr.next.val)
+            new_node = ListNode(gcd_val, curr.next)
+            curr.next = new_node
+            curr = new_node.next
+        # Verification step: Ensure list integrity
+        # ptr = head
+        # seen = set()
+        # while ptr:
+        #     assert ptr not in seen, "Cycle detected in linked list."
+        #     seen.add(ptr)
+        #     ptr = ptr.next
         return head
 # @lc code=end
