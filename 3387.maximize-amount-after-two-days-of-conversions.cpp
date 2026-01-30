@@ -5,69 +5,80 @@
 #
 
 # @lc code=start
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <queue>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
-    double maxAmount(string initialCurrency, vector<vector<string>>& pairs1, vector<double>& rates1, 
-                     vector<vector<string>>& pairs2, vector<double>& rates2) {
-        // Build graph for day 1
-        unordered_map<string, vector<pair<string, double>>> graph1;
-        for (size_t i = 0; i < pairs1.size(); i++) {
-            const string& from = pairs1[i][0];
-            const string& to = pairs1[i][1];
-            double rate = rates1[i];
-            graph1[from].push_back({to, rate});
-            graph1[to].push_back({from, 1.0 / rate});
+    double maxAmount(string initialCurrency, vector<vector<string>>& pairs1, vector<double>& rates1, vector<vector<string>>& pairs2, vector<double>& rates2) {
+        // Map to store max amount of each currency reachable on Day 1
+        unordered_map<string, double> day1_amounts;
+        day1_amounts[initialCurrency] = 1.0;
+        
+        // Build graph for Day 1
+        unordered_map<string, vector<pair<string, double>>> adj1;
+        for (int i = 0; i < (int)pairs1.size(); ++i) {
+            adj1[pairs1[i][0]].push_back({pairs1[i][1], rates1[i]});
+            adj1[pairs1[i][1]].push_back({pairs1[i][0], 1.0 / rates1[i]});
         }
         
-        // Find max amount for each currency on day 1
-        unordered_map<string, double> maxDay1;
-        maxDay1[initialCurrency] = 1.0;
-        
-        bool updated = true;
-        while (updated) {
-            updated = false;
-            for (const auto& [from, neighbors] : graph1) {
-                if (maxDay1.find(from) == maxDay1.end()) continue;
-                for (const auto& [to, rate] : neighbors) {
-                    double newAmount = maxDay1[from] * rate;
-                    if (maxDay1.find(to) == maxDay1.end() || newAmount > maxDay1[to]) {
-                        maxDay1[to] = newAmount;
-                        updated = true;
+        // BFS to find all reachable currencies and their amounts at the end of Day 1
+        queue<string> q;
+        q.push(initialCurrency);
+        while (!q.empty()) {
+            string u = q.front();
+            q.pop();
+            if (adj1.count(u)) {
+                for (auto& edge : adj1[u]) {
+                    if (day1_amounts.find(edge.first) == day1_amounts.end()) {
+                        day1_amounts[edge.first] = day1_amounts[u] * edge.second;
+                        q.push(edge.first);
                     }
                 }
             }
         }
         
-        // Build graph for day 2
-        unordered_map<string, vector<pair<string, double>>> graph2;
-        for (size_t i = 0; i < pairs2.size(); i++) {
-            const string& from = pairs2[i][0];
-            const string& to = pairs2[i][1];
-            double rate = rates2[i];
-            graph2[from].push_back({to, rate});
-            graph2[to].push_back({from, 1.0 / rate});
+        // Map to store relative rates from initialCurrency on Day 2
+        unordered_map<string, double> day2_relative_rates;
+        day2_relative_rates[initialCurrency] = 1.0;
+        
+        // Build graph for Day 2
+        unordered_map<string, vector<pair<string, double>>> adj2;
+        for (int i = 0; i < (int)pairs2.size(); ++i) {
+            adj2[pairs2[i][0]].push_back({pairs2[i][1], rates2[i]});
+            adj2[pairs2[i][1]].push_back({pairs2[i][0], 1.0 / rates2[i]});
         }
         
-        // For day 2, start with all currencies and amounts from day 1
-        unordered_map<string, double> maxDay2 = maxDay1;
-        
-        updated = true;
-        while (updated) {
-            updated = false;
-            for (const auto& [from, neighbors] : graph2) {
-                if (maxDay2.find(from) == maxDay2.end()) continue;
-                for (const auto& [to, rate] : neighbors) {
-                    double newAmount = maxDay2[from] * rate;
-                    if (maxDay2.find(to) == maxDay2.end() || newAmount > maxDay2[to]) {
-                        maxDay2[to] = newAmount;
-                        updated = true;
+        // BFS to find conversion rates from initialCurrency on Day 2
+        q.push(initialCurrency);
+        while (!q.empty()) {
+            string u = q.front();
+            q.pop();
+            if (adj2.count(u)) {
+                for (auto& edge : adj2[u]) {
+                    if (day2_relative_rates.find(edge.first) == day2_relative_rates.end()) {
+                        day2_relative_rates[edge.first] = day2_relative_rates[u] * edge.second;
+                        q.push(edge.first);
                     }
                 }
             }
         }
         
-        // Return the max amount of initialCurrency after day 2
-        return maxDay2[initialCurrency];
+        // Calculate the maximum possible initialCurrency at the end of Day 2
+        double max_val = 1.0;
+        for (auto const& [curr, amount1] : day1_amounts) {
+            if (day2_relative_rates.count(curr)) {
+                // Rate to convert curr back to initialCurrency is 1 / day2_relative_rates[curr]
+                max_val = max(max_val, amount1 / day2_relative_rates[curr]);
+            }
+        }
+        
+        return max_val;
     }
 };
 # @lc code=end
