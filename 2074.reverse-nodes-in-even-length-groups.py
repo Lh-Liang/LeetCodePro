@@ -3,7 +3,6 @@
 #
 # [2074] Reverse Nodes in Even Length Groups
 #
-
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -12,39 +11,42 @@
 #         self.next = next
 class Solution:
     def reverseEvenLengthGroups(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        if not head or not head.next:
-            return head
         current = head
-        prev_tail = None
-        group_length = 1
+        previous_group_end = None  # To connect with reversed groups later
+        group_length = 1  # Start with first group length as 1
+        
         while current:
-            # Determine the actual size of this group
+            # Determine actual group size
             count = 0
-            start_node = current
-            while count < group_length and current:
-                current = current.next
+            temp = current
+            while count < group_length and temp:
+                temp = temp.next
                 count += 1
-            if count % 2 == 0: # Reverse this even-length group
-                prev_node = None
-                tail_node = start_node # This will become new tail after reversal.
+            
+            if count % 2 == 0:  # Even length, we need to reverse this group
+                prev = None
+                tail_of_current_group = current  # This will become end after reversal
                 for _ in range(count):
-                    next_node = start_node.next 
-                    start_node.next = prev_node 
-                    prev_node = start_node 
-                    start_node = next_node 
-                # Link previous group's tail to new head after reversal.
-                if prev_tail:
-                    prev_tail.next = prev_node 
+                    next_node = current.next
+                    current.next = prev
+                    prev = current
+                    current = next_node
+                
+                # Connect last group's end to reversed start if it exists otherwise update head if it's first reverse operation.
+                if previous_group_end:
+                    previous_group_end.next = prev
                 else:
-                    head = prev_node # New head if first node was part of even-length reversal.
-                tail_node.next = current # Connect reversed part back to remaining list.
-                prev_tail = tail_node # Update previous group's tail reference.
+                    head = prev  # New head if reversing first full-length even group starting at original head.
+                
+                tail_of_current_group.next = current  # Connect reversed group's end to rest of list or None.
+                previous_group_end = tail_of_current_group  # Update last processed node (end of reversed section)
             else:
-                # Just update reference without reversing because length is odd.
-                if prev_tail:
-                    prev_tail.next = start_node 
-                prev_tail = None if count == 0 else prev_tail or start_node 
-            # Prepare for next iteration/group with increasing length.
-            group_length += 1 
+                # Just skip over this non-reversed section by iterating through it directly.
+                previous_group_end = current if not previous_group_end else previous_group_end.next 
+                for _ in range(count):
+                    previous_group_end = current  # Move previous group's end pointer up without reversals here.
+                    current = current.next          
+            
+            # Increase intended length for next possible even-length check group.
+            group_length += 1      
         return head
-# @lc code=end
