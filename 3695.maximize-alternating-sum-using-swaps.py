@@ -7,6 +7,7 @@
 # @lc code=start
 class Solution:
     def maxAlternatingSum(self, nums: List[int], swaps: List[List[int]]) -> int:
+        # Step 1: Build DSU to group swappable indices
         n = len(nums)
         parent = list(range(n))
         def find(x):
@@ -17,53 +18,28 @@ class Solution:
         def union(x, y):
             px, py = find(x), find(y)
             if px != py:
-                parent[px] = py
+                parent[py] = px
         for a, b in swaps:
             union(a, b)
+        # Step 2: Group indices by component
         from collections import defaultdict
         groups = defaultdict(list)
         for i in range(n):
             groups[find(i)].append(i)
+        # Step 3: For each group, assign highest numbers to even-indexed positions
         res = [0]*n
-        for idxs in groups.values():
-            vals = sorted([nums[i] for i in idxs], reverse=True)
-            even_idxs = sorted([i for i in idxs if i % 2 == 0])
-            odd_idxs = sorted([i for i in idxs if i % 2 == 1])
-            # Try both assignments and pick the best
-            max_group_sum = float('-inf')
-            for assign_largest_to_even in [True, False]:
-                temp = [0]*len(idxs)
-                if assign_largest_to_even:
-                    evens, odds = even_idxs, odd_idxs
-                else:
-                    evens, odds = odd_idxs, even_idxs
-                ct_evens = len(evens)
-                ct_odds = len(odds)
-                sorted_evens = vals[:ct_evens]
-                sorted_odds = vals[ct_evens:]
-                temp_assign = {}
-                for i, v in zip(evens, sorted_evens):
-                    temp_assign[i] = v
-                for i, v in zip(odds, sorted(sorted_odds)):
-                    temp_assign[i] = v
-                # Compute group alternating sum
-                group_sum = 0
-                for i in idxs:
-                    if i % 2 == 0:
-                        group_sum += temp_assign[i]
-                    else:
-                        group_sum -= temp_assign[i]
-                max_group_sum = max(max_group_sum, group_sum)
-                # Save assignment if it's the best
-                if max_group_sum == group_sum:
-                    best_assign = temp_assign
-            for i in idxs:
-                res[i] = best_assign[i]
-        alt_sum = 0
+        for indices in groups.values():
+            vals = [nums[i] for i in indices]
+            indices.sort()
+            vals.sort(reverse=True)
+            for idx, i in enumerate(indices):
+                res[i] = vals[idx]
+        # Step 4: Calculate alternating sum
+        ans = 0
         for i, v in enumerate(res):
-            if i % 2 == 0:
-                alt_sum += v
+            if i%2==0:
+                ans += v
             else:
-                alt_sum -= v
-        return alt_sum
+                ans -= v
+        return ans
 # @lc code=end
