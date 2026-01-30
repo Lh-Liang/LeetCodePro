@@ -3,38 +3,31 @@
 #
 # [3398] Smallest Substring With Identical Characters I
 #
-
 # @lc code=start
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-        if numOps >= n - 1:
-            return 1  # With enough operations, we can alternate every character.
+        min_length = n
+        left = 0
+        zero_count = one_count = 0
         
-        # Calculate lengths of segments of identical characters
-        segments = []
-        i = 0
-        while i < n:
-            start = i
-            while i < n and s[i] == s[start]:
-                i += 1
-            segments.append(i - start)
+        for right in range(n):
+            # Expand window by including s[right]
+            if s[right] == '0': 
+                zero_count += 1
+            else: 
+                one_count += 1
+            
+            # Shrink window from left if more flips than allowed are needed
+            while min(zero_count, one_count) > numOps:
+                if s[left] == '0': 
+                    zero_count -= 1
+                else: 
+                    one_count -= 1
+                left += 1
+            
+            # Update minimum length after optimal flipping strategy.
+            min_length = min(min_length, right - left + 1)
         
-        max_len = max(segments)
-        min_max_len = max_len
-        
-        # Try to minimize max_len using numOps flips at segment boundaries
-        for j in range(len(segments) - 1):
-            left_segment = segments[j]
-            right_segment = segments[j + 1]
-            if numOps > 0:
-                # Calculate potential adjustments by flipping at this boundary
-                total_length_reduction = min(numOps, (left_segment + right_segment - 1) // 2)
-                new_max_len = max(left_segment, right_segment) - total_length_reduction
-                min_max_len = min(min_max_len, new_max_len)
-                numOps -= total_length_reduction
-            else:
-                break
-        
-        return min_max_len
+        return min_length # Return final minimum possible length of longest identical substring. 
 # @lc code=end
