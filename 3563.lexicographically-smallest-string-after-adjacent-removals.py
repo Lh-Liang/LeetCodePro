@@ -7,11 +7,22 @@
 # @lc code=start
 class Solution:
     def lexicographicallySmallestString(self, s: str) -> str:
-        stack = []
-        for char in s:
-            while (stack and (ord(stack[-1]) + 1 == ord(char) or ord(stack[-1]) - 1 == ord(char) or (stack[-1] == 'a' and char == 'z') or (stack[-1] == 'z' and char == 'a'))):
-                stack.pop()
-            else:
-                stack.append(char)
-        return ''.join(stack)
+        from functools import lru_cache
+
+        def is_consecutive(a, b):
+            return abs(ord(a) - ord(b)) == 1 or (a == 'a' and b == 'z') or (a == 'z' and b == 'a')
+
+        @lru_cache(maxsize=None)
+        def dfs(curr):
+            res = curr
+            n = len(curr)
+            for i in range(n - 1):
+                if is_consecutive(curr[i], curr[i+1]):
+                    next_str = curr[:i] + curr[i+2:]
+                    candidate = dfs(next_str)
+                    if candidate < res:
+                        res = candidate
+            return res
+
+        return dfs(s)
 # @lc code=end
