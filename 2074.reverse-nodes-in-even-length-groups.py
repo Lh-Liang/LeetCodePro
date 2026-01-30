@@ -3,50 +3,44 @@
 #
 # [2074] Reverse Nodes in Even Length Groups
 #
+
 # @lc code=start
-# Definition for singly-linked list.
-# class ListNode:
-#     def __init__(self, val=0, next=None):
-#         self.val = val
-#         self.next = next
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+        
 class Solution:
     def reverseEvenLengthGroups(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        current = head
-        previous_group_end = None  # To connect with reversed groups later
-        group_length = 1  # Start with first group length as 1
+        # Initialize variables for traversal and group tracking
+        prev_tail = None  # Keeps track of the last node before current group
+        current = head    # Current node for iteration
+        group_size = 1    # Start with group size 1 as per problem statement
         
         while current:
-            # Determine actual group size
-            count = 0
-            temp = current
-            while count < group_length and temp:
-                temp = temp.next
+            # Determine actual size of the current group
+            count = 0  # To count nodes in current group
+            node = current  # Start from current position for counting length
+            while node and count < group_size:
+                node = node.next
                 count += 1
             
-            if count % 2 == 0:  # Even length, we need to reverse this group
-                prev = None
-                tail_of_current_group = current  # This will become end after reversal
+            # Reverse if count (group length) is even
+            if count % 2 == 0:
+                prev = None  # Previous node for reversal process
+                temp_node = current  # Temporary node to traverse and reverse within group size limits
                 for _ in range(count):
-                    next_node = current.next
-                    current.next = prev
-                    prev = current
-                    current = next_node
-                
-                # Connect last group's end to reversed start if it exists otherwise update head if it's first reverse operation.
-                if previous_group_end:
-                    previous_group_end.next = prev
+                    next_node = temp_node.next  # Store next node temporarily 
+                    temp_node.next = prev       # Reverse link direction 
+                    prev = temp_node            # Move previous up by one for next iteration 
+                    temp_node = next_node       # Move to next actual node for processing/reversal 
+                if prev_tail:
+                    prev_tail.next = prev   # Connect last reversed part to previous segment's tail if exists 
                 else:
-                    head = prev  # New head if reversing first full-length even group starting at original head.
-                
-                tail_of_current_group.next = current  # Connect reversed group's end to rest of list or None.
-                previous_group_end = tail_of_current_group  # Update last processed node (end of reversed section)
+                    head = prev             # If there's no previous segment, update head to new start point (first reversed)
+                current.next = temp_node   # Connect last processed (start point) onward to next segment's start/unprocessed part 
             else:
-                # Just skip over this non-reversed section by iterating through it directly.
-                previous_group_end = current if not previous_group_end else previous_group_end.next 
-                for _ in range(count):
-                    previous_group_end = current  # Move previous group's end pointer up without reversals here.
-                    current = current.next          
-            
-            # Increase intended length for next possible even-length check group.
-            group_length += 1      
-        return head
+                prev_tail = current         # Update tail tracker since this group's not reversed entirely 
+                for _ in range(count - 1):
+                    current = current.next   
+                current = current.next if current else None   # Safely move forward or terminate processing loop by breaking out once fully traversed until end (None)	    			    								                  			     			       	      	          	   	          	                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ⁞        Ɲ\u0003\u0003\u0003\u0003\u0003
