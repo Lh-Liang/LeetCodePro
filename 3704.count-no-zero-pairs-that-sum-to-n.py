@@ -3,34 +3,29 @@
 #
 # [3704] Count No-Zero Pairs That Sum to N
 #
+
 # @lc code=start
 class Solution:
     def countNoZeroPairs(self, n: int) -> int:
         from functools import lru_cache
-        s = str(n)[::-1]  # process from least significant digit
-        L = len(s)
-
-        @lru_cache(None)
+        digits = list(map(int, str(n)))[::-1]  # least significant first
+        L = len(digits)
+        
+        @lru_cache(maxsize=None)
         def dp(pos, carry, tight):
             if pos == L:
                 return 1 if carry == 0 else 0
             res = 0
-            max_digit = int(s[pos]) if tight else 9
-            # For this position, try all combinations of digits 1-9 for a and b
-            for da in range(1, 10):
-                for db in range(1, 10):
-                    sum_ab = da + db + carry
-                    digit = sum_ab % 10
-                    ncarry = sum_ab // 10
-                    # The sum at this position must match n's digit if tight, otherwise any digit <= 9 is allowed
-                    if tight:
-                        if digit > max_digit:
+            max_digit = digits[pos] if tight else 18  # since a_digit+b_digit can be up to 18
+            for a in range(1, 10):
+                for b in range(1, 10):
+                    s = a + b + carry
+                    if s % 10 == digits[pos] or (not tight):
+                        new_carry = s // 10
+                        # Check tightness
+                        if tight and (a + b + carry) % 10 != digits[pos]:
                             continue
-                        ntight = digit == max_digit
-                    else:
-                        ntight = False
-                    res += dp(pos + 1, ncarry, ntight)
+                        res += dp(pos + 1, new_carry, tight and (a + b + carry) % 10 == digits[pos])
             return res
-        # The DP ensures that no pair includes a zero digit, and only counts pairs whose sum matches n exactly
         return dp(0, 0, True)
 # @lc code=end
