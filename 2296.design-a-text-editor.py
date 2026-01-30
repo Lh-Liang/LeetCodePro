@@ -7,35 +7,26 @@
 # @lc code=start
 class TextEditor:
     def __init__(self):
-        self.left = []  # characters to the left of the cursor
-        self.right = []  # characters to the right of the cursor
+        self.before = []  # Stack for characters before the cursor
+        self.after = []   # Stack for characters after the cursor (reversed)
 
     def addText(self, text: str) -> None:
-        for c in text:
-            self.left.append(c)
+        self.before.extend(text)  # Add new text at cursor position
 
     def deleteText(self, k: int) -> int:
-        delete_count = min(k, len(self.left))
-        for _ in range(delete_count):
-            self.left.pop()
-        return delete_count
+        deleted_count = min(k, len(self.before))  # Ensure we don't delete more than exists
+        for _ in range(deleted_count):
+            self.before.pop()  # Remove characters from before stack (backspace behavior)
+        return deleted_count  # Return actual number of deleted characters
 
     def cursorLeft(self, k: int) -> str:
-        move_count = min(k, len(self.left))
+        move_count = min(k, len(self.before))  # Move left but not more than available characters
         for _ in range(move_count):
-            self.right.append(self.left.pop())
-        return ''.join(self.left[-10:])
+            self.after.append(self.before.pop())  # Move character to after stack (left movement)
+        return ''.join(self.before[-10:])  # Return last up to 10 chars from before stack as string
 
     def cursorRight(self, k: int) -> str:
-        move_count = min(k, len(self.right))
+        move_count = min(k, len(self.after))  # Move right but not more than available characters in after stack
         for _ in range(move_count):
-            self.left.append(self.right.pop())
-        return ''.join(self.left[-10:])
-
-# Your TextEditor object will be instantiated and called as such:
-# obj = TextEditor()
-# obj.addText(text)
-# param_2 = obj.deleteText(k)
-# param_3 = obj.cursorLeft(k)
-# param_4 = obj.cursorRight(k)
-# @lc code=end
+            self.before.append(self.after.pop())  # Move character to before stack (right movement)
+        return ''.join(self.before[-10:])  # Return last up to 10 chars from before stack as string\@lc code=end
