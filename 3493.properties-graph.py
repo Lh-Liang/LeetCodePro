@@ -11,29 +11,32 @@ class Solution:
             return len(set(a) & set(b))
         
         n = len(properties)
-        parent = list(range(n))
-        rank = [0] * n
+        visited = [False] * n
+        adjacency_list = {i: [] for i in range(n)}
         
-        def find(x):
-            if parent[x] != x:
-                parent[x] = find(parent[x])
-            return parent[x]
-        
-        def union(x, y):
-            rootX = find(x)
-            rootY = find(y)
-            if rootX != rootY:
-                if rank[rootX] > rank[rootY]:
-                    parent[rootY] = rootX
-                elif rank[rootX] < rank[rootY]:
-                    parent[rootX] = rootY
-                else:
-                    parent[rootY] = rootX
-                    rank[rootX] += 1
-        
+        # Constructing adjacency list based on intersection logic
         for i in range(n):
             for j in range(i + 1, n):
                 if intersect(properties[i], properties[j]) >= k:
-                    union(i, j)
+                    adjacency_list[i].append(j)
+                    adjacency_list[j].append(i)
         
-        return len(set(find(i) for i in range(n)))
+        def dfs(node):
+            stack = [node]
+            while stack:
+                current = stack.pop()
+                for neighbor in adjacency_list[current]:
+                    if not visited[neighbor]:
+                        visited[neighbor] = True
+                        stack.append(neighbor)
+                    
+        # Counting connected components
+        component_count = 0
+        for i in range(n):
+            if not visited[i]:
+                component_count += 1
+                visited[i] = True
+                dfs(i)
+                
+        return component_count
+# @lc code=end
