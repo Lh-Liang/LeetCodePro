@@ -3,52 +3,43 @@
 #
 # [3538] Merge Operations for Minimum Travel Time
 #
-from heapq import heappush, heappop
-from typing import List
 
 # @lc code=start
+from typing import List
 class Solution:
     def minTravelTime(self, l: int, n: int, k: int, position: List[int], time: List[int]) -> int:
-        # Calculate initial total travel time without any merges
-        total_time = 0
-        for i in range(n - 1):
-            distance = position[i + 1] - position[i]
-            total_time += distance * time[i]
-        
-        # Priority queue for potential merges (cost increase, index)
-        pq = []
-        for i in range(1, n - 1):
-            # Corrected cost calculation for merging i and i+1
-            distance = position[i + 1] - position[i]
-            cost_increase = (time[i] + time[i+1]) * distance - (time[i] * distance)
-            heappush(pq, (cost_increase, i))
-        
-        # Perform exactly k merges using a greedy approach
-        while k > 0 and pq:
-            cost_increase, idx = heappop(pq)
-            if idx < len(time) - 1:
-                # Merge segments at idx and idx+1
-                next_distance = position[idx+2] - position[idx] if idx+2 < len(position) else 0
-                merged_time = time[idx] + time[idx+1]
-                # Update structures post-merge
-                position.pop(idx)
-                time.pop(idx)
-                if idx < len(time):
-                    time[idx] = merged_time  # Update current segment's travel time after merge
-                    # Recalculate costs for affected indices and update heap if needed
-                    if idx > 0:
-                        prev_distance = position[idx] - position[idx-1]
-                        prev_cost_increase = ((time[idx-1] + merged_time) * prev_distance) - (time[idx-1] * prev_distance)
-                        heappush(pq, (prev_cost_increase, idx-1))
-                    if next_distance > 0:
-                        new_cost_increase = ((merged_time + time[idx]) * next_distance) - (merged_time * next_distance)
-                        heappush(pq, (new_cost_increase, idx))
-            k -= 1
-        
-        # Recalculate final total travel time after k merges
-        total_time = 0
-        for i in range(len(position) - 1):
-            distance = position[i + 1] - position[i]
-            total_time += distance * time[i]
-        return total_time
+        from functools import lru_cache
+        import sys
+        INF = sys.maxsize
+
+        def invariant_check(pos, times):
+            # Ensure positions are strictly increasing and times are aligned
+            if len(pos) != len(times):
+                return False
+            if any(pos[i] >= pos[i+1] for i in range(len(pos)-1)):
+                return False
+            return True
+
+        @lru_cache(maxsize=None)
+        def dfs(pos, times, merges_left):
+            if merges_left == 0:
+                total = 0
+                for i in range(len(pos)-1):
+                    total += (pos[i+1] - pos[i]) * times[i]
+                return total
+            min_total = INF
+            # For each valid merge, merge signs at i and i+1 (1 <= i < len(pos)-1)
+            for i in range(1, len(pos)-1):
+                # Substep 1: Remove sign at i and merge time at i+1
+                new_pos = pos[:i] + pos[i+1:]
+                new_times = times[:i] + (times[i] + times[i+1],) + times[i+2:]
+                # Substep 2: Invariant check after transformation
+                if not invariant_check(new_pos, new_times):
+                    continue
+                min_total = min(min_total, dfs(new_pos, new_times, merges_left-1))
+            return min_total
+
+        result = dfs(tuple(position), tuple(time), k)
+        assert result != INF, "No valid solution found; check merge logic and constraints."
+        return result
 # @lc code=end
