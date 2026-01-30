@@ -5,39 +5,23 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import defaultdict
-import heapq
-
 class Solution:
     def maximizeSumOfWeights(self, edges: List[List[int]], k: int) -> int:
-        # Sort edges by weight descending order
+        import collections
+        
+        # Sort edges by weight descending
         edges.sort(key=lambda x: -x[2])
         
-        # Initialize degree count for each node and union-find structure for connectivity check
-        parent = list(range(len(edges) + 1))
-        degree = defaultdict(int)
-        total_weight = 0  # To store the sum of selected edge weights
-        
-        def find(x):
-            if parent[x] != x:
-                parent[x] = find(parent[x])
-            return parent[x]
-        
-        def union(x, y):
-            rootX = find(x)
-            rootY = find(y)
-            if rootX != rootY:
-                parent[rootX] = rootY
-                return True
-            return False
+        total_weight = 0
+        degree = collections.defaultdict(int)
         
         for u, v, w in edges:
-            # Ensure adding this edge will not create a cycle (connectivity check)
-            if degree[u] < k and degree[v] < k and union(u, v):
+            if degree[u] < k and degree[v] < k:
+                # Add edge's weight to total if both nodes are under limit k
+                total_weight += w
                 degree[u] += 1
                 degree[v] += 1
-                total_weight += w  # Add weight of this edge to total
-        
-        return total_weight
+            # Skip any edge where adding it would violate the max connection rule for either node
+            
+        return total_weight 
 # @lc code=end
