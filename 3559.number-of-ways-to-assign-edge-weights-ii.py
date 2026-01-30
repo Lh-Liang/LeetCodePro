@@ -5,50 +5,48 @@
 #
 
 # @lc code=start
-class Solution:
-    def assignEdgeWeights(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        from collections import defaultdict
+from typing import List
+from collections import defaultdict, deque
 
-        MOD = 10**9 + 7
-        # Construct adjacency list for the tree
+class Solution:
+    MOD = 10**9 + 7
+    
+    def assignEdgeWeights(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
+        # Build adjacency list for the tree
         tree = defaultdict(list)
         for u, v in edges:
             tree[u].append(v)
             tree[v].append(u)
         
-        def find_path(u, v):
-            # BFS to find path from u to v
-            parent = {u: None}
-            stack = [u]
+        # Function to perform DFS and find path from source to target
+        def find_path(source, target):
+            stack = [(source, [source])]
+            visited = set()
             while stack:
-                node = stack.pop()
-                if node == v:
-                    break
-                for neighbor in tree[node]:
-                    if neighbor not in parent:
-                        parent[neighbor] = node
-                        stack.append(neighbor)
-            
-            # Reconstruct path from u to v using parent map
-            path = []
-            step = v
-            while step is not None:
-                path.append(step)
-                step = parent[step]
-            return path[::-1]
+                node, path = stack.pop()
+                if node == target:
+                    return path
+                if node not in visited:
+                    visited.add(node)
+                    for neighbor in tree[node]:
+                        if neighbor not in visited:
+                            stack.append((neighbor, path + [neighbor]))
+            return []
         
-        def count_odd_assignments(path_length):
-            if path_length % 2 == 0:
-                return (2 ** (path_length - 1)) % MOD # Half of combinations lead to odd cost when even length
-            else:
-                return (2 ** (path_length - 1)) % MOD # Half when odd length also leads to odd cost due to parity change
+        # Calculate number of ways to assign weights such that cost is odd
+        def count_odd_weight_assignments(path_length):
+            # We need an odd number of edges with weight 1
+            return pow(2, path_length - 1, self.MOD)
         
         results = []
         for u, v in queries:
             path = find_path(u, v)
+            if not path or len(path) < 2:
+                results.append(0)
+                continue
+            # Number of edges is path length - 1
             num_edges = len(path) - 1
-            valid_assignments = count_odd_assignments(num_edges)
-            results.append(valid_assignments)
+            results.append(count_odd_weight_assignments(num_edges))
         
         return results
 # @lc code=end
