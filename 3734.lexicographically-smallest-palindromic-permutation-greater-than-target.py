@@ -8,37 +8,42 @@
 class Solution:
     def lexPalindromicPermutation(self, s: str, target: str) -> str:
         from collections import Counter
-        from itertools import permutations
-        
-        char_counts = Counter(s)
-        odd_char = None
-        half_palindrome = []
-        for char in sorted(char_counts):
-            count = char_counts[char]
-            if count % 2 == 1:
-                if odd_char is not None:
-                    return "" # More than one character with an odd count
-                odd_char = char
-            half_palindrome.append(char * (count // 2))
-        
-        # Create a list from half_palindrome string for permutations
-        half_chars = ''.join(half_palindrome)
-        
-        # Generate all unique permutations of half_chars and form palindromes
-        unique_half_permutations = set(permutations(half_chars))
-        sorted_palindromes = []
-        for perm in unique_half_permutations:
-            half_perm_str = ''.join(perm)
-            full_palindrome = half_perm_str + (odd_char or '') + half_perm_str[::-1]
-            sorted_palindromes.append(full_palindrome)
-        
-        # Sort palindromes lexicographically
-        sorted_palindromes.sort()
-        
-        # Find the first palindrome greater than target
-        for palindrome in sorted_palindromes:
-            if palindrome > target:
-                return palindrome
-                
-        return "" # Return empty string if no valid greater palindrome can be formed.
+        n = len(s)
+        counter = Counter(s)
+        odd_chars = [ch for ch, cnt in counter.items() if cnt % 2 == 1]
+        if len(odd_chars) > 1:
+            return ''
+        # Build smallest palindromic permutation
+        half = []
+        mid = odd_chars[0] if odd_chars else ''
+        for ch in sorted(counter):
+            half.extend([ch] * (counter[ch] // 2))
+        half_str = ''.join(half)
+        def build_palindrome(h):
+            return h + mid + h[::-1]
+        def is_valid_permutation(pal):
+            from collections import Counter
+            return Counter(pal) == counter
+        cand = build_palindrome(half_str)
+        if cand > target and is_valid_permutation(cand):
+            return cand
+        # Next lexicographical palindromic permutation
+        half_list = list(half_str)
+        def next_permutation(arr):
+            i = len(arr) - 2
+            while i >= 0 and arr[i] >= arr[i+1]:
+                i -= 1
+            if i == -1:
+                return False
+            j = len(arr) - 1
+            while arr[j] <= arr[i]:
+                j -= 1
+            arr[i], arr[j] = arr[j], arr[i]
+            arr[i+1:] = reversed(arr[i+1:])
+            return True
+        while next_permutation(half_list):
+            cand = build_palindrome(''.join(half_list))
+            if cand > target and is_valid_permutation(cand):
+                return cand
+        return ''
 # @lc code=end
