@@ -7,16 +7,11 @@
 # @lc code=start
 class Solution:
     def maxProduct(self, nums: List[int]) -> int:
-        from collections import defaultdict
-        max_for_mask = defaultdict(int)
-        for num in nums:
-            if num > max_for_mask[num]:
-                max_for_mask[num] = num
-        masks = list(max_for_mask.keys())
-        ans = 0
-        for i in range(len(masks)):
-            for j in range(i+1, len(masks)):
-                if masks[i] & masks[j] == 0:
-                    ans = max(ans, max_for_mask[masks[i]] * max_for_mask[masks[j]])
-        return ans
+        max_product = 0
+        n = len(nums)
+        for i in range(n):
+            for j in range(i + 1, n):
+                if nums[i] & nums[j] == 0:  # Check if no common set bits
+                    max_product = max(max_product, nums[i] * nums[j])
+        return max_product
 # @lc code=end
