@@ -7,22 +7,17 @@
 # @lc code=start
 class Solution:
     def minMoves(self, sx: int, sy: int, tx: int, ty: int) -> int:
-        from collections import deque
-        visited = set()
-        queue = deque()
-        queue.append((tx, ty, 0))
-        while queue:
-            x, y, moves = queue.popleft()
-            if x == sx and y == sy:
-                return moves
-            if (x, y) in visited:
-                continue
-            visited.add((x, y))
-            m = max(x, y)
-            # Try reversing last move: came from (x - m, y) or (x, y - m)
-            if x - m >= sx and x - m >= 0:
-                queue.append((x - m, y, moves + 1))
-            if y - m >= sy and y - m >= 0:
-                queue.append((x, y - m, moves + 1))
-        return -1
+        # Approach: Work backwards from (tx, ty) to (sx, sy)
+        moves = 0
+        while tx > sx and ty > sy:
+            if tx > ty:
+                tx %= ty # Reduce tx if it's larger
+            else:
+                ty %= tx # Reduce ty if it's larger
+        # Check if we can directly reach with remaining moves in one direction
+        if sx == tx and sy <= ty and (ty - sy) % sx == 0:
+            return moves + (ty - sy) // sx
+        elif sy == ty and sx <= tx and (tx - sx) % sy == 0:
+            return moves + (tx - sx) // sy
+        return -1 # If not possible to reach exactly
 # @lc code=end
