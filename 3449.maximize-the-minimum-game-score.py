@@ -9,23 +9,23 @@ from typing import List
 
 class Solution:
     def maxScore(self, points: List[int], m: int) -> int:
-        def canAchieve(min_score: int) -> bool:
-            moves_remaining = m
-            for point in points:
-                if point < min_score:
-                    moves_remaining -= min_score - point
-                    if moves_remaining < 0:
-                        return False
+        def canAchieve(minScore):
+            extraMoves = m
+            for i in range(len(points)):
+                needed = max(0, minScore - points[i])
+                if needed > extraMoves:
+                    return False
+                extraMoves -= needed
             return True
         
-        low, high = 0, max(points)
-        best_min_score = 0
+        low, high = 0, max(points) + (m // len(points))
+        best = low
         while low <= high:
             mid = (low + high) // 2
             if canAchieve(mid):
-                best_min_score = mid
+                best = mid
                 low = mid + 1
             else:
                 high = mid - 1
-        return best_min_score
+        return best # Returns the maximum achievable minimum game score.
 # @lc code=end
