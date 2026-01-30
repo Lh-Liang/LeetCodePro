@@ -3,43 +3,42 @@
 #
 # [3757] Number of Effective Subsequences
 #
+
 # @lc code=start
 class Solution:
     def countEffective(self, nums: List[int]) -> int:
-        MOD = 10 ** 9 + 7
         from collections import defaultdict
+        MOD = 10 ** 9 + 7
         n = len(nums)
-        or_all = 0
+        total_or = 0
         for x in nums:
-            or_all |= x
-        # Find bits in or_all
+            total_or |= x
+        # Find all bits set in total_or
         bits = []
-        for k in range(0, 21):
-            if (or_all >> k) & 1:
-                bits.append(k)
-        # For each bit, get indices where nums[i] has that bit
-        bit_indices = {}
-        for b in bits:
-            bit_indices[b] = []
-        for i, x in enumerate(nums):
-            for b in bits:
-                if (x >> b) & 1:
-                    bit_indices[b].append(i)
+        for i in range(21):
+            if (total_or >> i) & 1:
+                bits.append(i)
         m = len(bits)
+        # For each bit, record which indices have it set
+        bit_indices = [set() for _ in range(m)]
+        for idx, x in enumerate(nums):
+            for j, b in enumerate(bits):
+                if (x >> b) & 1:
+                    bit_indices[j].add(idx)
         ans = 0
         # Inclusion-Exclusion over all non-empty subsets of bits
         for mask in range(1, 1 << m):
-            involved = set(range(n))
-            sign = -1
+            cover = set()
+            cnt_bits = 0
             for j in range(m):
                 if (mask >> j) & 1:
-                    involved &= set(bit_indices[bits[j]])
-                    sign *= -1
-            if not involved:
-                continue
-            cnt = len(involved)
-            # Number of non-empty subsequences of these indices
-            ways = pow(2, cnt, MOD) - 1
-            ans = (ans + sign * ways) % MOD
-        return ans % MOD
+                    cover |= bit_indices[j]
+                    cnt_bits += 1
+            cnt = len(cover)
+            add = pow(2, cnt, MOD) - 1
+            if cnt_bits % 2 == 1:
+                ans = (ans + add) % MOD
+            else:
+                ans = (ans - add) % MOD
+        return ans
 # @lc code=end
