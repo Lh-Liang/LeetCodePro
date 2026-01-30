@@ -5,24 +5,34 @@
 #
 
 # @lc code=start
+from heapq import heappop, heappush
+from typing import List
+
 class Solution:
     def minTimeToReach(self, moveTime: List[List[int]]) -> int:
-        import heapq
-        n, m = len(moveTime), len(moveTime[0])
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]
-        pq = [(0, 0, 0)]  # (time, x, y)
+        rows, cols = len(moveTime), len(moveTime[0])
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)] # right, down, left, up
+        pq = [(0, 0, 0)] # (time, row, col)
         visited = set()
+        min_time = [[float('inf')] * cols for _ in range(rows)]
+        min_time[0][0] = 0
+        
         while pq:
-            time, x, y = heapq.heappop(pq)
-            if (x, y) == (n - 1, m - 1):
-                return time
+            current_time, x, y = heappop(pq)
             if (x, y) in visited:
                 continue
             visited.add((x, y))
+            
+            if x == rows - 1 and y == cols - 1:
+                return current_time
+            
             for dx, dy in directions:
                 nx, ny = x + dx, y + dy
-                if 0 <= nx < n and 0 <= ny < m:
-                    wait_time = max(0, moveTime[nx][ny] - (time + 1))
-                    heapq.heappush(pq, (time + 1 + wait_time, nx, ny))
-        return -1 # In case there's no path which shouldn't happen given constraints.
+                if 0 <= nx < rows and 0 <= ny < cols and (nx, ny) not in visited:
+                    wait_time = max(moveTime[nx][ny] - current_time - 1, 0)
+                    new_time = current_time + wait_time + 1
+                    if new_time < min_time[nx][ny]:
+                        min_time[nx][ny] = new_time
+                        heappush(pq, (new_time, nx, ny))
+        return -1 # If unreachable under constraints logic.
 # @lc code=end
