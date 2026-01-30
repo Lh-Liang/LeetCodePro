@@ -7,49 +7,31 @@
 # @lc code=start
 class Solution:
     def countMajoritySubarrays(self, nums: List[int], target: int) -> int:
-        # Transform nums to +1 for target, -1 for non-target
-        arr = [1 if x == target else -1 for x in nums]
+        # Step 1: For each prefix, compute balance = 2*count_target - length
+        # A subarray [l, r] has target as majority iff count_target_in_subarray > (r-l+1)//2
+        # We can use prefix sums and a hashmap to solve this in O(n).
         n = len(nums)
-        # Prefix sum array
-        prefix = [0]
-        for v in arr:
-            prefix.append(prefix[-1] + v)
-        # For a subarray nums[l..r], target is majority iff
-        # prefix[r+1] - prefix[l] > (r-l+1) // 2: strictly more than half
-        # Set up counting
-        import bisect
-        vals = []
-        for i, p in enumerate(prefix):
-            vals.append(p - ((i+1)//2))
-            vals.append(p)
-        sorted_vals = sorted(set(vals))
-        idx = {v: i for i, v in enumerate(sorted_vals)}
-        # Fenwick Tree Implementation
-        class BIT:
-            def __init__(self, size):
-                self.N = size + 2
-                self.tree = [0]*(self.N)
-            def update(self, i, d):
-                i += 1
-                while i < self.N:
-                    self.tree[i] += d
-                    i += (i & -i)
-            def query(self, i):
-                i += 1
-                res = 0
-                while i > 0:
-                    res += self.tree[i]
-                    i -= (i & -i)
-                return res
-        bit = BIT(len(sorted_vals))
-        ans = 0
-        for i, p in enumerate(prefix):
-            if i == 0:
-                bit.update(idx[p], 1)
-                continue
-            threshold = p - ((i+1)//2)
-            pos = bisect.bisect_left(sorted_vals, threshold)
-            ans += bit.query(pos-1)
-            bit.update(idx[p], 1)
-        return ans
+        bal = 0
+        result = 0
+        from collections import defaultdict
+        bal_count = defaultdict(int)
+        bal_count[0] = 1
+        # For each i, bal is the difference between twice the number of targets and the length so far.
+        for num in nums:
+            if num == target:
+                bal += 1
+            else:
+                bal -= 1
+            # For all previous prefix balances smaller than current bal, the subarray between that prefix and current has more target than non-target.
+            # So we sum up all counts of balances less than current bal.
+            # To do this efficiently, we maintain prefix sums of balance counts.
+            # However, as balances can be negative, we use a TreeMap or SortedDict, but here we scan a fixed-range small values.
+            # Instead, we can process with a trick:
+            # For each prefix, we record bal, and for each new bal, we add the number of prefixes with balance less than bal.
+            # Since bal can be up to n and down to -n, we can use an array of size 2*n+1.
+            # But for Python, we use a dict and maintain a running total.
+            # Instead, we can do offline prefix sum counting if needed, but in practice, we can do as follows:
+            result += bal_count[bal - 1]
+            bal_count[bal] += 1
+        return result
 # @lc code=end
