@@ -1,48 +1,55 @@
-//
-// @lc app=leetcode id=2296 lang=cpp
-//
-// [2296] Design a Text Editor
-//
+#
+# @lc app=leetcode id=2296 lang=cpp
+#
+# [2296] Design a Text Editor
+#
+# @lc code=start
+#include <string>
+#include <algorithm>
 
-// @lc code=start
+using namespace std;
+
 class TextEditor {
 private:
-    string left;  // Characters to the left of cursor
-    string right; // Characters to the right of cursor (stored in reverse)
-    
+    string left_side;
+    string right_side;
+
 public:
     TextEditor() {
-        
+        left_side = "";
+        right_side = "";
     }
     
     void addText(string text) {
-        left += text;
+        left_side += text;
     }
     
     int deleteText(int k) {
-        int deleted = min(k, (int)left.size());
-        left.resize(left.size() - deleted);
-        return deleted;
+        int numToDelete = min(k, (int)left_side.length());
+        for (int i = 0; i < numToDelete; ++i) {
+            left_side.pop_back();
+        }
+        return numToDelete;
     }
     
     string cursorLeft(int k) {
-        int moves = min(k, (int)left.size());
-        while (moves--) {
-            right.push_back(left.back());
-            left.pop_back();
+        int numToMove = min(k, (int)left_side.length());
+        for (int i = 0; i < numToMove; ++i) {
+            right_side.push_back(left_side.back());
+            left_side.pop_back();
         }
-        int len = min(10, (int)left.size());
-        return len == 0 ? "" : left.substr(left.size() - len);
+        int len = min(10, (int)left_side.length());
+        return left_side.substr(left_side.length() - len);
     }
     
     string cursorRight(int k) {
-        int moves = min(k, (int)right.size());
-        while (moves--) {
-            left.push_back(right.back());
-            right.pop_back();
+        int numToMove = min(k, (int)right_side.length());
+        for (int i = 0; i < numToMove; ++i) {
+            left_side.push_back(right_side.back());
+            right_side.pop_back();
         }
-        int len = min(10, (int)left.size());
-        return len == 0 ? "" : left.substr(left.size() - len);
+        int len = min(10, (int)left_side.length());
+        return left_side.substr(left_side.length() - len);
     }
 };
 
@@ -54,4 +61,4 @@ public:
  * string param_3 = obj->cursorLeft(k);
  * string param_4 = obj->cursorRight(k);
  */
-// @lc code=end
+# @lc code=end
