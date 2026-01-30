@@ -5,8 +5,14 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def pathExistenceQueries(self, n: int, nums: List[int], maxDiff: int, queries: List[List[int]]) -> List[int]:
+        # Union-Find (Disjoint Set Union) implementation
+        parent = list(range(n))
+        rank = [0] * n
+        
         def find(x):
             if parent[x] != x:
                 parent[x] = find(parent[x])  # Path compression
@@ -24,27 +30,22 @@ class Solution:
                     parent[rootY] = rootX
                     rank[rootX] += 1
         
-        # Sort nodes based on their nums values
+        # Sort nodes by their nums value for efficient edge creation
         sorted_nodes = sorted(range(n), key=lambda x: nums[x])
         
-        # Initialize union-find structure
-        parent = list(range(n))
-        rank = [0] * n
-        
-        # Create edges in sorted order to ensure efficiency
+        # Create edges using two-pointer technique on sorted nodes
+        j = 0
         for i in range(n):
-            for j in range(i + 1, n):
-                if nums[sorted_nodes[j]] - nums[sorted_nodes[i]] > maxDiff:
-                    break  # No need to check further due to sorting
+            while j < n and nums[sorted_nodes[j]] - nums[sorted_nodes[i]] <= maxDiff:
                 union(sorted_nodes[i], sorted_nodes[j])
+                j += 1
         
-        # Answer each query using the union-find structure
+        # Answer queries using union-find results
         answer = []
-        for u, v in queries:
-            if find(u) == find(v):
-                answer.append(1)  # Nodes are connected within maxDiff constraint
+        for ui, vi in queries:
+            if find(ui) == find(vi):
+                answer.append(1)
             else:
-                answer.append(-1)  # Nodes are not connected
-            
+                answer.append(-1)
         return answer
 # @lc code=end
