@@ -1,52 +1,67 @@
+#
 # @lc app=leetcode id=3640 lang=python3
 #
 # [3640] Trionic Array II
 #
-from typing import List
 
 # @lc code=start
 class Solution:
     def maxSumTrionic(self, nums: List[int]) -> int:
         n = len(nums)
-        if n < 4:
-            return 0
-        
-        # Auxiliary arrays for tracking maximum sums of increasing sequences
-        left_increase = [0] * n
-        right_increase = [0] * n
-        
-        # Initialize left_increase array by iterating from left to right
-        left_sum = nums[0]
-        left_increase[0] = nums[0]
+        # Precompute strictly increasing subarrays ending at i
+        inc_left = [1]*n
+        inc_sum_left = [nums[i] for i in range(n)]
         for i in range(1, n):
-            if nums[i] > nums[i - 1]:
-                left_sum += nums[i]
-            else:
-                left_sum = nums[i]
-            left_increase[i] = max(left_increase[i - 1], left_sum)
-        
-        # Initialize right_increase array by iterating from right to left
-        right_sum = nums[-1]
-        right_increase[-1] = nums[-1]
-        for i in range(n - 2, -1, -1):
-            if nums[i] < nums[i + 1]:
-                right_sum += nums[i]
-            else:
-                right_sum = nums[i]
-            right_increase[i] = max(right_increase[i + 1], right_sum)
-        
-        # Track maximum trionic sum found
-        max_trionic_sum = float('-inf')
+            if nums[i] > nums[i-1]:
+                inc_left[i] = inc_left[i-1] + 1
+                inc_sum_left[i] = inc_sum_left[i-1] + nums[i]
+        # Precompute strictly increasing subarrays starting at i
+        inc_right = [1]*n
+        inc_sum_right = [nums[i] for i in range(n)]
+        for i in range(n-2, -1, -1):
+            if nums[i] < nums[i+1]:
+                inc_right[i] = inc_right[i+1] + 1
+                inc_sum_right[i] = inc_sum_right[i+1] + nums[i]
+        # Precompute strictly decreasing subarrays ending at i
+        dec_left = [1]*n
+        dec_sum_left = [nums[i] for i in range(n)]
+        for i in range(1, n):
+            if nums[i] < nums[i-1]:
+                dec_left[i] = dec_left[i-1] + 1
+                dec_sum_left[i] = dec_sum_left[i-1] + nums[i]
+        # Precompute strictly decreasing subarrays starting at i
+        dec_right = [1]*n
+        dec_sum_right = [nums[i] for i in range(n)]
+        for i in range(n-2, -1, -1):
+            if nums[i] > nums[i+1]:
+                dec_right[i] = dec_right[i+1] + 1
+                dec_sum_right[i] = dec_sum_right[i+1] + nums[i]
 
-        # Check each potential peak point for middle decreasing sequences and calculate total sum
-        for p in range(1, n - 2):
-            if nums[p - 1] < nums[p] > nums[p + 1]:
-                middle_sum = nums[p]
-                q = p + 1
-                # Extend middle decrease as far as valid
-                while q < n - 1 and nums[q] > nums[q + 1]:
-                    middle_sum += nums[q]
-                    q += 1
-                # If valid sequence found, calculate total trionic sum using precomputed values
-                if q < n - 1 and q > p + 1:
-                    total_sum = left_increase[p - 1] + middle_sum + right_increase[q]b max_trionic_sum = max(max_trionic_sum, total_sum)b b return max_trionic_sumb # @lc code=end
+        max_sum = float('-inf')
+        # For every possible 'decrease' segment [p, q]
+        # We want to find l < p < q < r
+        for mid_start in range(1, n-2):
+            # mid_start: possible p
+            # mid_end: possible q
+            for mid_end in range(mid_start+1, n-1):
+                # Check if nums[mid_start:mid_end+1] is strictly decreasing
+                if dec_left[mid_end] >= mid_end - mid_start + 1:
+                    # Left inc: must end at mid_start-1, strictly increasing
+                    left_len = inc_left[mid_start-1] if mid_start-1 >= 0 else 0
+                    if left_len >= 1:
+                        l = mid_start - left_len
+                        left_sum = sum(nums[l:mid_start])
+                    else:
+                        continue
+                    # Right inc: must start at mid_end+1, strictly increasing
+                    right_len = inc_right[mid_end+1] if mid_end+1 < n else 0
+                    if right_len >= 1:
+                        r = mid_end + 1 + right_len - 1
+                        right_sum = sum(nums[mid_end+1:r+1])
+                    else:
+                        continue
+                    mid_sum = sum(nums[mid_start:mid_end+1])
+                    total = left_sum + mid_sum + right_sum
+                    max_sum = max(max_sum, total)
+        return max_sum
+# @lc code=end
