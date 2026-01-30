@@ -6,28 +6,30 @@
 
 # @lc code=start
 from typing import List
-
 class Solution:
     def maximizeXorAndXor(self, nums: List[int]) -> int:
-        def backtrack(index, xor_a, and_b, xor_c):
-            # Base case: if we've considered all numbers
-            if index == len(nums):
-                return xor_a + and_b + xor_c
-            
-            # Recursive case: choose current number for either A, B or C
-            num = nums[index]
-            
-            # Case 1: Add num to A (XOR operation)
-            max_value = backtrack(index+1, xor_a ^ num, and_b, xor_c)
-            
-            # Case 2: Add num to B (AND operation)
-            new_and_b = (and_b & num) if and_b != -1 else num # -1 signifies empty B initially
-            max_value = max(max_value, backtrack(index+1, xor_a, new_and_b, xor_c))
-            
-            # Case 3: Add num to C (XOR operation)
-            max_value = max(max_value, backtrack(index+1, xor_a, and_b, xor_c ^ num))
-            
-            return max_value
-        
-        return backtrack(0, 0, -1, 0)
+        n = len(nums)
+        max_value = 0
+        # Iterate over all possible partitions using bitmask approach
+        for mask in range(1 << (2 * n)):
+            A_xor = 0
+            B_and = None
+            C_xor = 0
+            # Calculate values based on current partition
+            for i in range(n):
+                part = (mask >> (2 * i)) & 3
+                if part == 0: # Part of A sequence
+                    A_xor ^= nums[i]
+                elif part == 1: # Part of B sequence
+                    if B_and is None:
+                        B_and = nums[i]
+                    else:
+                        B_and &= nums[i]
+                elif part == 2: # Part of C sequence
+                    C_xor ^= nums[i]
+            # If B sequence is empty, its AND value should be zero by definition.
+            if B_and is None:
+                B_and = 0 
+            max_value = max(max_value, A_xor + B_and + C_xor)
+        return max_value
 # @lc code=end
