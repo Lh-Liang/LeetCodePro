@@ -14,10 +14,10 @@ class Solution:
             while stack and num >= stack[-1][0]:
                 steps = max(steps, stack[-1][1])
                 stack.pop()
-            if not stack:
-                steps = 0
-            else:
+            if stack:
                 steps += 1
+            else:
+                steps = 0
             stack.append((num, steps))
             res = max(res, steps)
         return res
