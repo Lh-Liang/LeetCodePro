@@ -7,53 +7,50 @@
 # @lc code=start
 class Solution:
     def supersequences(self, words: List[str]) -> List[List[int]]:
-        from collections import deque, defaultdict
-        # Step 1: Gather unique letters
+        # Step 1: Collect all unique letters
+        unique_letters = sorted(set(''.join(words)))
+        letter_to_idx = {ch: ord(ch)-ord('a') for ch in unique_letters}
+
+        # Step 2: Compute the frequency requirement for each word
+        from collections import Counter
+        word_counts = [Counter(w) for w in words]
+
+        # Step 3: DP to generate all possible SCS frequency multisets
+        # Since each word is length 2, and <=16 unique letters, the max SCS is small
+        from functools import lru_cache
         n = len(words)
-        # Each state: tuple of matched indices for each word
-        initial = tuple([0] * n)
-        queue = deque()
-        queue.append((initial, ''))
-        visited = defaultdict(set)  # state -> set of minimal seqs
-        visited[initial].add('')
-        found_len = None
-        results = set()
-        while queue:
-            layer_size = len(queue)
-            layer_solutions = []
-            for _ in range(layer_size):
-                state, seq = queue.popleft()
-                # Step 2: Check if all words matched
-                if all(state[i] == 2 for i in range(n)):
-                    if found_len is None:
-                        found_len = len(seq)
-                    if len(seq) == found_len:
-                        freq = [0] * 26
-                        for ch in seq:
-                            freq[ord(ch) - ord('a')] += 1
-                        results.add(tuple(freq))
-                        layer_solutions.append((state, seq))
+        # For each word, keep a pointer for how much is matched
+        @lru_cache(maxsize=None)
+        def dp(pos_tuple):
+            # pos_tuple: for each word, the position in that word
+            if all(pos == 2 for pos in pos_tuple):
+                return set([tuple([0]*26)])
+            result = set()
+            # Try all possible next letters
+            for ch in unique_letters:
+                new_pos = list(pos_tuple)
+                advanced = False
+                for i, pos in enumerate(pos_tuple):
+                    if pos < 2 and words[i][pos] == ch:
+                        new_pos[i] += 1
+                        advanced = True
+                if not advanced:
                     continue
-                # Step 3: Find all possible next characters
-                next_chars = set()
-                for i in range(n):
-                    if state[i] < 2:
-                        next_chars.add(words[i][state[i]])
-                for ch in next_chars:
-                    new_state = list(state)
-                    for i in range(n):
-                        if state[i] < 2 and words[i][state[i]] == ch:
-                            new_state[i] += 1
-                    new_state = tuple(new_state)
-                    new_seq = seq + ch
-                    # Step 4: State tracking for minimal-length paths
-                    if (new_state not in visited) or (len(new_seq) <= min((len(s) for s in visited[new_state]), default=float('inf'))):
-                        if found_len is None or len(new_seq) <= found_len:
-                            visited[new_state].add(new_seq)
-                            queue.append((new_state, new_seq))
-            # Step 5: Stop only after processing full minimal layer
-            if found_len is not None and not queue:
-                break
-        # Step 6: Output frequency arrays, deduplicated
-        return [list(freq) for freq in results]
+                # Get all results from this move
+                for freq in dp(tuple(new_pos)):
+                    freq = list(freq)
+                    freq[ord(ch)-ord('a')] += 1
+                    result.add(tuple(freq))
+            return result
+        # Initial positions: all at 0
+        all_freqs = dp(tuple(0 for _ in range(n)))
+        # Deduplicate by permutation (multiset): keep only unique frequency multisets
+        unique_multisets = set()
+        final_result = []
+        for freq in all_freqs:
+            key = tuple(sorted([freq[i] for i in range(26) if freq[i] > 0]))
+            if key not in unique_multisets:
+                unique_multisets.add(key)
+                final_result.append(list(freq))
+        return final_result
 # @lc code=end
