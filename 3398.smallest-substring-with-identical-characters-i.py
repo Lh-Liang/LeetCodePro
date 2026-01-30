@@ -3,31 +3,31 @@
 #
 # [3398] Smallest Substring With Identical Characters I
 #
+
 # @lc code=start
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-        min_length = n
-        left = 0
-        zero_count = one_count = 0
-        
-        for right in range(n):
-            # Expand window by including s[right]
-            if s[right] == '0': 
-                zero_count += 1
-            else: 
-                one_count += 1
-            
-            # Shrink window from left if more flips than allowed are needed
-            while min(zero_count, one_count) > numOps:
-                if s[left] == '0': 
-                    zero_count -= 1
-                else: 
-                    one_count -= 1
-                left += 1
-            
-            # Update minimum length after optimal flipping strategy.
-            min_length = min(min_length, right - left + 1)
-        
-        return min_length # Return final minimum possible length of longest identical substring. 
+        def check(L):
+            cnt = 0
+            i = 0
+            while i < n:
+                j = i
+                while j < n and s[j] == s[i]:
+                    j += 1
+                run_len = j - i
+                if run_len > L:
+                    cnt += (run_len // (L + 1))
+                i = j
+            return cnt <= numOps
+        left, right = 1, n
+        ans = n
+        while left <= right:
+            mid = (left + right) // 2
+            if check(mid):
+                ans = mid
+                right = mid - 1
+            else:
+                left = mid + 1
+        return ans
 # @lc code=end
