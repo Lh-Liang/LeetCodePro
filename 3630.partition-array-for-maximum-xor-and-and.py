@@ -7,21 +7,21 @@
 # @lc code=start
 class Solution:
     def maximizeXorAndXor(self, nums: List[int]) -> int:
+        from functools import lru_cache
         n = len(nums)
-        max_val = 0
-        def dfs(i, xor_a, and_b, xor_c, has_b):
-            nonlocal max_val
+        @lru_cache(None)
+        def dfs(i, xorA, andB, usedB, xorC):
             if i == n:
-                # If B is empty, AND(B) is 0 (by problem statement)
-                b_val = and_b if has_b else 0
-                max_val = max(max_val, xor_a + b_val + xor_c)
-                return
-            # Place nums[i] in A
-            dfs(i+1, xor_a ^ nums[i], and_b, xor_c, has_b)
-            # Place nums[i] in B
-            dfs(i+1, xor_a, nums[i] if not has_b else (and_b & nums[i]), xor_c, True)
-            # Place nums[i] in C
-            dfs(i+1, xor_a, and_b, xor_c ^ nums[i], has_b)
-        dfs(0, 0, 0, 0, False)
-        return max_val
+                return xorA + (andB if usedB else 0) + xorC
+            # Option 1: assign nums[i] to A
+            res = dfs(i+1, xorA ^ nums[i], andB, usedB, xorC)
+            # Option 2: assign nums[i] to B
+            if usedB:
+                res = max(res, dfs(i+1, xorA, andB & nums[i], True, xorC))
+            else:
+                res = max(res, dfs(i+1, xorA, nums[i], True, xorC))
+            # Option 3: assign nums[i] to C
+            res = max(res, dfs(i+1, xorA, andB, usedB, xorC ^ nums[i]))
+            return res
+        return dfs(0, 0, 0, False, 0)
 # @lc code=end
