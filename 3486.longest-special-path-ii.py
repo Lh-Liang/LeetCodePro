@@ -3,40 +3,47 @@
 #
 # [3486] Longest Special Path II
 #
-from typing import List, Tuple, Dict
-from collections import defaultdict
 
 # @lc code=start
 class Solution:
-    def longestSpecialPath(self, edges: List[Tuple[int, int, int]], nums: List[int]) -> List[int]:
-        # Build adjacency list for the tree representation
-        tree = defaultdict(list)
+    def longestSpecialPath(self, edges: List[List[int]], nums: List[int]) -> List[int]:
+        from collections import defaultdict, Counter
+        
+        # Step 1: Build graph from edges
+        graph = defaultdict(list)
         for u, v, length in edges:
-            tree[u].append((v, length))
-            tree[v].append((u, length))
+            graph[u].append((v, length))
+            graph[v].append((u, length))  # It's undirected
         
-        def dfs(node: int, parent: int, visited: Dict[int, int], allow_repeat: bool) -> Tuple[int, int]:
-            max_length = 0
-            min_nodes = float('inf')
-            current_value = nums[node]
-            visited[current_value] += 1
+        # Step 2 & 3: DFS to find longest special path
+        def dfs(node, parent):
+            max_len = [0]
+            min_nodes = [float('inf')]
+            visited_values = Counter()
             
-            for neighbor, edge_length in tree[node]:
-                if neighbor == parent:
-                    continue
-                if visited[nums[neighbor]] == 0 or (allow_repeat and visited[nums[neighbor]] == 1):
-                    next_allow_repeat = allow_repeat and (visited[nums[neighbor]] == 0)
-                    path_length, path_nodes = dfs(neighbor, node, visited.copy(), next_allow_repeat)
-                    total_length = edge_length + path_length
-                    total_nodes = path_nodes + 1
-                    if total_length > max_length or (total_length == max_length and total_nodes < min_nodes):
-                        max_length = total_length
-                        min_nodes = total_nodes
+            def dfs_visit(node, current_length):
+                visited_values[nums[node]] += 1
+                # Check if more than one value is repeated more than once or a single value more than twice.
+                if len([v for v in visited_values.values() if v > 1]) > 1:
+                    visited_values[nums[node]] -= 1
+                    return
+                
+                local_max_len = current_length
+                local_min_nodes = sum(visited_values.values())
+                if local_max_len > max_len[0]:
+                    max_len[0] = local_max_len
+                    min_nodes[0] = local_min_nodes
+                elif local_max_len == max_len[0]:
+                    min_nodes[0] = min(min_nodes[0], local_min_nodes)
+                
+                for neighbor, edge_length in graph[node]:
+                    if neighbor != parent:
+                        dfs_visit(neighbor, current_length + edge_length)
+                visited_values[nums[node]] -= 1
             
-            visited[current_value] -= 1
-            return max_length, min_nodes if min_nodes != float('inf') else len(tree)
+            dfs_visit(node, 0)
+            return max_len[0], min_nodes[0]
         
-        # Start DFS from root node 0 with allowance for one repeat value on path
-        max_path_len, min_num_nodes = dfs(0, -1, defaultdict(int), True)
-        return [max_path_len, min_num_nodes]
+        result_length, result_min_nodes = dfs(0, -1)  # Start DFS from root node '0' with no parent (-1)
+        return [result_length, result_min_nodes] if result_min_nodes != float('inf') else [0, 1]
 # @lc code=end
