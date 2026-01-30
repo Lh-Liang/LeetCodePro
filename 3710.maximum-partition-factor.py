@@ -3,44 +3,61 @@
 #
 # [3710] Maximum Partition Factor
 #
-from typing import List
-from itertools import combinations
 
 # @lc code=start
 class Solution:
     def maxPartitionFactor(self, points: List[List[int]]) -> int:
-        # Sort points by x-coordinate and y-coordinate separately,
-        # this helps in considering extreme cases for partitions.
-        x_sorted = sorted(points)
-        y_sorted = sorted(points, key=lambda p: p[1])
-        
-        # Function to calculate manhattan distance
-        def manhattan(p1, p2):
-            return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
-        
-        max_partition_factor = 0
+        from collections import deque
+
         n = len(points)
-        
-        # Consider splits around different medians or quartiles potentially,
-        # This is a place where specific geometric insights could help optimize.
-        for i in range(1, n):
-            # Split both sorted lists at different indices and calculate partition factors
-            left_x = x_sorted[:i]
-            right_x = x_sorted[i:]
-            left_y = y_sorted[:i]
-            right_y = y_sorted[i:]
-            
-            # Calculate minimal distances within each group for both splits,
-            # select the best partition factor from different splits.
-            def min_distance(group):
-                if len(group) < 2:
-                    return float('inf')
-                return min(manhattan(p1, p2) for p1, p2 in combinations(group, 2))
-            
-            partition_factor_x = min(min_distance(left_x), min_distance(right_x))
-            partition_factor_y = min(min_distance(left_y), min_distance(right_y))
-            
-            max_partition_factor = max(max_partition_factor, partition_factor_x, partition_factor_y)
-        
-        return max_partition_factor
+        if n == 2:
+            return 0
+
+        # Precompute all unique pairwise Manhattan distances
+        dists = set()
+        for i in range(n):
+            for j in range(i+1, n):
+                d = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
+                dists.add(d)
+        dists = sorted(list(dists))
+        dists.append(10**18)  # Handle edge case where groups can be completely separated
+
+        def is_bipartite(k):
+            # Build graph: edge between (i, j) if dist < k
+            adj = [[] for _ in range(n)]
+            for i in range(n):
+                for j in range(i+1, n):
+                    d = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
+                    if d < k:
+                        adj[i].append(j)
+                        adj[j].append(i)
+            color = [0] * n
+            for i in range(n):
+                if color[i] == 0:
+                    queue = deque([i])
+                    color[i] = 1
+                    while queue:
+                        u = queue.popleft()
+                        for v in adj[u]:
+                            if color[v] == 0:
+                                color[v] = -color[u]
+                                queue.append(v)
+                            elif color[v] == color[u]:
+                                return False
+            # Verify both groups are non-empty
+            color_count = sum(1 for c in color if c == 1)
+            return 0 < color_count < n
+
+        # Binary search for the maximal k
+        left, right = 0, len(dists)-1
+        ans = 0
+        while left <= right:
+            mid = (left + right) // 2
+            k = dists[mid]
+            if is_bipartite(k):
+                ans = k
+                left = mid + 1
+            else:
+                right = mid - 1
+        return ans
 # @lc code=end
