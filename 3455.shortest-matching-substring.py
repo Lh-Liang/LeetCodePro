@@ -1,1 +1,27 @@
-#\n# @lc app=leetcode id=3455 lang=python3\n#\n# [3455] Shortest Matching Substring\n#\n\n# @lc code=start\nclass Solution:\n    def shortestMatchingSubstring(self, s: str, p: str) -> int:\n        # Split pattern into two segments without '*'.\n        left, right = p.split('*', 1) # Split only once because there are exactly two '*'\n        n = len(s)\n        min_length = float('inf')\n        i = 0\n        # Iterate over string s to find matching left part.\n        while i <= n - len(left):\n            if s[i:i+len(left)] == left:\n                # Find maximum j such that s[j:j+len(right)] == right.\n                j = i + len(left)\n                while j <= n - len(right):\n                    if s[j:j+len(right)] == right:\n                        min_length = min(min_length, j + len(right) - i)\n                        break # No need to check further once we found a valid end position.\n                    j += 1\n            i += 1\n        return min_length if min_length != float('inf') else -1\n# @lc code=end
+#
+# @lc app=leetcode id=3455 lang=python3
+#
+# [3455] Shortest Matching Substring
+#
+
+# @lc code=start
+class Solution:
+    def shortestMatchingSubstring(self, s: str, p: str) -> int:
+        parts = p.split('*')
+        if len(parts) != 3:
+            return -1  # Invalid input as per problem constraints
+        l1, middle, l2 = parts[0], parts[1], parts[2]
+        min_len = float('inf')
+        start = 0
+        while start < len(s):
+            start = s.find(l1, start)
+            if start == -1:
+                break
+            end = start + len(l1)
+            while end < len(s):
+                if s.startswith(l2, end) and middle in s[start+len(l1):end]:
+                    min_len = min(min_len, end + len(l2) - start)
+                    break  # Found a valid substring ending here
+                end += 1
+            start += 1  # Check for next possible starting position of l1
+        return min_len if min_len != float('inf') else -1 # @lc code=end
