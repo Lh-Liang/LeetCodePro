@@ -7,36 +7,30 @@
 # @lc code=start
 class Solution:
     def numberOfComponents(self, properties: List[List[int]], k: int) -> int:
-        def intersect(a, b):
-            return len(set(a) & set(b))
-        
         n = len(properties)
-        visited = [False] * n
-        adjacency_list = {i: [] for i in range(n)}
-        
-        # Constructing adjacency list based on intersection logic
+        # Build adjacency list
+        adj = [[] for _ in range(n)]
+        sets = [set(prop) for prop in properties]
         for i in range(n):
-            for j in range(i + 1, n):
-                if intersect(properties[i], properties[j]) >= k:
-                    adjacency_list[i].append(j)
-                    adjacency_list[j].append(i)
-        
-        def dfs(node):
-            stack = [node]
+            for j in range(i+1, n):
+                if len(sets[i] & sets[j]) >= k:
+                    adj[i].append(j)
+                    adj[j].append(i)
+        # Count connected components using DFS
+        visited = [False] * n
+        def dfs(u):
+            stack = [u]
             while stack:
-                current = stack.pop()
-                for neighbor in adjacency_list[current]:
-                    if not visited[neighbor]:
-                        visited[neighbor] = True
-                        stack.append(neighbor)
-                    
-        # Counting connected components
-        component_count = 0
+                node = stack.pop()
+                if not visited[node]:
+                    visited[node] = True
+                    for v in adj[node]:
+                        if not visited[v]:
+                            stack.append(v)
+        components = 0
         for i in range(n):
             if not visited[i]:
-                component_count += 1
-                visited[i] = True
+                components += 1
                 dfs(i)
-                
-        return component_count
+        return components
 # @lc code=end
