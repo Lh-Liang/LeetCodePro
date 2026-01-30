@@ -10,14 +10,14 @@ from collections import defaultdict, deque
 
 class Solution:
     def remainingMethods(self, n: int, k: int, invocations: List[List[int]]) -> List[int]:
-        # Step 1: Build the graph
+        # Build graph and reverse graph
         graph = defaultdict(list)
         reverse_graph = defaultdict(list)
-        for ai, bi in invocations:
-            graph[ai].append(bi)
-            reverse_graph[bi].append(ai)
-
-        # Step 2: Find all suspicious methods (reachable from k)
+        for a, b in invocations:
+            graph[a].append(b)
+            reverse_graph[b].append(a)
+        
+        # Find all suspicious methods (k and everything k invokes directly/indirectly)
         suspicious = set()
         stack = [k]
         while stack:
@@ -28,20 +28,19 @@ class Solution:
             for nei in graph[node]:
                 if nei not in suspicious:
                     stack.append(nei)
-
-        # Step 3: Check if any method outside the suspicious set invokes a suspicious method
-        can_remove = True
-        for method in suspicious:
-            for invoker in reverse_graph[method]:
-                if invoker not in suspicious:
-                    can_remove = False
+        
+        # Check if any method outside suspicious invokes a suspicious method
+        removable = True
+        for b in suspicious:
+            for a in reverse_graph[b]:
+                if a not in suspicious:
+                    removable = False
                     break
-            if not can_remove:
+            if not removable:
                 break
-
-        # Step 4: Verify edge cases (empty invocations, all suspicious, isolated nodes)
-        if can_remove:
-            return [i for i in range(n) if i not in suspicious]
+        
+        if not removable:
+            return list(range(n))
         else:
-            return [i for i in range(n)]
+            return [i for i in range(n) if i not in suspicious]
 # @lc code=end
