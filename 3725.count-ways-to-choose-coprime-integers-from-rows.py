@@ -5,33 +5,30 @@
 #
 
 # @lc code=start
-from math import gcd
 from typing import List
+from math import gcd
+from collections import Counter
 
 class Solution:
     def countCoprime(self, mat: List[List[int]]) -> int:
         MOD = 10**9 + 7
-        m, n = len(mat), len(mat[0])
-        
-        # Precompute GCD for pairs in range [1, 150]
-        gcd_table = [[gcd(i, j) for j in range(151)] for i in range(151)]
-        
-        # Initialize DP table
-dp = [{} for _ in range(m)]
-        # Base case for first row
-        for num in mat[0]:
-            dp[0][num] = dp[0].get(num, 0) + 1
-        
-        # Fill DP table
+        m = len(mat)
+        maxv = 150
+        # dp[g]: number of ways to pick from processed rows so that GCD is exactly g
+        count = Counter(mat[0])
+        dp = [0] * (maxv + 1)
+        for v in count:
+            dp[v] = count[v]
         for i in range(1, m):
-            for num in mat[i]:
-                for g in dp[i-1].keys():
-                    new_gcd = gcd_table[g][num]
-                    dp[i][new_gcd] = (dp[i].get(new_gcd, 0) + dp[i-1][g]) % MOD
-                
-                # Also consider starting fresh with current number alone
-                dp[i][num] = (dp[i].get(num, 0) + 1) % MOD
-        
-        # Count ways where final GCD is exactly 1 after processing all rows
-        return dp[-1].get(1, 0)
+            ndp = [0] * (maxv + 1)
+            cur_count = Counter(mat[i])
+            for g in range(1, maxv + 1):
+                if dp[g] == 0:
+                    continue
+                for v in cur_count:
+                    ng = gcd(g, v)
+                    ndp[ng] = (ndp[ng] + dp[g] * cur_count[v]) % MOD
+            dp = ndp
+        # Ensure the result corresponds to the count of ways with GCD 1
+        return dp[1]
 # @lc code=end
