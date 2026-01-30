@@ -1,74 +1,55 @@
-#
-# @lc app=leetcode id=3579 lang=cpp
-#
-# [3579] Minimum Steps to Convert String with Operations
-#
-# @lc code=start
+#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
     int minOperations(string word1, string word2) {
         int n = word1.length();
-        vector<int> dp(n + 1, INT_MAX);
+        vector<int> dp(n + 1, 1e9);
         dp[0] = 0;
-        
-        // DP: dp[i] = min operations to transform word1[0..i-1] to word2[0..i-1]
-        for (int i = 1; i <= n; i++) {
-            for (int j = 0; j < i; j++) {
-                if (dp[j] != INT_MAX) {
-                    string s1 = word1.substr(j, i - j);
-                    string s2 = word2.substr(j, i - j);
-                    int cost = minOpsForSubstring(s1, s2);
-                    dp[i] = min(dp[i], dp[j] + cost);
-                }
+
+        for (int i = 1; i <= n; ++i) {
+            for (int j = 0; j < i; ++j) {
+                int len = i - j;
+                // Option 1: No reverse
+                int cost_no_rev = calculateSubstrCost(word1, word2, j, len, false);
+                // Option 2: With reverse
+                int cost_with_rev = 1 + calculateSubstrCost(word1, word2, j, len, true);
+                
+                dp[i] = min(dp[i], dp[j] + min(cost_no_rev, cost_with_rev));
             }
         }
-        
+
         return dp[n];
     }
-    
+
 private:
-    // Calculate minimum operations for a single substring
-    int minOpsForSubstring(string s1, string s2) {
-        if (s1 == s2) return 0;
+    int calculateSubstrCost(const string& w1, const string& w2, int start, int len, bool rev) {
+        int d = 0;
+        int n_counts[26][26] = {0};
         
-        // Try without reverse
-        int cost1 = computeCost(s1, s2);
-        
-        // Try with reverse
-        string s1_rev = s1;
-        reverse(s1_rev.begin(), s1_rev.end());
-        int cost2 = 1 + computeCost(s1_rev, s2);
-        
-        return min(cost1, cost2);
-    }
-    
-    // Compute cost using swaps and replaces (no reverse)
-    int computeCost(string s, string target) {
-        int n = s.length();
-        vector<bool> used(n, false);
-        int ops = 0;
-        
-        // Greedily find beneficial swaps
-        for (int i = 0; i < n; i++) {
-            if (used[i] || s[i] == target[i]) continue;
-            for (int j = i + 1; j < n; j++) {
-                if (used[j] || s[j] == target[j]) continue;
-                if (s[i] == target[j] && s[j] == target[i]) {
-                    used[i] = used[j] = true;
-                    ops++;
-                    break;
-                }
+        for (int k = 0; k < len; ++k) {
+            char s_char = rev ? w1[start + len - 1 - k] : w1[start + k];
+            char t_char = w2[start + k];
+            
+            if (s_char != t_char) {
+                d++;
+                n_counts[s_char - 'a'][t_char - 'a']++;
             }
         }
-        
-        // Replace remaining mismatches
-        for (int i = 0; i < n; i++) {
-            if (!used[i] && s[i] != target[i]) {
-                ops++;
+
+        int p = 0;
+        for (int c1 = 0; c1 < 26; ++c1) {
+            for (int c2 = c1 + 1; c2 < 26; ++c2) {
+                p += min(n_counts[c1][c2], n_counts[c2][c1]);
             }
         }
-        
-        return ops;
+        // Under the constraint 'each index used at most once',
+        // only mutual pairs (2-cycles) reduce cost relative to replacement.
+        return d - p;
     }
 };
-# @lc code=end
