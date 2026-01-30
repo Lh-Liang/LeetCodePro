@@ -9,40 +9,26 @@ class Solution:
     def maxSubstringLength(self, s: str, k: int) -> bool:
         if k == 0:
             return True
+        from collections import Counter
         n = len(s)
-        # Track first and last occurrence for each character
-        first = {}
-        last = {}
-        for i, ch in enumerate(s):
-            if ch not in first:
-                first[ch] = i
-            last[ch] = i
-        res = 0
-        used = [False] * n  # Track used indices to ensure disjointness
+        count = Counter(s)
+        result = 0
+        # Find all indices where character occurs only once
+        unique_indices = [i for i, c in enumerate(s) if count[c] == 1]
+        if not unique_indices:
+            return False
+        # Group consecutive unique indices into substrings, not entire string
         i = 0
-        while i < n:
-            # Find candidate substring starting at i
-            r = last[s[i]]
+        groups = []
+        while i < len(unique_indices):
             j = i
-            while j < r:
-                r = max(r, last[s[j]])
+            while j + 1 < len(unique_indices) and unique_indices[j + 1] == unique_indices[j] + 1:
                 j += 1
-            # Check if the substring is not the entire string
-            if not (i == 0 and r == n - 1):
-                # Verify special: chars within [i,r] do not appear outside
-                is_special = True
-                for idx in range(i, r + 1):
-                    ch = s[idx]
-                    if first[ch] < i or last[ch] > r:
-                        is_special = False
-                        break
-                # Ensure disjointness: indices not used before
-                if is_special and all(not used[x] for x in range(i, r + 1)):
-                    for x in range(i, r + 1):
-                        used[x] = True
-                    res += 1
-                    if res >= k:
-                        return True
-            i = r + 1
-        return res >= k
+            start, end = unique_indices[i], unique_indices[j]
+            # Only consider if it's not the entire string
+            if not (start == 0 and end == n - 1):
+                groups.append((start, end))
+            i = j + 1
+        result = len(groups)
+        return result >= k
 # @lc code=end
