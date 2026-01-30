@@ -3,32 +3,20 @@
 #
 # [3458] Select K Disjoint Special Substrings
 #
-
 # @lc code=start
 class Solution:
     def maxSubstringLength(self, s: str, k: int) -> bool:
-        if k == 0:
-            return True
-        from collections import Counter
-        n = len(s)
-        count = Counter(s)
-        result = 0
-        # Find all indices where character occurs only once
-        unique_indices = [i for i, c in enumerate(s) if count[c] == 1]
-        if not unique_indices:
-            return False
-        # Group consecutive unique indices into substrings, not entire string
-        i = 0
-        groups = []
-        while i < len(unique_indices):
-            j = i
-            while j + 1 < len(unique_indices) and unique_indices[j + 1] == unique_indices[j] + 1:
-                j += 1
-            start, end = unique_indices[i], unique_indices[j]
-            # Only consider if it's not the entire string
-            if not (start == 0 and end == n - 1):
-                groups.append((start, end))
-            i = j + 1
-        result = len(groups)
-        return result >= k
+        # Count frequency of each character in the string
+        char_count = {}
+        for char in s:
+            if char in char_count:
+                char_count[char] += 1
+            else:
+                char_count[char] = 1
+        
+        # Count how many characters occur exactly once (candidates for special substrings)
+        single_occurrence = sum(1 for count in char_count.values() if count == 1)
+        
+        # Check if we can form at least k such disjoint special substrings
+        return single_occurrence >= k
 # @lc code=end
