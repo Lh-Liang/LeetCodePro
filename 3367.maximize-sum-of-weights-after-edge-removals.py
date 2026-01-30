@@ -5,35 +5,34 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import defaultdict
-
 class Solution:
     def maximizeSumOfWeights(self, edges: List[List[int]], k: int) -> int:
+        from collections import defaultdict
+        import heapq
         n = len(edges) + 1
-        graph = defaultdict(list)
-        for u, v, w in edges:
-            graph[u].append((v, w))
-            graph[v].append((u, w))
-
-        def dfs(node, parent):
-            branch_weights = []
-            for neighbor, weight in graph[node]:
-                if neighbor == parent:
-                    continue
-                child = dfs(neighbor, node)
-                branch_weights.append(child + weight)
-            branch_weights.sort(reverse=True)
-            # Only keep up to k branches to satisfy the degree constraint
-            total = sum(branch_weights[:k])
-            return total
-
-        # Root the tree at node 0
-        max_sum = 0
-        for neighbor, weight in graph[0]:
-            max_sum += dfs(neighbor, 0) + weight
-        
-        # After local selections, verify that no edge is counted more than once
-        # and that all node degree constraints are satisfied globally (this is implicitly guaranteed by tree structure and selection strategy, but should be considered in general reasoning).
-        return max_sum
+        adj = defaultdict(list)
+        edge_ids = {}
+        total = 0
+        # Build adjacency list and track edge indices
+        for idx, (u, v, w) in enumerate(edges):
+            adj[u].append((w, v, idx))
+            adj[v].append((w, u, idx))
+            edge_ids[(min(u,v), max(u,v))] = idx
+            total += w
+        removed = set()
+        # For each node, if its degree > k, remove smallest-weight edges
+        for node in range(n):
+            if len(adj[node]) > k:
+                # sort by weight
+                adj[node].sort()
+                # Remove len(adj[node]) - k smallest edges for this node
+                to_remove = len(adj[node]) - k
+                for i in range(to_remove):
+                    w, neighbor, idx = adj[node][i]
+                    # Remove only if not already removed
+                    eid = (min(node, neighbor), max(node, neighbor))
+                    if eid not in removed:
+                        removed.add(eid)
+                        total -= w
+        return total
 # @lc code=end
