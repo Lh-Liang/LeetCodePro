@@ -7,51 +7,65 @@
 # @lc code=start
 class Solution:
     def lenOfVDiagonal(self, grid: List[List[int]]) -> int:
-        from typing import List
+        # Directions: (row_delta, col_delta) for diagonals
+        directions = [ (1, 1), (1, -1), (-1, 1), (-1, -1) ]
         n, m = len(grid), len(grid[0])
-        # Directions: (dr, dc) for 4 diagonals (NE, SE, SW, NW)
-        diags = [(-1,1), (1,1), (1,-1), (-1,-1)]
-        # dp[i][j][d][p]: max length from (i,j) in direction d, expecting value p (p=0 for 2, p=1 for 0), no turn
-        dp = [[[[0, 0] for _ in range(4)] for _ in range(m)] for _ in range(n)]
-        # Precompute DP for all four diagonal directions and both alternation states
-        for d, (dr, dc) in enumerate(diags):
-            rows = range(n) if dr > 0 else range(n-1, -1, -1)
-            cols = range(m) if dc > 0 else range(m-1, -1, -1)
-            for i in rows:
-                for j in cols:
-                    # Start of segment must be 1
-                    if grid[i][j] == 1:
-                        dp[i][j][d][0] = 1
-                        ni, nj = i + dr, j + dc
-                        if 0 <= ni < n and 0 <= nj < m and grid[ni][nj] == 2:
-                            dp[i][j][d][0] = 1 + (dp[ni][nj][d][1])
-                    # For alternation state expecting 0 (i.e., next should be 0)
-                    if grid[i][j] == 0:
-                        ni, nj = i + dr, j + dc
-                        if 0 <= ni < n and 0 <= nj < m and grid[ni][nj] == 2:
-                            dp[i][j][d][1] = 1 + (dp[ni][nj][d][0])
+
+        # Precompute max alternating sequence (starting with 2 or 0) from each cell in all diagonals
+        # dp[dir][i][j][phase]: for direction, position, and phase (0: expect 2, 1: expect 0)
+        dp = [ [ [ [0,0] for _ in range(m) ] for _ in range(n) ] for _ in range(4) ]
+
+        for d, (dr, dc) in enumerate(directions):
+            # Traverse in direction so that dependencies are filled first
+            r_range = range(n) if dr > 0 else range(n-1, -1, -1)
+            c_range = range(m) if dc > 0 else range(m-1, -1, -1)
+            for i in r_range:
+                for j in c_range:
+                    for phase in [0, 1]:
+                        expect = 2 if phase == 0 else 0
+                        ni, nj = i - dr, j - dc
+                        if 0 <= ni < n and 0 <= nj < m:
+                            if grid[i][j] == expect:
+                                dp[d][i][j][phase] = 1 + dp[d][ni][nj][1 - phase]
+                        else:
+                            if grid[i][j] == expect:
+                                dp[d][i][j][phase] = 1
+
         maxlen = 0
+        # For every cell, try starting with 1, then for each direction, try to go as far as possible,
+        # and at each position, optionally make a turn once to another diagonal (clockwise).
         for i in range(n):
             for j in range(m):
                 if grid[i][j] != 1:
                     continue
-                for d in range(4):
-                    # No turn: maximum from this start in this direction
-                    maxlen = max(maxlen, dp[i][j][d][0])
-                    # Try all possible single-turn points
-                    dr1, dc1 = diags[d]
-                    ci, cj = i, j
-                    altern = 0 # 0 means expecting 2, 1 means expecting 0
-                    for step in range(1, dp[i][j][d][0]):
-                        ci += dr1
-                        cj += dc1
-                        altern ^= 1
-                        # After step steps, try a clockwise turn
+                for d, (dr, dc) in enumerate(directions):
+                    length = 1
+                    x, y = i, j
+                    phase = 0  # Next expect 2
+                    steps = 0
+                    # Move straight in this direction, counting as far as we can
+                    while True:
+                        x += dr
+                        y += dc
+                        steps += 1
+                        if not (0 <= x < n and 0 <= y < m):
+                            break
+                        expect = 2 if phase == 0 else 0
+                        if grid[x][y] != expect:
+                            break
+                        length += 1
+                        phase ^= 1
+                        # At each step, consider making a clockwise turn
                         nd = (d + 1) % 4
-                        if 0 <= ci < n and 0 <= cj < m:
-                            # The next segment after the turn must continue the alternation
-                            cont = dp[ci][cj][nd][altern]
-                            if cont > 0:
-                                maxlen = max(maxlen, step + cont)
+                        ndr, ndc = directions[nd]
+                        nx, ny = x + ndr, y + ndc
+                        if 0 <= nx < n and 0 <= ny < m:
+                            # Next expect
+                            nexp = 2 if phase == 0 else 0
+                            if grid[nx][ny] == nexp:
+                                # We can use precomputed dp for the rest after the turn
+                                addlen = dp[nd][nx][ny][1 - phase]
+                                maxlen = max(maxlen, length + addlen)
+                    maxlen = max(maxlen, length)
         return maxlen
 # @lc code=end
