@@ -8,38 +8,32 @@
 class Solution:
     def maximumScore(self, nums: List[int], k: int) -> int:
         n = len(nums)
-        # Double nums for easier cyclic handling
-        extended_nums = nums + nums
-        
-        # Initialize DP table for storing maximum scores
-        dp = [[0] * (k + 1) for _ in range(2 * n)]
-        
-        # Base case for one partition
+        nums2 = nums + nums
+        # Precompute range for all windows
+        range_table = [[0]*n for _ in range(n)]
         for i in range(n):
-            current_min = float('inf')
-            current_max = float('-inf')
-            # Calculate range directly for single partitions up to n elements forward
-            for j in range(i, i + n):
-                idx = j % n
-                current_min = min(current_min, extended_nums[idx])
-                current_max = max(current_max, extended_nums[idx])
-                current_range = current_max - current_min
-                dp[i][1] = max(dp[i][1], current_range)
-        
-        # Fill DP table for more than one partition allowed
-        for p in range(2, k + 1):
-            for i in range(n):
-                current_min = float('inf')
-                current_max = float('-inf')
-                # Iterate and calculate possible partition scores
-                for j in range(i, i + n):
-                    idx = j % n
-                    current_min = min(current_min, extended_nums[idx])
-                    current_max = max(current_max, extended_nums[idx])
-                    current_range = current_max - current_min
-                    prev_idx = (j + 1) % n if j + 1 < i + n else i % n
-                    dp[i][p] = max(dp[i][p], dp[prev_idx][p - 1] + current_range)
-        
-        # Return the maximum score found across all starting points with k partitions allowed
-        return max(dp[i][k] for i in range(n))
+            mx = mn = nums[i]
+            for j in range(i, i+n):
+                mx = max(mx, nums2[j])
+                mn = min(mn, nums2[j])
+                if j-i < n:
+                    range_table[i][j-i] = mx - mn
+        # Optional: Verify range_table for sample intervals
+        # assert range_table[0][n-1] == max(nums) - min(nums)
+        res = 0
+        for start in range(n):
+            dp = [[-float('inf')] * (k+1) for _ in range(n+1)]
+            dp[0][0] = 0
+            for i in range(1, n+1):
+                for p in range(1, min(k, i)+1):
+                    for j in range(p-1, i):
+                        prev = dp[j][p-1]
+                        rng = range_table[(start+j)%n][i-j-1]
+                        if prev + rng > dp[i][p]:
+                            dp[i][p] = prev + rng
+            # Optional: Check DP states after computation
+            # for p in range(1, k+1):
+            #     assert dp[n][p] >= 0
+            res = max(res, max(dp[n][1:k+1]))
+        return res
 # @lc code=end
