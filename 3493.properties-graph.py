@@ -8,25 +8,36 @@
 class Solution:
     def numberOfComponents(self, properties: List[List[int]], k: int) -> int:
         n = len(properties)
-        # Build adjacency list
-        adj = [[] for _ in range(n)]
-        sets = [set(p) for p in properties]
+        adjacency_list = [[] for _ in range(n)]
+        
+        # Define intersect function
+        def intersect(a, b):
+            return len(set(a) & set(b))
+        
+        # Construct adjacency list
         for i in range(n):
-            for j in range(i+1, n):
-                if len(sets[i] & sets[j]) >= k:
-                    adj[i].append(j)
-                    adj[j].append(i)
-        # Count connected components using DFS
+            for j in range(i + 1, n):
+                if intersect(properties[i], properties[j]) >= k:
+                    adjacency_list[i].append(j)
+                    adjacency_list[j].append(i)
+        
+        # Find connected components using DFS
         visited = [False] * n
-        def dfs(u):
-            visited[u] = True
-            for v in adj[u]:
-                if not visited[v]:
-                    dfs(v)
+        
+        def dfs(node):
+            stack = [node]
+            while stack:
+                current = stack.pop()
+                for neighbor in adjacency_list[current]:
+                    if not visited[neighbor]:
+                        visited[neighbor] = True
+                        stack.append(neighbor)
+        
+        # Count connected components
         count = 0
         for i in range(n):
             if not visited[i]:
                 dfs(i)
                 count += 1
-        return count
-# @lc code=end
+                visited[i] = True # Ensure marking as visited after DFS call to avoid revisiting. 
+        return count  "}
