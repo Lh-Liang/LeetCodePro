@@ -7,24 +7,20 @@
 # @lc code=start
 class Solution:
     def longestPalindrome(self, s: str, t: str) -> int:
-        from collections import Counter
-        
-        # Count frequencies of each character in s and t
-        count_s = Counter(s)
-        count_t = Counter(t)
-        
-        max_len = 0
-        center_char_used = False
-        
-        # Check all possible characters for pairing
-        for char in set(s + t):
-            pairs = min(count_s.get(char, 0), count_t.get(char, 0))
-            max_len += 2 * pairs  # Each pair adds two to the length of palindrome
-            
-            # Check if there's potential for a center character (odd count)
-            if not center_char_used and (count_s.get(char, 0) > pairs or count_t.get(char, 0) > pairs):
-                max_len += 1  # Add one for a center character if available
-                center_char_used = True
-        
-        return max_len
+        def is_palindrome(x):
+            return x == x[::-1]
+        maxlen = 0
+        n, m = len(s), len(t)
+        # All possible substrings from s
+        for i in range(n+1):
+            for j in range(i, n+1):
+                substr_s = s[i:j]
+                # All possible substrings from t
+                for k in range(m+1):
+                    for l in range(k, m+1):
+                        substr_t = t[k:l]
+                        candidate = substr_s + substr_t
+                        if candidate and is_palindrome(candidate):
+                            maxlen = max(maxlen, len(candidate))
+        return maxlen
 # @lc code=end
