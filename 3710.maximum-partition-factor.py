@@ -3,36 +3,44 @@
 #
 # [3710] Maximum Partition Factor
 #
+from typing import List
+from itertools import combinations
 
 # @lc code=start
 class Solution:
     def maxPartitionFactor(self, points: List[List[int]]) -> int:
-        import itertools
-        # Function to calculate Manhattan distance between two points
-        def manhattan_distance(p1, p2):
+        # Sort points by x-coordinate and y-coordinate separately,
+        # this helps in considering extreme cases for partitions.
+        x_sorted = sorted(points)
+        y_sorted = sorted(points, key=lambda p: p[1])
+        
+        # Function to calculate manhattan distance
+        def manhattan(p1, p2):
             return abs(p1[0] - p2[0]) + abs(p1[1] - p2[1])
         
-        # Initialize max partition factor to zero
         max_partition_factor = 0
         n = len(points)
         
-        # Iterate over all possible ways to split points into two groups
-        for i in range(1, (1 << n) // 2):
-            group1 = [points[j] for j in range(n) if (i & (1 << j))]
-            group2 = [points[j] for j in range(n) if not (i & (1 << j))]
+        # Consider splits around different medians or quartiles potentially,
+        # This is a place where specific geometric insights could help optimize.
+        for i in range(1, n):
+            # Split both sorted lists at different indices and calculate partition factors
+            left_x = x_sorted[:i]
+            right_x = x_sorted[i:]
+            left_y = y_sorted[:i]
+            right_y = y_sorted[i:]
             
-            # Compute minimum intra-group distance for each group
-            min_dist_group1 = float('inf') if len(group1) > 1 else 0
-            min_dist_group2 = float('inf') if len(group2) > 1 else 0
+            # Calculate minimal distances within each group for both splits,
+            # select the best partition factor from different splits.
+            def min_distance(group):
+                if len(group) < 2:
+                    return float('inf')
+                return min(manhattan(p1, p2) for p1, p2 in combinations(group, 2))
             
-            for p1, p2 in itertools.combinations(group1, 2):
-                min_dist_group1 = min(min_dist_group1, manhattan_distance(p1, p2))
-            for p1, p2 in itertools.combinations(group2, 2):
-                min_dist_group2 = min(min_dist_group2, manhattan_distance(p1, p2))
+            partition_factor_x = min(min_distance(left_x), min_distance(right_x))
+            partition_factor_y = min(min_distance(left_y), min_distance(right_y))
             
-            # Calculate partition factor for this split and update maximum found so far
-            current_partition_factor = min(min_dist_group1, min_dist_group2)
-            max_partition_factor = max(max_partition_factor, current_partition_factor)
+            max_partition_factor = max(max_partition_factor, partition_factor_x, partition_factor_y)
         
         return max_partition_factor
 # @lc code=end
