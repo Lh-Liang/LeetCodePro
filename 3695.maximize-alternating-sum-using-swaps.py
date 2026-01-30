@@ -7,56 +7,63 @@
 # @lc code=start
 class Solution:
     def maxAlternatingSum(self, nums: List[int], swaps: List[List[int]]) -> int:
-        from collections import defaultdict
-        
-        # Function to find root of an element with path compression
-        def find(x):
-            if parent[x] != x:
-                parent[x] = find(parent[x])
-            return parent[x]
-        
-        # Function to union two sets by rank
-        def union(x, y):
-            rootX = find(x)
-            rootY = find(y)
-            if rootX != rootY:
-                if rank[rootX] > rank[rootY]:
-                    parent[rootY] = rootX
-                elif rank[rootX] < rank[rootY]:
-                    parent[rootX] = rootY
-                else:
-                    parent[rootY] = rootX
-                    rank[rootX] += 1
-        
         n = len(nums)
         parent = list(range(n))
-        rank = [0] * n
-        
-        # Union-Find to group swappable indices
-        for u, v in swaps:
-            union(u, v)
-        
-        # Group numbers by their connected components using union-find roots
-        components = defaultdict(list)
+        def find(x):
+            while parent[x] != x:
+                parent[x] = parent[parent[x]]
+                x = parent[x]
+            return x
+        def union(x, y):
+            px, py = find(x), find(y)
+            if px != py:
+                parent[px] = py
+        for a, b in swaps:
+            union(a, b)
+        from collections import defaultdict
+        groups = defaultdict(list)
         for i in range(n):
-            components[find(i)].append(i)
-        
-        # For each component, sort numbers and place them optimally for maximum alternating sum
-        result_nums = nums[:]
-        for indices in components.values():
-            sorted_indices = sorted(indices)
-            sorted_values = sorted(result_nums[i] for i in indices)
-            # Place larger values on even index positions and smaller on odd index positions
-            for i, idx in enumerate(sorted_indices):
-                result_nums[idx] = sorted_values[i]
-                
-        # Calculate the alternating sum based on optimized arrangement
-        max_alternating_sum = 0
-        for i in range(n):
+            groups[find(i)].append(i)
+        res = [0]*n
+        for idxs in groups.values():
+            vals = sorted([nums[i] for i in idxs], reverse=True)
+            even_idxs = sorted([i for i in idxs if i % 2 == 0])
+            odd_idxs = sorted([i for i in idxs if i % 2 == 1])
+            # Try both assignments and pick the best
+            max_group_sum = float('-inf')
+            for assign_largest_to_even in [True, False]:
+                temp = [0]*len(idxs)
+                if assign_largest_to_even:
+                    evens, odds = even_idxs, odd_idxs
+                else:
+                    evens, odds = odd_idxs, even_idxs
+                ct_evens = len(evens)
+                ct_odds = len(odds)
+                sorted_evens = vals[:ct_evens]
+                sorted_odds = vals[ct_evens:]
+                temp_assign = {}
+                for i, v in zip(evens, sorted_evens):
+                    temp_assign[i] = v
+                for i, v in zip(odds, sorted(sorted_odds)):
+                    temp_assign[i] = v
+                # Compute group alternating sum
+                group_sum = 0
+                for i in idxs:
+                    if i % 2 == 0:
+                        group_sum += temp_assign[i]
+                    else:
+                        group_sum -= temp_assign[i]
+                max_group_sum = max(max_group_sum, group_sum)
+                # Save assignment if it's the best
+                if max_group_sum == group_sum:
+                    best_assign = temp_assign
+            for i in idxs:
+                res[i] = best_assign[i]
+        alt_sum = 0
+        for i, v in enumerate(res):
             if i % 2 == 0:
-                max_alternating_sum += result_nums[i]
+                alt_sum += v
             else:
-                max_alternating_sum -= result_nums[i]
-                
-        return max_alternating_sum
+                alt_sum -= v
+        return alt_sum
 # @lc code=end
