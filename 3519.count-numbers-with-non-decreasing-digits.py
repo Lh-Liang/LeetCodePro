@@ -9,49 +9,42 @@ class Solution:
     def countNumbers(self, l: str, r: str, b: int) -> int:
         MOD = 10**9 + 7
         from functools import lru_cache
+        
+        def to_base_digits(x: str, base: int) -> list:
+            digits = []
+            num = int(x)
+            if num == 0:
+                return [0]
+            while num > 0:
+                digits.append(num % base)
+                num //= base
+            return digits[::-1]
 
-        def to_digits(x):
-            if x == '0': return [0]
-            res = []
-            n = int(x)
-            while n > 0:
-                res.append(n % b)
-                n //= b
-            return res[::-1] if res else [0]
-
-        def minus_one(s):
-            # s is a string representing a decimal number, subtract 1 and return string
-            s = list(s)
-            i = len(s) - 1
-            while i >= 0:
-                if s[i] != '0':
-                    s[i] = str(int(s[i])-1)
-                    break
-                s[i] = '9'
-                i -= 1
-            res = ''.join(s).lstrip('0')
-            return res if res else '0'
-
-        def count(bound):
-            digits = to_digits(bound)
+        def count_non_decreasing(digits):
             n = len(digits)
             @lru_cache(maxsize=None)
-            def dp(pos, prev, tight, leading_zero):
+            def dp(pos, last_digit, tight, started):
                 if pos == n:
-                    return 0 if leading_zero else 1
-                ans = 0
-                up = digits[pos] if tight else b - 1
-                for d in range(0, up+1):
-                    if not leading_zero:
-                        if d < prev:
-                            continue
-                    next_leading_zero = leading_zero and (d == 0)
-                    next_prev = d if not next_leading_zero else 0
-                    ans = (ans + dp(pos+1, next_prev, tight and d==up, next_leading_zero)) % MOD
-                return ans
-            return dp(0, 0, True, True)
+                    return int(started)
+                res = 0
+                max_digit = digits[pos] if tight else b-1
+                for d in range(0, max_digit+1):
+                    if not started and d == 0:
+                        res += dp(pos+1, 0, tight and d == max_digit, False)
+                    elif not started or d >= last_digit:
+                        res += dp(pos+1, d, tight and d == max_digit, True)
+                return res % MOD
+            return dp(0, 0, True, False)
 
-        l_minus_1 = minus_one(l)
-        ans = (count(r) - count(l_minus_1)) % MOD
-        return ans
+        def decrement_str(x: str) -> str:
+            # Helper to compute x-1 as a string
+            num = int(x)
+            if num == 0: return '0'
+            return str(num-1)
+
+        r_digits = to_base_digits(r, b)
+        l_minus_1_digits = to_base_digits(decrement_str(l), b)
+        count_r = count_non_decreasing(r_digits)
+        count_l_minus_1 = count_non_decreasing(l_minus_1_digits)
+        return (count_r - count_l_minus_1) % MOD
 # @lc code=end
