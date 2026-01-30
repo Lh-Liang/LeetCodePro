@@ -3,45 +3,72 @@
 #
 # [3441] Minimum Cost Good Caption
 #
+
 # @lc code=start
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
     string minCostGoodCaption(string caption) {
         int n = caption.length();
         if (n < 3) return "";
-        
-        const int INF = 1e9;
-        vector<pair<int, string>> dp(n + 1, {INF, ""});
-        dp[0] = {0, ""};
-        
-        for (int i = 3; i <= n; i++) {
-            for (int j = 0; j <= i - 3; j++) {
-                if (dp[j].first == INF) continue;
-                
-                int len = i - j;
-                vector<char> seg;
-                for (int k = j; k < i; k++) {
-                    seg.push_back(caption[k]);
-                }
-                sort(seg.begin(), seg.end());
-                char ch = seg[(len - 1) / 2];
-                
-                int cost = 0;
-                for (int k = j; k < i; k++) {
-                    cost += abs(caption[k] - ch);
-                }
-                
-                int newCost = dp[j].first + cost;
-                string newStr = dp[j].second + string(len, ch);
-                
-                if (newCost < dp[i].first || 
-                    (newCost == dp[i].first && newStr < dp[i].second)) {
-                    dp[i] = {newCost, newStr};
+
+        // dp[i] = minimum cost for suffix starting at i
+        vector<long long> dp(n + 1, 1e15);
+        dp[n] = 0;
+
+        // Precompute prefix sums of costs for each character 'a'-'z'
+        // cost_sum[char_idx][i] = sum of costs to change caption[0...i-1] to char
+        vector<vector<long long>> cost_sum(26, vector<long long>(n + 1, 0));
+        for (int c = 0; c < 26; ++c) {
+            char target = 'a' + c;
+            for (int i = 0; i < n; ++i) {
+                cost_sum[c][i + 1] = cost_sum[c][i] + abs(caption[i] - target);
+            }
+        }
+
+        auto get_cost = [&](int start, int end, int char_idx) {
+            return cost_sum[char_idx][end] - cost_sum[char_idx][start];
+        };
+
+        // Fill DP table from right to left
+        for (int i = n - 3; i >= 0; --i) {
+            for (int c = 0; c < 26; ++c) {
+                for (int len : {3, 4, 5}) {
+                    if (i + len <= n) {
+                        dp[i] = min(dp[i], get_cost(i, i + len, c) + dp[i + len]);
+                    }
                 }
             }
         }
-        
-        return dp[n].first == INF ? "" : dp[n].second;
+
+        if (dp[0] >= 1e15) return "";
+
+        // Reconstruct lexicographically smallest string
+        string res = "";
+        int i = 0;
+        while (i < n) {
+            bool found = false;
+            for (int c = 0; c < 26; ++c) {
+                for (int len : {3, 4, 5}) {
+                    if (i + len <= n) {
+                        if (get_cost(i, i + len, c) + dp[i + len] == dp[i]) {
+                            res.append(len, (char)('a' + c));
+                            i += len;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+                if (found) break;
+            }
+        }
+
+        return res;
     }
 };
 # @lc code=end
