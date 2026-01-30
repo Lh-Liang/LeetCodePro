@@ -5,54 +5,53 @@
 #
 
 # @lc code=start
-from typing import List, DefaultDict
-from collections import defaultdict, deque
-
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        # Step 1: Prepare sorted unique weights for binary search
-        weights = sorted(set(w for _,_,w in edges))
-        edge_buckets = defaultdict(list)
-        for a, b, w in edges:
-            edge_buckets[a].append((w, b))
-        
-        def is_feasible(max_weight):
-            # Step 2a: For each node, select outgoing edges <= max_weight, up to 'threshold' smallest
-            out_edges = defaultdict(list)
-            for a in range(n):
-                valid = [(w, b) for (w, b) in edge_buckets[a] if w <= max_weight]
-                valid.sort()
-                for (w, b) in valid[:threshold]:
-                    out_edges[a].append(b)
-                # Step 2b: Enforce threshold constraint
-                if len(out_edges[a]) > threshold:
-                    return False
-            # Step 3: Reverse graph for reachability check (all nodes should reach 0)
-            rev_edges = defaultdict(list)
-            for u in out_edges:
-                for v in out_edges[u]:
-                    rev_edges[v].append(u)
-            # Step 4: BFS from node 0 in reversed graph
-            seen = set([0])
-            dq = deque([0])
-            while dq:
-                node = dq.popleft()
-                for nei in rev_edges[node]:
-                    if nei not in seen:
-                        seen.add(nei)
-                        dq.append(nei)
-            # Step 5: Verify all nodes can reach node 0
-            return len(seen) == n
-        
-        # Step 6: Binary search over unique weights
-        left, right, answer = 0, len(weights) - 1, -1
+        from collections import defaultdict, deque
+        if not edges:
+            return -1 if n > 1 else 0
+        # Collect all unique weights
+        weights = sorted(set(w for _, _, w in edges))
+        left, right = 0, len(weights) - 1
+        answer = -1
+        # Build original edge list for fast filtering
+        edge_list = [[] for _ in range(n)]
+        for u, v, w in edges:
+            edge_list[u].append((v, w))
+        def feasible(maxW):
+            # Build subgraph with edge weight <= maxW
+            adj = [[] for _ in range(n)]
+            out_deg = [0] * n
+            in_rev = [[] for _ in range(n)]
+            for u in range(n):
+                for v, w in edge_list[u]:
+                    if w <= maxW:
+                        adj[u].append(v)
+                        out_deg[u] += 1
+                        in_rev[v].append(u)
+            # Out-degree check
+            if any(d > threshold for d in out_deg):
+                return False
+            # Check reachability: all nodes must reach node 0 (i.e., from every node there is a path to 0)
+            # We do this by BFS/DFS from 0 in the reversed graph
+            seen = [False] * n
+            stack = [0]
+            seen[0] = True
+            while stack:
+                u = stack.pop()
+                for v in in_rev[u]:
+                    if not seen[v]:
+                        seen[v] = True
+                        stack.append(v)
+            return all(seen)
+        # Binary search on weights
         while left <= right:
             mid = (left + right) // 2
-            if is_feasible(weights[mid]):
-                answer = weights[mid]
+            maxW = weights[mid]
+            if feasible(maxW):
+                answer = maxW
                 right = mid - 1
             else:
                 left = mid + 1
-        # Step 7: Double-check that answer is valid (already ensured by is_feasible)
         return answer
 # @lc code=end
