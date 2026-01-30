@@ -11,14 +11,15 @@
 #         self.val = val
 #         self.next = next
 from typing import List, Optional
+
 class Solution:
     def modifiedList(self, nums: List[int], head: Optional[ListNode]) -> Optional[ListNode]:
-        nums_set = set(nums)
+        remove_set = set(nums)
         dummy = ListNode(0)
         dummy.next = head
         prev, curr = dummy, head
         while curr:
-            if curr.val in nums_set:
+            if curr.val in remove_set:
                 prev.next = curr.next
             else:
                 prev = curr
