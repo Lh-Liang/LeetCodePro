@@ -5,42 +5,40 @@
 #
 
 # @lc code=start
-from collections import Counter
 class Solution:
     def lexPalindromicPermutation(self, s: str, target: str) -> str:
-        def next_permutation(seq):
-            seq = list(seq)
-            i = len(seq) - 2
-            while i >= 0 and seq[i] >= seq[i + 1]:
-                i -= 1
-            if i == -1:
-                return None
-            j = len(seq) - 1
-            while seq[j] <= seq[i]:
-                j -= 1
-            seq[i], seq[j] = seq[j], seq[i]
-            seq[i + 1:] = reversed(seq[i + 1:])
-            return ''.join(seq)
+        from collections import Counter
+        from itertools import permutations
         
-        count = Counter(s)
-        mid_char = ""
-        half_str = []
-        for char in sorted(count):
-            if count[char] % 2 == 1:
-                if mid_char:
-                    return ""
-                mid_char = char
-            half_str.extend([char] * (count[char] // 2))
-        half_str = ''.join(half_str)
-        palindrome_candidate = half_str + mid_char + half_str[::-1]
-        if palindrome_candidate > target:
-            return palindrome_candidate
-        while True:
-            next_half_str = next_permutation(half_str)
-            if not next_half_str:
-                break
-            candidate = next_half_str + mid_char + next_half_str[::-1]
-            if candidate > target:
-                return candidate
-        return ""
+        char_counts = Counter(s)
+        odd_char = None
+        half_palindrome = []
+        for char in sorted(char_counts):
+            count = char_counts[char]
+            if count % 2 == 1:
+                if odd_char is not None:
+                    return "" # More than one character with an odd count
+                odd_char = char
+            half_palindrome.append(char * (count // 2))
+        
+        # Create a list from half_palindrome string for permutations
+        half_chars = ''.join(half_palindrome)
+        
+        # Generate all unique permutations of half_chars and form palindromes
+        unique_half_permutations = set(permutations(half_chars))
+        sorted_palindromes = []
+        for perm in unique_half_permutations:
+            half_perm_str = ''.join(perm)
+            full_palindrome = half_perm_str + (odd_char or '') + half_perm_str[::-1]
+            sorted_palindromes.append(full_palindrome)
+        
+        # Sort palindromes lexicographically
+        sorted_palindromes.sort()
+        
+        # Find the first palindrome greater than target
+        for palindrome in sorted_palindromes:
+            if palindrome > target:
+                return palindrome
+                
+        return "" # Return empty string if no valid greater palindrome can be formed.
 # @lc code=end
