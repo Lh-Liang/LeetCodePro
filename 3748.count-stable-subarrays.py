@@ -8,20 +8,30 @@
 class Solution:
     def countStableSubarrays(self, nums: List[int], queries: List[List[int]]) -> List[int]:
         n = len(nums)
-        # Precompute stable_end array
-        stable_end = [0] * n
-        current_stable_end = 0
-        for i in range(n):
-            if i > 0 and nums[i-1] > nums[i]:
-                current_stable_end = i
-            stable_end[i] = current_stable_end
-        
-        results = []
+        # Step 1: Preprocess non-decreasing segments
+        seg_start = [0] * n  # seg_start[i]: start index of non-decreasing segment containing i
+        l = 0
+        for i in range(1, n):
+            if nums[i] < nums[i-1]:
+                l = i
+            seg_start[i] = l
+
+        res = []
         for li, ri in queries:
-            count = 0
-            for start in range(li, ri + 1):
-                end_limit = min(stable_end[start], ri)
-                count += (end_limit - start + 1)
-            results.append(count)
-        return results
+            ans = 0
+            i = li
+            while i <= ri:
+                # Find the start of the non-decreasing segment
+                seg_l = seg_start[i]
+                # Find the rightmost index in the same segment within the query
+                j = i
+                while j+1 <= ri and seg_start[j+1] == seg_l:
+                    j += 1
+                length = j - i + 1
+                # Count all stable subarrays in this segment within the query
+                ans += length * (length + 1) // 2
+                i = j + 1
+            # Step 6: After processing, answer should reflect all stable subarrays in [li, ri]
+            res.append(ans)
+        return res
 # @lc code=end
