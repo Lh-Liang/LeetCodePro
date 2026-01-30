@@ -9,16 +9,14 @@ class Solution:
     def countSubstrings(self, s: str) -> int:
         count = 0
         n = len(s)
-        
-        # Iterate over each starting point for substrings
-        for start in range(n):
-            # Form substrings from `start` to `end`
-            for end in range(start, n):
-                # Current substring's last digit
-                last_digit = int(s[end])
-                if last_digit != 0: # Check if last digit is non-zero
-                    # Convert substring to integer and check divisibility
-                    if int(s[start:end+1]) % last_digit == 0:
-                        count += 1
+        for i in range(n):
+            last_digit = int(s[i])
+            if last_digit == 0:
+                continue  # Skip substrings ending in 0 as they cannot be valid divisors
+            num = 0
+            for j in range(i, n):
+                num = num * 10 + int(s[j])   # Form the number represented by s[i:j+1]
+                if num % last_digit == 0:
+                    count += 1               # Count this substring if it is divisible by its last digit
         return count
 # @lc code=end
