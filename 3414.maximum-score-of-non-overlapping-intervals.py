@@ -5,33 +5,43 @@
 #
 
 # @lc code=start
+from typing import List
+import bisect
+
 class Solution:
     def maximumWeight(self, intervals: List[List[int]]) -> List[int]:
-        # Sort intervals based on their end time (ri)
-        intervals.sort(key=lambda x: x[1])
         n = len(intervals)
-        # Initialize dp with tuples of (max_score, indices_list)
-        dp = [(0, [])] * (n + 1)
+        # Attach original indices
+        intervals_with_idx = sorted([(l, r, w, i) for i, (l, r, w) in enumerate(intervals)], key=lambda x: (x[1], x[0], x[2], x[3]))
+        # Prepare for binary search: sorted by end time
+        ends = [interval[1] for interval in intervals_with_idx]
+
+        # dp[k][i] = (score, indices list) for best up to i, using k intervals
+        dp = [ [(0, []) for _ in range(n+1)] for _ in range(5) ]
         for i in range(1, n+1):
-            li, ri, wi = intervals[i-1]
-            # Binary search for last interval that doesn't overlap with current one
-            low, high = 0, i-1
-            while low < high:
-                mid = (low + high + 1) // 2
-                if intervals[mid][1] < li:
-                    low = mid + 1
-                else:
-                    high = mid - 1
-            prev_index = low - 1 if intervals[low][1] < li else -1
-            # Calculate new score if including this interval
-            new_score = dp[prev_index+1][0] + wi if prev_index != -1 else wi
-            new_indices = dp[prev_index+1][1] + [i-1] if prev_index != -1 else [i-1]
-            # Update dp table with max score and lexicographically smallest indices list
-            if new_score > dp[i-1][0]:
-                dp[i] = (new_score, sorted(new_indices)[:4])  # at most 4 indices allowed
-            elif new_score == dp[i-1][0]: 
-                dp[i] = min(dp[i], (new_score, sorted(new_indices)[:4]))
-            else:
-                dp[i] = dp[i-1]
-        return sorted(dp[-1][1])
+            l, r, w, idx = intervals_with_idx[i-1]
+            for k in range(1, 5):
+                # Option 1: Don't take this interval
+                if dp[k][i-1][0] > dp[k][i][0] or (dp[k][i-1][0] == dp[k][i][0] and dp[k][i-1][1] < dp[k][i][1]):
+                    dp[k][i] = dp[k][i-1]
+                # Option 2: Take this interval
+                # Find last non-overlapping interval
+                j = bisect.bisect_right(ends, l-1, 0, i-1)
+                cand_score = dp[k-1][j][0] + w
+                cand_indices = dp[k-1][j][1] + [idx]
+                if (cand_score > dp[k][i][0] or 
+                    (cand_score == dp[k][i][0] and sorted(cand_indices) < sorted(dp[k][i][1]))):
+                    dp[k][i] = (cand_score, sorted(cand_indices))
+        # Find the best among k=1..4
+        best = (0, [])
+        for k in range(1, 5):
+            if (dp[k][n][0] > best[0] or (dp[k][n][0] == best[0] and dp[k][n][1] < best[1])):
+                best = dp[k][n]
+        # Verification: Ensure chosen intervals are non-overlapping
+        chosen = [intervals[i] for i in best[1]]
+        chosen_sorted = sorted((li, ri) for li, ri, _ in chosen)
+        for i in range(1, len(chosen_sorted)):
+            if chosen_sorted[i-1][1] >= chosen_sorted[i][0]:
+                return [] # Invalid selection
+        return sorted(best[1])
 # @lc code=end
