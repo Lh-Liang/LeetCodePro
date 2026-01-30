@@ -3,6 +3,7 @@
 #
 # [2816] Double a Number Represented as a Linked List
 #
+
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -14,15 +15,15 @@ class Solution:
         def reverse(node):
             prev = None
             while node:
-                nxt = node.next
+                next_node = node.next
                 node.next = prev
                 prev = node
-                node = nxt
+                node = next_node
             return prev
-
+        # Reverse the list
         head = reverse(head)
-        curr = head
         carry = 0
+        curr = head
         prev = None
         while curr:
             total = curr.val * 2 + carry
@@ -30,7 +31,8 @@ class Solution:
             carry = total // 10
             prev = curr
             curr = curr.next
-        if carry:
+        if carry > 0:
             prev.next = ListNode(carry)
+        # Reverse back
         return reverse(head)
 # @lc code=end
