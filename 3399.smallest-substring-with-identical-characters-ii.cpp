@@ -3,65 +3,53 @@
 #
 # [3399] Smallest Substring With Identical Characters II
 #
+
 # @lc code=start
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
     int minLength(string s, int numOps) {
         int n = s.length();
-        
-        // Special case: check if we can achieve length 1 (alternating pattern)
-        int mismatch1 = 0, mismatch2 = 0;
-        for (int i = 0; i < n; i++) {
-            if (s[i] - '0' != i % 2) mismatch1++;
-            if (s[i] - '0' != 1 - i % 2) mismatch2++;
-        }
-        if (min(mismatch1, mismatch2) <= numOps) {
-            return 1;
-        }
-        
-        // Binary search on the answer
-        int left = 2, right = n;
-        int ans = n;
-        
+
+        auto check = [&](int k) -> bool {
+            if (k == 1) {
+                int ops0 = 0;
+                for (int i = 0; i < n; ++i) {
+                    char target = (i % 2 == 0) ? '0' : '1';
+                    if (s[i] != target) ops0++;
+                }
+                return min(ops0, n - ops0) <= numOps;
+            } else {
+                int totalOps = 0;
+                int count = 0;
+                for (int i = 0; i < n; ++i) {
+                    if (i > 0 && s[i] == s[i - 1]) {
+                        count++;
+                    } else {
+                        totalOps += count / (k + 1);
+                        count = 1;
+                    }
+                }
+                totalOps += count / (k + 1);
+                return totalOps <= numOps;
+            }
+        };
+
+        int left = 1, right = n, ans = n;
         while (left <= right) {
             int mid = left + (right - left) / 2;
-            if (canAchieve(s, mid, numOps)) {
+            if (check(mid)) {
                 ans = mid;
                 right = mid - 1;
             } else {
                 left = mid + 1;
             }
         }
-        
         return ans;
-    }
-    
-    bool canAchieve(string& s, int k, int numOps) {
-        int n = s.length();
-        int flips = 0;
-        int i = 0;
-        
-        while (i < n) {
-            int j = i;
-            // Find the end of current consecutive substring
-            while (j < n && s[j] == s[i]) {
-                j++;
-            }
-            int len = j - i;
-            
-            // Calculate flips needed to break this substring
-            if (len > k) {
-                flips += len / (k + 1);
-            }
-            
-            if (flips > numOps) {
-                return false;
-            }
-            
-            i = j;
-        }
-        
-        return true;
     }
 };
 # @lc code=end
