@@ -7,18 +7,13 @@
 # @lc code=start
 class Solution:
     def uniqueXorTriplets(self, nums: List[int]) -> int:
+        unique_xor_values = set()
         n = len(nums)
-        # For small n, brute force all triplets
-        if n <= 2000:
-            seen = set()
-            for i in range(n):
-                for j in range(i, n):
-                    for k in range(j, n):
-                        seen.add(nums[i] ^ nums[j] ^ nums[k])
-            return len(seen)
-        else:
-            # For large n, the possible values of XOR from the permutation [1..n] is at most n
-            # Since every value from 1 to n can be formed, and XOR is a group operation,
-            # it covers all possible values from 0 up to n, but let's compute it experimentally
-            return n
+        for i in range(n):
+            for j in range(i, n):
+                current_xor = nums[i]
+                for k in range(j, n):
+                    current_xor ^= nums[k]
+                    unique_xor_values.add(current_xor)
+        return len(unique_xor_values)
 # @lc code=end
