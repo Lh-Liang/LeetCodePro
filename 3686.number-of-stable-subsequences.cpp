@@ -1,41 +1,46 @@
+#include <vector>
+using namespace std;
+
 #
 # @lc app=leetcode id=3686 lang=cpp
 #
 # [3686] Number of Stable Subsequences
 #
+
 # @lc code=start
 class Solution {
 public:
     int countStableSubsequences(vector<int>& nums) {
-        const int MOD = 1e9 + 7;
-        
-        // dp[parity][count]
-        // parity: 0 (even), 1 (odd)
-        // count: 1 or 2 (number of consecutive elements with that parity at the end)
-        vector<vector<long long>> dp(2, vector<long long>(3, 0));
-        
+        long long mod = 1e9 + 7;
+        // dp[parity][count-1]
+        // dp[0][0]: ends in one even, dp[0][1]: ends in two evens
+        // dp[1][0]: ends in one odd,  dp[1][1]: ends in two odds
+        long long dp00 = 0, dp01 = 0, dp10 = 0, dp11 = 0;
+
         for (int num : nums) {
-            int parity = num % 2;
-            int other = 1 - parity;
-            
-            vector<vector<long long>> new_dp = dp;
-            
-            // Start a new subsequence with this element
-            new_dp[parity][1] = (new_dp[parity][1] + 1) % MOD;
-            
-            // Extend subsequences with same parity (only from count=1 to count=2)
-            new_dp[parity][2] = (new_dp[parity][2] + dp[parity][1]) % MOD;
-            
-            // Extend subsequences with different parity (reset count to 1)
-            new_dp[parity][1] = (new_dp[parity][1] + dp[other][1]) % MOD;
-            new_dp[parity][1] = (new_dp[parity][1] + dp[other][2]) % MOD;
-            
-            dp = new_dp;
+            int p = num % 2;
+            if (p == 0) {
+                // New count for subsequences ending in two evens
+                long long next_dp01 = (dp01 + dp00) % mod;
+                // New count for subsequences ending in one even
+                // (starts new, or follows any odd-ending sequence)
+                long long next_dp00 = (dp00 + 1 + dp10 + dp11) % mod;
+                
+                dp01 = next_dp01;
+                dp00 = next_dp00;
+            } else {
+                // New count for subsequences ending in two odds
+                long long next_dp11 = (dp11 + dp10) % mod;
+                // New count for subsequences ending in one odd
+                // (starts new, or follows any even-ending sequence)
+                long long next_dp10 = (dp10 + 1 + dp00 + dp01) % mod;
+
+                dp11 = next_dp11;
+                dp10 = next_dp10;
+            }
         }
-        
-        // Sum all stable subsequences
-        long long result = (dp[0][1] + dp[0][2] + dp[1][1] + dp[1][2]) % MOD;
-        return result;
+
+        return (dp00 + dp01 + dp10 + dp11) % mod;
     }
 };
 # @lc code=end
