@@ -1,132 +1,79 @@
-#
-# @lc app=leetcode id=3548 lang=cpp
-#
-# [3548] Equal Sum Grid Partition II
-#
-# @lc code=start
+#include <vector>
+#include <numeric>
+#include <algorithm>
+#include <unordered_map>
+
+using namespace std;
+
 class Solution {
 public:
     bool canPartitionGrid(vector<vector<int>>& grid) {
         int m = grid.size();
         int n = grid[0].size();
-        
-        for (int i = 0; i < m - 1; i++) {
-            if (checkHorizontalCut(grid, i)) return true;
-        }
-        
-        for (int j = 0; j < n - 1; j++) {
-            if (checkVerticalCut(grid, j)) return true;
-        }
-        
-        return false;
-    }
-    
-private:
-    bool checkHorizontalCut(vector<vector<int>>& grid, int cutRow) {
-        int m = grid.size(), n = grid[0].size();
-        long long topSum = 0, bottomSum = 0;
-        vector<pair<int,int>> topCells, bottomCells;
-        
-        for (int i = 0; i <= cutRow; i++) {
-            for (int j = 0; j < n; j++) {
-                topSum += grid[i][j];
-                topCells.push_back({i, j});
+        long long total_sum = 0;
+        vector<long long> row_sums(m, 0);
+        vector<long long> col_sums(n, 0);
+        unordered_map<int, vector<pair<int, int>>> pos_map;
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                int val = grid[i][j];
+                total_sum += val;
+                row_sums[i] += val;
+                col_sums[j] += val;
+                pos_map[val].push_back({i, j});
             }
         }
-        
-        for (int i = cutRow + 1; i < m; i++) {
-            for (int j = 0; j < n; j++) {
-                bottomSum += grid[i][j];
-                bottomCells.push_back({i, j});
-            }
-        }
-        
-        if (topSum == bottomSum) return true;
-        
-        if (topSum > bottomSum) {
-            long long diff = topSum - bottomSum;
-            for (auto [r, c] : topCells) {
-                if (grid[r][c] == diff && isConnectedAfterRemoval(topCells, r, c)) return true;
-            }
-        }
-        
-        if (bottomSum > topSum) {
-            long long diff = bottomSum - topSum;
-            for (auto [r, c] : bottomCells) {
-                if (grid[r][c] == diff && isConnectedAfterRemoval(bottomCells, r, c)) return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    bool checkVerticalCut(vector<vector<int>>& grid, int cutCol) {
-        int m = grid.size(), n = grid[0].size();
-        long long leftSum = 0, rightSum = 0;
-        vector<pair<int,int>> leftCells, rightCells;
-        
-        for (int i = 0; i < m; i++) {
-            for (int j = 0; j <= cutCol; j++) {
-                leftSum += grid[i][j];
-                leftCells.push_back({i, j});
-            }
-        }
-        
-        for (int i = 0; i < m; i++) {
-            for (int j = cutCol + 1; j < n; j++) {
-                rightSum += grid[i][j];
-                rightCells.push_back({i, j});
-            }
-        }
-        
-        if (leftSum == rightSum) return true;
-        
-        if (leftSum > rightSum) {
-            long long diff = leftSum - rightSum;
-            for (auto [r, c] : leftCells) {
-                if (grid[r][c] == diff && isConnectedAfterRemoval(leftCells, r, c)) return true;
-            }
-        }
-        
-        if (rightSum > leftSum) {
-            long long diff = rightSum - leftSum;
-            for (auto [r, c] : rightCells) {
-                if (grid[r][c] == diff && isConnectedAfterRemoval(rightCells, r, c)) return true;
-            }
-        }
-        
-        return false;
-    }
-    
-    bool isConnectedAfterRemoval(vector<pair<int,int>>& cells, int removeR, int removeC) {
-        set<pair<int,int>> cellSet;
-        for (auto [r, c] : cells) {
-            if (r != removeR || c != removeC) cellSet.insert({r, c});
-        }
-        
-        if (cellSet.empty()) return false;
-        
-        set<pair<int,int>> visited;
-        queue<pair<int,int>> q;
-        q.push(*cellSet.begin());
-        visited.insert(*cellSet.begin());
-        
-        int dx[] = {-1, 1, 0, 0}, dy[] = {0, 0, -1, 1};
-        
-        while (!q.empty()) {
-            auto [x, y] = q.front();
-            q.pop();
+
+        auto has_valid_cell = [&](int target_val, int r1, int r2, int c1, int c2) {
+            if (target_val <= 0 || pos_map.find(target_val) == pos_map.end()) return false;
+            const auto& positions = pos_map[target_val];
             
-            for (int k = 0; k < 4; k++) {
-                int nx = x + dx[k], ny = y + dy[k];
-                if (cellSet.count({nx, ny}) && !visited.count({nx, ny})) {
-                    visited.insert({nx, ny});
-                    q.push({nx, ny});
+            int R = r2 - r1 + 1;
+            int C = c2 - c1 + 1;
+
+            if (R > 1 && C > 1) {
+                auto it = lower_bound(positions.begin(), positions.end(), make_pair(r1, c1));
+                while (it != positions.end() && it->first <= r2) {
+                    if (it->second >= c1 && it->second <= c2) return true;
+                    ++it;
+                }
+            } else if (R == 1 && C > 1) {
+                for (auto& p : positions) {
+                    if (p.first == r1 && (p.second == c1 || p.second == c2)) return true;
+                }
+            } else if (R > 1 && C == 1) {
+                for (auto& p : positions) {
+                    if (p.second == c1 && (p.first == r1 || p.first == r2)) return true;
+                }
+            } else if (R == 1 && C == 1) {
+                for (auto& p : positions) {
+                    if (p.first == r1 && p.second == c1) return true;
                 }
             }
+            return false;
+        };
+
+        auto check = [&](long long sa, int r1a, int r2a, int c1a, int c2a, int r1b, int r2b, int c1b, int c2b) {
+            long long sb = total_sum - sa;
+            if (sa == sb) return true;
+            if (has_valid_cell((int)(sa - sb), r1a, r2a, c1a, c2a)) return true;
+            if (has_valid_cell((int)(sb - sa), r1b, r2b, c1b, c2b)) return true;
+            return false;
+        };
+
+        long long current_sa = 0;
+        for (int i = 0; i < m - 1; ++i) {
+            current_sa += row_sums[i];
+            if (check(current_sa, 0, i, 0, n - 1, i + 1, m - 1, 0, n - 1)) return true;
         }
-        
-        return visited.size() == cellSet.size();
+
+        current_sa = 0;
+        for (int j = 0; j < n - 1; ++j) {
+            current_sa += col_sums[j];
+            if (check(current_sa, 0, m - 1, 0, j, 0, m - 1, j + 1, n - 1)) return true;
+        }
+
+        return false;
     }
 };
-# @lc code=end
