@@ -7,25 +7,30 @@
 # @lc code=start
 class TextEditor:
     def __init__(self):
-        self.left = []  # Stack for text left of the cursor
-        self.right = [] # Stack for text right of the cursor
+        self.left = []  # stack to store characters on the left of the cursor
+        self.right = []  # stack to store characters on the right of the cursor
 
     def addText(self, text: str) -> None:
-        self.left.extend(text)
-        # Cursor moves to end of added text (implicit by stack nature)
-
+        for char in text:
+            self.left.append(char)  # add characters to the left stack
+        
     def deleteText(self, k: int) -> int:
-        count = min(k, len(self.left))
-        del self.left[-count:]  # Efficiently remove last `count` elements using slicing
-        return count  # Number of actually deleted characters
-
+        delete_count = 0
+        while k > 0 and self.left:
+            self.left.pop()  # remove characters from left stack
+            delete_count += 1
+            k -= 1
+        return delete_count
+    
     def cursorLeft(self, k: int) -> str:
-        for _ in range(min(k, len(self.left))):
-            self.right.append(self.left.pop()) # Move character from left stack to right stack
-        return ''.join(self.left[-10:])  # Return last 10 chars or fewer from left side
-
+        while k > 0 and self.left:
+            self.right.append(self.left.pop())  # move character from left stack to right stack
+            k -= 1
+        return ''.join(self.left[-10:])  # return last up to 10 chars from left stack as string
+    
     def cursorRight(self, k: int) -> str:
-        for _ in range(min(k, len(self.right))):
-            self.left.append(self.right.pop()) # Move character from right stack to left stack
-        return ''.join(self.left[-10:])  # Return last 10 chars or fewer from left side 
+        while k > 0 and self.right:
+            self.left.append(self.right.pop())  # move character from right stack to left stack
+            k -= 1
+        return ''.join(self.left[-10:])  # return last up to 10 chars from left stack as string
 # @lc code=end
