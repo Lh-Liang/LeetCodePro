@@ -7,12 +7,12 @@
 # @lc code=start
 class Solution:
     def countNoZeroPairs(self, n: int) -> int:
-        def has_zero(x):
-            return '0' in str(x)
+        def is_no_zero(x):
+            return '0' not in str(x)
         count = 0
         for a in range(1, n):
             b = n - a
-            if not has_zero(a) and not has_zero(b):
+            if is_no_zero(a) and is_no_zero(b):
                 count += 1
-        return count # No need for symmetry adjustment because we iterate all pairs (a, b)
+        return count
 # @lc code=end
