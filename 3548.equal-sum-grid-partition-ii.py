@@ -7,37 +7,53 @@
 # @lc code=start
 class Solution:
     def canPartitionGrid(self, grid: List[List[int]]) -> bool:
-        def is_connected(grid_section):
-            m, n = len(grid_section), len(grid_section[0])
-            visited = set()
-            stack = [(0, 0)]
-            visited.add((0, 0))
-            directions = [(1, 0), (-1, 0), (0, 1), (0, -1)]
-            connected_cells = 1
-            while stack:
-                x, y = stack.pop()
-                for dx, dy in directions:
-                    nx, ny = x + dx, y + dy
-                    if 0 <= nx < m and 0 <= ny < n and (nx, ny) not in visited and grid_section[nx][ny] != -1:
-                        visited.add((nx, ny))
-                        stack.append((nx, ny))
-                        connected_cells += 1
-            return connected_cells == m * n - 1
-        
-        m = len(grid)
-        n = len(grid[0])
+        m, n = len(grid), len(grid[0])
         total_sum = sum(sum(row) for row in grid)
         
-        for r in range(1, m):  # Horizontal cuts
-            top_sum = sum(sum(row) for row in grid[:r])
+        # Function to calculate prefix sums
+        def calculate_prefix_sums(matrix):
+            prefix_sums = [[0] * (len(matrix[0]) + 1) for _ in range(len(matrix) + 1)]
+            for i in range(1, len(matrix) + 1):
+                for j in range(1, len(matrix[0]) + 1):
+                    prefix_sums[i][j] = matrix[i-1][j-1] + prefix_sums[i-1][j] + prefix_sums[i][j-1] - prefix_sums[i-1][j-1]
+            return prefix_sums
+        
+        # Calculate prefix sums for rows and columns correctly without relying directly on transposition.
+        row_prefix_sums = calculate_prefix_sums(grid)
+        col_prefix_sums = [[0] * (m+1) for _ in range(n+1)]
+        for j in range(1, n+1):
+            for i in range(1, m+1):
+                col_prefix_sums[j][i] = grid[i-1][j-1] + col_prefix_sums[j][i-1]
+                
+        # Check horizontal cuts
+        for row in range(1, m):
+            top_sum = row_prefix_sums[row][-1]
             bottom_sum = total_sum - top_sum
-            if top_sum == bottom_sum:
+            if self.check_partition_possible(top_sum, bottom_sum, grid[:row], grid[row:]):
                 return True
-            # Check by discounting one cell from either top or bottom part and checking connectivity
-            for c in range(n):
-                new_top_sum = top_sum - grid[r-1][c]
-                new_bottom_sum = bottom_sum - grid[r][c]
-                if new_top_sum == new_bottom_sum:
-                    if is_connected([row[:c] + row[c+1:] for row in grid[:r]]) or \
-is_connected([row[:c] + row[c+1:] for row in grid[r:]]):"]                      return True
-        \\[vertical cut logic similar]\/"]";\""]          "}\u000a \u000a     "#: @lc code=end"\u000a "
+            
+        # Check vertical cuts
+        for col in range(1, n):
+            left_sum = col_prefix_sums[col][-2]
+            right_sum = total_sum - left_sum
+            left_grid = [row[:col] for row in grid]
+            right_grid = [row[col:] for row in grid]
+            if self.check_partition_possible(left_sum, right_sum, left_grid, right_grid):
+                return True
+        
+        return False
+    
+    def check_partition_possible(self, sum_a, sum_b, section_a, section_b):
+        # Check if sums are equal or can be made equal by removing one cell while maintaining connectivity.
+        if sum_a == sum_b:
+            return True
+        elif abs(sum_a - sum_b) <= max(max(max(section_a)), max(max(section_b))): # Simplified check condition.
+            # Implement detailed logic to ensure a single removal maintains connectivity using DFS/BFS.
+            return self.is_connected_after_removal(section_a) or self.is_connected_after_removal(section_b)
+        return False
+    
+    def is_connected_after_removal(self, section):
+        # Implement BFS/DFS to ensure all parts remain reachable after a single removal.
+        # Placeholder function; needs detailed implementation based on problem constraints.
+        pass  # Replace with actual logic ensuring connectivity post-removal.
+# @lc code=end
