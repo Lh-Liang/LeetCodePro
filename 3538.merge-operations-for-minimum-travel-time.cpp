@@ -1,50 +1,61 @@
-#
-# @lc app=leetcode id=3538 lang=cpp
-#
-# [3538] Merge Operations for Minimum Travel Time
-#
+#include <vector>
+#include <algorithm>
 
-# @lc code=start
-#include <bits/stdc++.h>
 using namespace std;
 
 class Solution {
 public:
     int minTravelTime(int l, int n, int k, vector<int>& position, vector<int>& time) {
-        vector<long long> prefix(n + 1, 0);
-        for (int i = 1; i <= n; ++i) {
-            prefix[i] = prefix[i - 1] + time[i - 1];
+        // dp[i][j][rem]: min time to reach sign i, 
+        // where sign j was the one kept before i,
+        // and rem signs have been removed in total.
+        long long INF = 1e18;
+        vector<vector<vector<long long>>> dp(n, vector<vector<long long>>(n, vector<long long>(k + 1, INF)));
+
+        // Prefix sums for time to calculate segment speeds quickly
+        vector<int> pref(n + 1, 0);
+        for (int i = 0; i < n; ++i) {
+            pref[i + 1] = pref[i] + time[i];
         }
-        const long long INF = LLONG_MAX / 2;
-        vector<vector<vector<long long>>> dp(n, vector<vector<long long>>(k + 1, vector<long long>(101, INF)));
-        int t0 = time[0];
-        dp[0][0][t0] = 0;
-        for (int q = 0; q < n; ++q) {
-            for (int u = 0; u <= k; ++u) {
-                for (int s = 0; s <= 100; ++s) {
-                    if (dp[q][u][s] == INF) continue;
-                    for (int p = q + 1; p < n; ++p) {
-                        int num_signs = p - q;
-                        int mrg = num_signs - 1;
-                        int nu = u + mrg;
-                        if (nu > k) continue;
-                        long long ns = prefix[p + 1] - prefix[q + 1];
-                        if (ns > 100 || ns <= 0) continue;
-                        long long dist = (long long)position[p] - position[q];
-                        long long addc = dist * s;
-                        long long nc = dp[q][u][s] + addc;
-                        if (nc < dp[p][nu][(int)ns]) {
-                            dp[p][nu][(int)ns] = nc;
+
+        // Base cases: First segment starting from position[0]
+        // We keep sign 0, then the next sign we keep is i.
+        // All signs between 0 and i are removed (i-1 signs).
+        for (int i = 1; i < n; ++i) {
+            int removed = i - 1;
+            if (removed <= k) {
+                dp[i][0][removed] = (long long)(position[i] - position[0]) * time[0];
+            }
+        }
+
+        // DP transitions
+        for (int i = 1; i < n; ++i) { // current sign index
+            for (int j = 0; j < i; ++j) { // previous sign index
+                for (int rem = 0; rem <= k; ++rem) { // total removed signs
+                    if (dp[i][j][rem] == INF) continue;
+
+                    // Choose the next sign to keep
+                    for (int next_i = i + 1; next_i < n; ++next_i) {
+                        int newly_removed = next_i - i - 1;
+                        if (rem + newly_removed <= k) {
+                            // Speed for segment [pos[i], pos[next_i]] is sum(time[j+1...i])
+                            long long speed = pref[i + 1] - pref[j + 1];
+                            long long cost = (long long)(position[next_i] - position[i]) * speed;
+                            if (dp[i][j][rem] + cost < dp[next_i][i][rem + newly_removed]) {
+                                dp[next_i][i][rem + newly_removed] = dp[i][j][rem] + cost;
+                            }
                         }
                     }
                 }
             }
         }
+
+        // The answer is the minimum value at the final sign (n-1) with exactly k removals
         long long ans = INF;
-        for (int s = 0; s <= 100; ++s) {
-            ans = min(ans, dp[n - 1][k][s]);
+        for (int j = 0; j < n - 1; ++j) {
+            ans = min(ans, dp[n - 1][j][k]);
         }
+
         return (int)ans;
     }
 };
-# @lc code=end
