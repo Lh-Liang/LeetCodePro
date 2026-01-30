@@ -3,6 +3,7 @@
 #
 # [2816] Double a Number Represented as a Linked List
 #
+
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -16,22 +17,27 @@
  */
 class Solution {
 public:
-    int doubleHelper(ListNode* node) {
-        if (node == nullptr) return 0;
-        
-        int carry = doubleHelper(node->next);
-        int val = node->val * 2 + carry;
-        node->val = val % 10;
-        return val / 10;
-    }
-    
     ListNode* doubleIt(ListNode* head) {
-        int carry = doubleHelper(head);
-        if (carry > 0) {
-            ListNode* newHead = new ListNode(carry);
-            newHead->next = head;
-            head = newHead;
+        // If the head's value is 5 or more, doubling it will result in a carry
+        // that creates a new most-significant digit.
+        if (head->val >= 5) {
+            head = new ListNode(0, head);
         }
+
+        ListNode* curr = head;
+        while (curr != nullptr) {
+            // Update current node: double it and take modulo 10.
+            curr->val = (curr->val * 2) % 10;
+
+            // Look ahead to the next node. If it will produce a carry (val >= 5),
+            // increment the current node.
+            if (curr->next != nullptr && curr->next->val >= 5) {
+                curr->val += 1;
+            }
+
+            curr = curr->next;
+        }
+
         return head;
     }
 };
