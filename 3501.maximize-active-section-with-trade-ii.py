@@ -7,25 +7,29 @@
 # @lc code=start
 class Solution:
     def maxActiveSectionsAfterTrade(self, s: str, queries: List[List[int]]) -> List[int]:
+        def count_active_sections(t):
+            return sum(1 for i in range(1, len(t)) if t[i] == '1' and t[i-1] == '0')
+        
         results = []
         for li, ri in queries:
-            # Augmenting substring with '1' at both ends
-            t = '1' + s[li:ri+1] + '1'
-            current_active = max_active = t.count('1') - 2  # initial active count without augmentation
-            i = 0
-            while i < len(t):
-                if t[i] == '0':
-                    start = i
-                    while i < len(t) and t[i] == '0':
-                        i += 1
-                    end = i - 1
-                    if t[start-1] == '1' and t[end+1] == '1':
-                        zeros_count = end - start + 1
-                        gain_if_flipped = current_active + zeros_count - (t[start-2:end+2].count('1') - zeros_count)
-                        max_active = max(max_active, gain_if_flipped)
+            substring = s[li:ri+1]
+            augmented = '1' + substring + '1'
+            initial_active = count_active_sections(augmented) - 2 # Subtracting artificial augmentation count
+            max_active = initial_active
+            zero_blocks = []
+            # Determine blocks of zeros surrounded by ones
+            current_zeros = 0
+            for i in range(1, len(augmented) - 1):
+                if augmented[i] == '0':
+                    current_zeros += 1
                 else:
-                    current_active += 1 if t[i] == '1' else 0
-                i += 1
+                    if current_zeros > 0 and augmented[i-1] == '1':
+                        zero_blocks.append(current_zeros)
+                    current_zeros = 0
+            # Consider all swaps and calculate max active sections possible after one swap.
+            for zeros in zero_blocks:
+                new_section_count = initial_active + zeros - 1 # Gain zeros block as ones section, lose one section from original ones block. 
+                max_active = max(max_active, new_section_count)
             results.append(max_active)
         return results
 # @lc code=end
