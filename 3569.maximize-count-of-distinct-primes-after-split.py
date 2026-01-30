@@ -5,55 +5,58 @@
 #
 
 # @lc code=start
-from typing import List, Set
+from typing import List
+import math
 
 class Solution:
-    def sieve_of_eratosthenes(self, max_number: int) -> Set[int]:
-        is_prime = [True] * (max_number + 1)
+    def sieve_of_eratosthenes(self, max_num: int) -> List[bool]:
+        is_prime = [True] * (max_num + 1)
         p = 2
-        while (p * p <= max_number):
+        while (p * p <= max_num):
             if (is_prime[p] == True):
-                for i in range(p * p, max_number + 1, p):
+                for i in range(p * p, max_num + 1, p):
                     is_prime[i] = False
             p += 1
-        prime_set = {p for p in range(2, max_number + 1) if is_prime[p]}
-        return prime_set
+        is_prime[0], is_prime[1] = False, False # 0 and 1 are not primes
+        return is_prime
     
     def maximumCount(self, nums: List[int], queries: List[List[int]]) -> List[int]:
-        # Step 1: Prepare a set of all primes up to the maximum possible value in nums.
-        max_num_value = 105  # As per constraints
-        prime_set = self.sieve_of_eratosthenes(max_num_value)
-        
+        max_val = 105 # Given constraint on nums[i]
+        is_prime = self.sieve_of_eratosthenes(max_val)
         results = []
         n = len(nums)
         
-        # Step 2: Process each query and calculate results after updating nums.
+        def count_distinct_primes(nums_segment):
+            prime_set = set()
+            for num in nums_segment:
+                if is_prime[num]:
+                    prime_set.add(num)
+            return len(prime_set)
+
         for idx, val in queries:
-            # Update nums[idx] with val as per query instruction.
             nums[idx] = val
+            prefix_primes = [0]* (n+1) # Store count of distinct primes up to index i for prefix
+            suffix_primes = [0]* (n+1) # Store count of distinct primes from index i to end for suffix
             
-            # Step 3: Find maximum count of distinct primes after split for current nums state.
-            max_distinct_primes = 0
+            # Calculate prefix primes count array 
+            current_primes = set()
+            for i in range(n):
+                if is_prime[nums[i]]:
+                    current_primes.add(nums[i])
+                prefix_primes[i+1] = len(current_primes)
+                
+            # Calculate suffix primes count array 
+            current_primes.clear()
+            for i in range(n-1, -1, -1):
+                if is_prime[nums[i]]:
+                    current_primes.add(nums[i])
+                suffix_primes[i] = len(current_primes)
+                
+            max_primes = 0
             for k in range(1, n):
-                prefix_primes = set()
-                suffix_primes = set()
+                max_primes = max(max_primes, prefix_primes[k] + suffix_primes[k])
                 
-                # Collect primes from prefix part nums[0..k-1]
-                for i in range(k):
-                    if nums[i] in prime_set:
-                        prefix_primes.add(nums[i])
-                
-                # Collect primes from suffix part nums[k..end]
-                for i in range(k, n):
-                    if nums[i] in prime_set:
-                        suffix_primes.add(nums[i])
-                
-                # Calculate total distinct primes count
-                total_distinct_primes = len(prefix_primes) + len(suffix_primes)
-                max_distinct_primes = max(max_distinct_primes, total_distinct_primes)
-            
-            # Record result for this query
-            results.append(max_distinct_primes)
+            results.append(max_primes)
         
         return results
 # @lc code=end
