@@ -7,13 +7,15 @@
 # @lc code=start
 class Solution:
     def minOperations(self, nums: List[int]) -> int:
-        operations = 0
-        while nums:
-            if len(set(nums)) == len(nums):
-                return operations
-            if len(nums) <= 3:
-                return operations + 1
+        ops = 0
+        # Step 1: Early check for empty or all-distinct array
+        if len(nums) == 0 or len(set(nums)) == len(nums):
+            return 0
+        while True:
+            # Remove first three elements (or all remaining if less than three)
             nums = nums[3:]
-            operations += 1
-        return operations
+            ops += 1
+            # Check stopping condition
+            if len(nums) == 0 or len(set(nums)) == len(nums):
+                return ops
 # @lc code=end
