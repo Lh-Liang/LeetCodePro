@@ -3,59 +3,61 @@
 #
 # [3310] Remove Methods From Project
 #
+
 # @lc code=start
+#include <vector>
+#include <queue>
+#include <numeric>
+
+using namespace std;
+
 class Solution {
 public:
     vector<int> remainingMethods(int n, int k, vector<vector<int>>& invocations) {
-        // Build adjacency list
-        vector<vector<int>> graph(n);
-        for (auto& inv : invocations) {
-            graph[inv[0]].push_back(inv[1]);
+        // Step 1: Build the adjacency list
+        vector<vector<int>> adj(n);
+        for (const auto& inv : invocations) {
+            adj[inv[0]].push_back(inv[1]);
         }
-        
-        // Find all suspicious methods using BFS from k
-        unordered_set<int> suspicious;
+
+        // Step 2: Identify all suspicious methods using BFS
+        vector<bool> suspicious(n, false);
+        suspicious[k] = true;
         queue<int> q;
         q.push(k);
-        suspicious.insert(k);
-        
+
         while (!q.empty()) {
-            int curr = q.front();
+            int u = q.front();
             q.pop();
-            
-            for (int next : graph[curr]) {
-                if (suspicious.find(next) == suspicious.end()) {
-                    suspicious.insert(next);
-                    q.push(next);
+            for (int v : adj[u]) {
+                if (!suspicious[v]) {
+                    suspicious[v] = true;
+                    q.push(v);
                 }
             }
         }
-        
-        // Check if any non-suspicious method invokes a suspicious method
-        bool canRemove = true;
-        for (auto& inv : invocations) {
-            int from = inv[0];
-            int to = inv[1];
-            if (suspicious.find(from) == suspicious.end() && suspicious.find(to) != suspicious.end()) {
-                canRemove = false;
+
+        // Step 3: Check if any non-suspicious method invokes a suspicious method
+        bool violation = false;
+        for (const auto& inv : invocations) {
+            if (!suspicious[inv[0]] && suspicious[inv[1]]) {
+                violation = true;
                 break;
             }
         }
-        
-        // Build result
+
+        // Step 4: Return results based on violation status
         vector<int> result;
-        if (canRemove) {
-            for (int i = 0; i < n; i++) {
-                if (suspicious.find(i) == suspicious.end()) {
+        if (violation) {
+            result.resize(n);
+            iota(result.begin(), result.end(), 0);
+        } else {
+            for (int i = 0; i < n; ++i) {
+                if (!suspicious[i]) {
                     result.push_back(i);
                 }
             }
-        } else {
-            for (int i = 0; i < n; i++) {
-                result.push_back(i);
-            }
         }
-        
         return result;
     }
 };
