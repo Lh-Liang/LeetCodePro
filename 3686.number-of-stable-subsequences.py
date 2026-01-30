@@ -3,34 +3,24 @@
 #
 # [3686] Number of Stable Subsequences
 #
-
 # @lc code=start
-from typing import List
-
 class Solution:
     def countStableSubsequences(self, nums: List[int]) -> int:
-        MOD = 10**9 + 7
-        n = len(nums)
-        result = 0
-        # dp[i][0] tracks stable sequences ending at i with last element even
-        # dp[i][1] tracks stable sequences ending at i with last element odd
-        dp = [[0, 0] for _ in range(n + 1)]
-        
-        for i in range(1, n + 1):
-            num_parity = nums[i - 1] % 2
-            # Add the number itself as a new subsequence
-            dp[i][num_parity] = (dp[i][num_parity] + 1) % MOD
-            
-            # Extend previous stable sequences ending with different parity
-            if i > 1:
-                dp[i][num_parity] = (dp[i][num_parity] + dp[i - 1][1 - num_parity]) % MOD
-                
-            # Extend previous stable sequences ending with same parity but not forming an invalid streak of three
-            if i > 2 and nums[i - 2] % 2 == num_parity and nums[i - 3] % 2 == num_parity:
-                continue # Skip adding this to avoid invalid streaks of three consecutive same parity numbers.
-            elif i > 1:
-                dp[i][num_parity] = (dp[i][num_parity] + dp[i - 1][num_parity]) % MOD
-                
-            # Accumulate total stable subsequences ending at this point
-            result = (result + dp[i][num_parity]) % MOD
-        return result # @lc code=end
+        mod = 10**9 + 7
+        count_odd, count_even = 0, 0
+        last_parity = None
+        streak = 0
+        for num in nums:
+            current_parity = num % 2
+            if current_parity == last_parity:
+                streak += 1
+            else:
+                streak = 1
+                last_parity = current_parity
+            if streak < 3:
+                if current_parity == 0: # Even number
+                    count_even = (count_even + count_odd + 1) % mod
+                else: # Odd number
+                    count_odd = (count_odd + count_even + 1) % mod
+        return (count_odd + count_even) % mod # Total stable subsequences modulo mod
+# @lc code=end
