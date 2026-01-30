@@ -7,43 +7,39 @@
 # @lc code=start
 class Solution:
     def longestSpecialPath(self, edges: List[List[int]], nums: List[int]) -> List[int]:
-        from collections import defaultdict, Counter
+        # Build tree adjacency list
+        n = len(nums)
+        tree = [[] for _ in range(n)]
+        for u, v, w in edges:
+            tree[u].append((v, w))
+            tree[v].append((u, w))
+
+        best_length = 0
+        min_nodes = float('inf')
+        from collections import defaultdict
         
-        # Step 1: Build graph from edges
-        graph = defaultdict(list)
-        for u, v, length in edges:
-            graph[u].append((v, length))
-            graph[v].append((u, length))  # It's undirected
-        
-        # Step 2 & 3: DFS to find longest special path
-        def dfs(node, parent):
-            max_len = [0]
-            min_nodes = [float('inf')]
-            visited_values = Counter()
-            
-            def dfs_visit(node, current_length):
-                visited_values[nums[node]] += 1
-                # Check if more than one value is repeated more than once or a single value more than twice.
-                if len([v for v in visited_values.values() if v > 1]) > 1:
-                    visited_values[nums[node]] -= 1
-                    return
-                
-                local_max_len = current_length
-                local_min_nodes = sum(visited_values.values())
-                if local_max_len > max_len[0]:
-                    max_len[0] = local_max_len
-                    min_nodes[0] = local_min_nodes
-                elif local_max_len == max_len[0]:
-                    min_nodes[0] = min(min_nodes[0], local_min_nodes)
-                
-                for neighbor, edge_length in graph[node]:
-                    if neighbor != parent:
-                        dfs_visit(neighbor, current_length + edge_length)
-                visited_values[nums[node]] -= 1
-            
-            dfs_visit(node, 0)
-            return max_len[0], min_nodes[0]
-        
-        result_length, result_min_nodes = dfs(0, -1)  # Start DFS from root node '0' with no parent (-1)
-        return [result_length, result_min_nodes] if result_min_nodes != float('inf') else [0, 1]
+        def dfs(node, parent, seen, used_dup, curr_length, curr_nodes):
+            nonlocal best_length, min_nodes
+            val = nums[node]
+            is_dup = val in seen
+            if is_dup and used_dup:
+                return
+            if curr_length > best_length:
+                best_length = curr_length
+                min_nodes = curr_nodes
+            elif curr_length == best_length and curr_nodes < min_nodes:
+                min_nodes = curr_nodes
+            # Visit children
+            if not is_dup:
+                seen.add(val)
+            for neighbor, w in tree[node]:
+                if neighbor == parent:
+                    continue
+                dfs(neighbor, node, seen, used_dup or is_dup, curr_length + w, curr_nodes + 1)
+            if not is_dup:
+                seen.remove(val)
+
+        # Use only a single traversal from the root to ensure efficiency and correct directionality
+        dfs(0, -1, set(), False, 0, 1)
+        return [best_length, min_nodes]
 # @lc code=end
