@@ -7,33 +7,48 @@
 # @lc code=start
 class Solution:
     def generateString(self, str1: str, str2: str) -> str:
-        n = len(str1)
-        m = len(str2)
-        result = [''] * (n + m - 1)
-        
-        def fill_substring(start_index, fill_with):
-            for j in range(m):
-                if result[start_index + j] == '' or result[start_index + j] == fill_with[j]:
-                    result[start_index + j] = fill_with[j]
-                else:
-                    return False
-            return True
-        
+        n, m = len(str1), len(str2)
+        word = [None] * (n + m - 1)
+        # Step 1: Enforce 'T' constraints
         for i in range(n):
             if str1[i] == 'T':
-                if not fill_substring(i, str2):
-                    return ""
-            else:
-                # We need to find an alternative lexicographically smallest substring different from str2
-                found_alternative = False
-                for j in range(26):
-                    candidate_char = chr(ord('a') + j)
-                    candidate_str = ''.join([candidate_char] * m)
-                    if candidate_str != str2:
-                        if fill_substring(i, candidate_str):
-                            found_alternative = True
-                            break
-                if not found_alternative:
-                    return ""
-        return ''.join(result)
+                for j in range(m):
+                    idx = i + j
+                    if word[idx] is not None and word[idx] != str2[j]:
+                        return ''
+                    word[idx] = str2[j]
+        # Step 2: Enforce 'F' constraints
+        for i in range(n):
+            if str1[i] == 'F':
+                match = True
+                for j in range(m):
+                    idx = i + j
+                    if word[idx] is None or word[idx] != str2[j]:
+                        match = False
+                        break
+                if match:
+                    changed = False
+                    for j in range(m):
+                        idx = i + j
+                        if word[idx] == str2[j]:
+                            for c in map(chr, range(97, 123)):
+                                if c != str2[j]:
+                                    word[idx] = c
+                                    changed = True
+                                    break
+                            if changed:
+                                break
+                    if not changed:
+                        return ''
+        # Step 3: Fill remaining positions with 'a'
+        for i in range(len(word)):
+            if word[i] is None:
+                word[i] = 'a'
+        # Step 4: Verify all constraints
+        candidate = ''.join(word)
+        for i in range(n):
+            substr = candidate[i:i + m]
+            if (str1[i] == 'T' and substr != str2) or (str1[i] == 'F' and substr == str2):
+                return ''
+        return candidate
 # @lc code=end
