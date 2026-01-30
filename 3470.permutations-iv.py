@@ -5,39 +5,40 @@
 #
 
 # @lc code=start
-from typing import List
 from math import factorial
+from itertools import islice
 
 class Solution:
     def permute(self, n: int, k: int) -> List[int]:
-        # Calculate factorials up to n for combinatorial calculations
-        factorials = [1] * (n + 1)
-        for i in range(2, n + 1):
-            factorials[i] = factorials[i - 1] * i
+        # Helper function to calculate number of valid alternating permutations for size m
+        def count_alternating_permutations(m):
+            if m <= 1:
+                return 1
+            dp = [0] * (m + 1)
+            dp[0], dp[1] = 1, 1
+            for i in range(2, m + 1):
+                dp[i] = (i - 1) * (dp[i - 2] + dp[i - 1])
+            return dp[m]
         
-        # Helper function to determine the number of valid permutations starting with specific prefix
-        def count_valid_permutations(prefix):
-            remaining = n - len(prefix)
-            half = (remaining + 1) // 2 if remaining % 2 == 1 else remaining // 2
-            return factorials[half] * factorials[remaining - half]
+        if k > count_alternating_permutations(n):
+            return []
         
-        available = list(range(1, n + 1))
-        result = []
-        last_even = True # Start assuming an 'even spot'
-        while available:
-            found = False
-            for i in range(len(available)):
-                if (last_even and available[i] % 2 == 0) or (not last_even and available[i] % 2 != 0):
-                    continue
-                count = count_valid_permutations(result + [available[i]])
-                if k > count:
-                    k -= count
-                else:
-                    result.append(available.pop(i))
-                    last_even = not last_even
-                    found = True
-                    break
-            if not found:
-                return [] # If no valid permutation is found within bounds of k, return an empty list.
-        return result if len(result) == n else []
+        numbers = list(range(1, n+1))
+        permutation = []
+        remaining_k = k - 1 # Zero-indexed kth permutation
+        odd, even = numbers[::2], numbers[1::2]
+        
+        for i in range(n):
+            if i % 2 == 0: # Even index, choose from odd numbers (1-based)
+                block_size = count_alternating_permutations(n - i - 1)
+                index = remaining_k // block_size
+                remaining_k %= block_size
+                permutation.append(odd.pop(index))
+            else: # Odd index, choose from even numbers (1-based)
+                block_size = count_alternating_permutations(n - i - 1)
+                index = remaining_k // block_size
+                remaining_k %= block_size
+                permutation.append(even.pop(index))
+        
+        return permutation
 # @lc code=end
