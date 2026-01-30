@@ -5,31 +5,23 @@
 #
 
 # @lc code=start
-from typing import List
 class Solution:
     def maximizeXorAndXor(self, nums: List[int]) -> int:
         n = len(nums)
-        max_value = 0
-        # Iterate over all possible partitions using bitmask approach
-        for mask in range(1 << (2 * n)):
-            A_xor = 0
-            B_and = None
-            C_xor = 0
-            # Calculate values based on current partition
-            for i in range(n):
-                part = (mask >> (2 * i)) & 3
-                if part == 0: # Part of A sequence
-                    A_xor ^= nums[i]
-                elif part == 1: # Part of B sequence
-                    if B_and is None:
-                        B_and = nums[i]
-                    else:
-                        B_and &= nums[i]
-                elif part == 2: # Part of C sequence
-                    C_xor ^= nums[i]
-            # If B sequence is empty, its AND value should be zero by definition.
-            if B_and is None:
-                B_and = 0 
-            max_value = max(max_value, A_xor + B_and + C_xor)
-        return max_value
+        max_val = 0
+        def dfs(i, xor_a, and_b, xor_c, has_b):
+            nonlocal max_val
+            if i == n:
+                # If B is empty, AND(B) is 0 (by problem statement)
+                b_val = and_b if has_b else 0
+                max_val = max(max_val, xor_a + b_val + xor_c)
+                return
+            # Place nums[i] in A
+            dfs(i+1, xor_a ^ nums[i], and_b, xor_c, has_b)
+            # Place nums[i] in B
+            dfs(i+1, xor_a, nums[i] if not has_b else (and_b & nums[i]), xor_c, True)
+            # Place nums[i] in C
+            dfs(i+1, xor_a, and_b, xor_c ^ nums[i], has_b)
+        dfs(0, 0, 0, 0, False)
+        return max_val
 # @lc code=end
