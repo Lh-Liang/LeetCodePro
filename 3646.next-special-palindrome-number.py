@@ -1,45 +1,4 @@
-#
-# @lc app=leetcode id=3646 lang=python3
-#
-# [3646] Next Special Palindrome Number
-#
-
-# @lc code=start
-class Solution:
-    def specialPalindrome(self, n: int) -> int:
-        from itertools import combinations, permutations
-        n = int(n)
-        res = float('inf')
-        digits = [str(i) for i in range(1, 10)]
-        from collections import Counter
-
-        # Generate all subsets of digits (since digit k must appear exactly k times)
-        for l in range(1, 10):
-            for comb in combinations(digits, l):
-                counts = {}
-                total = 0
-                for d in comb:
-                    k = int(d)
-                    counts[d] = k
-                    total += k
-                # Try to build palindrome
-                odd = [d for d in counts if counts[d] % 2 == 1]
-                if len(odd) > 1:
-                    continue
-                # Build half string
-                half = []
-                for d in sorted(counts):
-                    half.extend([d] * (counts[d] // 2))
-                centers = odd if odd else ['']
-                used = set()
-                for center in centers:
-                    # Permute half to form palindrome (avoid duplicates)
-                    for perm in set(permutations(half)):
-                        if perm and perm[0] == '0':
-                            continue
-                        half_str = ''.join(perm)
-                        pal = half_str + center + half_str[::-1]
-                        if pal and int(pal) > n and int(pal) < res:
-                            res = int(pal)
-        return res
-# @lc code=end
+{
+  "reasoning": "Step 1: Begin with an integer incrementing from n+1. Check if it's a palindrome.
+Step 2: Check if each digit appears exactly as many times as its value.
+Step 3: If both conditions are met, return that number. Otherwise, continue incrementing.", "result": "#\n# @lc app=leetcode id=3646 lang=python3\n#\n# [3646] Next Special Palindrome Number\n#\n\n# @lc code=start\nclass Solution:\n    def specialPalindrome(self, n: int) -> int:\n        def is_palindrome(x):\n            s = str(x)\n            return s == s[::-1]\n        \n        def valid_digit_count(x):\n            from collections import Counter\n            count = Counter(str(x))\n            return all(int(k) == v for k, v in count.items())\n        \ni = n+1\nwhile True:\ni_palindrome = is_palindrome(i)\ndigits_valid = valid_digit_count(i)\if i_palindrome and digits_valid:\return i\ni += 1\
