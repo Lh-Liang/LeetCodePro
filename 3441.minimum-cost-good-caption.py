@@ -9,32 +9,42 @@ class Solution:
     def minCostGoodCaption(self, caption: str) -> str:
         n = len(caption)
         if n < 3:
-            return ""
+            return "" # Impossible to form a good caption with fewer than 3 characters
         
-        result = []
         i = 0
+        result = []
         while i < n:
-            j = i
-            while j < n and caption[j] == caption[i]:
-                j += 1
-            count = j - i
-            if count >= 3:
-                result.extend([caption[i]] * count)
-            else:
-                if i > 0 and j < n:
-                    prev_char = chr(ord(caption[i-1]) + 1) if caption[i-1] != 'z' else None
-                    next_char = chr(ord(caption[j]) - 1) if caption[j] != 'a' else None
-                    if prev_char and (not next_char or prev_char <= next_char):
-                        result.extend([prev_char] * (3 - count))
-                        result.extend([caption[i]] * count)
-                    elif next_char:
-                        result.extend([caption[i]] * count)
-                        result.extend([next_char] * (3 - count))
+            start = i
+            while i < n and caption[i] == caption[start]:
+                i += 1
+            length = i - start
+            if length < 3:
+                if result and result[-1][0] == caption[start]:
+                    needed = min(3 - len(result[-1]), length)
+                    result[-1] += caption[start] * needed
+                    length -= needed
+                
+                while length > 0:
+                    if len(result) > 0 and len(result[-1]) < 3:
+                        extra_needed = min(3 - len(result[-1]), length)
+                        result[-1] += caption[start] * extra_needed
+                        length -= extra_needed
+                    elif i < n and caption[i] == chr(ord(caption[start]) + 1):
+                        next_char_len = 0
+                        temp_i = i
+                        while temp_i < n and caption[temp_i] == chr(ord(caption[start]) + 1):
+                            temp_i += 1
+                            next_char_len += 1
+                        needed_to_form_good = (3 - length)
+                        if next_char_len >= needed_to_form_good:
+                            result.append(caption[start] * (length + needed_to_form_good))
+                            i += needed_to_form_good - next_char_len + length 
+                            break
+                        else:
+                            return ""
                     else:
                         return ""
-                else:
-                    return ""
-            i = j + max(0, (3 - count))
-        
-        return "".join(result)
+            else:
+                result.append(caption[start] * length)
+        return ''.join(result)
 # @lc code=end
