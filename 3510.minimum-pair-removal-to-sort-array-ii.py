@@ -5,35 +5,41 @@
 #
 
 # @lc code=start
+from heapq import heappush, heappop
+from typing import List
+
 class Solution:
     def minimumPairRemoval(self, nums: List[int]) -> int:
-        import heapq
-        n = len(nums)
-        if n <= 1:
+        # Edge case: if already non-decreasing, return 0 operations needed
+        if all(nums[i] <= nums[i+1] for i in range(len(nums) - 1)):
             return 0
+        
+        # Initialize priority queue for storing pairs by sum and index
+        pq = []
+        for i in range(len(nums) - 1):
+            heappush(pq, (nums[i] + nums[i+1], i))
+        
         operations = 0
-        # Priority queue to store pairs (sum, index) sorted by sum
-        pq = [(nums[i] + nums[i+1], i) for i in range(n - 1)]
-        heapq.heapify(pq)
-        # A set to keep track of valid indices in current nums array
-        valid_indices = set(range(n))
-        while True:
-            # Check if already sorted or empty after operations
-            if all(nums[i] <= nums[i+1] for i in range(n-1) if i in valid_indices):
+        while pq:
+            # Extract minimum sum pair
+            min_sum, index = heappop(pq)
+            if index < len(nums) - 1 and nums[index] + nums[index + 1] == min_sum:
+                # Replace this pair in nums with their sum
+                new_sum = min_sum
+                nums = nums[:index] + [new_sum] + nums[index+2:]
+                operations += 1
+                
+                # Add new adjacent pairs formed back into priority queue if valid
+                if index > 0:
+                    prev_sum = nums[index-1] + new_sum
+                    heappush(pq, (prev_sum, index-1))
+                if index < len(nums) - 1:
+                    next_sum = new_sum + nums[index+1]
+                    heappush(pq, (next_sum, index))
+            
+            # Check if sorted already to break early if possible
+            if all(nums[i] <= nums[i+1] for i in range(len(nums) - 1)):
                 break
-            while pq:
-                min_sum, idx = heapq.heappop(pq)
-                # Check if index is still valid in current nums array
-                if idx in valid_indices and idx + 1 in valid_indices:
-                    # Replace pair with their sum in nums array at idx position
-                    nums[idx] = min_sum
-                    valid_indices.remove(idx + 1)
-                    operations += 1
-                    # Update only necessary parts of priority queue for changed index positions
-                    if idx - 1 in valid_indices:
-                        heapq.heappush(pq, (nums[idx-1] + nums[idx], idx-1))
-                    if idx + 2 in valid_indices:
-                        heapq.heappush(pq, (nums[idx] + nums[idx+2], idx+1))
-                    break
-        return operations
+        
+        return operations    
 # @lc code=end
