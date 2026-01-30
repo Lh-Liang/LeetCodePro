@@ -7,21 +7,21 @@
 # @lc code=start
 class Solution:
     def maximizeXorAndXor(self, nums: List[int]) -> int:
-        from functools import lru_cache
         n = len(nums)
-        @lru_cache(None)
-        def dfs(i, xorA, andB, usedB, xorC):
-            if i == n:
-                return xorA + (andB if usedB else 0) + xorC
-            # Option 1: assign nums[i] to A
-            res = dfs(i+1, xorA ^ nums[i], andB, usedB, xorC)
-            # Option 2: assign nums[i] to B
-            if usedB:
-                res = max(res, dfs(i+1, xorA, andB & nums[i], True, xorC))
-            else:
-                res = max(res, dfs(i+1, xorA, nums[i], True, xorC))
-            # Option 3: assign nums[i] to C
-            res = max(res, dfs(i+1, xorA, andB, usedB, xorC ^ nums[i]))
-            return res
-        return dfs(0, 0, 0, False, 0)
+        max_val = 0
+        
+        def dfs(index, a_xor, b_and, c_xor):
+            nonlocal max_val
+            if index == n:
+                max_val = max(max_val, a_xor + b_and + c_xor)
+                return
+            # Option 1: Add nums[index] to A
+            dfs(index + 1, a_xor ^ nums[index], b_and, c_xor)
+            # Option 2: Add nums[index] to B
+            dfs(index + 1, a_xor, b_and & nums[index] if b_and != 0 else nums[index], c_xor)
+            # Option 3: Add nums[index] to C
+            dfs(index + 1, a_xor, b_and, c_xor ^ nums[index])
+        
+        dfs(0, 0, 0xFFFFFFFFFF, 0) # Start with full range for AND operation in B
+        return max_val
 # @lc code=end
