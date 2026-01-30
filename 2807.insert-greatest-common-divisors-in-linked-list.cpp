@@ -3,6 +3,7 @@
 #
 # [2807] Insert Greatest Common Divisors in Linked List
 #
+
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -14,39 +15,31 @@
  *     ListNode(int x, ListNode *next) : val(x), next(next) {}
  * };
  */
+#include <numeric>
+
 class Solution {
 public:
-    int gcd(int a, int b) {
-        while (b != 0) {
-            int temp = b;
-            b = a % b;
-            a = temp;
-        }
-        return a;
-    }
-    
     ListNode* insertGreatestCommonDivisors(ListNode* head) {
+        // If the list has 0 or 1 nodes, no GCD can be inserted between pairs.
         if (!head || !head->next) {
             return head;
         }
-        
-        ListNode* current = head;
-        
-        while (current && current->next) {
-            // Get the GCD of current and next node values
-            int gcdValue = gcd(current->val, current->next->val);
-            
-            // Create a new node with the GCD value
-            ListNode* gcdNode = new ListNode(gcdValue);
-            
-            // Insert the new node between current and next
-            gcdNode->next = current->next;
-            current->next = gcdNode;
-            
-            // Move to the next original node (skip the newly inserted node)
-            current = gcdNode->next;
+
+        ListNode* curr = head;
+
+        // Traverse until the second to last node.
+        while (curr != nullptr && curr->next != nullptr) {
+            // Calculate GCD of the current node and the next node.
+            int commonDivisor = std::gcd(curr->val, curr->next->val);
+
+            // Create the new node and insert it between curr and curr->next.
+            ListNode* newNode = new ListNode(commonDivisor, curr->next);
+            curr->next = newNode;
+
+            // Skip the newly inserted node to move to the next original pair.
+            curr = newNode->next;
         }
-        
+
         return head;
     }
 };
