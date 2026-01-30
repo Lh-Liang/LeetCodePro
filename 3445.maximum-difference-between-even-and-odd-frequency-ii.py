@@ -7,40 +7,42 @@
 # @lc code=start
 class Solution:
     def maxDifference(self, s: str, k: int) -> int:
-        from collections import defaultdict
-        max_diff = -1
+        from collections import defaultdict, Counter
         n = len(s)
-        freq = defaultdict(int)
-        
-        # Initialize frequency count for the first k characters
-        for i in range(k):
-            freq[s[i]] += 1
-        
-        # Check initial window of size exactly k
-        def calculate_max_diff():
-            odd_freq_chars = [f for f in freq.values() if f % 2 == 1]
-            even_freq_chars = [f for f in freq.values() if f % 2 == 0]
-            if odd_freq_chars and even_freq_chars:
-                return max(odd_freq_chars) - min(even_freq_chars)
-            return -1
-        
-        # Calculate max difference for the initial window
-        max_diff = calculate_max_diff()
-        
-        # Slide the window across string s from position k to n-1
-        for end in range(k, n):
-            # Include new character in the sliding window
-            freq[s[end]] += 1
-            # Remove oldest character from sliding window (start of previous window)
-            start = end - k
-            freq[s[start]] -= 1
-            if freq[s[start]] == 0:
-                del freq[s[start]]
-                
-            # Calculate max difference for current valid window size >= k
-            current_diff = calculate_max_diff()
-            if current_diff != -1:
-                max_diff = max(max_diff, current_diff)
-                
-        return max_diff if max_diff != -1 else -1 # Return final result or -1 if no valid diff found
+        max_diff = -1
+        freq = Counter()
+        odd_freq = defaultdict(int)
+        even_freq = defaultdict(int)
+        left = 0
+        for right in range(n):
+            # Add new character to frequency counter
+            char_right = s[right]
+            freq[char_right] += 1
+            # Update odd/even status for this character
+            if freq[char_right] % 2 == 0:
+                even_freq[char_right] += 1
+                if freq[char_right] > 1:
+                    odd_freq[char_right] -= 1
+            else:
+                odd_freq[char_right] += 1
+                if freq[char_right] > 1:
+                    even_freq[char_right] -= 1
+            
+            # Check if window is valid (size at least k)
+            while right - left + 1 >= k:
+                # Calculate max difference between any odd and even frequency characters
+                for a in odd_freq:
+                    if odd_freq[a] > 0:
+                        for b in even_freq:
+                            if even_freq[b] > 0:
+                                max_diff = max(max_diff, freq[a] - freq[b])
+                # Shrink window from left
+                char_left = s[left]
+                if freq[char_left] % 2 == 0:
+                    even_freq[char_left] -= 1
+                else:
+                    odd_freq[char_left] -= 1
+                freq[char_left] -= 1
+                left += 1
+        return max_diff
 # @lc code=end
