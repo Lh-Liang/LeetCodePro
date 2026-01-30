@@ -5,43 +5,53 @@
 #
 
 # @lc code=start
-from typing import List
 class Solution:
     def lenOfVDiagonal(self, grid: List[List[int]]) -> int:
-        def in_bounds(x, y):
-            return 0 <= x < len(grid) and 0 <= y < len(grid[0])
-        
-        def valid_sequence(value, expected):
-            return value == expected
-        
-        def explore_diagonal(x, y, dx1, dy1, dx2, dy2):
-            # Initial setup for exploring along first diagonal direction
-            length = 1 # Starting with '1'
-            sequence = [2, 0]
-            cx, cy = x + dx1, y + dy1
-            seq_idx = 0
-            while in_bounds(cx, cy) and valid_sequence(grid[cx][cy], sequence[seq_idx]):
-                length += 1
-                cx += dx1
-                cy += dy1
-                seq_idx = (seq_idx + 1) % 2 # Toggle between '2' and '0'
-            # Attempt one clockwise turn to second diagonal direction
-            cx -= dx1; cy -= dy1 # Step back before turn for continuation logic
-            cx += dx2; cy += dy2 # Turn direction step (dx2, dy2)
-            while in_bounds(cx, cy) and valid_sequence(grid[cx][cy], sequence[seq_idx]):
-                length += 1
-                cx += dx2
-                cy += dy2
-                seq_idx = (seq_idx + 1) % 2 # Continue toggling between '2' and '0'
-            return length if length > 1 else int(bool(any(1 in row for row in grid)))
-        
-        max_length = 0
-        directions = [((1, -1), (-1, -1)), ((-1, -1), (1, -1)), ((-1, -2), (-3,-3)), ((-3,-3), (-4,-4))]
-        for x in range(len(grid)):
-            for y in range(len(grid[0])):
-                if grid[x][y] == 1:
-                    for (d1x,d1y),(d2x,d2y) in directions:
-                        max_length = max(max_length,
-                                         explore_diagonal(x,y,d1x,d1y,d2x,d2y))
-        return max_length 
+        from typing import List
+        n, m = len(grid), len(grid[0])
+        # Directions: (dr, dc) for 4 diagonals (NE, SE, SW, NW)
+        diags = [(-1,1), (1,1), (1,-1), (-1,-1)]
+        # dp[i][j][d][p]: max length from (i,j) in direction d, expecting value p (p=0 for 2, p=1 for 0), no turn
+        dp = [[[[0, 0] for _ in range(4)] for _ in range(m)] for _ in range(n)]
+        # Precompute DP for all four diagonal directions and both alternation states
+        for d, (dr, dc) in enumerate(diags):
+            rows = range(n) if dr > 0 else range(n-1, -1, -1)
+            cols = range(m) if dc > 0 else range(m-1, -1, -1)
+            for i in rows:
+                for j in cols:
+                    # Start of segment must be 1
+                    if grid[i][j] == 1:
+                        dp[i][j][d][0] = 1
+                        ni, nj = i + dr, j + dc
+                        if 0 <= ni < n and 0 <= nj < m and grid[ni][nj] == 2:
+                            dp[i][j][d][0] = 1 + (dp[ni][nj][d][1])
+                    # For alternation state expecting 0 (i.e., next should be 0)
+                    if grid[i][j] == 0:
+                        ni, nj = i + dr, j + dc
+                        if 0 <= ni < n and 0 <= nj < m and grid[ni][nj] == 2:
+                            dp[i][j][d][1] = 1 + (dp[ni][nj][d][0])
+        maxlen = 0
+        for i in range(n):
+            for j in range(m):
+                if grid[i][j] != 1:
+                    continue
+                for d in range(4):
+                    # No turn: maximum from this start in this direction
+                    maxlen = max(maxlen, dp[i][j][d][0])
+                    # Try all possible single-turn points
+                    dr1, dc1 = diags[d]
+                    ci, cj = i, j
+                    altern = 0 # 0 means expecting 2, 1 means expecting 0
+                    for step in range(1, dp[i][j][d][0]):
+                        ci += dr1
+                        cj += dc1
+                        altern ^= 1
+                        # After step steps, try a clockwise turn
+                        nd = (d + 1) % 4
+                        if 0 <= ci < n and 0 <= cj < m:
+                            # The next segment after the turn must continue the alternation
+                            cont = dp[ci][cj][nd][altern]
+                            if cont > 0:
+                                maxlen = max(maxlen, step + cont)
+        return maxlen
 # @lc code=end
