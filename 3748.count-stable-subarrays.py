@@ -8,30 +8,33 @@
 class Solution:
     def countStableSubarrays(self, nums: List[int], queries: List[List[int]]) -> List[int]:
         n = len(nums)
-        # Step 1: Preprocess non-decreasing segments
-        seg_start = [0] * n  # seg_start[i]: start index of non-decreasing segment containing i
-        l = 0
-        for i in range(1, n):
-            if nums[i] < nums[i-1]:
-                l = i
-            seg_start[i] = l
-
-        res = []
-        for li, ri in queries:
-            ans = 0
-            i = li
-            while i <= ri:
-                # Find the start of the non-decreasing segment
-                seg_l = seg_start[i]
-                # Find the rightmost index in the same segment within the query
-                j = i
-                while j+1 <= ri and seg_start[j+1] == seg_l:
-                    j += 1
-                length = j - i + 1
-                # Count all stable subarrays in this segment within the query
-                ans += length * (length + 1) // 2
-                i = j + 1
-            # Step 6: After processing, answer should reflect all stable subarrays in [li, ri]
-            res.append(ans)
-        return res
+        # next_break[i]: the next index where nums[i] > nums[i+1] (end of current non-decreasing run)
+        next_break = [n-1] * n
+        end = n-1
+        for i in range(n-2, -1, -1):
+            if nums[i] <= nums[i+1]:
+                next_break[i] = next_break[i+1]
+            else:
+                next_break[i] = i
+        # precompute number of stable subarrays starting at i
+        stable_count = [0] * n
+        for i in range(n):
+            run_end = next_break[i]
+            length = run_end - i + 1
+            stable_count[i] = length
+        # prefix sum for stable_count
+        stable_prefix = [0]*(n+1)
+        for i in range(n):
+            stable_prefix[i+1] = stable_prefix[i] + stable_count[i]
+        ans = []
+        for l, r in queries:
+            res = 0
+            i = l
+            while i <= r:
+                run_end = min(next_break[i], r)
+                length = run_end - i + 1
+                res += (length * (length + 1)) // 2
+                i = run_end + 1
+            ans.append(res)
+        return ans
 # @lc code=end
