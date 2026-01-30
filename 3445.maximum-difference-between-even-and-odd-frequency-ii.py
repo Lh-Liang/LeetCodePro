@@ -7,30 +7,28 @@
 # @lc code=start
 class Solution:
     def maxDifference(self, s: str, k: int) -> int:
-        from collections import Counter
         n = len(s)
-        max_diff = float('-inf')
-        digits = ['0','1','2','3','4']
-        # Sliding window for all window sizes [k, n]
-        for window_size in range(k, n+1):
-            freq = [0]*5
-            # Fill initial window
-            for i in range(window_size):
-                freq[ord(s[i])-ord('0')] += 1
-            # Check this window
-            for a in range(5):
-                if freq[a] % 2 == 1:
-                    for b in range(5):
-                        if b != a and freq[b] > 0 and freq[b] % 2 == 0:
-                            max_diff = max(max_diff, freq[a] - freq[b])
-            for start in range(1, n-window_size+1):
-                # Slide window
-                freq[ord(s[start-1])-ord('0')] -= 1
-                freq[ord(s[start+window_size-1])-ord('0')] += 1
-                for a in range(5):
-                    if freq[a] % 2 == 1:
-                        for b in range(5):
-                            if b != a and freq[b] > 0 and freq[b] % 2 == 0:
-                                max_diff = max(max_diff, freq[a] - freq[b])
-        return max_diff if max_diff != float('-inf') else -1
+        digits = ['0', '1', '2', '3', '4']
+        # prefix sum for each digit
+        prefix = [[0] * (n + 1) for _ in range(5)]
+        for i in range(n):
+            for d in range(5):
+                prefix[d][i+1] = prefix[d][i]
+            prefix[int(s[i])][i+1] += 1
+
+        max_diff = -1
+        for a in range(5):
+            for b in range(5):
+                if a == b:
+                    continue
+                # For each substring of length >= k
+                for l in range(n):
+                    for r in range(l+k-1, n):
+                        fa = prefix[a][r+1] - prefix[a][l]
+                        fb = prefix[b][r+1] - prefix[b][l]
+                        if fa % 2 == 1 and fb > 0 and fb % 2 == 0:
+                            diff = fa - fb
+                            if diff > max_diff:
+                                max_diff = diff
+        return max_diff
 # @lc code=end
