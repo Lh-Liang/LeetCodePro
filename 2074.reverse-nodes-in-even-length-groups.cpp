@@ -1,9 +1,10 @@
-//
-// @lc app=leetcode id=2074 lang=cpp
-//
-// [2074] Reverse Nodes in Even Length Groups
-//
-// @lc code=start
+#
+# @lc app=leetcode id=2074 lang=cpp
+#
+# [2074] Reverse Nodes in Even Length Groups
+#
+
+# @lc code=start
 /**
  * Definition for singly-linked list.
  * struct ListNode {
@@ -18,60 +19,49 @@ class Solution {
 public:
     ListNode* reverseEvenLengthGroups(ListNode* head) {
         if (!head || !head->next) return head;
-        
-        ListNode* dummy = new ListNode(0);
-        dummy->next = head;
-        ListNode* prev = dummy;
-        
-        int groupSize = 1;
-        
+
+        // The first group (size 1) is always odd, so we start with prev at head.
+        ListNode* prev = head;
+        int expected_group_size = 2;
+
         while (prev->next) {
-            // Count actual nodes in this group
-            int actualSize = 0;
             ListNode* curr = prev->next;
-            while (curr && actualSize < groupSize) {
-                actualSize++;
+            int actual_count = 0;
+
+            // Count nodes available for the current group
+            while (actual_count < expected_group_size && curr) {
+                actual_count++;
                 curr = curr->next;
             }
-            
-            // If actual size is even, reverse this group
-            if (actualSize % 2 == 0) {
-                prev = reverseGroup(prev, actualSize);
+
+            if (actual_count % 2 == 0) {
+                // Reverse the group of actual_count nodes
+                ListNode* group_start = prev->next;
+                ListNode* node = group_start;
+                ListNode* p = curr; // Node after the group
+
+                for (int i = 0; i < actual_count; ++i) {
+                    ListNode* next_temp = node->next;
+                    node->next = p;
+                    p = node;
+                    node = next_temp;
+                }
+
+                // Reconnect previous node to the new head of reversed group
+                prev->next = p;
+                // Move prev to the end of the reversed group (the original start)
+                prev = group_start;
             } else {
-                // Move prev to the end of this group
-                for (int i = 0; i < actualSize; i++) {
+                // Skip the odd-length group
+                for (int i = 0; i < actual_count; ++i) {
                     prev = prev->next;
                 }
             }
-            
-            groupSize++;
+
+            expected_group_size++;
         }
-        
-        return dummy->next;
-    }
-    
-private:
-    ListNode* reverseGroup(ListNode* prev, int size) {
-        // prev is the node before the group to reverse
-        // Returns the last node of the reversed group
-        
-        ListNode* groupTail = prev->next; // This will become the tail after reversal
-        ListNode* curr = prev->next;
-        ListNode* next = nullptr;
-        
-        // Reverse size nodes
-        for (int i = 0; i < size; i++) {
-            ListNode* temp = curr->next;
-            curr->next = next;
-            next = curr;
-            curr = temp;
-        }
-        
-        // Connect: prev -> reversed group -> rest
-        prev->next = next; // Connect prev to new head of reversed group
-        groupTail->next = curr; // Connect tail of reversed group to rest
-        
-        return groupTail; // Return the tail of the reversed group
+
+        return head;
     }
 };
-// @lc code=end
+# @lc code=end
