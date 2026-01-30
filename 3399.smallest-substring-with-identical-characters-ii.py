@@ -8,30 +8,25 @@
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-        def can_make(k):
-            # Check if we can make all substrings have length at most k
-            for ch in ['0','1']:
-                left = 0
-                flips = 0
-                for right in range(n):
-                    if s[right] != ch:
-                        flips += 1
-                    if right - left + 1 > k:
-                        if s[left] != ch:
-                            flips -= 1
-                        left += 1
-                    if right - left + 1 == k:
-                        if flips <= numOps:
-                            return True
-            return False
-        lo, hi = 1, n
-        answer = n
-        while lo <= hi:
-            mid = (lo + hi) // 2
-            if can_make(mid):
-                answer = mid
-                hi = mid - 1
+        if numOps == 0:
+            return max(len(max(s.split('0'), key=len)), len(max(s.split('1'), key=len)))
+        segments = []
+        count = 1
+        for i in range(1, n):
+            if s[i] == s[i - 1]:
+                count += 1
             else:
-                lo = mid + 1
-        return answer
-# @lc code=end
+                segments.append(count)
+                count = 1
+        segments.append(count)
+        min_length = max(segments)
+        total_flips = numOps * 2 + 1 # Each flip can affect two boundaries plus one new split point
+        for i in range(len(segments)):
+            flips_used = 0
+            current_max = segments[i]
+            j = i + 1
+            while j < len(segments) and flips_used < numOps:
+                current_max += segments[j]
+                flips_used += 1
+                j += 2 # Skip one segment as it's used for flipping boundary optimization 
+            min_length = min(min_length, current_max) – (flips_used // 2) – Consider only half effect of flip on each segment boundary – return min_length
