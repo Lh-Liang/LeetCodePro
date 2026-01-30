@@ -5,20 +5,29 @@
 #
 
 # @lc code=start
-class Solution:
-    def minMoves(self, sx: int, sy: int, tx: int, ty: int) -> int:
-        moves = 0
-        while tx > sx and ty > sy:
-            # Reverse move logic: Reduce larger coordinate by smaller one
-            if tx > ty:
-                tx -= ty  # Reverse move that would have increased y
-            else:
-                ty -= tx  # Reverse move that would have increased x
-            moves += 1
-        # Final checks for exact match along one dimension
-        if sx == tx and sy <= ty and (ty - sy) % sx == 0:
-            return moves + (ty - sy) // sx
-        elif sy == ty and sx <= tx and (tx - sx) % sy == 0:
-            return moves + (tx - sx) // sy
+from collections import deque
+
+class Solution: 
+    def minMoves(self, sx: int, sy: int, tx: int, ty: int) -> int: 
+        from collections import deque
+        visited = set()
+        queue = deque()
+        queue.append((sx, sy, 0))  # (x, y, moves)
+        visited.add((sx, sy))
+        while queue:
+            x, y, moves = queue.popleft()
+            if (x, y) == (tx, ty):
+                return moves
+            m = max(x, y)
+            # Move to (x + m, y) if within bounds
+            nx, ny = x + m, y
+            if nx <= tx and ny <= ty and (nx, ny) not in visited:
+                visited.add((nx, ny))
+                queue.append((nx, ny, moves + 1))
+            # Move to (x, y + m) if within bounds
+            nx, ny = x, y + m
+            if nx <= tx and ny <= ty and (nx, ny) not in visited:
+                visited.add((nx, ny))
+                queue.append((nx, ny, moves + 1))
         return -1
 # @lc code=end
