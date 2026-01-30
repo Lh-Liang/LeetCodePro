@@ -5,7 +5,7 @@
 #
 
 # @lc code=start
-from typing import List
+from typing import List, DefaultDict
 from collections import defaultdict
 
 class Solution:
@@ -16,42 +16,48 @@ class Solution:
             tree[u].append(v)
             tree[v].append(u)
 
-        def dfs(u, parent):
-            # dp[dist]: max sum if last inversion is dist above this node (dist in 0..k)
-            dp = [float('-inf')] * (k + 1)
-            child_dp_list = []
-            for v in tree[u]:
-                if v != parent:
-                    child_dp_list.append(dfs(v, u))
+        import sys
+        sys.setrecursionlimit(max(100000, n+10))
 
-            # Leaf node case
-            if not child_dp_list:
-                res = [0] * (k + 1)
-                # dist=0: invert here
-                res[0] = -nums[u]
-                # dist>=1: do not invert here
-                for i in range(1, k + 1):
-                    res[i] = nums[u]
-                return res
+        # dp[u][d]: max sum of subtree rooted at u, where d is distance to last inversion above
+        # d = 0 means last inversion was just at parent.
+        # d >= k => inversion allowed at this node
+        def dfs(u, par):
+            # dp[d]: for d = 0..k, max sum of this subtree with distance d to last inversion above
+            dp = [0] * (k+1)
+            # Initialize:
+            # Option 1: Do NOT invert at u
+            # Option 2: Invert at u (if allowed)
+            # For children, we need their dp tables
+            children = [v for v in tree[u] if v != par]
+            # First, get children's dp
+            child_dp = [dfs(v, u) for v in children]
 
-            # Case 1: Invert here (dist=0)
-            invert_sum = -nums[u]
-            for child_dp in child_dp_list:
-                # After inverting here, child dp must use dist=k
-                invert_sum += child_dp[k]
-            dp[0] = invert_sum
-
-            # Case 2: Do not invert here (dist>=1)
-            for dist in range(1, k + 1):
-                not_invert_sum = nums[u]
-                for child_dp in child_dp_list:
-                    # If parent is dist above last inversion, child is dist-1 above
-                    not_invert_sum += child_dp[dist - 1]
-                dp[dist] = not_invert_sum
+            # Option 1: do NOT invert at u
+            # If d < k, we cannot invert at this node
+            # For each d = 0..k-1:
+            for d in range(k):
+                total = nums[u]
+                for cidx, v in enumerate(children):
+                    total += child_dp[cidx][min(d+1, k)]
+                dp[d] = total
+            # Option 2: invert at u (only if d >= k)
+            # When we invert at u, all values in subtree flipped
+            # For d=k, inversion is allowed
+            total = -nums[u]
+            for cidx, v in enumerate(children):
+                total += child_dp[cidx][1]  # after invert at u, distance to inversion above is 1
+            if k >= 1:
+                dp[k] = max(dp[k], total)
+            # Also, for d >= k, inversion is allowed
+            for d in range(k, k+1):
+                # Option: invert at u
+                total = -nums[u]
+                for cidx, v in enumerate(children):
+                    total += child_dp[cidx][1]
+                dp[d] = max(dp[d], total)
             return dp
 
-        # Verify that all possible state transitions and edge cases are handled
-        # Root at 0, no inversion above root, so closest inversion at least k
-        result = max(dfs(0, -1))
-        return result
+        res_dp = dfs(0, -1)
+        return max(res_dp)
 # @lc code=end
