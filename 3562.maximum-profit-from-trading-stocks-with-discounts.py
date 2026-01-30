@@ -5,43 +5,65 @@
 #
 
 # @lc code=start
-class Solution:
+from typing import List
+import math
+
+class Solution: 
     def maxProfit(self, n: int, present: List[int], future: List[int], hierarchy: List[List[int]], budget: int) -> int:
         from collections import defaultdict
-        
-        # Step 1: Build adjacency list for hierarchy.
-        adj = defaultdict(list)
-        for u, v in hierarchy:
-            adj[u].append(v)
-        
-        # Step 2: Recursive function with memoization.
-        memo = {}
-        def dfs(emp_id, remaining_budget):
-            if emp_id > n:
-                return 0
-            if (emp_id, remaining_budget) in memo:
-                return memo[(emp_id, remaining_budget)]
-            
-            # Profit without buying this employee's stock.
-            max_profit = dfs(emp_id + 1, remaining_budget)
-            
-            # Profit when buying this employee's stock without discount.
-            cost = present[emp_id - 1]
-            if remaining_budget >= cost:
-                profit_without_discount = future[emp_id - 1] - cost + dfs(emp_id + 1, remaining_budget - cost)
-                max_profit = max(max_profit, profit_without_discount)
-            
-            # Check discount applicability for subordinates and apply DFS for them.
-            for subordinate in adj[emp_id]:
-                discounted_cost = present[subordinate - 1] // 2
-                if remaining_budget >= discounted_cost:
-                    # Apply discount and recurse for subordinate with updated budget
-                    profit_with_discount = future[subordinate - 1] - discounted_cost + dfs(subordinate + 1, remaining_budget - discounted_cost)
-                    max_profit = max(max_profit, profit_with_discount)
-                    
-            memo[(emp_id, remaining_budget)] = max_profit
-            return max_profit
-        
-        # Step 3: Start DFS exploration from the first employee with full budget.
-        return dfs(1, budget)
+        tree = [[] for _ in range(n)]
+        parent = [None] * n
+        for u,v in hierarchy:
+            tree[u-1].append(v-1)
+            parent[v-1] = u-1
+
+        # dp[u][state][cost]: max profit for subtree rooted at u,
+        # state=0: boss did not buy, state=1: boss bought
+        # Only store for used budget up to 'budget'
+        def dfs(u):
+            # dp_no: boss did NOT buy, dp_yes: boss did buy
+            dp_no = [float('-inf')] * (budget+1)
+            dp_yes = [float('-inf')] * (budget+1)
+            # Case 1: Not buy u's stock
+            dp_no[0] = 0
+            dp_yes[0] = 0
+            # Case 2: Buy u's stock
+            cost0 = present[u]
+            prof0 = future[u]-present[u]
+            if cost0 <= budget:
+                dp_no[cost0] = prof0
+            cost1 = present[u]//2
+            prof1 = future[u]-cost1
+            if cost1 <= budget:
+                dp_yes[cost1] = prof1
+            # Merge with children
+            for v in tree[u]:
+                cdp_no, cdp_yes = dfs(v)
+                # Merge dp_no: boss did NOT buy
+                ndp_no = [float('-inf')] * (budget+1)
+                for b in range(budget+1):
+                    if dp_no[b] == float('-inf'): continue
+                    for cb in range(budget-b+1):
+                        val = cdp_no[cb]
+                        if val != float('-inf'):
+                            if b+cb <= budget:
+                                ndp_no[b+cb] = max(ndp_no[b+cb], dp_no[b]+val)
+                dp_no = ndp_no
+                # Merge dp_yes: boss DID buy
+                ndp_yes = [float('-inf')] * (budget+1)
+                for b in range(budget+1):
+                    if dp_yes[b] == float('-inf'): continue
+                    for cb in range(budget-b+1):
+                        val = cdp_yes[cb]
+                        if val != float('-inf'):
+                            if b+cb <= budget:
+                                ndp_yes[b+cb] = max(ndp_yes[b+cb], dp_yes[b]+val)
+                dp_yes = ndp_yes
+            return dp_no, dp_yes
+
+        dp_no, dp_yes = dfs(0)
+        # Verification: Ensure returned values respect budget and constraints
+        assert all(0 <= i <= budget for i in range(len(dp_no))), "Budget indices are out of range."
+        assert all(isinstance(val, (int, float)) for val in dp_no), "DP values should be numeric."
+        return max( max(dp_no), max(dp_yes) )
 # @lc code=end
