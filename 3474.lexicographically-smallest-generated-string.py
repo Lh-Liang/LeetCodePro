@@ -7,38 +7,33 @@
 # @lc code=start
 class Solution:
     def generateString(self, str1: str, str2: str) -> str:
-        n, m = len(str1), len(str2)
-        best = ["z" * (n + m - 1)] # Initialize with high lexicographical value
+        n = len(str1)
+        m = len(str2)
+        result = [''] * (n + m - 1)
         
-        def backtrack(index, current):
-            if index == n + m - 1:
-                # If we've constructed a complete valid word
-                if current < best[0]:
-                    best[0] = current
-                return
-            
-            if index >= n:
-                return
-            
-            if str1[index] == 'T':
-                # Ensure we can place str2 starting at this index if it fits within current bounds
-                if index + m <= len(current):
-                    next_word = current[:index] + str2 + current[index+m:]
-                    backtrack(index + m, next_word)
-            else: # str1[index] == 'F'
-                for char in "abcdefghijklmnopqrstuvwxyz":
-                    # Try all characters but ensure it creates a mismatch with str2
-                    mismatch_found = False
-                    for i in range(m):
-                        if char != str2[i]:
-                            mismatch_found = True
-                            next_word = current[:index] + char + current[index+1:]
-                            backtrack(index + 1, next_word)
-                            break # Stop after finding one mismatch option to explore further paths
-                    if mismatch_found:
-                        break
+        def fill_substring(start_index, fill_with):
+            for j in range(m):
+                if result[start_index + j] == '' or result[start_index + j] == fill_with[j]:
+                    result[start_index + j] = fill_with[j]
+                else:
+                    return False
+            return True
         
-        initial_string = "z" * (m - 1) # Initialize with empty start of appropriate length with placeholders like 'z'
-        backtrack(0, initial_string)
-        return best[0] if best[0] != "z" * (m - 1) else ""
+        for i in range(n):
+            if str1[i] == 'T':
+                if not fill_substring(i, str2):
+                    return ""
+            else:
+                # We need to find an alternative lexicographically smallest substring different from str2
+                found_alternative = False
+                for j in range(26):
+                    candidate_char = chr(ord('a') + j)
+                    candidate_str = ''.join([candidate_char] * m)
+                    if candidate_str != str2:
+                        if fill_substring(i, candidate_str):
+                            found_alternative = True
+                            break
+                if not found_alternative:
+                    return ""
+        return ''.join(result)
 # @lc code=end
