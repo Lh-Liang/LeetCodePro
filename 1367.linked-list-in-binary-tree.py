@@ -18,17 +18,21 @@
 #         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        def dfs(tree, listnode):
-            if not listnode:
+        def dfs(tree, list_node):
+            if list_node is None:
                 return True
-            if not tree:
+            if tree is None:
                 return False
-            if tree.val != listnode.val:
+            if tree.val != list_node.val:
                 return False
-            return dfs(tree.left, listnode.next) or dfs(tree.right, listnode.next)
-        if not root:
-            return False
-        return (dfs(root, head) or
-                self.isSubPath(head, root.left) or
-                self.isSubPath(head, root.right))
+            return dfs(tree.left, list_node.next) or dfs(tree.right, list_node.next)
+
+        def traverse(tree):
+            if tree is None:
+                return False
+            if dfs(tree, head):
+                return True
+            return traverse(tree.left) or traverse(tree.right)
+
+        return traverse(root)
 # @lc code=end
