@@ -8,28 +8,27 @@
 class Solution:
     def solveQueries(self, nums: List[int], queries: List[int]) -> List[int]:
         from collections import defaultdict
-        
-        # Step 1: Precompute indices for each number in nums
-        index_map = defaultdict(list)
-        for i, num in enumerate(nums):
-            index_map[num].append(i)
-        
-        # Step 2: Calculate minimum distances for each query
-        n = len(nums)  # Length of nums (circular array)
-        result = []    # To store results for each query
-        
+        import bisect
+        n = len(nums)
+        val_to_indices = defaultdict(list)
+        for idx, val in enumerate(nums):
+            val_to_indices[val].append(idx)
+        res = []
         for q in queries:
-            current_value = nums[q]
-            positions = index_map[current_value]
-            if len(positions) == 1:
-                result.append(-1)  # No other position available with same value
+            v = nums[q]
+            indices = val_to_indices[v]
+            if len(indices) == 1:
+                res.append(-1)
                 continue
-            
-            min_distance = float('inf')
-            # Compare distance between q and all other occurrences of nums[q]
-            for pos in positions:
-                if pos != q:  # Don't compare with itself
-                    dist = min(abs(q - pos), n - abs(q - pos))  # Circular distance calculation
-                    min_distance = min(min_distance, dist)
-            result.append(min_distance if min_distance != float('inf') else -1)
-        return result
+            i = bisect.bisect_left(indices, q)
+            min_dist = n
+            for ni in [indices[i % len(indices)], indices[(i-1) % len(indices)]]:
+                if ni == q: continue  # Ensure not comparing the index to itself
+                dist = min((q - ni) % n, (ni - q) % n)
+                if dist > 0: min_dist = min(min_dist, dist)
+            if min_dist == n:
+                res.append(-1)
+            else:
+                res.append(min_dist)
+        return res
+# @lc code=end
