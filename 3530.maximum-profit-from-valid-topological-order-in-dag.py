@@ -5,24 +5,28 @@
 #
 
 # @lc code=start
+from typing import List
+
 class Solution:
     def maxProfit(self, n: int, edges: List[List[int]], score: List[int]) -> int:
-        from collections import defaultdict
-        # Precompute dependency bitmask for each node
+        # Precompute dependency masks for each node
         dep = [0] * n
         for u, v in edges:
             dep[v] |= 1 << u
 
-        size = 1 << n
-        dp = [-1] * size
+        # dp[mask]: max profit using nodes in mask
+        dp = [None] * (1 << n)
         dp[0] = 0
-        for mask in range(size):
-            k = bin(mask).count('1')  # current position (0-based), so position = k+1
+        for mask in range(1 << n):
+            if dp[mask] is None:
+                continue
+            num_placed = bin(mask).count('1')
             for i in range(n):
                 if not (mask & (1 << i)) and (dep[i] & mask) == dep[i]:
-                    nxt = mask | (1 << i)
-                    profit = dp[mask] + score[i] * (k + 1)
-                    if dp[nxt] < profit:
-                        dp[nxt] = profit
-        return dp[size-1]
+                    # Node i can be placed next
+                    next_mask = mask | (1 << i)
+                    profit = dp[mask] + score[i] * (num_placed + 1)
+                    if dp[next_mask] is None or profit > dp[next_mask]:
+                        dp[next_mask] = profit
+        return dp[(1 << n) - 1]
 # @lc code=end
