@@ -5,41 +5,42 @@
 #
 
 # @lc code=start
-from heapq import heappush, heappop
 from typing import List
+import heapq
 
 class Solution:
     def minimumPairRemoval(self, nums: List[int]) -> int:
-        # Edge case: if already non-decreasing, return 0 operations needed
-        if all(nums[i] <= nums[i+1] for i in range(len(nums) - 1)):
+        # Step 1: Early check for non-decreasing array
+        if all(nums[i] <= nums[i+1] for i in range(len(nums)-1)):
             return 0
-        
-        # Initialize priority queue for storing pairs by sum and index
-        pq = []
-        for i in range(len(nums) - 1):
-            heappush(pq, (nums[i] + nums[i+1], i))
-        
-        operations = 0
-        while pq:
-            # Extract minimum sum pair
-            min_sum, index = heappop(pq)
-            if index < len(nums) - 1 and nums[index] + nums[index + 1] == min_sum:
-                # Replace this pair in nums with their sum
-                new_sum = min_sum
-                nums = nums[:index] + [new_sum] + nums[index+2:]
-                operations += 1
-                
-                # Add new adjacent pairs formed back into priority queue if valid
-                if index > 0:
-                    prev_sum = nums[index-1] + new_sum
-                    heappush(pq, (prev_sum, index-1))
-                if index < len(nums) - 1:
-                    next_sum = new_sum + nums[index+1]
-                    heappush(pq, (next_sum, index))
-            
-            # Check if sorted already to break early if possible
-            if all(nums[i] <= nums[i+1] for i in range(len(nums) - 1)):
+        n = len(nums)
+        arr = list(nums)
+        ops = 0
+        # Maintain (sum, index, version) for each pair
+        heap = []
+        version = [0] * n
+        for i in range(n-1):
+            heapq.heappush(heap, (arr[i]+arr[i+1], i, version[i], version[i+1]))
+        while len(arr) > 1:
+            # Step 2: Select leftmost minimum-sum valid pair
+            while True:
+                s, i, v1, v2 = heapq.heappop(heap)
+                # Step 3: Ensure validity of selected pair
+                if i < len(arr)-1 and version[i] == v1 and version[i+1] == v2:
+                    break
+            # Step 4: Merge pair and update data structures
+            arr[i] = arr[i] + arr[i+1]
+            version[i] += 1
+            arr.pop(i+1)
+            version.pop(i+1)
+            ops += 1
+            # Step 5: Update heap for affected pairs
+            if i-1 >= 0:
+                heapq.heappush(heap, (arr[i-1]+arr[i], i-1, version[i-1], version[i]))
+            if i < len(arr)-1:
+                heapq.heappush(heap, (arr[i]+arr[i+1], i, version[i], version[i+1]))
+            # Step 6: Verification after each operation
+            if all(arr[j] <= arr[j+1] for j in range(len(arr)-1)):
                 break
-        
-        return operations    
+        return ops
 # @lc code=end
