@@ -8,33 +8,23 @@
 class Solution:
     def findAnswer(self, parent: List[int], s: str) -> List[bool]:
         from collections import defaultdict
-        
-        # Step 2: Build adjacency list
-        tree = defaultdict(list)
         n = len(parent)
+        tree = defaultdict(list)
         for i in range(1, n):
             tree[parent[i]].append(i)
-            
+        
         def is_palindrome(string):
             return string == string[::-1]
         
-        # The result array
-        answer = [False] * n
-        
-        # Step 3: Implement recursive DFS to construct dfsStr and check palindromes
         def dfs(node):
-            dfsStr = []
-            def visit(x):
-                for child in sorted(tree[x]):
-                    visit(child)
-                dfsStr.append(s[x])
-            visit(node)
-            return ''.join(dfsStr)
-        
-        # Step 5: Iterate over all nodes
+            dfsStr.append(s[node])
+            for child in sorted(tree[node]):
+                dfs(child)
+
+        answer = [False] * n
         for i in range(n):
-            dfsStr = dfs(i)
-            answer[i] = is_palindrome(dfsStr)
-            
+            dfsStr = []  # Reset dfsStr for new DFS call
+            dfs(i)  # Perform DFS starting from node i
+            answer[i] = is_palindrome(''.join(dfsStr))
         return answer
 # @lc code=end
