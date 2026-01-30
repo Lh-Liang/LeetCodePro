@@ -10,20 +10,27 @@ class Solution:
         from collections import defaultdict
         def is_palindrome(s):
             return s == s[::-1]
-        # Build adjacency list
-        graph = defaultdict(list)
+        
+        # Create adjacency list for graph representation
+        adj_list = defaultdict(list)
         for u, v in edges:
-            graph[u].append(v)
-            graph[v].append(u)
-        max_len = 1
+            adj_list[u].append(v)
+            adj_list[v].append(u)
+        
+        # Depth First Search function to explore paths
         def dfs(node, visited, path):
-            nonlocal max_len
-            if is_palindrome(path):
-                max_len = max(max_len, len(path))
-            for nei in graph[node]:
-                if not (visited & (1 << nei)):
-                    dfs(nei, visited | (1 << nei), path + label[nei])
-        for start in range(n):
-            dfs(start, 1 << start, label[start])
-        return max_len
+            nonlocal max_length
+            if len(path) > 1 and is_palindrome(path):
+                max_length = max(max_length, len(path))  # Update max length if palindrome found
+            
+            visited.add(node)  # Mark node as visited
+            for neighbor in adj_list[node]:
+                if neighbor not in visited:
+                    dfs(neighbor, visited, path + label[neighbor])  # Recursive DFS call with updated path string
+            visited.remove(node)  # Backtrack by removing node from visited set after exploring its paths fully
+        
+nmax_length = 1  # At least one node itself is a palindrome of length 1 initially assumed. 
+dfs(0, set(), label[0])  # Start DFS from each node (only needed once due to undirected nature of graph). 
+nreturn max_length
+
 # @lc code=end
