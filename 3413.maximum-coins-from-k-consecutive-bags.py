@@ -5,62 +5,33 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import defaultdict
-import heapq
-
 class Solution:
     def maximumCoins(self, coins: List[List[int]], k: int) -> int:
-        # Step 1: Create events from segments
+        # Step 1: Create events for start and end of coin segments
         events = []
         for l, r, c in coins:
-            events.append((l, c))       # Start event adds coins
-            events.append((r + 1, -c))  # End event removes coins (after r)
+            events.append((l, c))  # Add coins starting from l
+            events.append((r + 1, -c))  # Remove coins after r
         
         # Step 2: Sort events by position
         events.sort()
         
-        # Step 3: Sweep line with current coin count and calculate sums.
-        current_sum = 0
+        # Step 3: Use a sliding window mechanism to track max sum over k consecutive bags
+        current_coins = 0
         max_coins = 0
-        sums_at_positions = []
-        last_position = None
+        current_window_sum = 0
+        window_positions = []
         
-        for pos, change in events:
-            if last_position is not None and pos != last_position:
-                sums_at_positions.append((last_position, current_sum))
-            current_sum += change
-            last_position = pos
-        
-        # After processing all events, check final position's sum as well if not added.
-        if last_position is not None:
-            sums_at_positions.append((last_position, current_sum))
-        
-        # Step 4: Calculate max using sliding window over recorded sums.
-        max_coins = 0
-        start_idx = 0      # Start of sliding window index on sums_at_positions array.
-        window_sum = 0     # Sum within current window size <= k.
-        num_positions_covered = 0   # Track number of actual positions covered in window.
-        
-        for end_idx in range(len(sums_at_positions)):
-            pos_end, value_end = sums_at_positions[end_idx]
-            while num_positions_covered < k and end_idx < len(sums_at_positions):
-                if end_idx > start_idx:
-                    num_positions_covered += (sums_at_positions[end_idx][0] - sums_at_positions[end_idx - 1][0])
-                else:
-                    num_positions_covered += 1  # First element starts covering one position.
-                window_sum += value_end
-                end_idx += 1    
-            while num_positions_covered > k:
-                pos_start, value_start = sums_at_positions[start_idx]
-                if start_idx + 1 < len(sums_at_positions):
-                    next_pos_start = sums_at_positions[start_idx + 1][0]
-                    num_positions_covered -= (next_pos_start - pos_start)
-                else:
-                    num_positions_covered -= (pos_end - pos_start)
-                window_sum -= value_start
-                start_idx += 1   
-            max_coins = max(max_coins, window_sum)
-            if end_idx < len(sums_at_positions):
-                end_idx -= 1   # Correct loop increment effect when breaking out early.																	    	      	          	             	         	          	          	         	          	         	       	       return max_coins
+        for position, change in events:
+            while window_positions and window_positions[0] <= position - k:
+                current_window_sum -= window_positions.pop(0)
+            
+            current_coins += change
+            if change > 0:
+                window_positions.append(change)
+                current_window_sum += change
+            
+            max_coins = max(max_coins, current_window_sum)
+            
+        return max_coins
 # @lc code=end
