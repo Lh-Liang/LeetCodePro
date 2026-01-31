@@ -9,135 +9,104 @@
 #include <vector>
 #include <algorithm>
 
+using namespace std;
+
 class Solution {
 public:
-    std::string lexPalindromicPermutation(std::string s, std::string target) {
-        int n = s.size();
-        std::vector<int> freq(26, 0);
-        for (char ch : s) {
-            freq[ch - 'a']++;
-        }
-        int m = n / 2;
-        std::vector<int> num_L(26, 0);
-        char mid_char = 0;
-        int odd_cnt = 0;
-        for (int i = 0; i < 26; i++) {
-            num_L[i] = freq[i] / 2;
-            if (freq[i] % 2 == 1) {
-                odd_cnt++;
-                mid_char = 'a' + i;
+    string lexPalindromicPermutation(string s, string target) {
+        int n = s.length();
+        vector<int> counts(26, 0);
+        for (char c : s) counts[c - 'a']++;
+
+        int odd_count = 0;
+        int mid_idx = -1;
+        for (int i = 0; i < 26; ++i) {
+            if (counts[i] % 2 == 1) {
+                odd_count++;
+                mid_idx = i;
             }
         }
-        if ((n % 2 == 1 && odd_cnt != 1) || (n % 2 == 0 && odd_cnt != 0)) {
-            return "";
+
+        if (odd_count > (n % 2)) return "";
+
+        int m = n / 2;
+        vector<int> half_counts(26, 0);
+        for (int i = 0; i < 26; ++i) half_counts[i] = counts[i] / 2;
+
+        string mid = "";
+        if (n % 2 == 1) mid += (char)('a' + mid_idx);
+
+        string best_p = "";
+
+        // Case A: Match prefix exactly
+        bool possible = true;
+        vector<int> temp_counts = half_counts;
+        for (int i = 0; i < m; ++i) {
+            if (--temp_counts[target[i] - 'a'] < 0) {
+                possible = false;
+                break;
+            }
+        }
+        if (possible) {
+            string Q = target.substr(0, m);
+            string P = Q + mid;
+            string revQ = Q;
+            reverse(revQ.begin(), revQ.end());
+            P += revQ;
+            if (P > target) {
+                best_p = P;
+            }
         }
 
-        std::string T_left = target.substr(0, m);
-        std::vector<int> count_T(26, 0);
-        for (char ch : T_left) {
-            count_T[ch - 'a']++;
-        }
-        bool valid_T = true;
-        for (int i = 0; i < 26; i++) {
-            if (count_T[i] != num_L[i]) {
-                valid_T = false;
+        // Case B: Smallest prefix strictly greater than target's first half
+        vector<bool> prefix_possible(m + 1, false);
+        prefix_possible[0] = true;
+        vector<int> p_counts = half_counts;
+        for (int i = 0; i < m; ++i) {
+            if (--p_counts[target[i] - 'a'] >= 0) {
+                prefix_possible[i + 1] = true;
+            } else {
                 break;
             }
         }
 
-        auto build = [&](const std::string& L) -> std::string {
-            std::string P(n, '*');
-            for (int i = 0; i < m; i++) {
-                P[i] = L[i];
-                P[n - 1 - i] = L[i];
-            }
-            if (n % 2 == 1) {
-                P[m] = mid_char;
-            }
-            return P;
-        };
-
-        if (valid_T) {
-            std::string P = build(T_left);
-            if (P > target) {
-                return P;
-            }
-        }
-
-        // Get next L > T_left
-        std::string nextL = get_next_perm_greater(T_left, num_L, m);
-        if (nextL.empty()) {
-            return "";
-        }
-        return build(nextL);
-    }
-
-private:
-    std::string get_next_perm_greater(const std::string& S, const std::vector<int>& counts, int len) {
-        std::vector<int> rem = counts;
-        std::string X;
-        bool still_equal = true;
-        for (int i = 0; i < len; i++) {
-            bool found = false;
-            for (char ch = 'a'; ch <= 'z'; ch++) {
-                int idx = ch - 'a';
-                if (rem[idx] == 0) continue;
-                rem[idx]--;
-
-                int prefix_cmp;
-                if (!still_equal) {
-                    prefix_cmp = 1;
-                } else {
-                    char s_ch = S[i];
-                    if (ch > s_ch) prefix_cmp = 1;
-                    else if (ch < s_ch) prefix_cmp = -1;
-                    else prefix_cmp = 0;
-                }
-
-                bool can_use = false;
-                if (prefix_cmp > 0) {
-                    can_use = true;
-                } else if (prefix_cmp == 0) {
-                    int suf_len = len - i - 1;
-                    std::string suf_S = S.substr(i + 1, suf_len);
-                    std::vector<int> rem_copy = rem;
-                    std::string Ymax(suf_len, ' ');
-                    bool can_fill = true;
-                    for (int j = 0; j < suf_len; j++) {
-                        bool got = false;
-                        for (char cc = 'z'; cc >= 'a'; cc--) {
-                            int idd = cc - 'a';
-                            if (rem_copy[idd] > 0) {
-                                Ymax[j] = cc;
-                                rem_copy[idd]--;
-                                got = true;
-                                break;
-                            }
-                        }
-                        if (!got) {
-                            can_fill = false;
-                            break;
-                        }
-                    }
-                    if (can_fill && Ymax > suf_S) {
-                        can_use = true;
+        string candidate2 = "";
+        for (int i = m - 1; i >= 0; --i) {
+            if (prefix_possible[i]) {
+                vector<int> rem_counts = half_counts;
+                for (int k = 0; k < i; ++k) rem_counts[target[k] - 'a']--;
+                
+                int best_char = -1;
+                for (int c = (target[i] - 'a' + 1); c < 26; ++c) {
+                    if (rem_counts[c] > 0) {
+                        best_char = c;
+                        break;
                     }
                 }
 
-                if (can_use) {
-                    X += ch;
-                    still_equal = still_equal && (ch == S[i]);
-                    found = true;
-                    break;
-                } else {
-                    rem[idx]++;
+                if (best_char != -1) {
+                    string Q = target.substr(0, i);
+                    Q += (char)('a' + best_char);
+                    rem_counts[best_char]--;
+                    for (int c = 0; c < 26; ++c) {
+                        while (rem_counts[c] > 0) {
+                            Q += (char)('a' + c);
+                            rem_counts[c]--;
+                        }
+                    }
+                    string P = Q + mid;
+                    string revQ = Q;
+                    reverse(revQ.begin(), revQ.end());
+                    P += revQ;
+                    candidate2 = P;
+                    break; 
                 }
             }
-            if (!found) {
-                return "";
-            }
         }
-        return X;
+
+        if (best_p == "") return candidate2;
+        if (candidate2 == "") return best_p;
+        return best_p < candidate2 ? best_p : candidate2;
     }
 };
 # @lc code=end
