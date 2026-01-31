@@ -5,136 +5,117 @@
 #
 
 # @lc code=start
-#include <bits/stdc++.h>
+#include <vector>
+#include <algorithm>
+#include <utility>
+
 using namespace std;
 
 class Solution {
+    struct Node {
+        int count;
+        long long sum;
+        int left, right;
+    };
+    vector<Node> tree;
+    vector<int> roots;
+    vector<int> sorted_vals;
+
+    int build(int l, int r) {
+        int node_idx = tree.size();
+        tree.push_back({0, 0, -1, -1});
+        if (l < r) {
+            int mid = l + (r - l) / 2;
+            int L = build(l, mid);
+            int R = build(mid + 1, r);
+            tree[node_idx].left = L;
+            tree[node_idx].right = R;
+        }
+        return node_idx;
+    }
+
+    int update(int prev_idx, int l, int r, int val_idx, int val) {
+        int node_idx = tree.size();
+        tree.push_back(tree[prev_idx]);
+        tree[node_idx].count++;
+        tree[node_idx].sum += val;
+        if (l < r) {
+            int mid = l + (r - l) / 2;
+            if (val_idx <= mid) {
+                int L = update(tree[prev_idx].left, l, mid, val_idx, val);
+                tree[node_idx].left = L;
+            } else {
+                int R = update(tree[prev_idx].right, mid + 1, r, val_idx, val);
+                tree[node_idx].right = R;
+            }
+        }
+        return node_idx;
+    }
+
+    pair<int, long long> query(int node_l, int node_r, int l, int r, int ql, int qr) {
+        if (ql > qr || l > qr || r < ql) return {0, 0};
+        if (l >= ql && r <= qr) {
+            return {tree[node_r].count - tree[node_l].count, tree[node_r].sum - tree[node_l].sum};
+        }
+        int mid = l + (r - l) / 2;
+        auto left_res = query(tree[node_l].left, tree[node_r].left, l, mid, ql, qr);
+        auto right_res = query(tree[node_l].right, tree[node_r].right, mid + 1, r, ql, qr);
+        return {left_res.first + right_res.first, left_res.second + right_res.second};
+    }
+
+    int find_kth(int node_l, int node_r, int l, int r, int rank) {
+        if (l == r) return l;
+        int mid = l + (r - l) / 2;
+        int left_count = tree[tree[node_r].left].count - tree[tree[node_l].left].count;
+        if (rank <= left_count)
+            return find_kth(tree[node_l].left, tree[node_r].left, l, mid, rank);
+        else
+            return find_kth(tree[node_l].right, tree[node_r].right, mid + 1, r, rank - left_count);
+    }
+
 public:
-    vector<long long> minOperations(vector<int>& nums, int _k, vector<vector<int>>& queries) {
+    vector<long long> minOperations(vector<int>& nums, int k, vector<vector<int>>& queries) {
         int n = nums.size();
-        long long k = _k;
-        vector<long long> mods(n), p(n);
+        tree.clear();
+        roots.clear();
+        sorted_vals.clear();
+
+        vector<int> rem_diff(n, 0);
+        for (int i = 1; i < n; ++i) {
+            rem_diff[i] = rem_diff[i - 1] + (nums[i] % k != nums[i - 1] % k);
+        }
+
+        vector<int> y(n);
+        for (int i = 0; i < n; ++i) y[i] = nums[i] / k;
+        sorted_vals = y;
+        sort(sorted_vals.begin(), sorted_vals.end());
+        sorted_vals.erase(unique(sorted_vals.begin(), sorted_vals.end()), sorted_vals.end());
+        int m = sorted_vals.size();
+
+        tree.reserve(n * 40);
+        roots.push_back(build(0, m - 1));
         for (int i = 0; i < n; ++i) {
-            long long num = nums[i];
-            mods[i] = num % k;
-            p[i] = num / k;
+            int idx = lower_bound(sorted_vals.begin(), sorted_vals.end(), y[i]) - sorted_vals.begin();
+            roots.push_back(update(roots.back(), 0, m - 1, idx, y[i]));
         }
 
-        // Prefix sum for total sum of p
-        vector<long long> presum(n + 1, 0);
-        for (int i = 1; i <= n; ++i) {
-            presum[i] = presum[i - 1] + p[i - 1];
-        }
-
-        // Sparse table for min/max mods
-        const int LOG = 17;
-        vector<vector<long long>> spmin(LOG, vector<long long>(n));
-        vector<vector<long long>> spmax(LOG, vector<long long>(n));
-        for (int i = 0; i < n; ++i) {
-            spmin[0][i] = spmax[0][i] = mods[i];
-        }
-        for (int j = 1; j < LOG; ++j) {
-            for (int i = 0; i + (1 << j) <= n; ++i) {
-                spmin[j][i] = min(spmin[j - 1][i], spmin[j - 1][i + (1 << (j - 1))]);
-                spmax[j][i] = max(spmax[j - 1][i], spmax[j - 1][i + (1 << (j - 1))]);
-            }
-        }
-        auto get_min = [&](int l, int r) -> long long {
-            int len = r - l + 1;
-            int j = 31 - __builtin_clz(len);
-            return min(spmin[j][l], spmin[j][r - (1 << j) + 1]);
-        };
-        auto get_max = [&](int l, int r) -> long long {
-            int len = r - l + 1;
-            int j = 31 - __builtin_clz(len);
-            return max(spmax[j][l], spmax[j][r - (1 << j) + 1]);
-        };
-
-        // Merge-sort tree
-        int tsize = 4 * n;
-        vector<vector<long long>> tree_sorted(tsize);
-        vector<vector<long long>> tree_prefix(tsize);
-
-        function<void(int, int, int)> build = [&](int node, int start, int end) {
-            if (start == end) {
-                tree_sorted[node] = {p[start]};
-                tree_prefix[node] = {0LL, p[start]};
-                return;
-            }
-            int mid = (start + end) / 2;
-            build(2 * node, start, mid);
-            build(2 * node + 1, mid + 1, end);
-            vector<long long>& left = tree_sorted[2 * node];
-            vector<long long>& right = tree_sorted[2 * node + 1];
-            vector<long long> merged;
-            merged.reserve(left.size() + right.size());
-            merge(left.begin(), left.end(), right.begin(), right.end(), back_inserter(merged));
-            tree_sorted[node] = std::move(merged);
-            int sz = tree_sorted[node].size();
-            tree_prefix[node].resize(sz + 1);
-            tree_prefix[node][0] = 0;
-            for (int i = 1; i <= sz; ++i) {
-                tree_prefix[node][i] = tree_prefix[node][i - 1] + tree_sorted[node][i - 1];
-            }
-        };
-        build(1, 0, n - 1);
-
-        function<pair<long long, long long>(int, int, int, int, int, long long)> query_sumcnt =
-            [&](int node, int start, int end, int ql, int qr, long long val) -> pair<long long, long long> {
-                if (qr < start || ql > end) return {0, 0};
-                if (ql <= start && end <= qr) {
-                    auto& v = tree_sorted[node];
-                    auto it = upper_bound(v.begin(), v.end(), val);
-                    int pos = it - v.begin();
-                    long long cnt = pos;
-                    long long sm = tree_prefix[node][pos];
-                    return {cnt, sm};
-                }
-                int mid = (start + end) / 2;
-                auto left = query_sumcnt(2 * node, start, mid, ql, qr, val);
-                auto right = query_sumcnt(2 * node + 1, mid + 1, end, ql, qr, val);
-                return {left.first + right.first, left.second + right.second};
-            };
-
-        auto get_count = [&](int l, int r, long long val) -> long long {
-            return query_sumcnt(1, 0, n - 1, l, r, val).first;
-        };
-        auto get_sum = [&](int l, int r, long long val) -> long long {
-            return query_sumcnt(1, 0, n - 1, l, r, val).second;
-        };
-
-        auto find_median = [&](int l, int r) -> long long {
-            int len = r - l + 1;
-            long long target_k = (len + 1LL) / 2;
-            long long low = 0, high = 2000000000LL;
-            while (low < high) {
-                long long midv = low + (high - low) / 2;
-                if (get_count(l, r, midv) >= target_k) {
-                    high = midv;
-                } else {
-                    low = midv + 1;
-                }
-            }
-            return low;
-        };
-
-        // Process queries
         vector<long long> ans;
-        for (auto& q : queries) {
+        ans.reserve(queries.size());
+        for (const auto& q : queries) {
             int l = q[0], r = q[1];
-            long long minm = get_min(l, r);
-            long long maxm = get_max(l, r);
-            if (minm != maxm) {
+            if (rem_diff[r] - rem_diff[l] != 0) {
                 ans.push_back(-1);
                 continue;
             }
-            long long med = find_median(l, r);
-            long long total_sum = presum[r + 1] - presum[l];
-            long long cnt_leq = get_count(l, r, med);
-            long long sum_leq = get_sum(l, r, med);
-            long long cnt_gt = (r - l + 1LL) - cnt_leq;
-            long long sum_gt = total_sum - sum_leq;
-            long long ops = cnt_leq * med - sum_leq + sum_gt - cnt_gt * med;
+            int len = r - l + 1;
+            int m_idx = find_kth(roots[l], roots[r + 1], 0, m - 1, (len + 1) / 2);
+            long long median = sorted_vals[m_idx];
+
+            auto left_part = query(roots[l], roots[r + 1], 0, m - 1, 0, m_idx);
+            auto right_part = query(roots[l], roots[r + 1], 0, m - 1, m_idx + 1, m - 1);
+
+            long long ops = (long long)left_part.first * median - left_part.second;
+            ops += right_part.second - (long long)right_part.first * median;
             ans.push_back(ops);
         }
         return ans;
