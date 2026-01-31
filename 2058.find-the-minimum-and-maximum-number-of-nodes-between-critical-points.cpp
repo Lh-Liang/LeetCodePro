@@ -22,40 +22,39 @@ public:
             return {-1, -1};
         }
 
-        int first_cp = -1;
-        int prev_cp = -1;
-        int min_dist = 2147483647; // INT_MAX
+        int firstPos = -1;
+        int prevPos = -1;
+        int minDist = 2147483647; // INT_MAX
         
         ListNode* prev = head;
         ListNode* curr = head->next;
-        int index = 1;
+        int currIdx = 1;
 
-        while (curr->next) {
-            bool is_maxima = (curr->val > prev->val && curr->val > curr->next->val);
-            bool is_minima = (curr->val < prev->val && curr->val < curr->next->val);
-
-            if (is_maxima || is_minima) {
-                if (first_cp == -1) {
-                    first_cp = index;
+        while (curr->next != nullptr) {
+            ListNode* next = curr->next;
+            
+            if ((curr->val > prev->val && curr->val > next->val) ||
+                (curr->val < prev->val && curr->val < next->val)) {
+                
+                if (firstPos == -1) {
+                    firstPos = currIdx;
                 } else {
-                    int current_dist = index - prev_cp;
-                    if (current_dist < min_dist) {
-                        min_dist = current_dist;
-                    }
+                    int d = currIdx - prevPos;
+                    if (d < minDist) minDist = d;
                 }
-                prev_cp = index;
+                prevPos = currIdx;
             }
 
             prev = curr;
-            curr = curr->next;
-            index++;
+            curr = next;
+            currIdx++;
         }
 
-        if (first_cp == -1 || first_cp == prev_cp) {
+        if (firstPos == -1 || firstPos == prevPos) {
             return {-1, -1};
         }
 
-        return {min_dist, prev_cp - first_cp};
+        return {minDist, prevPos - firstPos};
     }
 };
 # @lc code=end

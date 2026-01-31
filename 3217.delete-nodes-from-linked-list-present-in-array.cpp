@@ -6,31 +6,32 @@
 
 # @lc code=start
 /**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int x) : val(x), next(nullptr) {}
- *     ListNode(int x, ListNode *next) : val(x), next(next) {}
- * };
- */
-#include <unordered_set>
-#include <vector>
-
+* Definition for singly-linked list.
+* struct ListNode {
+*     int val;
+*     ListNode *next;
+*     ListNode() : val(0), next(nullptr) {}
+*     ListNode(int x) : val(x), next(nullptr) {}
+*     ListNode(int x, ListNode *next) : val(x), next(next) {}
+* };
+*/
 class Solution {
 public:
-    ListNode* modifiedList(std::vector<int>& nums, ListNode* head) {
-        std::unordered_set<int> numSet(nums.begin(), nums.end());
+    ListNode* modifiedList(vector<int>& nums, ListNode* head) {
+        // Step 1: Store elements of nums in a hash set for O(1) lookup
+        unordered_set<int> numSet(nums.begin(), nums.end());
+
+        // Step 2: Use a dummy node to handle cases where the head needs to be removed
         ListNode dummy(0, head);
         ListNode* curr = &dummy;
 
+        // Step 3: Traverse the list and remove nodes present in numSet
         while (curr->next != nullptr) {
-            if (numSet.find(curr->next->val) != numSet.end()) {
-                // The next node should be deleted
+            if (numSet.count(curr->next->val)) {
+                // Node needs removal
                 ListNode* temp = curr->next;
                 curr->next = curr->next->next;
-                // In a real environment, we might delete temp here if not using a GC-like system
+                delete temp; // Free memory
             } else {
                 // Move to the next node
                 curr = curr->next;

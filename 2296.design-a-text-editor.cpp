@@ -3,6 +3,7 @@
 #
 # [2296] Design a Text Editor
 #
+
 # @lc code=start
 #include <string>
 #include <algorithm>
@@ -11,45 +12,49 @@ using namespace std;
 
 class TextEditor {
 private:
-    string left_side;
-    string right_side;
+    string left;
+    string right;
 
 public:
     TextEditor() {
-        left_side = "";
-        right_side = "";
+        left = "";
+        right = "";
     }
     
     void addText(string text) {
-        left_side += text;
+        left += text;
     }
     
     int deleteText(int k) {
-        int numToDelete = min(k, (int)left_side.length());
+        int numToDelete = min(k, (int)left.size());
         for (int i = 0; i < numToDelete; ++i) {
-            left_side.pop_back();
+            left.pop_back();
         }
         return numToDelete;
     }
     
     string cursorLeft(int k) {
-        int numToMove = min(k, (int)left_side.length());
+        int numToMove = min(k, (int)left.size());
         for (int i = 0; i < numToMove; ++i) {
-            right_side.push_back(left_side.back());
-            left_side.pop_back();
+            right.push_back(left.back());
+            left.pop_back();
         }
-        int len = min(10, (int)left_side.length());
-        return left_side.substr(left_side.length() - len);
+        return getLeftText();
     }
     
     string cursorRight(int k) {
-        int numToMove = min(k, (int)right_side.length());
+        int numToMove = min(k, (int)right.size());
         for (int i = 0; i < numToMove; ++i) {
-            left_side.push_back(right_side.back());
-            right_side.pop_back();
+            left.push_back(right.back());
+            right.pop_back();
         }
-        int len = min(10, (int)left_side.length());
-        return left_side.substr(left_side.length() - len);
+        return getLeftText();
+    }
+
+private:
+    string getLeftText() {
+        int len = min(10, (int)left.size());
+        return left.substr(left.size() - len);
     }
 };
 
