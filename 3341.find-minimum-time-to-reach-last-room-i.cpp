@@ -20,37 +20,35 @@ public:
         // dist[i][j] stores the minimum time to reach room (i, j)
         // Initialize with a large value (INT_MAX)
         vector<vector<int>> dist(n, vector<int>(m, 2147483647));
-        dist[0][0] = 0;
         
-        // Min-heap: {time, {row, col}}
+        // Min-priority queue: {time, {row, col}}
         priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<pair<int, pair<int, int>>>> pq;
+        
+        dist[0][0] = 0;
         pq.push({0, {0, 0}});
         
         int dr[] = {0, 0, 1, -1};
         int dc[] = {1, -1, 0, 0};
         
         while (!pq.empty()) {
-            int d = pq.top().first;
+            int t = pq.top().first;
             int r = pq.top().second.first;
             int c = pq.top().second.second;
             pq.pop();
             
-            // If we found a better path already, skip this one
-            if (d > dist[r][c]) continue;
-            
-            // If we reached the target, return the time
-            if (r == n - 1 && c == m - 1) return d;
+            if (t > dist[r][c]) continue;
+            if (r == n - 1 && c == m - 1) return t;
             
             for (int i = 0; i < 4; ++i) {
                 int nr = r + dr[i];
                 int nc = c + dc[i];
                 
                 if (nr >= 0 && nr < n && nc >= 0 && nc < m) {
-                    // Transition: time to enter is max(current_time, room_open_time) + move_cost
-                    int next_d = max(d, moveTime[nr][nc]) + 1;
-                    if (next_d < dist[nr][nc]) {
-                        dist[nr][nc] = next_d;
-                        pq.push({next_d, {nr, nc}});
+                    // Arrival time at neighbor: max(current_time, opening_time) + 1 second travel
+                    int next_t = max(t, moveTime[nr][nc]) + 1;
+                    if (next_t < dist[nr][nc]) {
+                        dist[nr][nc] = next_t;
+                        pq.push({next_t, {nr, nc}});
                     }
                 }
             }

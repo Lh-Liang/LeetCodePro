@@ -6,6 +6,7 @@
 
 # @lc code=start
 #include <string>
+#include <vector>
 #include <algorithm>
 
 using namespace std;
@@ -14,39 +15,48 @@ class Solution {
 public:
     int minLength(string s, int numOps) {
         int n = s.length();
+        
+        // Pre-calculate block lengths for k > 1
+        vector<int> blocks;
+        if (n > 0) {
+            int count = 1;
+            for (int i = 1; i < n; ++i) {
+                if (s[i] == s[i - 1]) {
+                    count++;
+                } else {
+                    blocks.push_back(count);
+                    count = 1;
+                }
+            }
+            blocks.push_back(count);
+        }
 
-        auto check = [&](int k) -> bool {
+        auto check = [&](int k) {
             if (k == 1) {
-                int ops0 = 0;
+                int f1 = 0, f2 = 0;
                 for (int i = 0; i < n; ++i) {
-                    char target = (i % 2 == 0) ? '0' : '1';
-                    if (s[i] != target) ops0++;
+                    if (s[i] != (i % 2 == 0 ? '0' : '1')) f1++;
+                    else f2++;
                 }
-                return min(ops0, n - ops0) <= numOps;
+                return min(f1, f2) <= numOps;
             } else {
-                int totalOps = 0;
-                int count = 0;
-                for (int i = 0; i < n; ++i) {
-                    if (i > 0 && s[i] == s[i - 1]) {
-                        count++;
-                    } else {
-                        totalOps += count / (k + 1);
-                        count = 1;
-                    }
+                int total = 0;
+                for (int L : blocks) {
+                    total += L / (k + 1);
                 }
-                totalOps += count / (k + 1);
-                return totalOps <= numOps;
+                return total <= numOps;
             }
         };
 
-        int left = 1, right = n, ans = n;
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
+        int low = 1, high = n;
+        int ans = n;
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
             if (check(mid)) {
                 ans = mid;
-                right = mid - 1;
+                high = mid - 1;
             } else {
-                left = mid + 1;
+                low = mid + 1;
             }
         }
         return ans;
