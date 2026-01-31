@@ -18,10 +18,9 @@ public:
         int m = moveTime[0].size();
         
         // dist[i][j] stores the minimum time to reach room (i, j)
-        // Initialize with a large value (INT_MAX)
-        vector<vector<int>> dist(n, vector<int>(m, 2147483647));
-        
-        // Min-priority queue: {time, {row, col}}
+        // Using a large value for initialization (2e9 + 7 stays within int range)
+        vector<vector<int>> dist(n, vector<int>(m, 2000000000));
+        // Priority queue stores {time, {row, col}}, ordered by time (min-priority queue)
         priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<pair<int, pair<int, int>>>> pq;
         
         dist[0][0] = 0;
@@ -31,12 +30,16 @@ public:
         int dc[] = {1, -1, 0, 0};
         
         while (!pq.empty()) {
-            int t = pq.top().first;
-            int r = pq.top().second.first;
-            int c = pq.top().second.second;
+            auto [t, pos] = pq.top();
             pq.pop();
             
+            int r = pos.first;
+            int c = pos.second;
+            
+            // If we found a better way already, skip this
             if (t > dist[r][c]) continue;
+            
+            // If we reached the destination
             if (r == n - 1 && c == m - 1) return t;
             
             for (int i = 0; i < 4; ++i) {
@@ -44,11 +47,11 @@ public:
                 int nc = c + dc[i];
                 
                 if (nr >= 0 && nr < n && nc >= 0 && nc < m) {
-                    // Arrival time at neighbor: max(current_time, opening_time) + 1 second travel
-                    int next_t = max(t, moveTime[nr][nc]) + 1;
-                    if (next_t < dist[nr][nc]) {
-                        dist[nr][nc] = next_t;
-                        pq.push({next_t, {nr, nc}});
+                    // Time to reach neighbor: max(current time, opening time) + 1 second travel
+                    int nt = max(t, moveTime[nr][nc]) + 1;
+                    if (nt < dist[nr][nc]) {
+                        dist[nr][nc] = nt;
+                        pq.push({nt, {nr, nc}});
                     }
                 }
             }

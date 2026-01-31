@@ -8,45 +8,39 @@
 #include <deque>
 
 class FrontMiddleBackQueue {
-private:
-    std::deque<int> left;
-    std::deque<int> right;
+    std::deque<int> left, right;
 
     void balance() {
         if (left.size() > right.size()) {
             right.push_front(left.back());
             left.pop_back();
-        }
-        if (right.size() > left.size() + 1) {
+        } else if (right.size() > left.size() + 1) {
             left.push_back(right.front());
             right.pop_front();
         }
     }
 
 public:
-    FrontMiddleBackQueue() {
-    }
-    
+    FrontMiddleBackQueue() {}
+
     void pushFront(int val) {
         left.push_front(val);
         balance();
     }
-    
+
     void pushMiddle(int val) {
-        if (left.size() == right.size()) {
-            right.push_front(val);
-        } else {
+        if (left.size() < right.size()) {
             left.push_back(val);
+        } else {
+            right.push_front(val);
         }
-        // balance() is technically not needed here if logic is correct, but good for safety.
-        // In our case, pushMiddle maintains the invariant directly.
     }
-    
+
     void pushBack(int val) {
         right.push_back(val);
         balance();
     }
-    
+
     int popFront() {
         if (left.empty() && right.empty()) return -1;
         int val;
@@ -60,7 +54,7 @@ public:
         balance();
         return val;
     }
-    
+
     int popMiddle() {
         if (left.empty() && right.empty()) return -1;
         int val;
@@ -74,9 +68,9 @@ public:
         balance();
         return val;
     }
-    
+
     int popBack() {
-        if (right.empty()) return -1;
+        if (left.empty() && right.empty()) return -1;
         int val = right.back();
         right.pop_back();
         balance();
