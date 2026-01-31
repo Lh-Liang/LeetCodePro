@@ -5,38 +5,58 @@
 #
 
 # @lc code=start
+#include <vector>
+#include <numeric>
+#include <algorithm>
+#include <cmath>
+
+using namespace std;
+
 class Solution {
 public:
     long long minMoves(vector<int>& balance) {
         int n = balance.size();
-        int k = -1;
-        long long total = 0;
-        long long deficit = 0;
+        long long total_sum = 0;
+        int neg_idx = -1;
+
         for (int i = 0; i < n; ++i) {
-            total += balance[i];
+            total_sum += balance[i];
             if (balance[i] < 0) {
-                k = i;
-                deficit = - (long long)balance[i];
+                neg_idx = i;
             }
         }
-        if (k == -1) return 0;
-        if (total < 0) return -1;
-        vector<long long> cap(n + 1, 0LL);
+
+        if (total_sum < 0) return -1;
+        if (neg_idx == -1) return 0;
+
+        long long deficit = -static_cast<long long>(balance[neg_idx]);
+        struct Source {
+            int amount;
+            int distance;
+        };
+        vector<Source> sources;
+
         for (int i = 0; i < n; ++i) {
-            if (i == k) continue;
-            int diff = abs(i - k);
-            int d = min(diff, n - diff);
-            cap[d] += (long long)balance[i];
+            if (balance[i] > 0) {
+                int dist = abs(i - neg_idx);
+                dist = min(dist, n - dist);
+                sources.push_back({balance[i], dist});
+            }
         }
-        long long ans = 0;
-        long long rem = deficit;
-        for (int d = 1; d < n; ++d) {
-            if (cap[d] == 0 || rem == 0) continue;
-            long long take = min(rem, cap[d]);
-            ans += take * d;
-            rem -= take;
+
+        sort(sources.begin(), sources.end(), [](const Source& a, const Source& b) {
+            return a.distance < b.distance;
+        });
+
+        long long total_moves = 0;
+        for (const auto& src : sources) {
+            if (deficit <= 0) break;
+            long long take = min((long long)src.amount, deficit);
+            total_moves += take * src.distance;
+            deficit -= take;
         }
-        return ans;
+
+        return total_moves;
     }
 };
 # @lc code=end
