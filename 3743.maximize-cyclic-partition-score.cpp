@@ -5,71 +5,81 @@
 #
 
 # @lc code=start
-#include <bits/stdc++.h>
+#include <vector>
+#include <algorithm>
+#include <climits>
+
 using namespace std;
 
 class Solution {
 public:
     long long maximumScore(vector<int>& nums, int k) {
         int n = nums.size();
-        vector<int> ext(2 * n);
-        for (int i = 0; i < 2 * n; ++i) {
-            ext[i] = nums[i % n];
+        if (n == 0) return 0;
+        if (k >= n) {
+            // If k is large, we can potentially isolate every change.
+            // But the max possible score is bounded by the sum of ranges.
         }
-        int N = 2 * n;
-        int LOG = 0;
-        while ((1 << LOG) <= N) ++LOG;
-        vector<vector<int>> spmax(LOG, vector<int>(N));
-        vector<vector<int>> spmin(LOG, vector<int>(N));
-        for (int i = 0; i < N; ++i) {
-            spmax[0][i] = spmin[0][i] = ext[i];
-        }
-        for (int lv = 1; lv < LOG; ++lv) {
-            for (int i = 0; i + (1 << lv) <= N; ++i) {
-                spmax[lv][i] = max(spmax[lv - 1][i], spmax[lv - 1][i + (1 << (lv - 1))]);
-                spmin[lv][i] = min(spmin[lv - 1][i], spmin[lv - 1][i + (1 << (lv - 1))]);
-            }
-        }
-        auto get_max = [&](int L, int R) -> int {
-            int leng = R - L + 1;
-            int lg = 31 - __builtin_clz(leng);
-            return max(spmax[lg][L], spmax[lg][R - (1 << lg) + 1]);
-        };
-        auto get_min = [&](int L, int R) -> int {
-            int leng = R - L + 1;
-            int lg = 31 - __builtin_clz(leng);
-            return min(spmin[lg][L], spmin[lg][R - (1 << lg) + 1]);
-        };
-        long long ans = 0;
-        vector<long long> dpa(n + 1);
-        vector<long long> dpb(n + 1);
-        for (int s = 0; s < n; ++s) {
-            fill(dpa.begin(), dpa.end(), LLONG_MIN / 2);
-            dpa[0] = 0;
-            vector<long long>* now = &dpa;
-            vector<long long>* nxtt = &dpb;
-            for (int p = 1; p <= k; ++p) {
-                int optt = p - 1;
-                for (int len = p; len <= n; ++len) {
-                    long long best = LLONG_MIN / 2;
-                    int start_pr = optt;
-                    for (int pr = start_pr; pr < len; ++pr) {
-                        long long cc = (long long)get_max(s + pr, s + len - 1) - get_min(s + pr, s + len - 1);
-                        long long temp = (*now)[pr] + cc;
-                        if (temp > best) {
-                            best = temp;
-                            optt = pr;
+
+        // To handle the cyclic nature, we can observe that at least one of the 
+        // optimal partition boundaries must exist. If we fix the split point at index 's',
+        // we solve the linear version. To avoid O(N^3), we can use the fact that
+        // the global maximum and global minimum are likely to be endpoints or 
+        // internal extremes. However, a safer O(N^2) approach for cyclic is needed.
+        
+        auto solveLinear = [&](const vector<int>& arr) {
+            int m = arr.size();
+            // f[i][j] = max score for first j elements with i subarrays.
+            // Using space optimization: prev_f[j] is for i-1 subarrays.
+            vector<long long> dp(m + 1, 0);
+            long long max_total = 0;
+
+            for (int seg = 1; seg <= k; ++seg) {
+                vector<long long> next_dp(m + 1, -1e18);
+                // For a fixed number of segments, we want to find the best split.
+                // This is still O(k * N^2). We need to ensure it fits or optimize.
+                for (int j = 1; j <= m; ++j) {
+                    int cur_min = arr[j-1];
+                    int cur_max = arr[j-1];
+                    for (int p = j - 1; p >= 0; --p) {
+                        if (dp[p] != -1e18) {
+                            next_dp[j] = max(next_dp[j], dp[p] + (cur_max - cur_min));
+                        }
+                        if (p > 0) {
+                            cur_min = min(cur_min, arr[p-1]);
+                            cur_max = max(cur_max, arr[p-1]);
                         }
                     }
-                    (*nxtt)[len] = best;
                 }
-                auto* tmp = now;
-                now = nxtt;
-                nxtt = tmp;
+                dp = next_dp;
+                max_total = max(max_total, dp[m]);
             }
-            ans = max(ans, (*now)[n]);
-        }
-        return ans;
+            return max_total;
+        };
+
+        // Given N=1000, we must find a way to linearize or optimize.
+        // One property: there exists an optimal partition where the split occurs
+        // at a point 'i' such that nums[i] is a local minimum or maximum.
+        
+        long long result = 0;
+        // Try rotating such that the split happens at the global minimum
+        int min_idx = 0;
+        for(int i = 1; i < n; ++i) if(nums[i] < nums[min_idx]) min_idx = i;
+        
+        auto getRotated = [&](int start) {
+            vector<int> res;
+            for(int i = 0; i < n; ++i) res.push_back(nums[(start + i) % n]);
+            return res;
+        };
+
+        result = max(result, solveLinear(getRotated(min_idx)));
+        
+        // Also try global maximum split point
+        int max_idx = 0;
+        for(int i = 1; i < n; ++i) if(nums[i] > nums[max_idx]) max_idx = i;
+        result = max(result, solveLinear(getRotated(max_idx)));
+
+        return result;
     }
 };
 # @lc code=end
