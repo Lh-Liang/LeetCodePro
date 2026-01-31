@@ -5,66 +5,69 @@
 #
 
 # @lc code=start
-class Solution {
-public:
-    struct Fenwick {
-        vector<long long> tree;
-        int sz;
-        Fenwick(int n) : sz(n), tree(n + 2, 0) {}
-        void update(int idx, long long val) {
-            while (idx <= sz) {
-                tree[idx] += val;
-                idx += idx & -idx;
-            }
-        }
-        long long query(int idx) {
-            long long sum = 0;
-            while (idx > 0) {
-                sum += tree[idx];
-                idx -= idx & -idx;
-            }
-            return sum;
-        }
-        long long query(int l, int r) {
-            if (l > r) return 0;
-            return query(r) - query(l - 1);
-        }
-    };
+#include <vector>
+#include <algorithm>
 
+using namespace std;
+
+class Solution {
+    vector<int> bit;
+    int bit_size;
+
+    void update(int idx, int val) {
+        for (; idx <= bit_size; idx += idx & -idx)
+            bit[idx] += val;
+    }
+
+    int query(int idx) {
+        int res = 0;
+        for (; idx > 0; idx -= idx & -idx)
+            res += bit[idx];
+        return res;
+    }
+
+public:
     long long minInversionCount(vector<int>& nums, int k) {
         int n = nums.size();
-        vector<int> vals = nums;
-        sort(vals.begin(), vals.end());
-        vals.erase(unique(vals.begin(), vals.end()), vals.end());
-        int m = vals.size();
-        vector<int> rnk(n);
-        for (int i = 0; i < n; i++) {
-            rnk[i] = lower_bound(vals.begin(), vals.end(), nums[i]) - vals.begin() + 1;
+        if (k <= 1) return 0;
+
+        // Coordinate compression
+        vector<int> coords = nums;
+        sort(coords.begin(), coords.end());
+        coords.erase(unique(coords.begin(), coords.end()), coords.end());
+        
+        auto get_rank = [&](int x) {
+            return lower_bound(coords.begin(), coords.end(), x) - coords.begin() + 1;
+        };
+
+        vector<int> ranks(n);
+        for (int i = 0; i < n; ++i) ranks[i] = get_rank(nums[i]);
+
+        bit_size = coords.size();
+        bit.assign(bit_size + 1, 0);
+
+        long long current_inv = 0;
+        for (int i = 0; i < k; ++i) {
+            // Elements > current rank are (elements_processed - elements_<=_current_rank)
+            current_inv += (i - query(ranks[i]));
+            update(ranks[i], 1);
         }
-        Fenwick ft(m);
-        long long inv = 0;
-        // Build first window [0, k-1]
-        for (int i = 0; i < k; i++) {
-            int rk = rnk[i];
-            inv += ft.query(rk + 1, m);
-            ft.update(rk, 1);
+
+        long long min_inv = current_inv;
+
+        for (int i = 0; i < n - k; ++i) {
+            // Remove nums[i]: it was the first element, so it was greater than query(ranks[i]-1) elements
+            current_inv -= query(ranks[i] - 1);
+            update(ranks[i], -1);
+            
+            // Add nums[i+k]: it is the last element, so it is smaller than ((k-1) - query(ranks[i+k])) elements
+            current_inv += ((k - 1) - query(ranks[i + k]));
+            update(ranks[i + k], 1);
+            
+            if (current_inv < min_inv) min_inv = current_inv;
         }
-        long long ans = inv;
-        // Slide the window
-        for (int start = 1; start <= n - k; start++) {
-            int rem_idx = start - 1;
-            int rk_rem = rnk[rem_idx];
-            long long smaller = ft.query(1, rk_rem - 1);
-            inv -= smaller;
-            ft.update(rk_rem, -1);
-            int add_idx = start + k - 1;
-            int rk_add = rnk[add_idx];
-            long long greater = ft.query(rk_add + 1, m);
-            inv += greater;
-            ft.update(rk_add, 1);
-            ans = min(ans, inv);
-        }
-        return ans;
+
+        return min_inv;
     }
 };
 # @lc code=end
