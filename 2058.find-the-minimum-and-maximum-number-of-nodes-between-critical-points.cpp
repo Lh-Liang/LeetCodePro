@@ -15,6 +15,12 @@
  *     ListNode(int x, ListNode *next) : val(x), next(next) {}
  * };
  */
+#include <vector>
+#include <algorithm>
+#include <climits>
+
+using namespace std;
+
 class Solution {
 public:
     vector<int> nodesBetweenCriticalPoints(ListNode* head) {
@@ -22,39 +28,43 @@ public:
             return {-1, -1};
         }
 
-        int firstPos = -1;
-        int prevPos = -1;
-        int minDist = 2147483647; // INT_MAX
+        int firstCP = -1;
+        int prevCP = -1;
+        int minDist = INT_MAX;
         
         ListNode* prev = head;
         ListNode* curr = head->next;
-        int currIdx = 1;
+        int index = 1;
 
-        while (curr->next != nullptr) {
+        while (curr->next) {
             ListNode* next = curr->next;
+            bool isCP = false;
             
-            if ((curr->val > prev->val && curr->val > next->val) ||
+            // Check for local maxima or local minima
+            if ((curr->val > prev->val && curr->val > next->val) || 
                 (curr->val < prev->val && curr->val < next->val)) {
-                
-                if (firstPos == -1) {
-                    firstPos = currIdx;
+                isCP = true;
+            }
+
+            if (isCP) {
+                if (firstCP == -1) {
+                    firstCP = index;
                 } else {
-                    int d = currIdx - prevPos;
-                    if (d < minDist) minDist = d;
+                    minDist = min(minDist, index - prevCP);
                 }
-                prevPos = currIdx;
+                prevCP = index;
             }
 
             prev = curr;
             curr = next;
-            currIdx++;
+            index++;
         }
 
-        if (firstPos == -1 || firstPos == prevPos) {
+        if (firstCP == -1 || prevCP == firstCP) {
             return {-1, -1};
         }
 
-        return {minDist, prevPos - firstPos};
+        return {minDist, prevCP - firstCP};
     }
 };
 # @lc code=end

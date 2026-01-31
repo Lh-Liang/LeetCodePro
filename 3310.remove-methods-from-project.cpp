@@ -7,6 +7,7 @@
 # @lc code=start
 #include <vector>
 #include <queue>
+#include <numeric>
 
 using namespace std;
 
@@ -18,43 +19,43 @@ public:
             adj[inv[0]].push_back(inv[1]);
         }
 
-        vector<bool> isSuspicious(n, false);
-        isSuspicious[k] = true;
+        vector<bool> is_suspicious(n, false);
         queue<int> q;
+        
+        is_suspicious[k] = true;
         q.push(k);
 
         while (!q.empty()) {
             int u = q.front();
             q.pop();
             for (int v : adj[u]) {
-                if (!isSuspicious[v]) {
-                    isSuspicious[v] = true;
+                if (!is_suspicious[v]) {
+                    is_suspicious[v] = true;
                     q.push(v);
                 }
             }
         }
 
-        bool canRemove = true;
+        bool can_remove = true;
         for (const auto& inv : invocations) {
-            // Check if a method outside the group invokes a method within it
-            if (!isSuspicious[inv[0]] && isSuspicious[inv[1]]) {
-                canRemove = false;
+            if (!is_suspicious[inv[0]] && is_suspicious[inv[1]]) {
+                can_remove = false;
                 break;
             }
         }
 
         vector<int> result;
-        if (canRemove) {
+        if (can_remove) {
             for (int i = 0; i < n; ++i) {
-                if (!isSuspicious[i]) {
+                if (!is_suspicious[i]) {
                     result.push_back(i);
                 }
             }
         } else {
-            for (int i = 0; i < n; ++i) {
-                result.push_back(i);
-            }
+            result.resize(n);
+            iota(result.begin(), result.end(), 0);
         }
+
         return result;
     }
 };
