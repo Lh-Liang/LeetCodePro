@@ -5,70 +5,83 @@
 #
 
 # @lc code=start
-#include <bits/stdc++.h>
+#include <string>
+#include <vector>
+#include <cstring>
+
 using namespace std;
 
 class Solution {
-public:
-    long long totalWaviness(long long num1, long long num2) {
-        struct Res {
-            long long cnt, sumw;
-            Res(long long c = -1LL, long long s = 0LL) : cnt(c), sumw(s) {}
-        };
+    struct Result {
+        long long count;
+        long long sum;
+    };
+    // last and second_last use 10 to represent 'none' or 'placeholder'
+    Result memo[20][11][11][2][2];
+    int digits[20];
+    int len;
 
-        auto solve = [&](auto&& self, long long n) -> long long {
-            if (n <= 0) return 0LL;
-            string S = to_string(n);
-            int L = S.length();
-            const int MAX_POS = 17;
-            const int MAX_PV = 11;
-            int total_states = MAX_POS * 2 * 2 * MAX_PV * MAX_PV;
-            vector<Res> memo(total_states);
+    Result dp(int idx, int last, int second_last, bool is_less, bool is_started) {
+        if (idx == len) {
+            return {1, 0};
+        }
+        if (memo[idx][last][second_last][is_less][is_started].count != -1) {
+            return memo[idx][last][second_last][is_less][is_started];
+        }
 
-            auto get_idx = [&](int pos, int tig, int lea, int p1, int p2) -> int {
-                return (((pos * 2 + tig) * 2 + lea) * MAX_PV + (p1 + 1)) * MAX_PV + (p2 + 1);
-            };
+        Result res = {0, 0};
+        int up = is_less ? 9 : digits[idx];
 
-            function<Res(int, int, int, int, int)> dfs = [&](int pos, int tight, int lead, int prev1, int prev2) -> Res {
-                if (pos == L) {
-                    return Res(1LL, 0LL);
-                }
-                int idx = get_idx(pos, tight, lead, prev1, prev2);
-                if (memo[idx].cnt != -1LL) {
-                    return memo[idx];
-                }
-                Res ans(0LL, 0LL);
-                int up = tight ? (S[pos] - '0') : 9;
-                for (int d = 0; d <= up; ++d) {
-                    int ntight = tight && (d == up);
-                    int nlead = lead && (d == 0);
-                    int np1 = -1;
-                    int np2 = -1;
-                    long long contrib = 0LL;
-                    if (!nlead) {
-                        int op1 = prev1;
-                        int op2 = prev2;
-                        np1 = d;
-                        np2 = op1;
-                        if (op2 != -1) {
-                            int mid = op1;
-                            if ((mid > op2 && mid > d) || (mid < op2 && mid < d)) {
-                                contrib = 1LL;
-                            }
+        for (int d = 0; d <= up; ++d) {
+            bool next_is_less = is_less || (d < up);
+            bool next_is_started = is_started || (d > 0);
+            
+            int w = 0;
+            int next_last, next_second_last;
+            
+            if (!next_is_started) {
+                // Still leading zeros
+                next_last = 10;
+                next_second_last = 10;
+            } else {
+                next_last = d;
+                if (!is_started) {
+                    // This d is the very first digit of the number
+                    next_second_last = 10;
+                } else {
+                    next_second_last = last;
+                    // We can only check if 'last' is a peak/valley if 'second_last' exists
+                    // and we have a current digit 'd' to act as the right neighbor.
+                    if (second_last != 10) {
+                        if ((second_last < last && last > d) || (second_last > last && last < d)) {
+                            w = 1;
                         }
                     }
-                    Res sub = dfs(pos + 1, ntight, nlead, np1, np2);
-                    ans.cnt += sub.cnt;
-                    ans.sumw += sub.sumw + contrib * sub.cnt;
                 }
-                memo[idx] = ans;
-                return ans;
-            };
+            }
+            
+            Result next_res = dp(idx + 1, next_last, next_second_last, next_is_less, next_is_started);
+            res.count += next_res.count;
+            res.sum += next_res.sum + (long long)next_res.count * w;
+        }
 
-            return dfs(0, 1, 1, -1, -1).sumw;
-        };
+        return memo[idx][last][second_last][is_less][is_started] = res;
+    }
 
-        return solve(solve, num2) - solve(solve, num1 - 1);
+    long long solve(long long n) {
+        if (n <= 0) return 0;
+        string s = to_string(n);
+        len = s.length();
+        for (int i = 0; i < len; ++i) digits[i] = s[i] - '0';
+        
+        memset(memo, -1, sizeof(memo));
+        
+        return dp(0, 10, 10, false, false).sum;
+    }
+
+public:
+    long long totalWaviness(long long num1, long long num2) {
+        return solve(num2) - solve(num1 - 1);
     }
 };
 # @lc code=end
