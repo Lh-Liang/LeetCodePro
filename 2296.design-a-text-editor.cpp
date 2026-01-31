@@ -17,8 +17,7 @@ private:
 
 public:
     TextEditor() {
-        left = "";
-        right = "";
+        // Strings are naturally initialized to empty
     }
     
     void addText(string text) {
@@ -26,35 +25,29 @@ public:
     }
     
     int deleteText(int k) {
-        int numToDelete = min(k, (int)left.size());
-        for (int i = 0; i < numToDelete; ++i) {
-            left.pop_back();
-        }
-        return numToDelete;
+        int n = min(k, (int)left.size());
+        left.resize(left.size() - n);
+        return n;
     }
     
     string cursorLeft(int k) {
-        int numToMove = min(k, (int)left.size());
-        for (int i = 0; i < numToMove; ++i) {
+        int n = min(k, (int)left.size());
+        for (int i = 0; i < n; ++i) {
             right.push_back(left.back());
             left.pop_back();
         }
-        return getLeftText();
+        int start = max(0, (int)left.size() - 10);
+        return left.substr(start);
     }
     
     string cursorRight(int k) {
-        int numToMove = min(k, (int)right.size());
-        for (int i = 0; i < numToMove; ++i) {
+        int n = min(k, (int)right.size());
+        for (int i = 0; i < n; ++i) {
             left.push_back(right.back());
             right.pop_back();
         }
-        return getLeftText();
-    }
-
-private:
-    string getLeftText() {
-        int len = min(10, (int)left.size());
-        return left.substr(left.size() - len);
+        int start = max(0, (int)left.size() - 10);
+        return left.substr(start);
     }
 };
 

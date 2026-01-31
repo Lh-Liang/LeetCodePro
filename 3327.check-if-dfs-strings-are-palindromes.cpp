@@ -19,77 +19,67 @@ public:
         for (int i = 1; i < n; ++i) {
             adj[parent[i]].push_back(i);
         }
-        // Ensure children are visited in increasing order
         for (int i = 0; i < n; ++i) {
-            sort(adj[i].begin(), adj[i].end());
+            if (adj[i].size() > 1) {
+                sort(adj[i].begin(), adj[i].end());
+            }
         }
 
         string T = "";
         T.reserve(n);
-        vector<int> start(n), end(n);
-        
-        // Iterative post-order DFS to build the global string and record ranges
-        struct Frame {
-            int u;
-            int child_idx;
+        vector<int> L(n), R(n);
+
+        // Recursive DFS to build the global post-order string and subtree ranges
+        auto dfs = [&](auto self, int u) -> void {
+            L[u] = (int)T.size();
+            for (int v : adj[u]) {
+                self(self, v);
+            }
+            T += s[u];
+            R[u] = (int)T.size() - 1;
         };
-        vector<Frame> st;
-        st.reserve(n);
-        st.push_back({0, 0});
-        
-        while (!st.empty()) {
-            int u = st.back().u;
-            int c_idx = st.back().child_idx;
-            
-            if (c_idx == 0) {
-                start[u] = (int)T.size();
+
+        dfs(dfs, 0);
+
+        // Manacher's Algorithm to find all palindromic centers
+        vector<int> d1(n); // odd length radius (includes center)
+        for (int i = 0, l = 0, r = -1; i < n; i++) {
+            int k = (i > r) ? 1 : min(d1[l + r - i], r - i + 1);
+            while (0 <= i - k && i + k < n && T[i - k] == T[i + k]) {
+                k++;
             }
-            
-            if (c_idx < (int)adj[u].size()) {
-                st.back().child_idx++;
-                st.push_back({adj[u][c_idx], 0});
-            } else {
-                T += s[u];
-                end[u] = (int)T.size() - 1;
-                st.pop_back();
+            d1[i] = k--;
+            if (i + k > r) {
+                l = i - k;
+                r = i + k;
             }
         }
 
-        // Manacher's Algorithm to find all palindromic substrings in O(n)
-        string p = "#";
-        p.reserve(2 * n + 1);
-        for (char c : T) {
-            p += c;
-            p += "#";
-        }
-        
-        int m = p.size();
-        vector<int> d(m, 0);
-        int center = 0, right = 0;
-        for (int i = 0; i < m; i++) {
-            int mirror = 2 * center - i;
-            if (i < right)
-                d[i] = min(right - i, d[mirror]);
-            
-            while (i + 1 + d[i] < m && i - 1 - d[i] >= 0 && p[i + 1 + d[i]] == p[i - 1 - d[i]])
-                d[i]++;
-            
-            if (i + d[i] > right) {
-                center = i;
-                right = i + d[i];
+        vector<int> d2(n); // even length radius (number of pairs)
+        for (int i = 0, l = 0, r = -1; i < n; i++) {
+            int k = (i > r) ? 0 : min(d2[l + r - i + 1], r - i + 1);
+            while (0 <= i - k - 1 && i + k < n && T[i - k - 1] == T[i + k]) {
+                k++;
+            }
+            d2[i] = k--;
+            if (i + k > r) {
+                l = i - k - 1;
+                r = i + k;
             }
         }
 
-        // Map node ranges to Manacher radii
         vector<bool> answer(n);
-        for (int i = 0; i < n; i++) {
-            int L = start[i];
-            int R = end[i];
-            int len = R - L + 1;
-            // The center of range [L, R] in the '#' padded string is always L + R + 1
-            int C = L + R + 1;
-            // d[C] is the radius of the palindrome in the original string T
-            answer[i] = (d[C] >= len);
+        for (int i = 0; i < n; ++i) {
+            int l = L[i];
+            int r = R[i];
+            int len = r - l + 1;
+            if (len % 2 == 1) {
+                int mid = l + len / 2;
+                answer[i] = (d1[mid] >= (len + 1) / 2);
+            } else {
+                int mid = l + len / 2;
+                answer[i] = (d2[mid] >= len / 2);
+            }
         }
 
         return answer;

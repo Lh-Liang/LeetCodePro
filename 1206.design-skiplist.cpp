@@ -7,43 +7,31 @@
 # @lc code=start
 #include <vector>
 #include <cstdlib>
-#include <ctime>
+
+using namespace std;
+
+struct Node {
+    int val;
+    vector<Node*> next;
+    Node(int v, int level) : val(v), next(level, nullptr) {}
+};
 
 class Skiplist {
 private:
-    static const int MAX_LEVEL = 16;
-    
-    struct Node {
-        int val;
-        Node* next[MAX_LEVEL];
-        Node(int v, int level) : val(v) {
-            for (int i = 0; i < level; ++i) next[i] = nullptr;
-        }
-    };
-
     Node* head;
+    static const int MAX_LEVEL = 16;
 
     int randomLevel() {
-        int lvl = 1;
-        while (lvl < MAX_LEVEL && (rand() % 100 < 50)) {
-            lvl++;
+        int lv = 1;
+        while (lv < MAX_LEVEL && (rand() % 2 == 0)) {
+            lv++;
         }
-        return lvl;
+        return lv;
     }
 
 public:
     Skiplist() {
         head = new Node(-1, MAX_LEVEL);
-        srand(time(nullptr));
-    }
-
-    ~Skiplist() {
-        Node* curr = head;
-        while (curr) {
-            Node* temp = curr->next[0];
-            delete curr;
-            curr = temp;
-        }
     }
     
     bool search(int target) {
@@ -58,7 +46,7 @@ public:
     }
     
     void add(int num) {
-        Node* update[MAX_LEVEL];
+        vector<Node*> update(MAX_LEVEL);
         Node* curr = head;
         for (int i = MAX_LEVEL - 1; i >= 0; --i) {
             while (curr->next[i] && curr->next[i]->val < num) {
@@ -66,17 +54,17 @@ public:
             }
             update[i] = curr;
         }
-
-        int lvl = randomLevel();
-        Node* newNode = new Node(num, lvl);
-        for (int i = 0; i < lvl; ++i) {
+        
+        int lv = randomLevel();
+        Node* newNode = new Node(num, lv);
+        for (int i = 0; i < lv; ++i) {
             newNode->next[i] = update[i]->next[i];
             update[i]->next[i] = newNode;
         }
     }
     
     bool erase(int num) {
-        Node* update[MAX_LEVEL];
+        vector<Node*> update(MAX_LEVEL);
         Node* curr = head;
         for (int i = MAX_LEVEL - 1; i >= 0; --i) {
             while (curr->next[i] && curr->next[i]->val < num) {
@@ -84,12 +72,10 @@ public:
             }
             update[i] = curr;
         }
-
+        
         curr = curr->next[0];
-        if (!curr || curr->val != num) {
-            return false;
-        }
-
+        if (!curr || curr->val != num) return false;
+        
         for (int i = 0; i < MAX_LEVEL; ++i) {
             if (update[i]->next[i] != curr) break;
             update[i]->next[i] = curr->next[i];
