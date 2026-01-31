@@ -3,42 +3,49 @@
 #
 # [3739] Count Subarrays With Majority Element II
 #
+
 # @lc code=start
+#include <vector>
+
+using namespace std;
+
 class Solution {
 public:
     long long countMajoritySubarrays(vector<int>& nums, int target) {
         int n = nums.size();
-        vector<int> P(n + 1, 0);
-        for (int i = 1; i <= n; ++i) {
-            P[i] = P[i - 1] + (nums[i - 1] == target ? 1 : -1);
-        }
-        int OFFSET = n;
-        int MAXV = 2 * n + 2;
-        vector<long long> tree(MAXV + 1, 0);
-        auto update = [&](int idx, long long val) {
-            while (idx <= MAXV) {
-                tree[idx] += val;
-                idx += idx & -idx;
+        // The condition count(target) > length / 2 is equivalent to 
+        // count(target) > count(others).
+        // Assign 1 to target elements and -1 to others.
+        // Subarray sum > 0 <=> P[j+1] > P[i].
+        
+        // Prefix sums range from -n to n. 
+        vector<int> freq(2 * n + 1, 0);
+        int offset = n;
+        int curr_P = 0;
+        
+        // P[0] = 0
+        freq[offset + curr_P] = 1;
+        
+        long long count_smaller = 0; 
+        long long result = 0;
+        
+        for (int x : nums) {
+            if (x == target) {
+                // curr_P increases: P[k] = P[k-1] + 1.
+                // New count_smaller = count of P[i] < P[k-1] + count of P[i] == P[k-1].
+                count_smaller += freq[offset + curr_P];
+                curr_P++;
+            } else {
+                // curr_P decreases: P[k] = P[k-1] - 1.
+                // New count_smaller = count of P[i] < P[k-1] - count of P[i] == P[k-1] - 1.
+                curr_P--;
+                count_smaller -= freq[offset + curr_P];
             }
-        };
-        auto query = [&](int idx) -> long long {
-            long long sum = 0;
-            while (idx > 0) {
-                sum += tree[idx];
-                idx -= idx & -idx;
-            }
-            return sum;
-        };
-        long long ans = 0;
-        int idx0 = P[0] + OFFSET + 1;
-        update(idx0, 1);
-        for (int r = 1; r <= n; ++r) {
-            int tidx = P[r] + OFFSET + 1;
-            long long cnt = query(tidx - 1);
-            ans += cnt;
-            update(tidx, 1);
+            result += count_smaller;
+            freq[offset + curr_P]++;
         }
-        return ans;
+        
+        return result;
     }
 };
 # @lc code=end
