@@ -1,7 +1,51 @@
-{"reasoning": "Step 1: Traverse through the linked list while checking each node to see if it is a local maxima or minima. This is done by comparing each node's value with its previous and next node values.
+#
+# @lc app=leetcode id=2058 lang=python3
+#
+# [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
+#
 
-Step 2: Store the indices of these critical points. If no two distinct critical points exist, return [-1, -1].
-
-Step 3: Calculate the minimum distance by iterating over pairs of consecutive critical points. Calculate the maximum distance as the difference between the first and last critical point indices.
-
-Step 4: Return [minDistance, maxDistance] if at least two critical points are present; otherwise, return [-1, -1].","result": "#\n# @lc app=leetcode id=2058 lang=python3\n#\n# [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points\n#\n\n# @lc code=start\nclass Solution:\n    def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:\n        if not head or not head.next or not head.next.next: # fewer than 3 nodes\n            return [-1, -1]\n        prev = head\n        current = head.next\n        n = 2 # start with second node as we have at least three nodes\n        first_critical = last_critical = None\n        min_distance = float('inf') \n        indices = [] # store indices of all critical points\n        while current.next: # ensure there's at least next node available for comparison\n            if (current.val > prev.val and current.val > current.next.val) or (current.val < prev.val and current.val < current.next.val): # check for local maxima/minima\n                if first_critical is None: # first occurrence of a critical point\n                    first_critical = n\n                else: # subsequent occurrences will update min max distance calculations\n                    min_distance = min(min_distance, n - last_critical)\n                last_critical = n \nnindices.append(n) # record this index as a critical point index \nnprev = current \nncurrent = current.next \nn += 1 \nnif len(indices) < 2: # fewer than two distinct critical points exist so return [-1,-1] \nnreturn [-1,-1] \nnreturn [min_distance, indices[-1] - indices[0]] # return [minDistance,maxDistance] after processing all nodes \nn# @lc code=end "}
+# @lc code=start
+# Definition for singly-linked list.
+# class ListNode:
+#     def __init__(self, val=0, next=None):
+#         self.val = val
+#         self.next = next
+class Solution:
+    def nodesBetweenCriticalPoints(self, head: Optional[ListNode]) -> List[int]:
+        if not head or not head.next or not head.next.next:
+            return [-1, -1]
+        
+        min_dist = float('inf')
+        first_cp_idx = -1
+        prev_cp_idx = -1
+        
+        curr_idx = 1
+        prev_node = head
+        curr_node = head.next
+        
+        while curr_node.next:
+            next_node = curr_node.next
+            
+            # Check if curr_node is a critical point (local maxima or minima)
+            is_critical = False
+            if (curr_node.val > prev_node.val and curr_node.val > next_node.val) or \
+               (curr_node.val < prev_node.val and curr_node.val < next_node.val):
+                is_critical = True
+            
+            if is_critical:
+                if first_cp_idx == -1:
+                    first_cp_idx = curr_idx
+                else:
+                    min_dist = min(min_dist, curr_idx - prev_cp_idx)
+                prev_cp_idx = curr_idx
+            
+            prev_node = curr_node
+            curr_node = next_node
+            curr_idx += 1
+            
+        if min_dist == float('inf'):
+            return [-1, -1]
+        
+        max_dist = prev_cp_idx - first_cp_idx
+        return [min_dist, max_dist]
+# @lc code=end

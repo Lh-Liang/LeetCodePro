@@ -6,27 +6,45 @@
 
 # @lc code=start
 class TextEditor:
+
     def __init__(self):
-        self.before = []  # Stack for characters before the cursor
-        self.after = []   # Stack for characters after the cursor (reversed)
+        # Characters to the left of the cursor
+        self.left = []
+        # Characters to the right of the cursor
+        # Note: the top of this stack is the character immediately to the right of the cursor
+        self.right = []
 
     def addText(self, text: str) -> None:
-        self.before.extend(text)  # Add new text at cursor position
+        # Add text to the left stack, moving cursor to the right of the new text
+        self.left.extend(list(text))
 
     def deleteText(self, k: int) -> int:
-        deleted_count = min(k, len(self.before))  # Ensure we don't delete more than exists
-        for _ in range(deleted_count):
-            self.before.pop()  # Remove characters from before stack (backspace behavior)
-        return deleted_count  # Return actual number of deleted characters
+        # Remove up to k characters from the left stack
+        num_to_delete = min(k, len(self.left))
+        for _ in range(num_to_delete):
+            self.left.pop()
+        return num_to_delete
 
     def cursorLeft(self, k: int) -> str:
-        move_count = min(k, len(self.before))  # Move left but not more than available characters
-        for _ in range(move_count):
-            self.after.append(self.before.pop())  # Move character to after stack (left movement)
-        return ''.join(self.before[-10:])  # Return last up to 10 chars from before stack as string
+        # Move up to k characters from left stack to right stack
+        num_to_move = min(k, len(self.left))
+        for _ in range(num_to_move):
+            self.right.append(self.left.pop())
+        # Return last (up to) 10 characters to the left of cursor
+        return "".join(self.left[-10:])
 
     def cursorRight(self, k: int) -> str:
-        move_count = min(k, len(self.after))  # Move right but not more than available characters in after stack
-        for _ in range(move_count):
-            self.before.append(self.after.pop())  # Move character to before stack (right movement)
-        return ''.join(self.before[-10:])  # Return last up to 10 chars from before stack as string\@lc code=end
+        # Move up to k characters from right stack to left stack
+        num_to_move = min(k, len(self.right))
+        for _ in range(num_to_move):
+            self.left.append(self.right.pop())
+        # Return last (up to) 10 characters to the left of cursor
+        return "".join(self.left[-10:])
+
+# Your TextEditor object will be instantiated and called as such:
+# obj = TextEditor()
+# obj.addText(text)
+# param_2 = obj.deleteText(k)
+# param_3 = obj.cursorLeft(k)
+# param_4 = obj.cursorRight(k)
+# @lc code=end
