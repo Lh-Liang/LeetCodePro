@@ -15,37 +15,36 @@ class Solution:
         if not head or not head.next or not head.next.next:
             return [-1, -1]
         
+        first_idx = -1
+        prev_idx = -1
         min_dist = float('inf')
-        first_cp_idx = -1
-        prev_cp_idx = -1
         
         curr_idx = 1
         prev_node = head
         curr_node = head.next
         
         while curr_node.next:
-            next_node = curr_node.next
+            prev_val = prev_node.val
+            curr_val = curr_node.val
+            next_val = curr_node.next.val
             
-            # Check if curr_node is a critical point (local maxima or minima)
-            is_critical = False
-            if (curr_node.val > prev_node.val and curr_node.val > next_node.val) or \
-               (curr_node.val < prev_node.val and curr_node.val < next_node.val):
-                is_critical = True
-            
-            if is_critical:
-                if first_cp_idx == -1:
-                    first_cp_idx = curr_idx
+            # Check for critical point
+            if (curr_val > prev_val and curr_val > next_val) or \n               (curr_val < prev_val and curr_val < next_val):
+                
+                if first_idx == -1:
+                    first_idx = curr_idx
                 else:
-                    min_dist = min(min_dist, curr_idx - prev_cp_idx)
-                prev_cp_idx = curr_idx
+                    min_dist = min(min_dist, curr_idx - prev_idx)
+                
+                prev_idx = curr_idx
             
             prev_node = curr_node
-            curr_node = next_node
+            curr_node = curr_node.next
             curr_idx += 1
             
-        if min_dist == float('inf'):
+        # If fewer than two critical points found
+        if first_idx == -1 or prev_idx == first_idx:
             return [-1, -1]
-        
-        max_dist = prev_cp_idx - first_cp_idx
-        return [min_dist, max_dist]
+            
+        return [int(min_dist), prev_idx - first_idx]
 # @lc code=end

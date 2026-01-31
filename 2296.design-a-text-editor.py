@@ -8,38 +8,30 @@
 class TextEditor:
 
     def __init__(self):
-        # Characters to the left of the cursor
         self.left = []
-        # Characters to the right of the cursor
-        # Note: the top of this stack is the character immediately to the right of the cursor
         self.right = []
 
     def addText(self, text: str) -> None:
-        # Add text to the left stack, moving cursor to the right of the new text
-        self.left.extend(list(text))
+        for char in text:
+            self.left.append(char)
 
     def deleteText(self, k: int) -> int:
-        # Remove up to k characters from the left stack
         num_to_delete = min(k, len(self.left))
         for _ in range(num_to_delete):
             self.left.pop()
         return num_to_delete
 
     def cursorLeft(self, k: int) -> str:
-        # Move up to k characters from left stack to right stack
         num_to_move = min(k, len(self.left))
         for _ in range(num_to_move):
             self.right.append(self.left.pop())
-        # Return last (up to) 10 characters to the left of cursor
-        return "".join(self.left[-10:])
+        return ''.join(self.left[-10:])
 
     def cursorRight(self, k: int) -> str:
-        # Move up to k characters from right stack to left stack
         num_to_move = min(k, len(self.right))
         for _ in range(num_to_move):
             self.left.append(self.right.pop())
-        # Return last (up to) 10 characters to the left of cursor
-        return "".join(self.left[-10:])
+        return ''.join(self.left[-10:])
 
 # Your TextEditor object will be instantiated and called as such:
 # obj = TextEditor()

@@ -5,44 +5,77 @@
 #
 
 # @lc code=start
-class SkiplistNode:
-    def __init__(self, val=0, level=1):
+import random
+
+class Node:
+    __slots__ = 'val', 'forward'
+    def __init__(self, val, levels):
         self.val = val
-        self.forward = [None] * level
-        self.level = level
+        self.forward = [None] * levels
 
 class Skiplist:
     def __init__(self):
-        self.head = SkiplistNode(-1) # Head node with dummy value -1
-        self.max_level = 16 # Maximum possible level in skiplist
-        self.p_factor = 0.5 # Probability factor for level generation
-    
-    def random_level(self):
+        self.MAX_LEVEL = 16
+        self.head = Node(-1, self.MAX_LEVEL)
+        self.level = 0
+
+    def _random_level(self):
         lvl = 1
-        while random.random() < self.p_factor and lvl < self.max_level:
+        while lvl < self.MAX_LEVEL and random.random() < 0.5:
             lvl += 1
         return lvl
-    
+
     def search(self, target: int) -> bool:
-        current = self.head
-        for i in range(self.max_level-1, -1, -1): # Start from topmost level
-            while current.forward[i] and current.forward[i].val < target:
-                current = current.forward[i]
-        current = current.forward[0]
-        return current is not None and current.val == target
-    
+        curr = self.head
+        for i in range(self.level - 1, -1, -1):
+            while curr.forward[i] and curr.forward[i].val < target:
+                curr = curr.forward[i]
+        curr = curr.forward[0]
+        return curr is not None and curr.val == target
+
     def add(self, num: int) -> None:
-        update = [None] * self.max_level
-        current = self.head
-        for i in range(self.max_level-1, -1, -1): # Start from topmost level for addition path traversal
-            while current.forward[i] and current.forward[i].val < num:
-                current = current.forward[i]
-            update[i] = current # Keep track of nodes where update is needed upon insertion
-        lvl = self.random_level() # Determine the level of new node randomly using p_factor probability distribution function. 
-nnew_node = SkiplistNode(num,lvl) # Create new node based on generated levels 
-nfor i in range(lvl): # Insert new node into skip list at each determined levels 
-nnew_node.forward[i] = update[i].forward[i] 
-nupdate[i].forward[i] = new_node 
-n  
-n def erase(self,num:int)->bool: # This function removes element from skip list if it exists otherwise returns false without any change made by traversing through all levels until reaching desired element position along with updating its references appropriately 
-nupdate=[None]*self.max_level;current=self.head;found=False;for i in range(self.max_level-1,-1,-1):while(current.forward[i]!=None and current.forward[i].val<num):current=current.forward[i];update[i]=current;if(current.forward[0]!=None and current.forward[0].val==num):found=True;for j in range(len(current.forward[0].forward)):if(update[j].forward[j]==current.forward[0]):update[j].forward[j]=current.forward[0].forward[j];return found;return False;
+        update = [None] * self.MAX_LEVEL
+        curr = self.head
+        for i in range(self.level - 1, -1, -1):
+            while curr.forward[i] and curr.forward[i].val < num:
+                curr = curr.forward[i]
+            update[i] = curr
+        
+        lvl = self._random_level()
+        if lvl > self.level:
+            for i in range(self.level, lvl):
+                update[i] = self.head
+            self.level = lvl
+        
+        new_node = Node(num, lvl)
+        for i in range(lvl):
+            new_node.forward[i] = update[i].forward[i]
+            update[i].forward[i] = new_node
+
+    def erase(self, num: int) -> bool:
+        update = [None] * self.MAX_LEVEL
+        curr = self.head
+        for i in range(self.level - 1, -1, -1):
+            while curr.forward[i] and curr.forward[i].val < num:
+                curr = curr.forward[i]
+            update[i] = curr
+        
+        target_node = curr.forward[0]
+        if not target_node or target_node.val != num:
+            return False
+            
+        for i in range(len(target_node.forward)):
+            if update[i].forward[i] == target_node:
+                update[i].forward[i] = target_node.forward[i]
+            
+        while self.level > 0 and self.head.forward[self.level - 1] is None:
+            self.level -= 1
+            
+        return True
+
+# Your Skiplist object will be instantiated and called as such:
+# obj = Skiplist()
+# param_1 = obj.search(target)
+# obj.add(num)
+# param_3 = obj.erase(num)
+# @lc code=end
