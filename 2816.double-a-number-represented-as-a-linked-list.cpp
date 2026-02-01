@@ -18,26 +18,26 @@
 class Solution {
 public:
     ListNode* doubleIt(ListNode* head) {
-        // If the head value is >= 5, doubling it will create a new leading digit (1).
-        // We can prepend a node with value 0 to handle this uniformly.
-        if (head->val >= 5) {
+        // If the head's value is 5 or greater, the doubled value will have an extra digit.
+        // We handle this by prepending a node with value 0.
+        if (head->val > 4) {
             head = new ListNode(0, head);
         }
-        
+
         ListNode* curr = head;
         while (curr != nullptr) {
-            // Double the current value and keep only the unit digit.
+            // Double the current value and keep only the last digit.
             curr->val = (curr->val * 2) % 10;
-            
-            // If the next node's value is 5 or more, it will produce a carry.
-            // Add that carry to the current node.
-            if (curr->next != nullptr && curr->next->val >= 5) {
+
+            // If the next node's original value is 5 or greater, it will produce a carry.
+            // Since we haven't updated the next node yet, we can check its value directly.
+            if (curr->next != nullptr && curr->next->val > 4) {
                 curr->val++;
             }
-            
+
             curr = curr->next;
         }
-        
+
         return head;
     }
 };
