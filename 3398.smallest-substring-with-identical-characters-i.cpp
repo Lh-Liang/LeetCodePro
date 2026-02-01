@@ -6,8 +6,8 @@
 
 # @lc code=start
 #include <string>
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 using namespace std;
 
@@ -15,48 +15,48 @@ class Solution {
 public:
     int minLength(string s, int numOps) {
         int n = s.length();
+        
         int low = 1, high = n;
-        int ans = n;
-
+        int result = n;
+        
         while (low <= high) {
             int mid = low + (high - low) / 2;
-            if (check(s, numOps, mid)) {
-                ans = mid;
+            if (canAchieve(s, mid, numOps)) {
+                result = mid;
                 high = mid - 1;
             } else {
                 low = mid + 1;
             }
         }
-        return ans;
+        
+        return result;
     }
 
 private:
-    bool check(const string& s, int numOps, int k) {
+    bool canAchieve(const string& s, int k, int numOps) {
         int n = s.length();
         if (k == 1) {
-            int cnt0 = 0; // target 0101...
+            int opsTo01 = 0;
             for (int i = 0; i < n; ++i) {
-                if (s[i] != (i % 2 == 0 ? '0' : '1')) cnt0++;
-            }
-            int cnt1 = 0; // target 1010...
-            for (int i = 0; i < n; ++i) {
-                if (s[i] != (i % 2 == 0 ? '1' : '0')) cnt1++;
-            }
-            return min(cnt0, cnt1) <= numOps;
-        } else {
-            int totalOps = 0;
-            int currentLen = 0;
-            char currentChar = ' ';
-            for (int i = 0; i < n; ++i) {
-                if (s[i] == currentChar) {
-                    currentLen++;
-                } else {
-                    totalOps += currentLen / (k + 1);
-                    currentChar = s[i];
-                    currentLen = 1;
+                char expected = (i % 2 == 0) ? '0' : '1';
+                if (s[i] != expected) {
+                    opsTo01++;
                 }
             }
-            totalOps += currentLen / (k + 1);
+            int opsTo10 = n - opsTo01;
+            return min(opsTo01, opsTo10) <= numOps;
+        } else {
+            int totalOps = 0;
+            int currentRun = 1;
+            for (int i = 1; i < n; ++i) {
+                if (s[i] == s[i - 1]) {
+                    currentRun++;
+                } else {
+                    totalOps += currentRun / (k + 1);
+                    currentRun = 1;
+                }
+            }
+            totalOps += currentRun / (k + 1);
             return totalOps <= numOps;
         }
     }
