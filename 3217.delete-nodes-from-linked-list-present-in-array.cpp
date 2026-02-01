@@ -14,27 +14,31 @@
 *     ListNode(int x, ListNode *next) : val(x), next(next) {}
 * };
 */
-#include <unordered_set>
 #include <vector>
+#include <unordered_set>
+
+using namespace std;
 
 class Solution {
 public:
-    ListNode* modifiedList(std::vector<int>& nums, ListNode* head) {
-        std::unordered_set<int> s(nums.begin(), nums.end());
-        ListNode dummy(0, head);
-        ListNode* curr = &dummy;
-        
+    ListNode* modifiedList(vector<int>& nums, ListNode* head) {
+        unordered_set<int> numSet(nums.begin(), nums.end());
+        ListNode* dummy = new ListNode(0, head);
+        ListNode* curr = dummy;
+
         while (curr->next != nullptr) {
-            if (s.count(curr->next->val)) {
+            if (numSet.count(curr->next->val)) {
                 ListNode* temp = curr->next;
                 curr->next = curr->next->next;
-                delete temp; // Optional: delete the removed node
+                delete temp;
             } else {
                 curr = curr->next;
             }
         }
-        
-        return dummy.next;
+
+        ListNode* newHead = dummy->next;
+        delete dummy;
+        return newHead;
     }
 };
 # @lc code=end
