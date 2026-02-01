@@ -1,1 +1,70 @@
-#\n# @lc app=leetcode id=3449 lang=cpp\n#\n# [3449] Maximize the Minimum Game Score\n#\n# @lc code=start\nclass Solution {\npublic:\n    bool check(long long X, int n, long long m, const vector<int>& points) {\n        if (X == 0) return true;\n\n        long long moves = 0;\n        vector<long long> v(n, 0);\n        // Find the last index that actually needs moves to reach score X\n        int last_needed_idx = -1;\n        for (int i = 0; i < n; ++i) {\n            if ((X + points[i] - 1) / points[i] > 0) {\n                last_needed_idx = i;\n            }\n        }\n        if (last_needed_idx == -1) return true;\n\n        for (int i = 0; i <= last_needed_idx; ++i) {\n            moves++; // Move from i-1 to i\n            if (moves > m) return false;\n            v[i]++;\n\n            long long needed = (X + points[i] - 1) / points[i];\n            if (v[i] < needed) {\n                long long rem = needed - v[i];\n                if (i < n - 1) {\n                    // Back and forth between i and i+1\n                    if (rem > m) moves = m + 1; \n                    else moves += 2 * rem;\n                    v[i+1] += rem;\n                    v[i] += rem;\n                } else {\n                    // Back and forth between n-1 and n-2\n                    if (rem > m) moves = m + 1;\n                    else moves += 2 * rem;\n                    v[i] += rem;\n                }\n            }\n            if (moves > m) return false;\n\n            // Early exit: if current and next are satisfied, we can stop\n            if (i >= last_needed_idx) return true;\n            if (i + 1 == last_needed_idx && v[i+1] >= (X + points[i+1] - 1) / points[i+1]) return true;\n        }\n        return false;\n    }\n\n    long long maxScore(vector<int>& points, int m) {\n        int n = points.size();\n        long long low = 0, high = 1e15 + 7;\n        long long ans = 0;\n        while (low <= high) {\n            long long mid = low + (high - low) / 2;\n            if (check(mid, n, (long long)m, points)) {\n                ans = mid;\n                low = mid + 1;\n            } else {\n                high = mid - 1;\n            }\n        }\n        return ans;\n    }\n};\n# @lc code=end
+#include <vector>
+#include <algorithm>
+#include <cmath>
+
+using namespace std;
+
+#
+# @lc app=leetcode id=3449 lang=cpp
+#
+# [3449] Maximize the Minimum Game Score
+#
+
+# @lc code=start
+class Solution {
+public:
+    bool check(long long target, int n, const vector<int>& points, long long m) {
+        long long total_moves = 0;
+        long long pre_extra = 0; // additions gained from the next element's perspective
+
+        for (int i = 0; i < n; ++i) {
+            long long needed = (target + points[i] - 1) / points[i];
+            long long actual = 1 + pre_extra; // 1 from the initial move to this index
+            
+            if (actual < needed) {
+                long long diff = needed - actual;
+                // To get 'diff' more points at i, we move i -> i+1 -> i 'diff' times.
+                // This costs 2 * diff moves and gives 'diff' points to i+1.
+                if (i == n - 1) {
+                    // If it's the last element, we must move back to n-2 and forward to n-1
+                    total_moves += 2 * diff;
+                } else {
+                    total_moves += 2 * diff;
+                    pre_extra = diff;
+                }
+            } else {
+                pre_extra = 0;
+            }
+            
+            // Add the single move to go from i to i+1 (except for the last element)
+            if (i < n - 1) total_moves++;
+            
+            if (total_moves > m) return false;
+        }
+        
+        return total_moves <= m;
+    }
+
+    long long maxScore(vector<int>& points, int m) {
+        int n = points.size();
+        long long low = 0, high = 1e15; // Sufficiently large bound
+        long long ans = 0;
+
+        while (low <= high) {
+            long long mid = low + (high - low) / 2;
+            if (mid == 0) {
+                ans = max(ans, 0LL);
+                low = mid + 1;
+                continue;
+            }
+            if (check(mid, n, points, (long long)m)) {
+                ans = mid;
+                low = mid + 1;
+            } else {
+                high = mid - 1;
+            }
+        }
+        return ans;
+    }
+};
+# @lc code=end
