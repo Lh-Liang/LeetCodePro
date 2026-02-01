@@ -3,9 +3,11 @@
 #
 # [3474] Lexicographically Smallest Generated String
 #
+
 # @lc code=start
 #include <string>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -14,75 +16,75 @@ public:
     string generateString(string str1, string str2) {
         int n = str1.length();
         int m = str2.length();
-        int len = n + m - 1;
-        string res(len, ' ');
-        vector<bool> fixed(len, false);
+        int L = n + m - 1;
+        string word(L, '?');
+        vector<bool> fixed(L, false);
 
-        // Phase 1: Apply 'T' constraints
         for (int i = 0; i < n; ++i) {
             if (str1[i] == 'T') {
                 for (int j = 0; j < m; ++j) {
-                    if (fixed[i + j] && res[i + j] != str2[j]) return "";
-                    res[i + j] = str2[j];
+                    if (word[i + j] != '?' && word[i + j] != str2[j]) return "";
+                    word[i + j] = str2[j];
                     fixed[i + j] = true;
                 }
             }
         }
 
-        // Phase 2: Greedy fill non-fixed with 'a'
-        for (int i = 0; i < len; ++i) {
-            if (!fixed[i]) res[i] = 'a';
+        for (int i = 0; i < L; ++i) {
+            if (word[i] == '?') word[i] = 'a';
         }
 
-        // Phase 3: Resolve 'F' constraints
+        auto is_match = [&](int idx) {
+            if (idx < 0 || idx >= n) return false;
+            for (int j = 0; j < m; ++j) {
+                if (word[idx + j] != str2[j]) return false;
+            }
+            return true;
+        };
+
         for (int i = 0; i < n; ++i) {
-            if (str1[i] == 'F') {
-                bool match = true;
-                for (int j = 0; j < m; ++j) {
-                    if (res[i + j] != str2[j]) {
-                        match = false;
+            if (str1[i] == 'F' && is_match(i)) {
+                int target = -1;
+                for (int k = i + m - 1; k >= i; --k) {
+                    if (!fixed[k]) {
+                        target = k;
                         break;
                     }
                 }
 
-                if (match) {
-                    bool resolved = false;
-                    for (int j = m - 1; j >= 0; --j) {
-                        if (!fixed[i + j]) {
-                            // Change to 'b' or next char to break match
-                            // Since it was 'a', if str2[j] == 'a', change to 'b'
-                            // If str2[j] != 'a', it wouldn't match 'a', but here it matches
-                            // so res[i+j] must equal str2[j].
-                            for (char c = 'b'; c <= 'z'; ++c) {
-                                if (c != str2[j]) {
-                                    res[i + j] = c;
-                                    resolved = true;
-                                    break;
-                                }
+                if (target == -1) return "";
+
+                bool solved = false;
+                char original = word[target];
+                for (char c = 'b'; c <= 'z'; ++c) {
+                    word[target] = c;
+                    if (!is_match(i)) {
+                        bool conflict = false;
+                        // Check if this change creates a match at any previous 'F' index
+                        for (int prev = max(0, target - m + 1); prev < i; ++prev) {
+                            if (str1[prev] == 'F' && is_match(prev)) {
+                                conflict = true;
+                                break;
                             }
-                            if (resolved) break;
+                        }
+                        if (!conflict) {
+                            solved = true;
+                            break;
                         }
                     }
-                    if (!resolved) return "";
                 }
+                if (!solved) return "";
             }
         }
 
-        // Final verification for 'F' constraints (needed due to potential overlaps)
+        // Final verification pass
         for (int i = 0; i < n; ++i) {
-            if (str1[i] == 'F') {
-                bool match = true;
-                for (int j = 0; j < m; ++j) {
-                    if (res[i + j] != str2[j]) {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match) return "";
-            }
+            bool match = is_match(i);
+            if (str1[i] == 'T' && !match) return "";
+            if (str1[i] == 'F' && match) return "";
         }
 
-        return res;
+        return word;
     }
 };
 # @lc code=end
