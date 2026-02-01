@@ -1,9 +1,3 @@
-#include <vector>
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=3504 lang=cpp
 #
@@ -11,103 +5,79 @@ using namespace std;
 #
 
 # @lc code=start
+#include <vector>
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
     int longestPalindrome(string s, string t) {
-        int n = s.length();
-        int m = t.length();
+        int n = s.length(), m = t.length();
 
-        auto get_pals = [&](const string& str) {
+        // Helper to find longest palindrome starting at each index using Manacher-like logic or pre-calculation
+        auto get_longest_starting = [&](const string& str) {
             int len = str.length();
-            vector<vector<bool>> dp(len, vector<bool>(len, false));
-            for (int i = len - 1; i >= 0; --i) {
-                for (int j = i; j < len; ++j) {
-                    if (str[i] == str[j]) {
-                        dp[i][j] = (j - i < 2) ? true : dp[i + 1][j - 1];
-                    }
+            vector<int> res(len, 1);
+            // For each i, find max length of palindrome starting at i
+            // Standard O(N^2) expansion is acceptable for N=1000, but we must ensure it covers even/odd
+            for (int i = 0; i < len; ++i) {
+                // Odd length
+                for (int k = 0; i - k >= 0 && i + k < len; ++k) {
+                    if (str[i - k] == str[i + k]) res[i - k] = max(res[i - k], 2 * k + 1);
+                    else break;
                 }
-            }
-            return dp;
-        };
-
-        vector<vector<bool>> pal_s = get_pals(s);
-        vector<vector<bool>> pal_t = get_pals(t);
-
-        vector<int> max_p_start_s(n + 1, 0);
-        for (int i = 0; i < n; ++i) {
-            for (int j = i; j < n; ++j) {
-                if (pal_s[i][j]) max_p_start_s[i] = max(max_p_start_s[i], j - i + 1);
-            }
-        }
-
-        vector<int> max_p_end_t(m + 1, 0);
-        for (int i = 0; i < m; ++i) {
-            for (int j = i; j < m; ++j) {
-                if (pal_t[i][j]) max_p_end_t[j] = max(max_p_end_t[j], j - i + 1);
-            }
-        }
-
-        string s_rev = s; reverse(s_rev.begin(), s_rev.end());
-        string t_rev = t; reverse(t_rev.begin(), t_rev.end());
-
-        auto get_max_match = [&](const string& target, const string& source_rev) {
-            int n1 = target.length(), n2 = source_rev.length();
-            vector<int> res(n1, 0);
-            for (int i = 0; i < n2; ++i) {
-                int curr_match = 0;
-                for (int j = 0; j < n1 && i + j < n2; ++j) {
-                    if (target[j] == source_rev[i + j]) {
-                        curr_match++;
-                        res[j] = max(res[j], curr_match);
-                    } else {
-                        break;
-                    }
+                // Even length
+                for (int k = 0; i - k >= 0 && i + k + 1 < len; ++k) {
+                    if (str[i - k] == str[i + k + 1]) res[i - k] = max(res[i - k], 2 * k + 2);
+                    else break;
                 }
             }
             return res;
         };
 
-        vector<int> max_x_end_s(n, 0);
-        for (int i = 0; i < m; ++i) {
-            int match = 0;
-            for (int j = 0; j < n && i + j < m; ++j) {
-                if (t_rev[i + j] == s[j]) match = 0; 
-            }
-        }
-        
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < m; ++j) {
-                int k = 0;
-                while (i - k >= 0 && j + k < m && s[i - k] == t_rev[j + k]) {
-                    k++;
-                    max_x_end_s[i] = max(max_x_end_s[i], k);
+        // Helper to find longest palindrome ending at each index
+        auto get_longest_ending = [&](const string& str) {
+            int len = str.length();
+            vector<int> res(len, 1);
+            for (int i = 0; i < len; ++i) {
+                for (int k = 0; i - k >= 0 && i + k < len; ++k) {
+                    if (str[i - k] == str[i + k]) res[i + k] = max(res[i + k], 2 * k + 1);
+                    else break;
+                }
+                for (int k = 0; i - k >= 0 && i + k + 1 < len; ++k) {
+                    if (str[i - k] == str[i + k + 1]) res[i + k + 1] = max(res[i + k + 1], 2 * k + 2);
+                    else break;
                 }
             }
-        }
+            return res;
+        };
 
-        vector<int> max_xrev_start_t(m, 0);
-        for (int i = 0; i < m; ++i) {
-            for (int j = 0; j < n; ++j) {
-                int k = 0;
-                while (i + k < m && j + k < n && t[i + k] == s_rev[j + k]) {
-                    k++;
-                    max_xrev_start_t[i] = max(max_xrev_start_t[i], k);
-                }
-            }
-        }
+        vector<int> start_pal_s = get_longest_starting(s);
+        vector<int> end_pal_t = get_longest_ending(t);
 
         int ans = 0;
-        for (int i = 0; i < n; ++i) {
-            int p_len = (i + 1 < n) ? max_p_start_s[i + 1] : 0;
-            ans = max(ans, 2 * max_x_end_s[i] + p_len);
-        }
-        for (int i = 0; i < m; ++i) {
-            int p_len = (i > 0) ? max_p_end_t[i - 1] : 0;
-            ans = max(ans, 2 * max_xrev_start_t[i] + p_len);
-        }
+        for (int x : start_pal_s) ans = max(ans, x);
+        for (int x : get_longest_starting(t)) ans = max(ans, x);
 
-        for (int i = 0; i < n; ++i) ans = max(ans, max_p_start_s[i]);
-        for (int i = 0; i < m; ++i) ans = max(ans, max_p_end_t[i]);
+        // DP[i][j]: longest matching suffix of s[0...i] and reverse prefix of t[j...m-1]
+        // i.e., s[i-k+1...i] == reverse(t[j...j+k-1])
+        vector<vector<int>> dp(n, vector<int>(m, 0));
+        for (int i = 0; i < n; ++i) {
+            for (int j = m - 1; j >= 0; --j) {
+                if (s[i] == t[j]) {
+                    dp[i][j] = 1 + ((i > 0 && j < m - 1) ? dp[i - 1][j + 1] : 0);
+                    int k = dp[i][j];
+                    // Case 1: Palindrome A is in s, right after B
+                    int pal_s = (i + 1 < n) ? start_pal_s[i + 1] : 0;
+                    ans = max(ans, 2 * k + pal_s);
+                    // Case 2: Palindrome A is in t, left of B^R
+                    int pal_t = (j > 0) ? end_pal_t[j - 1] : 0;
+                    ans = max(ans, 2 * k + pal_t);
+                }
+            }
+        }
 
         return ans;
     }
