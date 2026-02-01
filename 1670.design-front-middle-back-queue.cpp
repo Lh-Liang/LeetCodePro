@@ -3,12 +3,12 @@
 #
 # [1670] Design Front Middle Back Queue
 #
-
 # @lc code=start
 #include <deque>
+using namespace std;
 
 class FrontMiddleBackQueue {
-    std::deque<int> left, right;
+    deque<int> left, right;
 
     void balance() {
         if (left.size() > right.size()) {
@@ -29,10 +29,10 @@ public:
     }
 
     void pushMiddle(int val) {
-        if (left.size() < right.size()) {
-            left.push_back(val);
-        } else {
+        if (left.size() == right.size()) {
             right.push_front(val);
+        } else {
+            left.push_back(val);
         }
     }
 
@@ -65,27 +65,15 @@ public:
             val = right.front();
             right.pop_front();
         }
-        balance();
         return val;
     }
 
     int popBack() {
-        if (left.empty() && right.empty()) return -1;
+        if (right.empty()) return -1;
         int val = right.back();
         right.pop_back();
         balance();
         return val;
     }
 };
-
-/**
- * Your FrontMiddleBackQueue object will be instantiated and called as such:
- * FrontMiddleBackQueue* obj = new FrontMiddleBackQueue();
- * obj->pushFront(val);
- * obj->pushMiddle(val);
- * obj->pushBack(val);
- * int param_4 = obj->popFront();
- * int param_5 = obj->popMiddle();
- * int param_6 = obj->popBack();
- */
 # @lc code=end
