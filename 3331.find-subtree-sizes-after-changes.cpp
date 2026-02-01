@@ -7,6 +7,7 @@
 # @lc code=start
 #include <vector>
 #include <string>
+#include <stack>
 
 using namespace std;
 
@@ -14,50 +15,88 @@ class Solution {
 public:
     vector<int> findSubtreeSizes(vector<int>& parent, string s) {
         int n = parent.size();
-        vector<vector<int>> original_adj(n);
+        vector<vector<int>> adj(n);
         for (int i = 1; i < n; ++i) {
-            original_adj[parent[i]].push_back(i);
+            adj[parent[i]].push_back(i);
         }
 
-        vector<int> current_path_chars(26, -1);
-        vector<int> new_parent = parent;
-
-        // First DFS: Determine new parents based on original structure
-        auto update_parents = [&](auto self, int u) -> void {
-            int char_idx = s[u] - 'a';
-            int prev_ancestor = current_path_chars[char_idx];
-            
-            if (prev_ancestor != -1) {
-                new_parent[u] = prev_ancestor;
-            }
-            
-            int temp = current_path_chars[char_idx];
-            current_path_chars[char_idx] = u;
-            
-            for (int v : original_adj[u]) {
-                self(self, v);
-            }
-            
-            current_path_chars[char_idx] = temp; // Backtrack
+        vector<int> newParent = parent;
+        vector<int> lastNode(26, -1);
+        
+        // Step 1: Find new parents via DFS
+        // Using a manual stack to avoid recursion depth issues with n=10^5
+        struct State {
+            int u;
+            int childIdx;
+            int prevLast;
         };
-        update_parents(update_parents, 0);
+        
+        stack<State> st;
+        st.push({0, 0, -1});
+        
+        // Helper to update newParent and lastNode
+        auto processPre = [&](int u) {
+            int charIdx = s[u] - 'a';
+            int old = lastNode[charIdx];
+            if (old != -1) {
+                newParent[u] = old;
+            }
+            lastNode[charIdx] = u;
+            return old;
+        };
 
-        // Build the new tree structure
-        vector<vector<int>> new_adj(n);
-        for (int i = 1; i < n; ++i) {
-            new_adj[new_parent[i]].push_back(i);
+        while (!st.empty()) {
+            State& curr = st.top();
+            if (curr.childIdx == 0) {
+                curr.prevLast = processPre(curr.u);
+            }
+            
+            if (curr.childIdx < adj[curr.u].size()) {
+                int v = adj[curr.u][curr.childIdx];
+                curr.childIdx++;
+                st.push({v, 0, -1});
+            } else {
+                lastNode[s[curr.u] - 'a'] = curr.prevLast;
+                st.pop();
+            }
         }
 
-        // Second DFS: Calculate subtree sizes
+        // Step 2: Build new adjacency list
+        vector<vector<int>> newAdj(n);
+        for (int i = 1; i < n; ++i) {
+            newAdj[newParent[i]].push_back(i);
+        }
+
+        // Step 3: Calculate subtree sizes
+        vector<int> subtreeSize(n, 1);
+        vector<int> order;
+        stack<int> topo;
+        topo.push(0);
+        
+        // Iterative post-order traversal to calculate sizes
+        vector<int> visitIdx(n, 0);
+        stack<int> post;
+        post.push(0);
+        while(!post.empty()) {
+            int u = post.top();
+            if (visitIdx[u] < newAdj[u].size()) {
+                post.push(newAdj[u][visitIdx[u]]);
+                visitIdx[u]++;
+            } else {
+                order.push_back(u);
+                post.pop();
+            }
+        }
+
+        // Process in reverse topological order (leaves to root)
         vector<int> ans(n, 0);
-        auto calculate_size = [&](auto self, int u) -> int {
-            int size = 1;
-            for (int v : new_adj[u]) {
-                size += self(self, v);
+        for (int u : order) {
+            int currentSize = 1;
+            for (int v : newAdj[u]) {
+                currentSize += ans[v];
             }
-            return ans[u] = size;
-        };
-        calculate_size(calculate_size, 0);
+            ans[u] = currentSize;
+        }
 
         return ans;
     }
