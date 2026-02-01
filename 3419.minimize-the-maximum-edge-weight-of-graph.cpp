@@ -1,9 +1,3 @@
-#include <vector>
-#include <queue>
-#include <algorithm>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=3419 lang=cpp
 #
@@ -11,68 +5,69 @@ using namespace std;
 #
 
 # @lc code=start
+#include <vector>
+#include <queue>
+#include <algorithm>
+
+using namespace std;
+
 class Solution {
 public:
     int minMaxWeight(int n, vector<vector<int>>& edges, int threshold) {
-        // The threshold constraint (at most threshold outgoing edges) is always satisfied
-        // if node 0 is reachable from all other nodes. This is because reachability
-        // implies we can extract an in-tree rooted at node 0 where every node except 0
-        // has an out-degree of 1. Since threshold >= 1, this satisfies the condition.
-        
-        int max_w = 0;
+        // Build reversed adjacency list: if u -> v exists, store v -> u
+        // This allows us to check if all nodes can reach 0 by seeing if 0 can reach all nodes.
         vector<vector<pair<int, int>>> rev_adj(n);
+        int max_w = 0;
         for (const auto& edge : edges) {
             int u = edge[0];
             int v = edge[1];
             int w = edge[2];
-            // Reverse the edges: reachability to node 0 becomes reachability from node 0.
             rev_adj[v].push_back({u, w});
             if (w > max_w) max_w = w;
         }
-        
-        vector<int> visited(n, 0);
-        int timer = 0;
-        vector<int> q(n);
-        
-        auto can_reach_all = [&](int limit) {
-            timer++;
-            int head = 0, tail = 0;
-            
-            // BFS in the reversed graph starting from node 0.
-            q[tail++] = 0;
-            visited[0] = timer;
-            int count = 1;
-            
-            while (head < tail) {
-                int u = q[head++];
-                for (const auto& edge : rev_adj[u]) {
+
+        // Feasibility check: Can node 0 reach all nodes in reversed graph using weights <= limit?
+        auto canReachAll = [&](int limit) -> bool {
+            vector<bool> visited(n, false);
+            queue<int> q;
+            q.push(0);
+            visited[0] = true;
+            int visited_count = 1;
+
+            while (!q.empty()) {
+                int u = q.front();
+                q.pop();
+
+                if (visited_count == n) return true;
+
+                for (auto& edge : rev_adj[u]) {
                     int v = edge.first;
                     int w = edge.second;
-                    if (w <= limit && visited[v] != timer) {
-                        visited[v] = timer;
-                        count++;
-                        if (count == n) return true;
-                        q[tail++] = v;
+                    if (w <= limit && !visited[v]) {
+                        visited[v] = true;
+                        visited_count++;
+                        q.push(v);
                     }
                 }
             }
-            return count == n;
+            return visited_count == n;
         };
-        
+
         int low = 1, high = max_w;
-        int ans = -1;
-        
+        int result = -1;
+
+        // Binary search on the weight limit
         while (low <= high) {
             int mid = low + (high - low) / 2;
-            if (can_reach_all(mid)) {
-                ans = mid;
+            if (canReachAll(mid)) {
+                result = mid;
                 high = mid - 1;
             } else {
                 low = mid + 1;
             }
         }
-        
-        return ans;
+
+        return result;
     }
 };
 # @lc code=end
