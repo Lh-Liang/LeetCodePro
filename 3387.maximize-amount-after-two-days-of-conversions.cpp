@@ -7,7 +7,7 @@
 # @lc code=start
 #include <vector>
 #include <string>
-#include <map>
+#include <unordered_map>
 #include <queue>
 #include <algorithm>
 
@@ -15,70 +15,58 @@ using namespace std;
 
 class Solution {
 public:
-    /**
-     * Helper function to find the conversion rates from a starting currency to all reachable currencies
-     * using a BFS approach on the conversion graph.
-     */
-    map<string, double> getRates(string start, map<string, vector<pair<string, double>>>& adj) {
-        map<string, double> rates;
-        rates[start] = 1.0;
-        queue<string> q;
-        q.push(start);
+    double maxAmount(string initialCurrency, vector<vector<string>>& pairs1, vector<double>& rates1, vector<vector<string>>& pairs2, vector<double>& rates2) {
+        // Step 1: Calculate all reachable currencies and their amounts at the end of Day 1.
+        unordered_map<string, double> day1_amounts;
+        day1_amounts[initialCurrency] = 1.0;
         
-        while (!q.empty()) {
-            string u = q.front();
-            q.pop();
-            
-            if (adj.count(u)) {
-                for (auto& edge : adj[u]) {
-                    string v = edge.first;
-                    double r = edge.second;
-                    // If we haven't visited this currency, calculate its rate and add to queue
-                    if (rates.find(v) == rates.end()) {
-                        rates[v] = rates[u] * r;
-                        q.push(v);
-                    }
+        unordered_map<string, vector<pair<string, double>>> adj1;
+        for (size_t i = 0; i < pairs1.size(); ++i) {
+            adj1[pairs1[i][0]].push_back({pairs1[i][1], rates1[i]});
+            adj1[pairs1[i][1]].push_back({pairs1[i][0], 1.0 / rates1[i]});
+        }
+        
+        queue<string> q1;
+        q1.push(initialCurrency);
+        while (!q1.empty()) {
+            string curr = q1.front();
+            q1.pop();
+            for (auto& edge : adj1[curr]) {
+                if (day1_amounts.find(edge.first) == day1_amounts.end()) {
+                    day1_amounts[edge.first] = day1_amounts[curr] * edge.second;
+                    q1.push(edge.first);
                 }
             }
         }
-        return rates;
-    }
-
-    double maxAmount(string initialCurrency, vector<vector<string>>& pairs1, vector<double>& rates1, vector<vector<string>>& pairs2, vector<double>& rates2) {
-        // Step 1: Build adjacency lists for Day 1 and Day 2 conversion graphs
-        map<string, vector<pair<string, double>>> adj1, adj2;
         
-        for (int i = 0; i < (int)pairs1.size(); ++i) {
-            string u = pairs1[i][0];
-            string v = pairs1[i][1];
-            double r = rates1[i];
-            adj1[u].push_back({v, r});
-            adj1[v].push_back({u, 1.0 / r});
+        // Step 2: Calculate conversion rates from initialCurrency to other currencies on Day 2.
+        unordered_map<string, double> day2_rates;
+        day2_rates[initialCurrency] = 1.0;
+        
+        unordered_map<string, vector<pair<string, double>>> adj2;
+        for (size_t i = 0; i < pairs2.size(); ++i) {
+            adj2[pairs2[i][0]].push_back({pairs2[i][1], rates2[i]});
+            adj2[pairs2[i][1]].push_back({pairs2[i][0], 1.0 / rates2[i]});
         }
         
-        for (int i = 0; i < (int)pairs2.size(); ++i) {
-            string u = pairs2[i][0];
-            string v = pairs2[i][1];
-            double r = rates2[i];
-            adj2[u].push_back({v, r});
-            adj2[v].push_back({u, 1.0 / r});
+        queue<string> q2;
+        q2.push(initialCurrency);
+        while (!q2.empty()) {
+            string curr = q2.front();
+            q2.pop();
+            for (auto& edge : adj2[curr]) {
+                if (day2_rates.find(edge.first) == day2_rates.end()) {
+                    day2_rates[edge.first] = day2_rates[curr] * edge.second;
+                    q2.push(edge.first);
+                }
+            }
         }
         
-        // Step 2: Calculate maximum possible amount of each currency at the end of Day 1
-        map<string, double> day1_amounts = getRates(initialCurrency, adj1);
-        
-        // Step 3: Calculate the conversion rates from initialCurrency to other currencies on Day 2
-        // We use this to find the reverse rate (C -> initialCurrency) as 1 / rate(initialCurrency -> C)
-        map<string, double> day2_rates_from_initial = getRates(initialCurrency, adj2);
-        
-        double max_val = 1.0; // The minimum result is 1.0 (by doing nothing)
-        
-        // Step 4: For each currency held at the end of Day 1, try to convert it back to initialCurrency on Day 2
+        // Step 3: Maximize the final amount of initialCurrency.
+        double max_val = 1.0; 
         for (auto const& [curr, amount] : day1_amounts) {
-            if (day2_rates_from_initial.count(curr)) {
-                // amount_final = amount_day1 * rate_day2(curr -> initial)
-                // where rate_day2(curr -> initial) = 1.0 / rate_day2(initial -> curr)
-                max_val = max(max_val, amount / day2_rates_from_initial[curr]);
+            if (day2_rates.count(curr)) {
+                max_val = max(max_val, amount / day2_rates[curr]);
             }
         }
         
