@@ -1,82 +1,91 @@
 #include <vector>
 #include <string>
+#include <unordered_map>
 #include <algorithm>
+#include <queue>
 
 using namespace std;
 
 class Solution {
 public:
     vector<vector<int>> supersequences(vector<string>& words) {
-        vector<int> present_chars;
-        int char_to_idx[26];
-        fill(char_to_idx, char_to_idx + 26, -1);
-        
+        unordered_map<char, int> char_to_idx;
+        vector<char> idx_to_char;
         for (const string& w : words) {
             for (char c : w) {
-                int code = c - 'a';
-                if (char_to_idx[code] == -1) {
-                    char_to_idx[code] = (int)present_chars.size();
-                    present_chars.push_back(code);
+                if (char_to_idx.find(c) == char_to_idx.end()) {
+                    char_to_idx[c] = idx_to_char.size();
+                    idx_to_char.push_back(c);
                 }
             }
         }
-        
-        int n = (int)present_chars.size();
-        if (n == 0) return {};
 
-        int must_two = 0;
-        int adj[16] = {0};
-        
+        int n = idx_to_char.size();
+        vector<pair<int, int>> edges;
         for (const string& w : words) {
-            int u = char_to_idx[w[0] - 'a'];
-            int v = char_to_idx[w[1] - 'a'];
-            if (u == v) {
-                must_two |= (1 << u);
-            } else {
-                adj[u] |= (1 << v);
+            if (w[0] != w[1]) {
+                edges.push_back({char_to_idx[w[0]], char_to_idx[w[1]]});
             }
         }
-        
-        // dp[mask] = true if the subgraph induced by nodes in mask is a DAG
-        vector<bool> dp(1 << n, false);
-        dp[0] = true;
-        for (int mask = 1; mask < (1 << n); ++mask) {
+
+        auto is_dag = [&](int mask) {
+            vector<int> in_degree(n, 0);
+            vector<vector<int>> adj(n);
+            int count = 0;
+            for (auto& edge : edges) {
+                if (((mask >> edge.first) & 1) && ((mask >> edge.second) & 1)) {
+                    adj[edge.first].push_back(edge.second);
+                    in_degree[edge.second]++;
+                }
+            }
+
+            queue<int> q;
             for (int i = 0; i < n; ++i) {
-                if ((mask >> i) & 1) {
-                    // If node i can be a sink (no edges to other nodes in the mask)
-                    // and the rest of the mask is a DAG, then this mask is a DAG.
-                    if (!(adj[i] & mask) && dp[mask ^ (1 << i)]) {
-                        dp[mask] = true;
-                        break;
-                    }
+                if (((mask >> i) & 1)) {
+                    count++;
+                    if (in_degree[i] == 0) q.push(i);
                 }
             }
-        }
-        
-        int max_s1_size = -1;
+
+            int visited = 0;
+            while (!q.empty()) {
+                int u = q.front();
+                q.pop();
+                visited++;
+                for (int v : adj[u]) {
+                    if (--in_degree[v] == 0) q.push(v);
+                }
+            }
+            return visited == count;
+        };
+
+        int max_nodes = 0;
         vector<int> best_masks;
-        
+
         for (int mask = 0; mask < (1 << n); ++mask) {
-            if (dp[mask] && !(mask & must_two)) {
-                int current_size = __builtin_popcount(mask);
-                if (current_size > max_s1_size) {
-                    max_s1_size = current_size;
-                    best_masks = {mask};
-                } else if (current_size == max_s1_size) {
-                    best_masks.push_back(mask);
+            int bits = __builtin_popcount(mask);
+            if (bits < max_nodes) continue;
+
+            if (is_dag(mask)) {
+                if (bits > max_nodes) {
+                    max_nodes = bits;
+                    best_masks.clear();
                 }
+                best_masks.push_back(mask);
             }
         }
-        
-        vector<vector<int>> result;
+
+        vector<vector<int>> results;
         for (int mask : best_masks) {
             vector<int> freq(26, 0);
             for (int i = 0; i < n; ++i) {
-                freq[present_chars[i]] = ((mask >> i) & 1) ? 1 : 2;
+                int char_idx = idx_to_char[i] - 'a';
+                if ((mask >> i) & 1) freq[char_idx] = 1;
+                else freq[char_idx] = 2;
             }
-            result.push_back(freq);
+            results.push_back(freq);
         }
-        
-        return result;
+
+        return results;
     }
 };
