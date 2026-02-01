@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <utility>
 
 using namespace std;
 
@@ -16,51 +17,53 @@ public:
     bool maxSubstringLength(string s, int k) {
         if (k == 0) return true;
         int n = s.length();
-        vector<int> first(26, -1), last(26, -1);
+        vector<int> first(26, -1);
+        vector<int> last(26, -1);
+        
+        // Step 1: Precompute first and last occurrences
         for (int i = 0; i < n; ++i) {
             int c = s[i] - 'a';
             if (first[c] == -1) first[c] = i;
             last[c] = i;
         }
 
-        vector<pair<int, int>> intervals;
+        vector<pair<int, int>> candidates;
+        
+        // Step 2: Generate candidate special substrings
         for (int i = 0; i < 26; ++i) {
             if (first[i] == -1) continue;
             
-            int start = first[i];
-            int end = last[i];
+            int L = first[i];
+            int R = last[i];
             bool valid = true;
             
-            // Expand the window to include all occurrences of characters within [start, end]
-            for (int j = start; j <= end; ++j) {
+            // Expand range to satisfy special substring property
+            for (int j = L; j <= R; ++j) {
                 int c = s[j] - 'a';
-                if (first[c] < start) {
-                    valid = false;
+                if (first[c] < L) {
+                    valid = false; // Character starts before our fixed L
                     break;
                 }
-                end = max(end, last[c]);
+                R = max(R, last[c]);
             }
             
-            // A special substring must not be the entire string
-            if (valid && !(start == 0 && end == n - 1)) {
-                intervals.push_back({start, end});
+            // Must not be the entire string
+            if (valid && (R - L + 1 < n)) {
+                candidates.push_back({L, R});
             }
         }
 
-        if (intervals.empty()) return k <= 0;
-
-        // Greedy interval scheduling: maximize disjoint intervals by sorting by end time
-        sort(intervals.begin(), intervals.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
-            if (a.second != b.second) return a.second < b.second;
-            return a.first > b.first;
+        // Step 3: Greedy Interval Scheduling
+        sort(candidates.begin(), candidates.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
+            return a.second < b.second;
         });
 
         int count = 0;
-        int last_end = -1;
-        for (const auto& interval : intervals) {
-            if (interval.first > last_end) {
+        int current_end = -1;
+        for (const auto& interval : candidates) {
+            if (interval.first > current_end) {
                 count++;
-                last_end = interval.second;
+                current_end = interval.second;
             }
         }
 
