@@ -17,49 +17,53 @@ public:
         int n = edges1.size() + 1;
         int m = edges2.size() + 1;
 
-        auto get_partition_info = [](int size, const vector<vector<int>>& adj) {
-            vector<int> color(size, -1);
-            vector<int> counts(2, 0);
+        auto getColors = [](int size, vector<vector<int>>& edges) {
+            vector<vector<int>> adj(size);
+            for (const auto& edge : edges) {
+                adj[edge[0]].push_back(edge[1]);
+                adj[edge[1]].push_back(edge[0]);
+            }
+
+            vector<int> colors(size, -1);
+            int count0 = 0, count1 = 0;
             queue<int> q;
             
-            color[0] = 0;
-            counts[0]++;
+            colors[0] = 0;
+            count0++;
             q.push(0);
-            
+
             while (!q.empty()) {
                 int u = q.front();
                 q.pop();
                 for (int v : adj[u]) {
-                    if (color[v] == -1) {
-                        color[v] = 1 - color[u];
-                        counts[color[v]]++;
+                    if (colors[v] == -1) {
+                        colors[v] = 1 - colors[u];
+                        if (colors[v] == 0) count0++;
+                        else count1++;
                         q.push(v);
                     }
                 }
             }
-            return make_pair(color, counts);
+            return make_pair(colors, make_pair(count0, count1));
         };
 
-        vector<vector<int>> adj1(n);
-        for (const auto& e : edges1) {
-            adj1[e[0]].push_back(e[1]);
-            adj1[e[1]].push_back(e[0]);
-        }
+        auto res1 = getColors(n, edges1);
+        vector<int> colors1 = res1.first;
+        int E1 = res1.second.first;
+        int O1 = res1.second.second;
 
-        vector<vector<int>> adj2(m);
-        for (const auto& e : edges2) {
-            adj2[e[0]].push_back(e[1]);
-            adj2[e[1]].push_back(e[0]);
-        }
-
-        auto [color1, counts1] = get_partition_info(n, adj1);
-        auto [color2, counts2] = get_partition_info(m, adj2);
-
-        int max_tree2_contribution = max(counts2[0], counts2[1]);
+        auto res2 = getColors(m, edges2);
+        int E2 = res2.second.first;
+        int O2 = res2.second.second;
+        int maxOddTree2 = max(E2, O2);
 
         vector<int> answer(n);
         for (int i = 0; i < n; ++i) {
-            answer[i] = counts1[color1[i]] + max_tree2_contribution;
+            if (colors1[i] == 0) {
+                answer[i] = E1 + maxOddTree2;
+            } else {
+                answer[i] = O1 + maxOddTree2;
+            }
         }
 
         return answer;
