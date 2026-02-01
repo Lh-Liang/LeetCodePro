@@ -18,44 +18,37 @@ public:
         int m = t.length();
         int max_len = 0;
 
-        // Iterate over all possible substrings of s
+        auto isPalindrome = [](const string& str) {
+            if (str.empty()) return false;
+            int left = 0, right = str.length() - 1;
+            while (left < right) {
+                if (str[left++] != str[right--]) return false;
+            }
+            return true;
+        };
+
+        // Pre-extract all substrings of s including empty
+        vector<string> subs_s;
         for (int i = 0; i <= n; ++i) {
-            for (int len1 = 0; len1 <= n - i; ++len1) {
-                // Iterate over all possible substrings of t
-                for (int j = 0; j <= m; ++j) {
-                    for (int len2 = 0; len2 <= m - j; ++len2) {
-                        int total_len = len1 + len2;
-                        if (total_len <= max_len) continue;
+            for (int len = 0; i + len <= n; ++len) {
+                subs_s.push_back(s.substr(i, len));
+            }
+        }
 
-                        // Check if s[i...i+len1-1] + t[j...j+len2-1] is a palindrome
-                        bool is_pal = true;
-                        for (int k = 0; k < total_len / 2; ++k) {
-                            char left, right;
-                            
-                            // Get character at index k
-                            if (k < len1) {
-                                left = s[i + k];
-                            } else {
-                                left = t[j + (k - len1)];
-                            }
+        // Pre-extract all substrings of t including empty
+        vector<string> subs_t;
+        for (int i = 0; i <= m; ++i) {
+            for (int len = 0; i + len <= m; ++len) {
+                subs_t.push_back(t.substr(i, len));
+            }
+        }
 
-                            // Get character at index total_len - 1 - k
-                            int opp = total_len - 1 - k;
-                            if (opp < len1) {
-                                right = s[i + opp];
-                            } else {
-                                right = t[j + (opp - len1)];
-                            }
-
-                            if (left != right) {
-                                is_pal = false;
-                                break;
-                            }
-                        }
-
-                        if (is_pal) {
-                            max_len = total_len;
-                        }
+        for (const string& sub1 : subs_s) {
+            for (const string& sub2 : subs_t) {
+                int current_len = sub1.length() + sub2.length();
+                if (current_len > max_len) {
+                    if (isPalindrome(sub1 + sub2)) {
+                        max_len = current_len;
                     }
                 }
             }
