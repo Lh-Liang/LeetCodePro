@@ -1,10 +1,3 @@
-#
-# @lc app=leetcode id=3382 lang=cpp
-#
-# [3382] Maximum Area Rectangle With Point Constraints II
-#
-
-# @lc code=start
 #include <vector>
 #include <algorithm>
 #include <unordered_map>
@@ -12,80 +5,76 @@
 using namespace std;
 
 class Solution {
-    vector<int> tree;
-    int size;
-
-    void update(int node, int start, int end, int idx, int val) {
-        if (start == end) {
-            tree[node] = val;
-            return;
-        }
-        int mid = start + (end - start) / 2;
-        if (idx <= mid) update(2 * node, start, mid, idx, val);
-        else update(2 * node + 1, mid + 1, end, idx, val);
-        tree[node] = max(tree[2 * node], tree[2 * node + 1]);
-    }
-
-    int query(int node, int start, int end, int L, int R) {
-        if (R < start || end < L) return -1;
-        if (L <= start && end <= R) return tree[node];
-        int mid = start + (end - start) / 2;
-        return max(query(2 * node, start, mid, L, R), query(2 * node + 1, mid + 1, end, L, R));
-    }
-
 public:
     long long maxRectangleArea(vector<int>& xCoord, vector<int>& yCoord) {
         int n = xCoord.size();
-        vector<pair<int, int>> points(n);
-        vector<int> ys;
-        for (int i = 0; i < n; ++i) {
-            points[i] = {xCoord[i], yCoord[i]};
-            ys.push_back(yCoord[i]);
-        }
-        
-        sort(points.begin(), points.end());
+        if (n < 4) return -1;
+
+        // Coordinate compression for y
+        vector<int> ys = yCoord;
         sort(ys.begin(), ys.end());
         ys.erase(unique(ys.begin(), ys.end()), ys.end());
-        
         int m = ys.size();
-        size = m;
-        tree.assign(4 * m + 1, -1);
 
-        auto get_y_idx = [&](int y) {
-            return lower_bound(ys.begin(), ys.end(), y) - ys.begin();
+        // Sort points by x, then by y index
+        vector<pair<int, int>> points(n);
+        for (int i = 0; i < n; ++i) {
+            points[i] = {xCoord[i], (int)(lower_bound(ys.begin(), ys.end(), yCoord[i]) - ys.begin())};
+        }
+        sort(points.begin(), points.end());
+
+        // Iterative Segment Tree for range max query
+        vector<int> tree(2 * m, -1);
+        auto update = [&](int i, int val) {
+            for (tree[i += m] = val; i > 1; i >>= 1)
+                tree[i >> 1] = max(tree[i], tree[i ^ 1]);
+        };
+        auto query = [&](int l, int r) {
+            int res = -1;
+            for (l += m, r += m + 1; l < r; l >>= 1, r >>= 1) {
+                if (l & 1) res = max(res, tree[l++]);
+                if (r & 1) res = max(res, tree[--r]);
+            }
+            return res;
         };
 
-        unordered_map<long long, int> last_x_for_pair;
+        // last_x stores the last x-coordinate where the pair (y1_idx, y2_idx) was adjacent
+        unordered_map<long long, int> last_x;
+        last_x.reserve(n);
         long long max_area = -1;
 
-        int i = 0;
-        while (i < n) {
+        for (int i = 0; i < n; ) {
             int j = i;
             while (j < n && points[j].first == points[i].first) j++;
 
-            // Step 1: Check pairs in current x-column
+            // 1. Check for rectangles using this column as the right side
             for (int k = i; k < j - 1; ++k) {
-                int y1 = points[k].second;
-                int y2 = points[k+1].second;
-                long long pair_key = ((long long)y1 << 32) | y2;
-
-                if (last_x_for_pair.count(pair_key)) {
-                    int prev_x = last_x_for_pair[pair_key];
-                    int y1_idx = get_y_idx(y1);
-                    int y2_idx = get_y_idx(y2);
-
-                    // Verify no points in [prev_x, curr_x] within y-range [y1, y2]
-                    if (query(1, 0, m - 1, y1_idx, y2_idx) == prev_x) {
-                        long long area = (long long)(points[i].first - prev_x) * (y2 - y1);
-                        if (area > max_area) max_area = area;
+                int y1_idx = points[k].second;
+                int y2_idx = points[k + 1].second;
+                long long key = ((long long)y1_idx << 32) | y2_idx;
+                
+                auto it = last_x.find(key);
+                if (it != last_x.end()) {
+                    int lx = it->second;
+                    // Verify no points are inside or on the boundary between lx and current x
+                    if (query(y1_idx, y2_idx) == lx) {
+                        long long area = (long long)(points[i].first - lx) * (ys[y2_idx] - ys[y1_idx]);
+                        if (max_area == -1 || area > max_area) {
+                            max_area = area;
+                        }
                     }
                 }
-                last_x_for_pair[pair_key] = points[i].first;
             }
 
-            // Step 2: Update segment tree with current x for all points in this column
+            // 2. Update Segment Tree with points in the current column
             for (int k = i; k < j; ++k) {
-                update(1, 0, m - 1, get_y_idx(points[k].second), points[i].first);
+                update(points[k].second, points[i].first);
+            }
+
+            // 3. Update last_x with adjacent pairs in the current column
+            for (int k = i; k < j - 1; ++k) {
+                long long key = ((long long)points[k].second << 32) | points[k + 1].second;
+                last_x[key] = points[i].first;
             }
 
             i = j;
@@ -94,4 +83,3 @@ public:
         return max_area;
     }
 };
-# @lc code=end
