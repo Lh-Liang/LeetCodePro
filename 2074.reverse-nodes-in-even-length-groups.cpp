@@ -20,39 +20,45 @@ public:
     ListNode* reverseEvenLengthGroups(ListNode* head) {
         if (!head || !head->next) return head;
         
-        ListNode* prev = head;
-        int groupSize = 2;
+        ListNode* prevGroupTail = head;
+        int expectedLen = 2;
         
-        while (prev->next) {
-            ListNode* curr = prev->next;
+        while (prevGroupTail->next) {
+            // Count actual nodes in the current group
             int actualLen = 0;
-            ListNode* temp = curr;
-            
-            // Count nodes in the current group
-            while (temp && actualLen < groupSize) {
-                temp = temp->next;
+            ListNode* curr = prevGroupTail->next;
+            while (curr && actualLen < expectedLen) {
+                curr = curr->next;
                 actualLen++;
             }
             
             if (actualLen % 2 == 0) {
-                // Reverse the group of size actualLen
-                ListNode* node = curr;
-                ListNode* revPrev = temp; // Connect the tail of reversed group to the next group
+                // Reverse the nodes in this even-length group
+                ListNode* node_curr = prevGroupTail->next;
+                ListNode* node_prev = nullptr;
+                ListNode* groupTail = node_curr; 
+                
                 for (int i = 0; i < actualLen; ++i) {
-                    ListNode* nextNode = node->next;
-                    node->next = revPrev;
-                    revPrev = node;
-                    node = nextNode;
+                    ListNode* nextTemp = node_curr->next;
+                    node_curr->next = node_prev;
+                    node_prev = node_curr;
+                    node_curr = nextTemp;
                 }
-                prev->next = revPrev; // Connect the previous group to the head of reversed group
-                prev = curr; // Move prev to the end of the reversed group (which was the original head)
+                
+                // Reconnect reversed group
+                prevGroupTail->next = node_prev;
+                groupTail->next = node_curr;
+                
+                // Update prevGroupTail to the end of the processed group
+                prevGroupTail = groupTail;
             } else {
-                // Skip the group if it has odd length
+                // Skip the nodes in this odd-length group
                 for (int i = 0; i < actualLen; ++i) {
-                    prev = prev->next;
+                    prevGroupTail = prevGroupTail->next;
                 }
             }
-            groupSize++;
+            
+            expectedLen++;
         }
         
         return head;
