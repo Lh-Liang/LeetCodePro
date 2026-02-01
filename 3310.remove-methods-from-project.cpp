@@ -13,17 +13,17 @@ using namespace std;
 class Solution {
 public:
     vector<int> remainingMethods(int n, int k, vector<vector<int>>& invocations) {
-        // Build adjacency list for the graph
+        // Step 1: Build the adjacency list for the graph
         vector<vector<int>> adj(n);
         for (const auto& inv : invocations) {
             adj[inv[0]].push_back(inv[1]);
         }
 
-        // Find all suspicious methods using BFS starting from k
+        // Step 2: Identify all suspicious methods using BFS
         vector<bool> isSuspicious(n, false);
-        isSuspicious[k] = true;
         queue<int> q;
         q.push(k);
+        isSuspicious[k] = true;
 
         while (!q.empty()) {
             int u = q.front();
@@ -36,29 +36,26 @@ public:
             }
         }
 
-        // Check if any method outside the suspicious group invokes a method inside it
+        // Step 3: Check if any method outside the suspicious set invokes any method inside it
         bool canRemove = true;
         for (const auto& inv : invocations) {
-            if (!isSuspicious[inv[0]] && isSuspicious[inv[1]]) {
+            int u = inv[0];
+            int v = inv[1];
+            // If source is not suspicious but target is, we cannot remove the group
+            if (!isSuspicious[u] && isSuspicious[v]) {
                 canRemove = false;
                 break;
             }
         }
 
-        // Construct the result based on whether the suspicious group can be removed
+        // Step 4: Collect the remaining methods based on the removal check
         vector<int> result;
-        if (canRemove) {
-            for (int i = 0; i < n; ++i) {
-                if (!isSuspicious[i]) {
-                    result.push_back(i);
-                }
-            }
-        } else {
-            for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < n; ++i) {
+            if (!canRemove || !isSuspicious[i]) {
                 result.push_back(i);
             }
         }
-
+        
         return result;
     }
 };
