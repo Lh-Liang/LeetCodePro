@@ -14,7 +14,6 @@ class FrontMiddleBackQueue:
         self.right = deque()
 
     def _balance(self):
-        # Invariant: len(right) == len(left) or len(right) == len(left) + 1
         if len(self.left) > len(self.right):
             self.right.appendleft(self.left.pop())
         elif len(self.right) > len(self.left) + 1:
@@ -38,30 +37,28 @@ class FrontMiddleBackQueue:
         if not self.right:
             return -1
         if not self.left:
-            res = self.right.popleft()
+            val = self.right.popleft()
         else:
-            res = self.left.popleft()
+            val = self.left.popleft()
         self._balance()
-        return res
+        return val
 
     def popMiddle(self) -> int:
         if not self.right:
             return -1
         if len(self.left) == len(self.right):
-            res = self.left.pop()
+            val = self.left.pop()
         else:
-            res = self.right.popleft()
-        # The logic naturally maintains the invariant: 
-        # if len(L) == len(R), L.pop() makes len(R) == len(L) + 1
-        # if len(R) == len(L) + 1, R.popleft() makes len(R) == len(L)
-        return res
+            val = self.right.popleft()
+        self._balance()
+        return val
 
     def popBack(self) -> int:
         if not self.right:
             return -1
-        res = self.right.pop()
+        val = self.right.pop()
         self._balance()
-        return res
+        return val
 
 
 # Your FrontMiddleBackQueue object will be instantiated and called as such:
