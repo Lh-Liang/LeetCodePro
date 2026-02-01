@@ -14,45 +14,42 @@ class Solution {
 public:
     long long countNonDecreasingSubarrays(vector<int>& nums, int k) {
         int n = nums.size();
-        long long ans = 0;
-        long long sum_b = 0;
-        long long sum_nums = 0;
-        int R = n - 1;
-        // Deque stores pairs of (value, count) for the non-decreasing sequence b.
-        // We iterate L from right to left to easily manage prefix maximum updates.
-        deque<pair<long long, int>> dq;
-
-        for (int L = n - 1; L >= 0; --L) {
-            long long cur_val = nums[L];
-            long long count_to_add = 1;
-            sum_nums += cur_val;
-            
-            // When adding nums[L] to the front, any existing b[i] < nums[L] 
-            // will be updated to nums[L] until we hit a value > nums[L].
-            while (!dq.empty() && dq.front().first <= cur_val) {
-                sum_b -= dq.front().first * (long long)dq.front().second;
-                count_to_add += dq.front().second;
+        long long total_count = 0;
+        long long current_cost = 0;
+        int r = n - 1;
+        // Deque stores indices of elements that are maximums for some suffix
+        // Elements in deque are in increasing order of index and decreasing order of value
+        deque<int> dq;
+        
+        for (int l = n - 1; l >= 0; --l) {
+            // When adding nums[l] to the left, it may become the new prefix maximum
+            // for several elements to its right.
+            while (!dq.empty() && nums[l] >= nums[dq.front()]) {
+                int idx = dq.front();
                 dq.pop_front();
+                // This element was the maximum until the next element in the deque or the end of the window
+                int next_max_idx = dq.empty() ? r + 1 : dq.front();
+                current_cost += (long long)(next_max_idx - idx) * (nums[l] - nums[idx]);
             }
-            dq.push_front({cur_val, (int)count_to_add});
-            sum_b += cur_val * count_to_add;
+            dq.push_front(l);
             
-            // If the cost (sum_b - sum_nums) exceeds k, shrink the window from the right.
-            while (sum_b - sum_nums > (long long)k) {
-                long long last_val = dq.back().first;
-                sum_b -= last_val;
-                sum_nums -= nums[R];
-                dq.back().second--;
-                if (dq.back().second == 0) {
+            // If cost exceeds k, shrink window from the right
+            while (current_cost > (long long)k) {
+                // The contribution of nums[r] to the cost is (prefix_max_at_r - nums[r])
+                // The prefix_max_at_r is nums[dq.back()]
+                current_cost -= (long long)(nums[dq.back()] - nums[r]);
+                
+                // If r was the index providing the maximum value, remove it
+                if (r == dq.back()) {
                     dq.pop_back();
                 }
-                R--;
+                r--;
             }
-            // All subarrays [L, i] where L <= i <= R are valid.
-            ans += (long long)(R - L + 1);
+            
+            total_count += (long long)(r - l + 1);
         }
         
-        return ans;
+        return total_count;
     }
 };
 # @lc code=end
