@@ -1,3 +1,8 @@
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
 #
 # @lc app=leetcode id=2296 lang=cpp
 #
@@ -10,40 +15,44 @@ private:
     string left;
     string right;
 
+    // Helper to get the last min(10, len) characters to the left of the cursor
+    string getLeft10() {
+        int len = min(10, (int)left.size());
+        return left.substr(left.size() - len);
+    }
+
 public:
     TextEditor() {
-        left = "";
-        right = "";
     }
     
     void addText(string text) {
-        left += text;
+        left.append(text);
     }
     
     int deleteText(int k) {
         int toDelete = min(k, (int)left.size());
-        left.resize(left.size() - toDelete);
+        for (int i = 0; i < toDelete; ++i) {
+            left.pop_back();
+        }
         return toDelete;
     }
     
     string cursorLeft(int k) {
         int toMove = min(k, (int)left.size());
-        for (int i = 0; i < toMove; ++i) {
+        while (toMove--) {
             right.push_back(left.back());
             left.pop_back();
         }
-        int len = min(10, (int)left.size());
-        return left.substr(left.size() - len);
+        return getLeft10();
     }
     
     string cursorRight(int k) {
         int toMove = min(k, (int)right.size());
-        for (int i = 0; i < toMove; ++i) {
+        while (toMove--) {
             left.push_back(right.back());
             right.pop_back();
         }
-        int len = min(10, (int)left.size());
-        return left.substr(left.size() - len);
+        return getLeft10();
     }
 };
 
