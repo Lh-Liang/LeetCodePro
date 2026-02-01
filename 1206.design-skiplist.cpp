@@ -1,6 +1,3 @@
-#include <vector>
-#include <cstdlib>
-
 #
 # @lc app=leetcode id=1206 lang=cpp
 #
@@ -8,45 +5,50 @@
 #
 
 # @lc code=start
+#include <vector>
+#include <cstdlib>
+
+using namespace std;
+
 class Skiplist {
-private:
     struct Node {
         int val;
-        std::vector<Node*> next;
+        vector<Node*> next;
         Node(int v, int level) : val(v), next(level, nullptr) {}
     };
 
     Node* head;
     static const int MAX_LEVEL = 16;
 
-    int randomLevel() {
-        int lvl = 1;
-        while (lvl < MAX_LEVEL && (rand() % 2 == 0)) {
-            lvl++;
-        }
-        return lvl;
-    }
-
 public:
     Skiplist() {
         head = new Node(-1, MAX_LEVEL);
     }
+    
+    ~Skiplist() {
+        Node* curr = head;
+        while (curr) {
+            Node* temp = curr;
+            curr = curr->next[0];
+            delete temp;
+        }
+    }
 
     bool search(int target) {
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
+        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
             while (curr->next[i] && curr->next[i]->val < target) {
                 curr = curr->next[i];
             }
         }
         curr = curr->next[0];
-        return curr && curr->val == target;
+        return curr != nullptr && curr->val == target;
     }
 
     void add(int num) {
-        std::vector<Node*> update(MAX_LEVEL, head);
+        vector<Node*> update(MAX_LEVEL, head);
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
+        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
             while (curr->next[i] && curr->next[i]->val < num) {
                 curr = curr->next[i];
             }
@@ -55,16 +57,16 @@ public:
 
         int lvl = randomLevel();
         Node* newNode = new Node(num, lvl);
-        for (int i = 0; i < lvl; ++i) {
+        for (int i = 0; i < lvl; i++) {
             newNode->next[i] = update[i]->next[i];
             update[i]->next[i] = newNode;
         }
     }
 
     bool erase(int num) {
-        std::vector<Node*> update(MAX_LEVEL, head);
+        vector<Node*> update(MAX_LEVEL, head);
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; --i) {
+        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
             while (curr->next[i] && curr->next[i]->val < num) {
                 curr = curr->next[i];
             }
@@ -74,12 +76,21 @@ public:
         curr = curr->next[0];
         if (!curr || curr->val != num) return false;
 
-        for (int i = 0; i < (int)curr->next.size(); ++i) {
+        for (int i = 0; i < MAX_LEVEL; i++) {
             if (update[i]->next[i] != curr) break;
             update[i]->next[i] = curr->next[i];
         }
         delete curr;
         return true;
+    }
+
+private:
+    int randomLevel() {
+        int lvl = 1;
+        while (lvl < MAX_LEVEL && (rand() & 1)) {
+            lvl++;
+        }
+        return lvl;
     }
 };
 
