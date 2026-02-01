@@ -7,48 +7,56 @@
 # @lc code=start
 #include <string>
 #include <vector>
-#include <array>
 
 using namespace std;
 
 class Solution {
 public:
     long long countSubstrings(string s) {
-        // dp[divisor][remainder] stores the count of substrings ending at current index
-        // having 'remainder' when divided by 'divisor'.
-        long long dp[10][10] = {0};
-        long long totalCount = 0;
-
-        for (char c : s) {
-            int digit = c - '0';
-            long long next_dp[10][10] = {0};
-
-            for (int d = 1; d <= 9; ++d) {
-                // Transition existing substrings to the new index
-                for (int r = 0; r < d; ++r) {
-                    if (dp[d][r] > 0) {
-                        int next_r = (r * 10 + digit) % d;
-                        next_dp[d][next_r] += dp[d][r];
-                    }
-                }
-                // Add the new single-digit substring [i...i]
-                next_dp[d][digit % d]++;
+        long long ans = 0;
+        // dp[d][r] stores the number of substrings ending at the current position
+        // that have a remainder r when divided by d.
+        long long dp[10][10];
+        for (int i = 0; i < 10; ++i) {
+            for (int j = 0; j < 10; ++j) {
+                dp[i][j] = 0;
             }
-
-            // If the current digit is a valid divisor, add count of substrings with remainder 0
-            if (digit > 0) {
-                totalCount += next_dp[digit][0];
+        }
+        
+        for (char c : s) {
+            int v = c - '0';
+            long long next_dp[10][10];
+            for (int i = 0; i < 10; ++i) {
+                for (int j = 0; j < 10; ++j) {
+                    next_dp[i][j] = 0;
+                }
             }
             
-            // Update DP table for the next iteration
+            for (int d = 1; d <= 9; ++d) {
+                // Update existing substrings ending at previous index
+                for (int r = 0; r < d; ++r) {
+                    if (dp[d][r] > 0) {
+                        next_dp[d][(r * 10 + v) % d] += dp[d][r];
+                    }
+                }
+                // Add the new substring starting and ending at the current digit
+                next_dp[d][v % d]++;
+            }
+            
+            // Copy next_dp to dp
             for (int d = 1; d <= 9; ++d) {
                 for (int r = 0; r < d; ++r) {
                     dp[d][r] = next_dp[d][r];
                 }
             }
+            
+            // If the current digit is non-zero, it is the divisor
+            if (v > 0) {
+                ans += dp[v][0];
+            }
         }
-
-        return totalCount;
+        
+        return ans;
     }
 };
 # @lc code=end
