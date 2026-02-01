@@ -3,7 +3,6 @@
 #
 # [1367] Linked List in Binary Tree
 #
-
 # @lc code=start
 /**
  * Definition for singly-linked list.
@@ -30,21 +29,19 @@ class Solution {
 public:
     bool isSubPath(ListNode* head, TreeNode* root) {
         if (!root) return false;
-        // Try starting the path from the current root, or look in subtrees
+        // Check if the path starts at the current root, or if it exists in the left or right subtrees
         return checkPath(head, root) || isSubPath(head, root->left) || isSubPath(head, root->right);
     }
 
 private:
-    bool checkPath(ListNode* head, TreeNode* node) {
-        // If we reached the end of the list, the path is fully matched
+    bool checkPath(ListNode* head, TreeNode* root) {
+        // Base case: If we've reached the end of the linked list, the path is found
         if (!head) return true;
-        // If we reached a leaf in the tree before the list, match failed
-        if (!node) return false;
-        // Value mismatch
-        if (head->val != node->val) return false;
+        // Base case: If the tree node is null or values mismatch, this path fails
+        if (!root || root->val != head->val) return false;
         
-        // Continue matching the next list node in the child nodes
-        return checkPath(head->next, node->left) || checkPath(head->next, node->right);
+        // Recursively check the next node in the list against the children of the current tree node
+        return checkPath(head->next, root->left) || checkPath(head->next, root->right);
     }
 };
 # @lc code=end
