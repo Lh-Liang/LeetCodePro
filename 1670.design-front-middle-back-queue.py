@@ -10,12 +10,11 @@ from collections import deque
 class FrontMiddleBackQueue:
 
     def __init__(self):
-        # Invariant: len(self.right) - len(self.left) is 0 or 1
         self.left = deque()
         self.right = deque()
 
-    def _rebalance(self):
-        # Ensure len(self.right) - len(self.left) is 0 or 1
+    def _balance(self):
+        # Invariant: len(right) == len(left) or len(right) == len(left) + 1
         if len(self.left) > len(self.right):
             self.right.appendleft(self.left.pop())
         elif len(self.right) > len(self.left) + 1:
@@ -23,43 +22,47 @@ class FrontMiddleBackQueue:
 
     def pushFront(self, val: int) -> None:
         self.left.appendleft(val)
-        self._rebalance()
+        self._balance()
 
     def pushMiddle(self, val: int) -> None:
-        if len(self.left) < len(self.right):
-            self.left.append(val)
-        else:
+        if len(self.left) == len(self.right):
             self.right.appendleft(val)
-        # pushMiddle logic naturally maintains the invariant
+        else:
+            self.left.append(val)
 
     def pushBack(self, val: int) -> None:
         self.right.append(val)
-        self._rebalance()
+        self._balance()
 
     def popFront(self) -> int:
         if not self.right:
             return -1
         if not self.left:
-            return self.right.popleft()
-        res = self.left.popleft()
-        self._rebalance()
+            res = self.right.popleft()
+        else:
+            res = self.left.popleft()
+        self._balance()
         return res
 
     def popMiddle(self) -> int:
         if not self.right:
             return -1
         if len(self.left) == len(self.right):
-            return self.left.pop()
+            res = self.left.pop()
         else:
-            return self.right.popleft()
-        # popMiddle logic naturally maintains the invariant
+            res = self.right.popleft()
+        # The logic naturally maintains the invariant: 
+        # if len(L) == len(R), L.pop() makes len(R) == len(L) + 1
+        # if len(R) == len(L) + 1, R.popleft() makes len(R) == len(L)
+        return res
 
     def popBack(self) -> int:
         if not self.right:
             return -1
         res = self.right.pop()
-        self._rebalance()
+        self._balance()
         return res
+
 
 # Your FrontMiddleBackQueue object will be instantiated and called as such:
 # obj = FrontMiddleBackQueue()
