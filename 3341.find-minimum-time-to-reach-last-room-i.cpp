@@ -7,6 +7,7 @@
 # @lc code=start
 #include <vector>
 #include <queue>
+#include <climits>
 #include <algorithm>
 
 using namespace std;
@@ -18,14 +19,16 @@ public:
         int m = moveTime[0].size();
         
         // dist[i][j] stores the minimum time to reach room (i, j)
-        // Initialize with a large value
-        vector<vector<int>> dist(n, vector<int>(m, 2000000000));
-        dist[0][0] = 0;
+        vector<vector<int>> dist(n, vector<int>(m, INT_MAX));
         
-        // Min-priority queue: {time, {row, col}}
+        // Min-priority queue for Dijkstra's algorithm: {time, {row, col}}
         priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<pair<int, pair<int, int>>>> pq;
+        
+        // Starting at (0, 0) at time t = 0
+        dist[0][0] = 0;
         pq.push({0, {0, 0}});
         
+        // Directions for movement: right, left, down, up
         int dr[] = {0, 0, 1, -1};
         int dc[] = {1, -1, 0, 0};
         
@@ -35,19 +38,24 @@ public:
             int c = pq.top().second.second;
             pq.pop();
             
+            // If we have already found a shorter path to (r, c), skip it
             if (d > dist[r][c]) continue;
+            
+            // If we reached the target room, we can return the time immediately
             if (r == n - 1 && c == m - 1) return d;
             
             for (int i = 0; i < 4; ++i) {
                 int nr = r + dr[i];
                 int nc = c + dc[i];
                 
+                // Check if the neighbor is within grid boundaries
                 if (nr >= 0 && nr < n && nc >= 0 && nc < m) {
-                    // Arrival time: max of current time and room opening time, plus 1 second move time
-                    int nextTime = max(d, moveTime[nr][nc]) + 1;
-                    if (nextTime < dist[nr][nc]) {
-                        dist[nr][nc] = nextTime;
-                        pq.push({nextTime, {nr, nc}});
+                    // Arrival time at neighbor is max(current_time, moveTime[nr][nc]) + 1
+                    int next_dist = max(d, moveTime[nr][nc]) + 1;
+                    
+                    if (next_dist < dist[nr][nc]) {
+                        dist[nr][nc] = next_dist;
+                        pq.push({next_dist, {nr, nc}});
                     }
                 }
             }
