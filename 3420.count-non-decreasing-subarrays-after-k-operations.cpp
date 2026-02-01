@@ -1,3 +1,10 @@
+#
+# @lc app=leetcode id=3420 lang=cpp
+#
+# [3420] Count Non-Decreasing Subarrays After K Operations
+#
+
+# @lc code=start
 #include <vector>
 #include <deque>
 
@@ -8,38 +15,44 @@ public:
     long long countNonDecreasingSubarrays(vector<int>& nums, int k) {
         int n = nums.size();
         long long ans = 0;
-        long long current_cost = 0;
-        // segments stores {max_value, count} for the current window [l, r]
-        deque<pair<int, int>> segments;
-        int r = n - 1;
+        long long sum_b = 0;
+        long long sum_nums = 0;
+        int R = n - 1;
+        // Deque stores pairs of (value, count) for the non-decreasing sequence b.
+        // We iterate L from right to left to easily manage prefix maximum updates.
+        deque<pair<long long, int>> dq;
 
-        // We iterate l from right to left to easily update the running maximums.
-        for (int l = n - 1; l >= 0; --l) {
-            int count = 1;
-            // When adding nums[l], it becomes the running max for subsequent elements
-            // until we hit an element larger than nums[l].
-            while (!segments.empty() && nums[l] >= segments.front().first) {
-                current_cost += (long long)(nums[l] - segments.front().first) * segments.front().second;
-                count += segments.front().second;
-                segments.pop_front();
+        for (int L = n - 1; L >= 0; --L) {
+            long long cur_val = nums[L];
+            long long count_to_add = 1;
+            sum_nums += cur_val;
+            
+            // When adding nums[L] to the front, any existing b[i] < nums[L] 
+            // will be updated to nums[L] until we hit a value > nums[L].
+            while (!dq.empty() && dq.front().first <= cur_val) {
+                sum_b -= dq.front().first * (long long)dq.front().second;
+                count_to_add += dq.front().second;
+                dq.pop_front();
             }
-            segments.push_front({nums[l], count});
-
-            // Maintain the condition that current_cost <= k by shrinking from the right.
-            while (current_cost > k) {
-                // Remove the contribution of the element at index r.
-                // Its running maximum is the value of the last segment in the deque.
-                current_cost -= (long long)(segments.back().first - nums[r]);
-                segments.back().second--;
-                if (segments.back().second == 0) {
-                    segments.pop_back();
+            dq.push_front({cur_val, (int)count_to_add});
+            sum_b += cur_val * count_to_add;
+            
+            // If the cost (sum_b - sum_nums) exceeds k, shrink the window from the right.
+            while (sum_b - sum_nums > (long long)k) {
+                long long last_val = dq.back().first;
+                sum_b -= last_val;
+                sum_nums -= nums[R];
+                dq.back().second--;
+                if (dq.back().second == 0) {
+                    dq.pop_back();
                 }
-                r--;
+                R--;
             }
-            // All subarrays [l, i] for l <= i <= r are valid.
-            ans += (long long)(r - l + 1);
+            // All subarrays [L, i] where L <= i <= R are valid.
+            ans += (long long)(R - L + 1);
         }
-
+        
         return ans;
     }
 };
+# @lc code=end
