@@ -7,71 +7,65 @@
 # @lc code=start
 #include <vector>
 #include <algorithm>
+#include <functional>
 
 using namespace std;
 
 class Solution {
-    struct Result {
-        long long take_parent;
-        long long skip_parent;
+    struct DP {
+        long long f0; // Max sum if node u can use k slots
+        long long f1; // Max sum if node u can use k-1 slots
     };
 
-    Result dfs(int u, int p, const vector<vector<pair<int, int>>>& adj, int k) {
-        long long base_sum = 0;
-        vector<long long> gains;
+    vector<vector<pair<int, int>>> adj;
+    int K;
 
-        for (const auto& edge : adj[u]) {
+    DP dfs(int u, int p) {
+        long long base_sum = 0;
+        vector<long long> positive_gains;
+
+        for (auto& edge : adj[u]) {
             int v = edge.first;
             int w = edge.second;
             if (v == p) continue;
 
-            Result res_v = dfs(v, u, adj, k);
+            DP res = dfs(v, u);
+            // By default, we assume we don't keep the edge (u, v)
+            base_sum += res.f0;
             
-            // Default: don't keep edge (u, v)
-            base_sum += res_v.skip_parent;
-            
-            // Potential gain if we keep edge (u, v)
-            long long gain = (long long)w + res_v.take_parent - res_v.skip_parent;
+            // Gain if we keep the edge (u, v): (w + dp[v][1]) - dp[v][0]
+            long long gain = (long long)w + res.f1 - res.f0;
             if (gain > 0) {
-                gains.push_back(gain);
+                positive_gains.push_back(gain);
             }
         }
 
-        sort(gains.begin(), gains.end(), greater<long long>());
+        // Sort gains descending to pick the best edges to keep
+        sort(positive_gains.begin(), positive_gains.end(), greater<long long>());
 
-        long long total_gain = 0;
-        long long res_take = 0;
-        long long res_skip = 0;
-
-        // To calculate skip_parent (can take up to k children)
-        // To calculate take_parent (can take up to k-1 children)
-        for (int i = 0; i < (int)gains.size(); ++i) {
-            if (i < k - 1) {
-                total_gain += gains[i];
-            } else if (i == k - 1) {
-                res_take = base_sum + total_gain;
-                total_gain += gains[i];
-            }
+        long long f0 = base_sum;
+        for (int i = 0; i < min((int)positive_gains.size(), K); ++i) {
+            f0 += positive_gains[i];
         }
 
-        if (gains.size() < k) {
-            res_take = base_sum + total_gain;
+        long long f1 = base_sum;
+        for (int i = 0; i < min((int)positive_gains.size(), K - 1); ++i) {
+            f1 += positive_gains[i];
         }
-        res_skip = base_sum + total_gain;
 
-        return {res_take, res_skip};
+        return {f0, f1};
     }
 
 public:
     long long maximizeSumOfWeights(vector<vector<int>>& edges, int k) {
         int n = edges.size() + 1;
-        vector<vector<pair<int, int>>> adj(n);
-        for (const auto& edge : edges) {
-            adj[edge[0]].push_back({edge[1], edge[2]});
-            adj[edge[1]].push_back({edge[0], edge[2]});
+        adj.assign(n, vector<pair<int, int>>());
+        for (const auto& e : edges) {
+            adj[e[0]].push_back({e[1], e[2]});
+            adj[e[1]].push_back({e[0], e[2]});
         }
-
-        return dfs(0, -1, adj, k).skip_parent;
+        K = k;
+        return dfs(0, -1).f0;
     }
 };
 # @lc code=end
