@@ -1,83 +1,109 @@
+#
+# @lc app=leetcode id=3382 lang=cpp
+#
+# [3382] Maximum Area Rectangle With Point Constraints II
+#
+
+# @lc code=start
 #include <vector>
 #include <algorithm>
-#include <map>
+#include <unordered_map>
 
 using namespace std;
 
-class FenwickTree {
+// Iterative Segment Tree for range maximum query
+class SegmentTree {
+    int n;
     vector<int> tree;
 public:
-    FenwickTree(int n) : tree(n + 1, 0) {}
-    void add(int i, int val) {
-        for (; i < tree.size(); i += i & -i) tree[i] += val;
+    SegmentTree(int n) : n(n), tree(2 * n, -1) {}
+    
+    void update(int i, int val) {
+        for (tree[i += n] = val; i > 1; i >>= 1)
+            tree[i >> 1] = max(tree[i], tree[i ^ 1]);
     }
-    int query(int i) {
-        int sum = 0;
-        for (; i > 0; i -= i & -i) sum += tree[i];
-        return sum;
+    
+    int query(int l, int r) { // range [l, r] inclusive
+        int res = -1;
+        for (l += n, r += n + 1; l < r; l >>= 1, r >>= 1) {
+            if (l & 1) res = max(res, tree[l++]);
+            if (r & 1) res = max(res, tree[--r]);
+        }
+        return res;
     }
-    int query(int l, int r) {
-        return query(r) - query(l - 1);
-    }
+};
+
+struct Point {
+    int x, y, y_idx;
 };
 
 class Solution {
 public:
     long long maxRectangleArea(vector<int>& xCoord, vector<int>& yCoord) {
         int n = xCoord.size();
-        vector<pair<int, int>> points(n);
+        if (n < 4) return -1;
+        
+        // Coordinate compression for y-coordinates
         vector<int> ys = yCoord;
         sort(ys.begin(), ys.end());
         ys.erase(unique(ys.begin(), ys.end()), ys.end());
-        
-        auto get_y = [&](int y) {
-            return lower_bound(ys.begin(), ys.end(), y) - ys.begin() + 1;
-        };
+        int m = ys.size();
 
+        vector<Point> points(n);
         for (int i = 0; i < n; ++i) {
-            points[i] = {xCoord[i], yCoord[i]};
+            points[i].x = xCoord[i];
+            points[i].y = yCoord[i];
+            points[i].y_idx = (int)(lower_bound(ys.begin(), ys.end(), yCoord[i]) - ys.begin());
         }
-        sort(points.begin(), points.end());
 
-        map<pair<int, int>, pair<int, int>> last_seen; // {y1, y2} -> {last_x, last_cnt}
-        FenwickTree ft(ys.size());
-        long long max_area = -1;
+        // Sort points by x then y
+        sort(points.begin(), points.end(), [](const Point& a, const Point& b) {
+            if (a.x != b.x) return a.x < b.x;
+            return a.y < b.y;
+        });
+
+        SegmentTree st(m);
+        unordered_map<long long, int> lastX;
+        lastX.reserve(n);
+        long long maxArea = -1;
 
         for (int i = 0; i < n; ) {
             int j = i;
-            while (j < n && points[j].first == points[i].first) j++;
+            while (j < n && points[j].x == points[i].x) j++;
 
-            // Check pairs at current X
+            // Process all adjacent pairs in current x-column
             for (int k = i; k < j - 1; ++k) {
-                int y1 = points[k].second;
-                int y2 = points[k + 1].second;
-                int py1 = get_y(y1);
-                int py2 = get_y(y2);
+                int y1_idx = points[k].y_idx;
+                int y2_idx = points[k + 1].y_idx;
                 
-                int current_cnt = ft.query(py1, py2);
-                if (last_seen.count({y1, y2})) {
-                    auto [prev_x, prev_cnt] = last_seen[{y1, y2}];
-                    if (current_cnt == prev_cnt) {
-                        max_area = max(max_area, (long long)(points[i].first - prev_x) * (y2 - y1));
+                // Unique key for the pair of y-indices
+                long long key = 1LL * y1_idx * m + y2_idx;
+                auto it = lastX.find(key);
+                if (it != lastX.end()) {
+                    int lx = it->second;
+                    // If max x in [y1, y2] range is lx, no points are inside or on border
+                    if (st.query(y1_idx, y2_idx) == lx) {
+                        long long area = 1LL * (points[i].x - lx) * (points[k + 1].y - points[k].y);
+                        if (area > maxArea) maxArea = area;
                     }
                 }
-                last_seen[{y1, y2}] = {points[i].first, current_cnt};
             }
 
-            // Add current X points to Fenwick after checking to handle "on the border"
-            // Actually, to handle points on the border, we update the map before updating FT,
-            // but we must ensure the count includes points on the vertical edges.
+            // Update segment tree with current x for each point in this column
             for (int k = i; k < j; ++k) {
-                ft.add(get_y(points[k].second), 1);
-                // Update counts in map to include the points just added on the right edge
+                st.update(points[k].y_idx, points[i].x);
             }
+
+            // Record current x for the adjacent pairs to be used in future columns
             for (int k = i; k < j - 1; ++k) {
-                last_seen[{points[k].second, points[k+1].second}].second = ft.query(get_y(points[k].second), get_y(points[k+1].second));
+                long long key = 1LL * points[k].y_idx * m + points[k + 1].y_idx;
+                lastX[key] = points[i].x;
             }
 
             i = j;
         }
 
-        return max_area;
+        return maxArea;
     }
 };
+# @lc code=end
