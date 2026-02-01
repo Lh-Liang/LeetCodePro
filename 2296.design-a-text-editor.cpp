@@ -5,12 +5,6 @@
 #
 
 # @lc code=start
-#include <string>
-#include <algorithm>
-#include <stack>
-
-using namespace std;
-
 class TextEditor {
 private:
     string left;
@@ -18,6 +12,8 @@ private:
 
 public:
     TextEditor() {
+        left = "";
+        right = "";
     }
     
     void addText(string text) {
@@ -25,32 +21,29 @@ public:
     }
     
     int deleteText(int k) {
-        int numToDelete = min((int)left.length(), k);
-        left.erase(left.length() - numToDelete);
-        return numToDelete;
+        int toDelete = min(k, (int)left.size());
+        left.resize(left.size() - toDelete);
+        return toDelete;
     }
     
     string cursorLeft(int k) {
-        int numToMove = min((int)left.length(), k);
-        for (int i = 0; i < numToMove; ++i) {
-            right += left.back();
+        int toMove = min(k, (int)left.size());
+        for (int i = 0; i < toMove; ++i) {
+            right.push_back(left.back());
             left.pop_back();
         }
-        return getLeftTen();
+        int len = min(10, (int)left.size());
+        return left.substr(left.size() - len);
     }
     
     string cursorRight(int k) {
-        int numToMove = min((int)right.length(), k);
-        for (int i = 0; i < numToMove; ++i) {
-            left += right.back();
+        int toMove = min(k, (int)right.size());
+        for (int i = 0; i < toMove; ++i) {
+            left.push_back(right.back());
             right.pop_back();
         }
-        return getLeftTen();
-    }
-
-    string getLeftTen() {
-        int len = min((int)left.length(), 10);
-        return left.substr(left.length() - len);
+        int len = min(10, (int)left.size());
+        return left.substr(left.size() - len);
     }
 };
 
