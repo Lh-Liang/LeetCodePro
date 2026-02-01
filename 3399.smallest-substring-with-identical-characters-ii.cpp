@@ -6,8 +6,8 @@
 
 # @lc code=start
 #include <string>
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 using namespace std;
 
@@ -15,44 +15,12 @@ class Solution {
 public:
     int minLength(string s, int numOps) {
         int n = s.length();
-        
-        // Pre-calculate block lengths for k > 1
-        vector<int> blocks;
-        if (n > 0) {
-            int count = 1;
-            for (int i = 1; i < n; ++i) {
-                if (s[i] == s[i - 1]) {
-                    count++;
-                } else {
-                    blocks.push_back(count);
-                    count = 1;
-                }
-            }
-            blocks.push_back(count);
-        }
-
-        auto check = [&](int k) {
-            if (k == 1) {
-                int f1 = 0, f2 = 0;
-                for (int i = 0; i < n; ++i) {
-                    if (s[i] != (i % 2 == 0 ? '0' : '1')) f1++;
-                    else f2++;
-                }
-                return min(f1, f2) <= numOps;
-            } else {
-                int total = 0;
-                for (int L : blocks) {
-                    total += L / (k + 1);
-                }
-                return total <= numOps;
-            }
-        };
-
         int low = 1, high = n;
         int ans = n;
+
         while (low <= high) {
             int mid = low + (high - low) / 2;
-            if (check(mid)) {
+            if (check(mid, s, numOps)) {
                 ans = mid;
                 high = mid - 1;
             } else {
@@ -60,6 +28,37 @@ public:
             }
         }
         return ans;
+    }
+
+private:
+    bool check(int k, const string& s, int numOps) {
+        int n = s.length();
+        if (k == 1) {
+            int ops1 = 0; // target 010101...
+            int ops2 = 0; // target 101010...
+            for (int i = 0; i < n; ++i) {
+                char expected1 = (i % 2 == 0) ? '0' : '1';
+                if (s[i] != expected1) {
+                    ops1++;
+                } else {
+                    ops2++;
+                }
+            }
+            return min(ops1, ops2) <= numOps;
+        }
+
+        int totalOps = 0;
+        int count = 1;
+        for (int i = 1; i < n; ++i) {
+            if (s[i] == s[i - 1]) {
+                count++;
+            } else {
+                totalOps += count / (k + 1);
+                count = 1;
+            }
+        }
+        totalOps += count / (k + 1);
+        return totalOps <= numOps;
     }
 };
 # @lc code=end
