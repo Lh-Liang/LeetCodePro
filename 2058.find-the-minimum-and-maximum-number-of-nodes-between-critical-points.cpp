@@ -24,51 +24,48 @@ using namespace std;
 class Solution {
 public:
     vector<int> nodesBetweenCriticalPoints(ListNode* head) {
-        // A critical point needs a previous and a next node.
-        // If list has less than 3 nodes, no critical points possible.
         if (!head || !head->next || !head->next->next) {
             return {-1, -1};
         }
 
-        int firstIndex = -1;
-        int prevIndex = -1;
-        int minDist = INT_MAX;
+        int first_cp = -1;
+        int prev_cp = -1;
+        int min_dist = INT_MAX;
         
-        int index = 1; // Start from the second node (index 1)
-        int prevVal = head->val;
+        ListNode* prev = head;
         ListNode* curr = head->next;
-        
-        while (curr->next != nullptr) {
-            int nextVal = curr->next->val;
+        int idx = 1;
+
+        while (curr->next) {
+            ListNode* next = curr->next;
+            bool is_cp = false;
             
-            // Check if current node is a local maxima or minima
-            if ((curr->val > prevVal && curr->val > nextVal) || 
-                (curr->val < prevVal && curr->val < nextVal)) {
-                
-                if (firstIndex == -1) {
-                    // First critical point found
-                    firstIndex = index;
-                } else {
-                    // Update minimum distance between adjacent critical points
-                    minDist = min(minDist, index - prevIndex);
-                }
-                // Update the last seen critical point index
-                prevIndex = index;
+            // Check local maxima or local minima
+            if ((curr->val > prev->val && curr->val > next->val) || 
+                (curr->val < prev->val && curr->val < next->val)) {
+                is_cp = true;
             }
-            
-            // Move to the next node
-            prevVal = curr->val;
-            curr = curr->next;
-            index++;
+
+            if (is_cp) {
+                if (first_cp == -1) {
+                    first_cp = idx;
+                } else {
+                    min_dist = min(min_dist, idx - prev_cp);
+                }
+                prev_cp = idx;
+            }
+
+            prev = curr;
+            curr = next;
+            idx++;
         }
-        
-        // If minDist was never updated, it means we found fewer than 2 critical points
-        if (minDist == INT_MAX) {
+
+        // If we found fewer than 2 critical points
+        if (first_cp == -1 || prev_cp == first_cp) {
             return {-1, -1};
         }
-        
-        // maxDistance is the distance between the first and last critical point
-        return {minDist, prevIndex - firstIndex};
+
+        return {min_dist, prev_cp - first_cp};
     }
 };
 # @lc code=end
