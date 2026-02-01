@@ -3,65 +3,73 @@
 
 using namespace std;
 
+/*
+ * @lc app=leetcode id=3413 lang=cpp
+ *
+ * [3413] Maximum Coins From K Consecutive Bags
+ */
+
+// @lc code=start
 class Solution {
 public:
     long long maximumCoins(vector<vector<int>>& coins, int k) {
         int n = coins.size();
         sort(coins.begin(), coins.end());
-        
+
         long long max_coins = 0;
-        
-        // Case 1: Window starts at the beginning of segment i
+
+        // Case 1: Window starts at the beginning of coins[i]
         // Window range: [coins[i][0], coins[i][0] + k - 1]
         long long current_sum = 0;
-        int j = 0;
-        for (int i = 0; i < n; ++i) {
-            long long window_end = (long long)coins[i][0] + k - 1;
-            // Move j to the first segment that is NOT fully contained in the window
-            while (j < n && (long long)coins[j][1] <= window_end) {
-                current_sum += (long long)(coins[j][1] - coins[j][0] + 1) * coins[j][2];
-                j++;
+        int right = 0;
+        for (int left = 0; left < n; ++left) {
+            long long window_end = (long long)coins[left][0] + k - 1;
+            
+            // Add segments that are completely within the window
+            while (right < n && (long long)coins[right][1] <= window_end) {
+                current_sum += (long long)(coins[right][1] - coins[right][0] + 1) * coins[right][2];
+                right++;
             }
             
             long long total = current_sum;
-            // If segment j starts before the window ends, add partial coins
-            if (j < n && (long long)coins[j][0] <= window_end) {
-                total += (long long)(window_end - coins[j][0] + 1) * coins[j][2];
+            // Add partial segment if the window end falls inside the next segment
+            if (right < n && (long long)coins[right][0] <= window_end) {
+                total += (long long)(window_end - coins[right][0] + 1) * coins[right][2];
             }
             max_coins = max(max_coins, total);
-            
-            // Prepare for next i: remove segment i from the 'fully contained' sum
-            if (j > i) {
-                current_sum -= (long long)(coins[i][1] - coins[i][0] + 1) * coins[i][2];
+
+            // Prepare current_sum for next left pointer increment
+            if (right > left) {
+                current_sum -= (long long)(coins[left][1] - coins[left][0] + 1) * coins[left][2];
             } else {
-                // If segment i itself was longer than k, j would be at i
-                j = i + 1;
+                right = left + 1;
                 current_sum = 0;
             }
         }
-        
-        // Case 2: Window ends at the end of segment i
+
+        // Case 2: Window ends at the end of coins[i]
         // Window range: [coins[i][1] - k + 1, coins[i][1]]
         current_sum = 0;
-        j = 0;
-        for (int i = 0; i < n; ++i) {
-            long long window_start = (long long)coins[i][1] - k + 1;
-            current_sum += (long long)(coins[i][1] - coins[i][0] + 1) * coins[i][2];
+        int left_ptr = 0;
+        for (int right_idx = 0; right_idx < n; ++right_idx) {
+            current_sum += (long long)(coins[right_idx][1] - coins[right_idx][0] + 1) * coins[right_idx][2];
+            long long window_start = (long long)coins[right_idx][1] - k + 1;
             
-            // Move j to the first segment that is at least partially inside the window
-            while (j < n && (long long)coins[j][1] < window_start) {
-                current_sum -= (long long)(coins[j][1] - coins[j][0] + 1) * coins[j][2];
-                j++;
+            // Remove segments that are completely outside the window (to the left)
+            while (left_ptr < n && (long long)coins[left_ptr][1] < window_start) {
+                current_sum -= (long long)(coins[left_ptr][1] - coins[left_ptr][0] + 1) * coins[left_ptr][2];
+                left_ptr++;
             }
             
             long long total = current_sum;
-            // If segment j starts before the window starts, subtract the part outside
-            if (j < n && (long long)coins[j][0] < window_start) {
-                total -= (long long)(window_start - coins[j][0]) * coins[j][2];
+            // Subtract partial segment if the window start falls inside the first segment in range
+            if (left_ptr <= right_idx && (long long)coins[left_ptr][0] < window_start) {
+                total -= (long long)(window_start - coins[left_ptr][0]) * coins[left_ptr][2];
             }
             max_coins = max(max_coins, total);
         }
-        
+
         return max_coins;
     }
 };
+// @lc code=end
