@@ -15,36 +15,39 @@ class Solution:
         if not head or not head.next or not head.next.next:
             return [-1, -1]
         
-        first_idx = -1
-        prev_idx = -1
+        first_cp_index = -1
+        prev_cp_index = -1
         min_dist = float('inf')
         
-        curr_idx = 1
         prev_node = head
         curr_node = head.next
+        curr_index = 1
         
         while curr_node.next:
-            prev_val = prev_node.val
-            curr_val = curr_node.val
-            next_val = curr_node.next.val
+            next_node = curr_node.next
+            is_critical = False
             
-            # Check for critical point
-            if (curr_val > prev_val and curr_val > next_val) or \n               (curr_val < prev_val and curr_val < next_val):
-                
-                if first_idx == -1:
-                    first_idx = curr_idx
+            # Check for local maxima
+            if curr_node.val > prev_node.val and curr_node.val > next_node.val:
+                is_critical = True
+            # Check for local minima
+            elif curr_node.val < prev_node.val and curr_node.val < next_node.val:
+                is_critical = True
+            
+            if is_critical:
+                if first_cp_index == -1:
+                    first_cp_index = curr_index
                 else:
-                    min_dist = min(min_dist, curr_idx - prev_idx)
-                
-                prev_idx = curr_idx
+                    min_dist = min(min_dist, curr_index - prev_cp_index)
+                prev_cp_index = curr_index
             
             prev_node = curr_node
-            curr_node = curr_node.next
-            curr_idx += 1
+            curr_node = next_node
+            curr_index += 1
             
-        # If fewer than two critical points found
-        if first_idx == -1 or prev_idx == first_idx:
+        if min_dist == float('inf'):
             return [-1, -1]
             
-        return [int(min_dist), prev_idx - first_idx]
+        max_dist = prev_cp_index - first_cp_index
+        return [min_dist, max_dist]
 # @lc code=end
