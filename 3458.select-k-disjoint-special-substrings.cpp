@@ -3,6 +3,7 @@
 #
 # [3458] Select K Disjoint Special Substrings
 #
+
 # @lc code=start
 #include <vector>
 #include <string>
@@ -15,43 +16,43 @@ public:
     bool maxSubstringLength(string s, int k) {
         if (k == 0) return true;
         int n = s.length();
-        vector<int> L(26, -1), R(26, -1);
+        vector<int> first(26, -1), last(26, -1);
         for (int i = 0; i < n; ++i) {
             int c = s[i] - 'a';
-            if (L[c] == -1) L[c] = i;
-            R[c] = i;
+            if (first[c] == -1) first[c] = i;
+            last[c] = i;
         }
 
         vector<pair<int, int>> intervals;
         for (int i = 0; i < 26; ++i) {
-            if (L[i] == -1) continue;
-            int start = L[i];
-            int end = R[i];
+            if (first[i] == -1) continue;
+            
+            int start = first[i];
+            int end = last[i];
             bool valid = true;
             
-            // Expand the interval to include all occurrences of characters inside it
+            // Expand the window to include all occurrences of characters within [start, end]
             for (int j = start; j <= end; ++j) {
-                int char_idx = s[j] - 'a';
-                if (L[char_idx] < start) {
-                    valid = false; // Cannot form a valid range starting from L[i]
+                int c = s[j] - 'a';
+                if (first[c] < start) {
+                    valid = false;
                     break;
                 }
-                if (R[char_idx] > end) {
-                    end = R[char_idx];
-                }
+                end = max(end, last[c]);
             }
             
-            // Special substring cannot be the entire string
-            if (valid && (end - start + 1) < n) {
+            // A special substring must not be the entire string
+            if (valid && !(start == 0 && end == n - 1)) {
                 intervals.push_back({start, end});
             }
         }
 
         if (intervals.empty()) return k <= 0;
 
-        // Greedy Interval Scheduling: Sort by end time
+        // Greedy interval scheduling: maximize disjoint intervals by sorting by end time
         sort(intervals.begin(), intervals.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
-            return a.second < b.second;
+            if (a.second != b.second) return a.second < b.second;
+            return a.first > b.first;
         });
 
         int count = 0;
