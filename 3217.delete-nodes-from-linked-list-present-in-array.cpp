@@ -18,23 +18,25 @@
 #include <unordered_set>
 #include <vector>
 
+using namespace std;
+
 class Solution {
 public:
-    ListNode* modifiedList(std::vector<int>& nums, ListNode* head) {
-        std::unordered_set<int> s(nums.begin(), nums.end());
+    ListNode* modifiedList(vector<int>& nums, ListNode* head) {
+        unordered_set<int> numSet(nums.begin(), nums.end());
         ListNode dummy(0, head);
         ListNode* curr = &dummy;
-        
-        while (curr->next) {
-            if (s.find(curr->next->val) != s.end()) {
+
+        while (curr->next != nullptr) {
+            if (numSet.find(curr->next->val) != numSet.end()) {
                 ListNode* temp = curr->next;
                 curr->next = curr->next->next;
-                // Note: In a real environment, we might delete temp here if not using a GC-like system,
-                // but for LeetCode standard solutions, pointer redirection is the focus.
+                delete temp;
             } else {
                 curr = curr->next;
             }
         }
+
         return dummy.next;
     }
 };
