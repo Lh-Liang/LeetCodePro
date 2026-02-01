@@ -11,76 +11,79 @@
 using namespace std;
 
 class Solution {
-    struct Edge {
-        int to;
-        int weight;
-    };
-    vector<vector<Edge>> adj;
-    vector<int> path_dists;
-    int last_pos[50001];
-    int max_len;
-    int min_nodes;
-    const vector<int>* nodes_vals;
-
-    void dfs(int u, int p, int current_dist, int current_depth, int max_ancestor_idx) {
-        int val = (*nodes_vals)[u];
-        int prev_idx = last_pos[val];
-        // The special path ending at u must start at or after start_idx to maintain uniqueness.
-        // start_idx is the depth index in the current path.
-        int start_idx = max(max_ancestor_idx, prev_idx + 1);
-        
-        path_dists.push_back(current_dist);
-        
-        // Path properties from the highest valid ancestor start_idx to u.
-        int path_len = current_dist - path_dists[start_idx];
-        int num_nodes = current_depth - start_idx + 1;
-        
-        if (path_len > max_len) {
-            max_len = path_len;
-            min_nodes = num_nodes;
-        } else if (path_len == max_len) {
-            if (num_nodes < min_nodes) {
-                min_nodes = num_nodes;
-            }
-        }
-        
-        int old_pos = last_pos[val];
-        last_pos[val] = current_depth;
-        
-        for (const auto& edge : adj[u]) {
-            if (edge.to != p) {
-                dfs(edge.to, u, current_dist + edge.weight, current_depth + 1, start_idx);
-            }
-        }
-        
-        // Backtrack to maintain the state for other branches in DFS.
-        last_pos[val] = old_pos;
-        path_dists.pop_back();
-    }
-
 public:
     vector<int> longestSpecialPath(vector<vector<int>>& edges, vector<int>& nums) {
         int n = nums.size();
-        adj.assign(n, vector<Edge>());
-        for (const auto& edge : edges) {
-            adj[edge[0]].push_back({edge[1], edge[2]});
-            adj[edge[1]].push_back({edge[0], edge[2]});
+        vector<vector<pair<int, int>>> adj(n);
+        for (const auto& e : edges) {
+            adj[e[0]].push_back({e[1], e[2]});
+            adj[e[1]].push_back({e[0], e[2]});
         }
-        
-        nodes_vals = &nums;
-        // Initialize last_pos with -1 as values are not yet seen in the path.
-        for (int i = 0; i <= 50000; ++i) last_pos[i] = -1;
-        
-        max_len = -1; // Initialize to ensure the first node updates it.
-        min_nodes = n + 1;
-        
-        path_dists.clear();
-        path_dists.reserve(n);
-        
-        // Start DFS from the root node (0).
-        dfs(0, -1, 0, 0, 0);
-        
-        return {max_len, min_nodes};
+
+        int maxLen = -1;
+        int minNodes = 1e9;
+        // last_occurrence[v] stores the depth of value v in the current path
+        vector<int> last_occurrence(50001, -1);
+        // pathDist[d] stores the distance from root to the node at depth d in the current path
+        vector<int> pathDist(n, 0);
+
+        struct Frame {
+            int u, p, currentDist, currentDepth, topDepth, edgeIdx, prevOcc;
+        };
+
+        vector<Frame> st;
+        st.reserve(n);
+        // Start DFS from root (node 0)
+        st.push_back({0, -1, 0, 0, 0, 0, -1});
+
+        while (!st.empty()) {
+            int currIdx = st.size() - 1;
+            int u = st[currIdx].u;
+            int p = st[currIdx].p;
+            int currentDist = st[currIdx].currentDist;
+            int currentDepth = st[currIdx].currentDepth;
+            
+            if (st[currIdx].edgeIdx == 0) {
+                // First time visit: calculate path properties
+                st[currIdx].prevOcc = last_occurrence[nums[u]];
+                // The special path ending at u must start after any previous occurrence of nums[u]
+                // and must also satisfy the uniqueness constraints of its ancestors.
+                int newTopDepth = max(st[currIdx].topDepth, st[currIdx].prevOcc + 1);
+                st[currIdx].topDepth = newTopDepth; 
+                
+                pathDist[currentDepth] = currentDist;
+                int length = currentDist - pathDist[newTopDepth];
+                int nodes = currentDepth - newTopDepth + 1;
+
+                if (length > maxLen) {
+                    maxLen = length;
+                    minNodes = nodes;
+                } else if (length == maxLen) {
+                    minNodes = min(minNodes, nodes);
+                }
+
+                last_occurrence[nums[u]] = currentDepth;
+            }
+
+            int topDepthForChildren = st[currIdx].topDepth;
+            bool pushed = false;
+            while (st[currIdx].edgeIdx < (int)adj[u].size()) {
+                auto& edge = adj[u][st[currIdx].edgeIdx++];
+                if (edge.first != p) {
+                    st.push_back({edge.first, u, currentDist + edge.second, currentDepth + 1, topDepthForChildren, 0, -1});
+                    pushed = true;
+                    break;
+                }
+            }
+
+            if (!pushed) {
+                // Backtrack: restore the state of last_occurrence
+                last_occurrence[nums[u]] = st[currIdx].prevOcc;
+                st.pop_back();
+            }
+        }
+
+        return {maxLen, minNodes};
     }
 };
 # @lc code=end
