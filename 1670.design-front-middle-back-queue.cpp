@@ -10,9 +10,8 @@
 class FrontMiddleBackQueue {
     std::deque<int> left, right;
 
-    // Invariant: right.size() == left.size() || right.size() == left.size() + 1
-    // This ensures the middle element is always easily accessible at the boundaries.
-    void balance() {
+    // Invariant: 0 <= right.size() - left.size() <= 1
+    void rebalance() {
         if (left.size() > right.size()) {
             right.push_front(left.back());
             left.pop_back();
@@ -23,12 +22,11 @@ class FrontMiddleBackQueue {
     }
 
 public:
-    FrontMiddleBackQueue() {
-    }
+    FrontMiddleBackQueue() {}
 
     void pushFront(int val) {
         left.push_front(val);
-        balance();
+        rebalance();
     }
 
     void pushMiddle(int val) {
@@ -37,16 +35,17 @@ public:
         } else {
             left.push_back(val);
         }
-        // No balance() needed as logic handles the +1/equal invariant
+        // Invariant is naturally maintained by this logic, but rebalance is safe.
+        rebalance();
     }
 
     void pushBack(int val) {
         right.push_back(val);
-        balance();
+        rebalance();
     }
 
     int popFront() {
-        if (left.empty() && right.empty()) return -1;
+        if (right.empty()) return -1;
         int val;
         if (left.empty()) {
             val = right.front();
@@ -55,12 +54,12 @@ public:
             val = left.front();
             left.pop_front();
         }
-        balance();
+        rebalance();
         return val;
     }
 
     int popMiddle() {
-        if (left.empty() && right.empty()) return -1;
+        if (right.empty()) return -1;
         int val;
         if (left.size() == right.size()) {
             val = left.back();
@@ -69,7 +68,7 @@ public:
             val = right.front();
             right.pop_front();
         }
-        balance();
+        rebalance();
         return val;
     }
 
@@ -77,19 +76,8 @@ public:
         if (right.empty()) return -1;
         int val = right.back();
         right.pop_back();
-        balance();
+        rebalance();
         return val;
     }
 };
-
-/**
- * Your FrontMiddleBackQueue object will be instantiated and called as such:
- * FrontMiddleBackQueue* obj = new FrontMiddleBackQueue();
- * obj->pushFront(val);
- * obj->pushMiddle(val);
- * obj->pushBack(val);
- * int param_4 = obj->popFront();
- * int param_5 = obj->popMiddle();
- * int param_6 = obj->popBack();
- */
 # @lc code=end
