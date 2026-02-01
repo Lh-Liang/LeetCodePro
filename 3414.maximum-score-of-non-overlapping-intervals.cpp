@@ -14,68 +14,66 @@ struct Interval {
     int l, r, w, id;
 };
 
-struct State {
-    long long weight = 0;
+struct Result {
+    long long score;
     vector<int> ids;
+    
+    Result() : score(0) {}
 
-    bool betterThan(const State& other) const {
-        if (weight != other.weight) return weight > other.weight;
+    bool operator>(const Result& other) const {
+        if (score != other.score) return score > other.score;
+        if (ids.empty()) return false;
+        if (other.ids.empty()) return true;
         return ids < other.ids;
     }
 };
 
 class Solution {
 public:
-    vector<int> maximumWeight(vector<vector<int>>& intervals) {
-        int n = intervals.size();
-        vector<Interval> ivs(n);
+    vector<int> maximumWeight(vector<vector<int>>& intervals_in) {
+        int n = intervals_in.size();
+        vector<Interval> intervals(n);
         for (int i = 0; i < n; ++i) {
-            ivs[i] = {intervals[i][0], intervals[i][1], intervals[i][2], i};
+            intervals[i] = {intervals_in[i][0], intervals_in[i][1], intervals_in[i][2], i};
         }
-
-        sort(ivs.begin(), ivs.end(), [](const Interval& a, const Interval& b) {
-            return a.r < b.r;
+        
+        // Sort to process intervals by start time
+        sort(intervals.begin(), intervals.end(), [](const Interval& a, const Interval& b) {
+            if (a.l != b.l) return a.l < b.l;
+            if (a.r != b.r) return a.r < b.r;
+            return a.id < b.id;
         });
-
-        vector<int> ends;
-        for (auto& iv : ivs) ends.push_back(iv.r);
-
-        // dp[count][i] stores the best State using 'count' intervals from first 'i' sorted intervals
-        vector<vector<State>> dp(5, vector<State>(n + 1));
-
-        for (int i = 1; i <= n; ++i) {
-            int cur_l = ivs[i - 1].l;
-            int cur_w = ivs[i - 1].w;
-            int cur_id = ivs[i - 1].id;
-
-            // Find predecessor: last interval j such that ivs[j-1].r < cur_l
-            int prev_idx = lower_bound(ends.begin(), ends.end(), cur_l) - ends.begin();
-
+        
+        vector<int> starts(n);
+        for (int i = 0; i < n; ++i) starts[i] = intervals[i].l;
+        
+        // dp[i][k] = max weight using suffix [i...n-1] with at most k intervals
+        vector<vector<Result>> dp(n + 1, vector<Result>(5));
+        
+        for (int i = n - 1; i >= 0; --i) {
+            // Find next interval that starts after current interval ends
+            int next_idx = lower_bound(starts.begin() + i + 1, starts.end(), intervals[i].r + 1) - starts.begin();
+            
             for (int k = 1; k <= 4; ++k) {
-                // Case 1: Skip current interval
-                dp[k][i] = dp[k][i - 1];
-
-                // Case 2: Use current interval
-                State current;
-                current.weight = (long long)cur_w + dp[k - 1][prev_idx].weight;
-                current.ids = dp[k - 1][prev_idx].ids;
-                current.ids.push_back(cur_id);
-                sort(current.ids.begin(), current.ids.end());
-
-                if (current.betterThan(dp[k][i])) {
-                    dp[k][i] = current;
+                // Choice 1: Don't take current interval
+                dp[i][k] = dp[i + 1][k];
+                
+                // Choice 2: Take current interval
+                Result take;
+                take.score = (long long)intervals[i].w + dp[next_idx][k - 1].score;
+                
+                // Construct sorted indices for the 'take' option
+                take.ids = dp[next_idx][k - 1].ids;
+                take.ids.push_back(intervals[i].id);
+                sort(take.ids.begin(), take.ids.end());
+                
+                if (take > dp[i][k]) {
+                    dp[i][k] = take;
                 }
             }
         }
-
-        State best;
-        for (int k = 1; k <= 4; ++k) {
-            if (dp[k][n].betterThan(best)) {
-                best = dp[k][n];
-            }
-        }
-
-        return best.ids;
+        
+        return dp[0][4].ids;
     }
 };
 # @lc code=end
