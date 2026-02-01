@@ -1,14 +1,6 @@
-#
-# @lc app=leetcode id=2289 lang=cpp
-#
-# [2289] Steps to Make Array Non-decreasing
-#
-
-# @lc code=start
 #include <vector>
 #include <stack>
 #include <algorithm>
-#include <utility>
 
 using namespace std;
 
@@ -16,33 +8,36 @@ class Solution {
 public:
     int totalSteps(vector<int>& nums) {
         int n = nums.size();
-        int maxSteps = 0;
-        // Stack stores pairs of {value, steps_to_be_removed}
+        int ans = 0;
+        // The stack will store pairs of {value, steps}, where 'steps' is the 
+        // number of steps it takes for the current element to be removed.
         stack<pair<int, int>> st;
         
         for (int i = 0; i < n; ++i) {
-            int currentElementSteps = 0;
+            int current_steps = 0;
             
-            // Pop elements that are smaller than or equal to current. 
-            // They don't block the current element from being removed by a larger one further left.
-            while (!st.empty() && nums[i] >= st.top().first) {
-                currentElementSteps = max(currentElementSteps, st.top().second);
+            // While the current element is greater than or equal to the top of the stack, 
+            // it pops the top element and updates the 'current_steps' to be the 
+            // maximum steps of the popped elements. This represents the time needed 
+            // for the elements between the next greater element and the current element to be removed.
+            while (!st.empty() && st.top().first <= nums[i]) {
+                current_steps = max(current_steps, st.top().second);
                 st.pop();
             }
             
             if (st.empty()) {
-                // No element to the left is larger; this element stays forever.
-                st.push({nums[i], 0});
+                // If no element to the left is strictly greater than nums[i], it won't be removed.
+                current_steps = 0;
             } else {
-                // The element at the top of the stack is the one that will remove nums[i].
-                // It takes 1 step more than the time taken to clear the elements between them.
-                int steps = currentElementSteps + 1;
-                maxSteps = max(maxSteps, steps);
-                st.push({nums[i], steps});
+                // If there is a greater element, nums[i] will be removed in the step 
+                // after all intermediate elements are gone.
+                current_steps = current_steps + 1;
             }
+            
+            ans = max(ans, current_steps);
+            st.push({nums[i], current_steps});
         }
         
-        return maxSteps;
+        return ans;
     }
 };
-# @lc code=end
