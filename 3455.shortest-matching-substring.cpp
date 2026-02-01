@@ -3,21 +3,19 @@
 #
 # [3455] Shortest Matching Substring
 #
-
 # @lc code=start
-#include <iostream>
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <climits>
 
 using namespace std;
 
 class Solution {
 public:
-    vector<int> find_all(const string& s, const string& p) {
+    vector<int> kmp(const string& s, const string& p) {
         if (p.empty()) return {};
-        int n = s.length(), m = p.length();
-        if (m > n) return {};
+        int n = s.size(), m = p.size();
         vector<int> pi(m);
         for (int i = 1, j = 0; i < m; i++) {
             while (j > 0 && p[i] != p[j]) j = pi[j - 1];
@@ -37,77 +35,68 @@ public:
     }
 
     int shortestMatchingSubstring(string s, string p) {
-        int n = s.length();
-        int idx1 = p.find('*');
-        int idx2 = p.find('*', idx1 + 1);
-        string p0 = p.substr(0, idx1);
-        string p1 = p.substr(idx1 + 1, idx2 - idx1 - 1);
-        string p2 = p.substr(idx2 + 1);
-        int L0 = p0.length(), L1 = p1.length(), L2 = p2.length();
-
-        vector<int> pos0 = find_all(s, p0);
-        vector<int> pos1 = find_all(s, p1);
-        vector<int> pos2 = find_all(s, p2);
-
-        if (!p0.empty() && pos0.empty()) return -1;
-        if (!p1.empty() && pos1.empty()) return -1;
-        if (!p2.empty() && pos2.empty()) return -1;
-
-        vector<int> best_i(n + 1, -1);
-        if (p0.empty()) {
-            for (int j = 0; j <= n; j++) best_i[j] = j;
-        } else {
-            int cur = -1;
-            int ptr = 0;
-            for (int j = 0; j <= n; j++) {
-                while (ptr < pos0.size() && pos0[ptr] + L0 <= j) {
-                    cur = pos0[ptr];
-                    ptr++;
+        int firstStar = p.find('*');
+        int secondStar = p.find('*', firstStar + 1);
+        
+        string A = p.substr(0, firstStar);
+        string B = p.substr(firstStar + 1, secondStar - firstStar - 1);
+        string C = p.substr(secondStar + 1);
+        
+        vector<int> vA = kmp(s, A);
+        vector<int> vB = kmp(s, B);
+        vector<int> vC = kmp(s, C);
+        
+        if (!A.empty() && vA.empty()) return -1;
+        if (!B.empty() && vB.empty()) return -1;
+        if (!C.empty() && vC.empty()) return -1;
+        
+        int ans = INT_MAX;
+        
+        if (!B.empty()) {
+            for (int j : vB) {
+                int i = -1;
+                if (A.empty()) {
+                    i = j;
+                } else {
+                    auto it = upper_bound(vA.begin(), vA.end(), j - (int)A.length());
+                    if (it != vA.begin()) {
+                        i = *prev(it);
+                    }
                 }
-                best_i[j] = cur;
-            }
-        }
-
-        vector<int> best_k(n + 1, -1);
-        if (p2.empty()) {
-            for (int j = 0; j <= n; j++) {
-                if (j + L1 <= n) best_k[j] = j + L1;
-            }
-        } else {
-            int cur = -1;
-            int ptr = pos2.size() - 1;
-            for (int j = n; j >= 0; j--) {
-                while (ptr >= 0 && pos2[ptr] >= j + L1) {
-                    cur = pos2[ptr];
-                    ptr--;
+                
+                int k = -1;
+                if (C.empty()) {
+                    k = j + (int)B.length();
+                } else {
+                    auto it = lower_bound(vC.begin(), vC.end(), j + (int)B.length());
+                    if (it != vC.end()) {
+                        k = *it;
+                    }
                 }
-                best_k[j] = cur;
-            }
-        }
-
-        int ans = 2e9;
-        bool found = false;
-        if (p1.empty()) {
-            for (int j = 0; j <= n; j++) {
-                int i = best_i[j];
-                int k = best_k[j];
+                
                 if (i != -1 && k != -1) {
-                    ans = min(ans, (k + L2) - i);
-                    found = true;
+                    ans = min(ans, k + (int)C.length() - i);
                 }
             }
         } else {
-            for (int j : pos1) {
-                int i = best_i[j];
-                int k = best_k[j];
-                if (i != -1 && k != -1) {
-                    ans = min(ans, (k + L2) - i);
-                    found = true;
+            if (!A.empty() && !C.empty()) {
+                for (int i : vA) {
+                    auto it = lower_bound(vC.begin(), vC.end(), i + (int)A.length());
+                    if (it != vC.end()) {
+                        int k = *it;
+                        ans = min(ans, k + (int)C.length() - i);
+                    }
                 }
+            } else if (!A.empty()) {
+                ans = A.length();
+            } else if (!C.empty()) {
+                ans = C.length();
+            } else {
+                ans = 0;
             }
         }
-
-        return found ? ans : -1;
+        
+        return (ans == INT_MAX) ? -1 : ans;
     }
 };
 # @lc code=end
