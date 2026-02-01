@@ -1,80 +1,78 @@
 #include <vector>
 #include <algorithm>
-#include <unordered_map>
+#include <map>
 
 using namespace std;
+
+class FenwickTree {
+    vector<int> tree;
+public:
+    FenwickTree(int n) : tree(n + 1, 0) {}
+    void add(int i, int val) {
+        for (; i < tree.size(); i += i & -i) tree[i] += val;
+    }
+    int query(int i) {
+        int sum = 0;
+        for (; i > 0; i -= i & -i) sum += tree[i];
+        return sum;
+    }
+    int query(int l, int r) {
+        return query(r) - query(l - 1);
+    }
+};
 
 class Solution {
 public:
     long long maxRectangleArea(vector<int>& xCoord, vector<int>& yCoord) {
         int n = xCoord.size();
-        if (n < 4) return -1;
-
-        // Coordinate compression for y
+        vector<pair<int, int>> points(n);
         vector<int> ys = yCoord;
         sort(ys.begin(), ys.end());
         ys.erase(unique(ys.begin(), ys.end()), ys.end());
-        int m = ys.size();
+        
+        auto get_y = [&](int y) {
+            return lower_bound(ys.begin(), ys.end(), y) - ys.begin() + 1;
+        };
 
-        // Sort points by x, then by y index
-        vector<pair<int, int>> points(n);
         for (int i = 0; i < n; ++i) {
-            points[i] = {xCoord[i], (int)(lower_bound(ys.begin(), ys.end(), yCoord[i]) - ys.begin())};
+            points[i] = {xCoord[i], yCoord[i]};
         }
         sort(points.begin(), points.end());
 
-        // Iterative Segment Tree for range max query
-        vector<int> tree(2 * m, -1);
-        auto update = [&](int i, int val) {
-            for (tree[i += m] = val; i > 1; i >>= 1)
-                tree[i >> 1] = max(tree[i], tree[i ^ 1]);
-        };
-        auto query = [&](int l, int r) {
-            int res = -1;
-            for (l += m, r += m + 1; l < r; l >>= 1, r >>= 1) {
-                if (l & 1) res = max(res, tree[l++]);
-                if (r & 1) res = max(res, tree[--r]);
-            }
-            return res;
-        };
-
-        // last_x stores the last x-coordinate where the pair (y1_idx, y2_idx) was adjacent
-        unordered_map<long long, int> last_x;
-        last_x.reserve(n);
+        map<pair<int, int>, pair<int, int>> last_seen; // {y1, y2} -> {last_x, last_cnt}
+        FenwickTree ft(ys.size());
         long long max_area = -1;
 
         for (int i = 0; i < n; ) {
             int j = i;
             while (j < n && points[j].first == points[i].first) j++;
 
-            // 1. Check for rectangles using this column as the right side
+            // Check pairs at current X
             for (int k = i; k < j - 1; ++k) {
-                int y1_idx = points[k].second;
-                int y2_idx = points[k + 1].second;
-                long long key = ((long long)y1_idx << 32) | y2_idx;
+                int y1 = points[k].second;
+                int y2 = points[k + 1].second;
+                int py1 = get_y(y1);
+                int py2 = get_y(y2);
                 
-                auto it = last_x.find(key);
-                if (it != last_x.end()) {
-                    int lx = it->second;
-                    // Verify no points are inside or on the boundary between lx and current x
-                    if (query(y1_idx, y2_idx) == lx) {
-                        long long area = (long long)(points[i].first - lx) * (ys[y2_idx] - ys[y1_idx]);
-                        if (max_area == -1 || area > max_area) {
-                            max_area = area;
-                        }
+                int current_cnt = ft.query(py1, py2);
+                if (last_seen.count({y1, y2})) {
+                    auto [prev_x, prev_cnt] = last_seen[{y1, y2}];
+                    if (current_cnt == prev_cnt) {
+                        max_area = max(max_area, (long long)(points[i].first - prev_x) * (y2 - y1));
                     }
                 }
+                last_seen[{y1, y2}] = {points[i].first, current_cnt};
             }
 
-            // 2. Update Segment Tree with points in the current column
+            // Add current X points to Fenwick after checking to handle "on the border"
+            // Actually, to handle points on the border, we update the map before updating FT,
+            // but we must ensure the count includes points on the vertical edges.
             for (int k = i; k < j; ++k) {
-                update(points[k].second, points[i].first);
+                ft.add(get_y(points[k].second), 1);
+                // Update counts in map to include the points just added on the right edge
             }
-
-            // 3. Update last_x with adjacent pairs in the current column
             for (int k = i; k < j - 1; ++k) {
-                long long key = ((long long)points[k].second << 32) | points[k + 1].second;
-                last_x[key] = points[i].first;
+                last_seen[{points[k].second, points[k+1].second}].second = ft.query(get_y(points[k].second), get_y(points[k+1].second));
             }
 
             i = j;
