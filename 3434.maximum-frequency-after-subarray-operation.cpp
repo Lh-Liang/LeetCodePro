@@ -5,47 +5,42 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <algorithm>
-
-using namespace std;
-
 class Solution {
 public:
     int maxFrequency(vector<int>& nums, int k) {
-        int total_k = 0;
-        // current_gain[v] tracks the running Kadane sum for value v
-        // max_gain[v] tracks the maximum subarray gain found for value v
-        vector<int> current_gain(51, 0);
-        vector<int> max_gain(51, 0);
-        
+        int k_count = 0;
         for (int x : nums) {
-            if (x == k) {
-                total_k++;
-                // If we see k, it decreases the gain for all potential target values v
-                for (int v = 1; v <= 50; ++v) {
-                    if (v == k) continue;
-                    current_gain[v]--;
-                    // If current_gain falls below 0, reset (Standard Kadane's)
-                    if (current_gain[v] < 0) current_gain[v] = 0;
-                }
-            } else if (x >= 1 && x <= 50) {
-                // If we see x, it increases the gain for target value x
-                current_gain[x]++;
-                if (current_gain[x] > max_gain[x]) {
-                    max_gain[x] = current_gain[x];
-                }
-            }
+            if (x == k) k_count++;
         }
         
-        int best_overall_gain = 0;
+        int max_gain = 0;
+        // The values of nums[i] and k are between 1 and 50.
+        // Iterate over all possible values v that could be transformed into k.
         for (int v = 1; v <= 50; ++v) {
-            if (v != k) {
-                best_overall_gain = max(best_overall_gain, max_gain[v]);
+            if (v == k) continue;
+            
+            int current_gain = 0;
+            int best_gain_for_v = 0;
+            for (int x : nums) {
+                if (x == v) {
+                    current_gain++;
+                } else if (x == k) {
+                    current_gain--;
+                }
+                
+                if (current_gain < 0) {
+                    current_gain = 0;
+                }
+                if (current_gain > best_gain_for_v) {
+                    best_gain_for_v = current_gain;
+                }
+            }
+            if (best_gain_for_v > max_gain) {
+                max_gain = best_gain_for_v;
             }
         }
         
-        return total_k + best_overall_gain;
+        return k_count + max_gain;
     }
 };
 # @lc code=end
