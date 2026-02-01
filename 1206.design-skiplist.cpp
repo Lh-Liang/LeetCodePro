@@ -8,35 +8,34 @@
 #include <vector>
 #include <cstdlib>
 
-using namespace std;
-
 class Skiplist {
     struct Node {
         int val;
-        vector<Node*> next;
-        Node(int v, int level) : val(v), next(level, nullptr) {}
+        std::vector<Node*> next;
+        Node(int v, int l) : val(v), next(l, nullptr) {}
     };
 
     Node* head;
-    static const int MAX_LEVEL = 16;
+    int maxLevel;
 
 public:
     Skiplist() {
-        head = new Node(-1, MAX_LEVEL);
+        maxLevel = 16;
+        head = new Node(-1, maxLevel);
     }
-    
+
     ~Skiplist() {
         Node* curr = head;
         while (curr) {
-            Node* temp = curr;
-            curr = curr->next[0];
-            delete temp;
+            Node* next = curr->next[0];
+            delete curr;
+            curr = next;
         }
     }
 
     bool search(int target) {
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
+        for (int i = maxLevel - 1; i >= 0; i--) {
             while (curr->next[i] && curr->next[i]->val < target) {
                 curr = curr->next[i];
             }
@@ -46,9 +45,9 @@ public:
     }
 
     void add(int num) {
-        vector<Node*> update(MAX_LEVEL, head);
+        std::vector<Node*> update(maxLevel);
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
+        for (int i = maxLevel - 1; i >= 0; i--) {
             while (curr->next[i] && curr->next[i]->val < num) {
                 curr = curr->next[i];
             }
@@ -64,9 +63,9 @@ public:
     }
 
     bool erase(int num) {
-        vector<Node*> update(MAX_LEVEL, head);
+        std::vector<Node*> update(maxLevel);
         Node* curr = head;
-        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
+        for (int i = maxLevel - 1; i >= 0; i--) {
             while (curr->next[i] && curr->next[i]->val < num) {
                 curr = curr->next[i];
             }
@@ -74,10 +73,11 @@ public:
         }
 
         curr = curr->next[0];
-        if (!curr || curr->val != num) return false;
+        if (!curr || curr->val != num) {
+            return false;
+        }
 
-        for (int i = 0; i < MAX_LEVEL; i++) {
-            if (update[i]->next[i] != curr) break;
+        for (int i = 0; i < (int)curr->next.size(); i++) {
             update[i]->next[i] = curr->next[i];
         }
         delete curr;
@@ -87,7 +87,7 @@ public:
 private:
     int randomLevel() {
         int lvl = 1;
-        while (lvl < MAX_LEVEL && (rand() & 1)) {
+        while (lvl < maxLevel && (rand() & 1)) {
             lvl++;
         }
         return lvl;
