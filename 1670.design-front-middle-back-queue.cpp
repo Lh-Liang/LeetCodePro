@@ -3,13 +3,15 @@
 #
 # [1670] Design Front Middle Back Queue
 #
+
 # @lc code=start
 #include <deque>
-using namespace std;
 
 class FrontMiddleBackQueue {
-    deque<int> left, right;
+    std::deque<int> left, right;
 
+    // Invariant: right.size() == left.size() || right.size() == left.size() + 1
+    // This ensures the middle element is always easily accessible at the boundaries.
     void balance() {
         if (left.size() > right.size()) {
             right.push_front(left.back());
@@ -21,7 +23,8 @@ class FrontMiddleBackQueue {
     }
 
 public:
-    FrontMiddleBackQueue() {}
+    FrontMiddleBackQueue() {
+    }
 
     void pushFront(int val) {
         left.push_front(val);
@@ -34,6 +37,7 @@ public:
         } else {
             left.push_back(val);
         }
+        // No balance() needed as logic handles the +1/equal invariant
     }
 
     void pushBack(int val) {
@@ -65,6 +69,7 @@ public:
             val = right.front();
             right.pop_front();
         }
+        balance();
         return val;
     }
 
@@ -76,4 +81,15 @@ public:
         return val;
     }
 };
+
+/**
+ * Your FrontMiddleBackQueue object will be instantiated and called as such:
+ * FrontMiddleBackQueue* obj = new FrontMiddleBackQueue();
+ * obj->pushFront(val);
+ * obj->pushMiddle(val);
+ * obj->pushBack(val);
+ * int param_4 = obj->popFront();
+ * int param_5 = obj->popMiddle();
+ * int param_6 = obj->popBack();
+ */
 # @lc code=end
