@@ -1,9 +1,61 @@
-Step 1: Problem Decomposition. We need to find the number of connected components in an undirected graph where nodes are indices of the `properties` array. An edge exists if the intersection of distinct integers between two sets is at least `k`. Constraints are n=100, m=100, and values up to 100.
+#
+# @lc app=leetcode id=3493 lang=cpp
+#
+# [3493] Properties Graph
+#
 
-Step 2: Strategy Selection. To handle 'distinct integers', we convert each property list into a `std::bitset<101>`. This allows calculating the intersection size efficiently using bitwise AND and `.count()`. For finding connected components, Disjoint Set Union (DSU) is ideal as it allows merging nodes and tracking the total component count in O(n^2 * alpha(n)).
+# @lc code=start
+#include <vector>
+#include <bitset>
+#include <numeric>
 
-Step 3: Complexity Analysis. Constructing bitsets takes O(n * m). Comparing all pairs takes O(n^2). With n=100, n^2 is 10,000, which is well within the time limit. Space complexity is O(n * 100) for bitsets and O(n) for DSU, which is minimal.
+using namespace std;
 
-Step 4: Schema Compliance & Format Verification. I must ensure the output is a single, flat JSON object. The 'result' field must contain the raw source code string with necessary headers, not a stringified JSON object. I will verify that characters like newlines are properly represented as '\n' in the final JSON string and that no double-serialization occurs.
+class Solution {
+public:
+    int numberOfComponents(vector<vector<int>>& properties, int k) {
+        int n = properties.size();
+        if (n == 0) return 0;
 
-Step 5: Code Implementation. Implement the logic using <bitset> and DSU with path compression.
+        // Convert each property list into a bitset of unique values (1-100)
+        vector<bitset<101>> bitsets(n);
+        for (int i = 0; i < n; ++i) {
+            for (int val : properties[i]) {
+                bitsets[i].set(val);
+            }
+        }
+
+        // DSU setup
+        vector<int> parent(n);
+        iota(parent.begin(), parent.end(), 0);
+        int components = n;
+
+        auto find = [&](auto self, int i) -> int {
+            return parent[i] == i ? i : parent[i] = self(self, parent[i]);
+        };
+
+        auto unite = [&](int i, int j) {
+            int rootI = find(find, i);
+            int rootJ = find(find, j);
+            if (rootI != rootJ) {
+                parent[rootI] = rootJ;
+                components--;
+                return true;
+            }
+            return false;
+        };
+
+        // Check all pairs for edges based on the intersection threshold k
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                // The number of distinct common integers is the count of set bits in the AND result
+                if ((int)(bitsets[i] & bitsets[j]).count() >= k) {
+                    unite(i, j);
+                }
+            }
+        }
+
+        return components;
+    }
+};
+# @lc code=end
