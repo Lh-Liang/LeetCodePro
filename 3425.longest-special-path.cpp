@@ -3,75 +3,82 @@
 #
 # [3425] Longest Special Path
 #
+
 # @lc code=start
 #include <vector>
 #include <algorithm>
-#include <cstring>
 
 using namespace std;
 
 class Solution {
+    struct Edge {
+        int to;
+        int weight;
+    };
+    vector<vector<Edge>> adj;
+    vector<int> path_dists;
+    int last_pos[50001];
     int max_len;
     int min_nodes;
-    int last_pos[50001];
-    vector<int> path_dist;
+    const vector<int>* nodes_vals;
 
-    void dfs(int u, int p, int d, int current_top, const vector<vector<pair<int, int>>>& adj, const vector<int>& nums) {
-        int val = nums[u];
+    void dfs(int u, int p, int current_dist, int current_depth, int max_ancestor_idx) {
+        int val = (*nodes_vals)[u];
         int prev_idx = last_pos[val];
+        // The special path ending at u must start at or after start_idx to maintain uniqueness.
+        // start_idx is the depth index in the current path.
+        int start_idx = max(max_ancestor_idx, prev_idx + 1);
         
-        // Update the window's top index to maintain the unique values invariant.
-        int my_top = max(current_top, prev_idx + 1);
+        path_dists.push_back(current_dist);
         
-        // Calculate length and number of nodes for the special path ending at u.
-        int current_path_len = d - path_dist[my_top];
-        int current_path_nodes = (int)path_dist.size() - my_top;
+        // Path properties from the highest valid ancestor start_idx to u.
+        int path_len = current_dist - path_dists[start_idx];
+        int num_nodes = current_depth - start_idx + 1;
         
-        // Update global maximum length and minimum nodes.
-        if (current_path_len > max_len) {
-            max_len = current_path_len;
-            min_nodes = current_path_nodes;
-        } else if (current_path_len == max_len) {
-            if (current_path_nodes < min_nodes) {
-                min_nodes = current_path_nodes;
+        if (path_len > max_len) {
+            max_len = path_len;
+            min_nodes = num_nodes;
+        } else if (path_len == max_len) {
+            if (num_nodes < min_nodes) {
+                min_nodes = num_nodes;
             }
         }
         
-        // Record current node's depth and recurse.
-        int current_depth = (int)path_dist.size() - 1;
+        int old_pos = last_pos[val];
         last_pos[val] = current_depth;
         
-        for (auto& edge : adj[u]) {
-            int v = edge.first;
-            int w = edge.second;
-            if (v == p) continue;
-            
-            path_dist.push_back(d + w);
-            dfs(v, u, d + w, my_top, adj, nums);
-            path_dist.pop_back();
+        for (const auto& edge : adj[u]) {
+            if (edge.to != p) {
+                dfs(edge.to, u, current_dist + edge.weight, current_depth + 1, start_idx);
+            }
         }
         
-        // Backtrack: restore the previous position of this value.
-        last_pos[val] = prev_idx;
+        // Backtrack to maintain the state for other branches in DFS.
+        last_pos[val] = old_pos;
+        path_dists.pop_back();
     }
 
 public:
     vector<int> longestSpecialPath(vector<vector<int>>& edges, vector<int>& nums) {
         int n = nums.size();
-        vector<vector<pair<int, int>>> adj(n);
-        for (const auto& e : edges) {
-            adj[e[0]].push_back({e[1], e[2]});
-            adj[e[1]].push_back({e[0], e[2]});
+        adj.assign(n, vector<Edge>());
+        for (const auto& edge : edges) {
+            adj[edge[0]].push_back({edge[1], edge[2]});
+            adj[edge[1]].push_back({edge[0], edge[2]});
         }
         
-        memset(last_pos, -1, sizeof(last_pos));
-        path_dist.clear();
-        path_dist.push_back(0); // Cumulative distance at the root is 0.
+        nodes_vals = &nums;
+        // Initialize last_pos with -1 as values are not yet seen in the path.
+        for (int i = 0; i <= 50000; ++i) last_pos[i] = -1;
         
-        max_len = 0;
-        min_nodes = 1;
+        max_len = -1; // Initialize to ensure the first node updates it.
+        min_nodes = n + 1;
         
-        dfs(0, -1, 0, 0, adj, nums);
+        path_dists.clear();
+        path_dists.reserve(n);
+        
+        // Start DFS from the root node (0).
+        dfs(0, -1, 0, 0, 0);
         
         return {max_len, min_nodes};
     }
