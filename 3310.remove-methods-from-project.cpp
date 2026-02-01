@@ -7,7 +7,6 @@
 # @lc code=start
 #include <vector>
 #include <queue>
-#include <numeric>
 
 using namespace std;
 
@@ -19,41 +18,45 @@ public:
             adj[inv[0]].push_back(inv[1]);
         }
 
-        vector<bool> is_suspicious(n, false);
+        vector<bool> isSuspicious(n, false);
         queue<int> q;
-        
-        is_suspicious[k] = true;
+
+        isSuspicious[k] = true;
         q.push(k);
 
         while (!q.empty()) {
-            int u = q.front();
+            int curr = q.front();
             q.pop();
-            for (int v : adj[u]) {
-                if (!is_suspicious[v]) {
-                    is_suspicious[v] = true;
-                    q.push(v);
+
+            for (int neighbor : adj[curr]) {
+                if (!isSuspicious[neighbor]) {
+                    isSuspicious[neighbor] = true;
+                    q.push(neighbor);
                 }
             }
         }
 
-        bool can_remove = true;
+        bool canRemove = true;
         for (const auto& inv : invocations) {
-            if (!is_suspicious[inv[0]] && is_suspicious[inv[1]]) {
-                can_remove = false;
+            int u = inv[0];
+            int v = inv[1];
+            if (!isSuspicious[u] && isSuspicious[v]) {
+                canRemove = false;
                 break;
             }
         }
 
         vector<int> result;
-        if (can_remove) {
+        if (canRemove) {
             for (int i = 0; i < n; ++i) {
-                if (!is_suspicious[i]) {
+                if (!isSuspicious[i]) {
                     result.push_back(i);
                 }
             }
         } else {
-            result.resize(n);
-            iota(result.begin(), result.end(), 0);
+            for (int i = 0; i < n; ++i) {
+                result.push_back(i);
+            }
         }
 
         return result;
