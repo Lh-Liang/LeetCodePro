@@ -16,61 +16,57 @@ using namespace std;
 class Solution {
 public:
     double maxAmount(string initialCurrency, vector<vector<string>>& pairs1, vector<double>& rates1, vector<vector<string>>& pairs2, vector<double>& rates2) {
-        // Step 1: Calculate all reachable currencies and their amounts at the end of Day 1.
-        unordered_map<string, double> day1_amounts;
-        day1_amounts[initialCurrency] = 1.0;
-        
-        unordered_map<string, vector<pair<string, double>>> adj1;
-        for (size_t i = 0; i < pairs1.size(); ++i) {
-            adj1[pairs1[i][0]].push_back({pairs1[i][1], rates1[i]});
-            adj1[pairs1[i][1]].push_back({pairs1[i][0], 1.0 / rates1[i]});
+        // Step 1: Find the maximum amount of each currency we can get on Day 1.
+        // Since there are no contradictions or cycles, any path will give the same rate.
+        unordered_map<string, double> max_day1 = get_rates(initialCurrency, pairs1, rates1);
+
+        // Step 2: Find the conversion rate from initialCurrency to any other currency on Day 2.
+        // This allows us to calculate the rate from any currency back to initialCurrency on Day 2.
+        unordered_map<string, double> rates_day2 = get_rates(initialCurrency, pairs2, rates2);
+
+        // Step 3: For each currency reachable on Day 1, calculate how much initialCurrency we can get back on Day 2.
+        // If we have 'amt' of currency 'C' and the rate 'initialCurrency -> C' on Day 2 is 'r2',
+        // then the rate 'C -> initialCurrency' on Day 2 is '1/r2'.
+        // So we get 'amt * (1/r2)' of initialCurrency.
+        double max_initial = 1.0;
+        for (auto const& [curr, amt] : max_day1) {
+            if (rates_day2.count(curr)) {
+                max_initial = max(max_initial, amt / rates_day2[curr]);
+            }
         }
-        
-        queue<string> q1;
-        q1.push(initialCurrency);
-        while (!q1.empty()) {
-            string curr = q1.front();
-            q1.pop();
-            for (auto& edge : adj1[curr]) {
-                if (day1_amounts.find(edge.first) == day1_amounts.end()) {
-                    day1_amounts[edge.first] = day1_amounts[curr] * edge.second;
-                    q1.push(edge.first);
+
+        return max_initial;
+    }
+
+private:
+    unordered_map<string, double> get_rates(string start, const vector<vector<string>>& pairs, const vector<double>& rates) {
+        unordered_map<string, vector<pair<string, double>>> adj;
+        for (size_t i = 0; i < pairs.size(); ++i) {
+            adj[pairs[i][0]].push_back({pairs[i][1], rates[i]});
+            adj[pairs[i][1]].push_back({pairs[i][0], 1.0 / rates[i]});
+        }
+
+        unordered_map<string, double> dist;
+        dist[start] = 1.0;
+        queue<string> q;
+        q.push(start);
+
+        while (!q.empty()) {
+            string u = q.front();
+            q.pop();
+
+            if (adj.count(u)) {
+                for (auto& edge : adj[u]) {
+                    const string& v = edge.first;
+                    double r = edge.second;
+                    if (dist.find(v) == dist.end()) {
+                        dist[v] = dist[u] * r;
+                        q.push(v);
+                    }
                 }
             }
         }
-        
-        // Step 2: Calculate conversion rates from initialCurrency to other currencies on Day 2.
-        unordered_map<string, double> day2_rates;
-        day2_rates[initialCurrency] = 1.0;
-        
-        unordered_map<string, vector<pair<string, double>>> adj2;
-        for (size_t i = 0; i < pairs2.size(); ++i) {
-            adj2[pairs2[i][0]].push_back({pairs2[i][1], rates2[i]});
-            adj2[pairs2[i][1]].push_back({pairs2[i][0], 1.0 / rates2[i]});
-        }
-        
-        queue<string> q2;
-        q2.push(initialCurrency);
-        while (!q2.empty()) {
-            string curr = q2.front();
-            q2.pop();
-            for (auto& edge : adj2[curr]) {
-                if (day2_rates.find(edge.first) == day2_rates.end()) {
-                    day2_rates[edge.first] = day2_rates[curr] * edge.second;
-                    q2.push(edge.first);
-                }
-            }
-        }
-        
-        // Step 3: Maximize the final amount of initialCurrency.
-        double max_val = 1.0; 
-        for (auto const& [curr, amount] : day1_amounts) {
-            if (day2_rates.count(curr)) {
-                max_val = max(max_val, amount / day2_rates[curr]);
-            }
-        }
-        
-        return max_val;
+        return dist;
     }
 };
 # @lc code=end
