@@ -1,10 +1,3 @@
-#
-# @lc app=leetcode id=3441 lang=cpp
-#
-# [3441] Minimum Cost Good Caption
-#
-
-# @lc code=start
 #include <iostream>
 #include <vector>
 #include <string>
@@ -12,63 +5,58 @@
 
 using namespace std;
 
+#
+# @lc app=leetcode id=3441 lang=cpp
+#
+# [3441] Minimum Cost Good Caption
+#
+
+# @lc code=start
 class Solution {
 public:
     string minCostGoodCaption(string caption) {
         int n = caption.length();
         if (n < 3) return "";
 
-        const long long INF = 1e15;
-        vector<long long> dp(n + 1, INF);
-        vector<int> first_char(n + 1, 27); // Stores the char index (0-25) at dp[i]
-        vector<pair<int, int>> parent(n + 1, {-1, -1}); // {char, length}
-
-        dp[n] = 0;
-
-        // Precompute costs to change caption[i] to character c
-        vector<vector<int>> costs(26, vector<int>(n));
-        for (int c = 0; c < 26; ++c) {
-            for (int i = 0; i < n; ++i) {
-                costs[c][i] = abs(caption[i] - (char)('a' + c));
+        // cost[i][c] is the cost to change caption[i] to character 'a' + c
+        vector<vector<int>> cost(n, vector<int>(26));
+        for (int i = 0; i < n; ++i) {
+            for (int c = 0; c < 26; ++c) {
+                cost[i][c] = abs(caption[i] - ('a' + c));
             }
         }
 
+        // pref[c][i] is the prefix sum of costs to change characters to 'a' + c
+        vector<vector<int>> pref(26, vector<int>(n + 1, 0));
+        for (int c = 0; c < 26; ++c) {
+            for (int i = 0; i < n; ++i) {
+                pref[c][i + 1] = pref[c][i] + cost[i][c];
+            }
+        }
+
+        auto get_cost = [&](int l, int r, int c) {
+            return pref[c][r + 1] - pref[c][l];
+        };
+
+        const long long INF = 1e15;
+        vector<long long> dp(n + 1, INF);
+        vector<pair<int, int>> parent(n + 1, {-1, -1}); // {charIndex, length}
+
+        dp[n] = 0;
+
         for (int i = n - 3; i >= 0; --i) {
-            for (int c = 0; c < 26; ++c) {
-                long long current_block_cost = (long long)costs[c][i] + costs[c][i+1] + costs[c][i+2];
-                for (int len = 3; len <= 5; ++len) {
-                    if (i + len > n) break;
-                    if (len > 3) current_block_cost += costs[c][i + len - 1];
-
-                    if (dp[i + len] == INF) continue;
-
-                    long long total_cost = current_block_cost + dp[i + len];
-                    bool update = false;
-
-                    if (total_cost < dp[i]) {
-                        update = true;
-                    } else if (total_cost == dp[i]) {
-                        // Lexicographical check
-                        if (c < first_char[i]) {
-                            update = true;
-                        } else if (c == first_char[i]) {
-                            int prev_len = parent[i].second;
-                            // Compare sequence: c... (len times) + suffix(i+len) 
-                            // vs c... (prev_len times) + suffix(i+prev_len)
-                            if (len < prev_len) {
-                                // Length 3 vs 4: compare suffix[i+3][0] with 'c'
-                                if (first_char[i + len] < c) update = true;
-                            } else if (len > prev_len) {
-                                // Length 4 vs 3: compare 'c' with suffix[i+prev_len][0]
-                                if (c < first_char[i + prev_len]) update = true;
-                            }
+            for (int k = 3; k <= 5; ++k) {
+                if (i + k > n) break;
+                for (int c = 0; c < 26; ++c) {
+                    long long current_cost = (long long)get_cost(i, i + k - 1, c) + dp[i + k];
+                    if (current_cost < dp[i]) {
+                        dp[i] = current_cost;
+                        parent[i] = {c, k};
+                    } else if (current_cost == dp[i]) {
+                        // Lexicographical tie-break: smaller char is better
+                        if (parent[i].first == -1 || c < parent[i].first) {
+                            parent[i] = {c, k};
                         }
-                    }
-
-                    if (update) {
-                        dp[i] = total_cost;
-                        parent[i] = {c, len};
-                        first_char[i] = c;
                     }
                 }
             }
@@ -80,9 +68,9 @@ public:
         int curr = 0;
         while (curr < n) {
             int c = parent[curr].first;
-            int len = parent[curr].second;
-            res.append(len, (char)('a' + c));
-            curr += len;
+            int k = parent[curr].second;
+            for (int j = 0; j < k; ++j) res += (char)('a' + c);
+            curr += k;
         }
 
         return res;
