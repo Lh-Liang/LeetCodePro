@@ -1,15 +1,37 @@
-#
-# @lc app=leetcode id=3501 lang=cpp
-#
-# [3501] Maximize Active Section with Trade II
-#
-
-# @lc code=start
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <cmath>
 
 using namespace std;
+
+class SegmentTree {
+    int n;
+    vector<int> tree;
+public:
+    SegmentTree(const vector<int>& data) {
+        n = data.size();
+        if (n == 0) return;
+        tree.assign(4 * n, 0);
+        build(data, 1, 0, n - 1);
+    }
+    void build(const vector<int>& data, int node, int start, int end) {
+        if (start == end) {
+            tree[node] = data[start];
+            return;
+        }
+        int mid = (start + end) / 2;
+        build(data, 2 * node, start, mid);
+        build(data, 2 * node + 1, mid + 1, end);
+        tree[node] = max(tree[2 * node], tree[2 * node + 1]);
+    }
+    int query(int node, int start, int end, int l, int r) {
+        if (r < start || end < l) return 0;
+        if (l <= start && end <= r) return tree[node];
+        int mid = (start + end) / 2;
+        return max(query(2 * node, start, mid, l, r), query(2 * node + 1, mid + 1, end, l, r));
+    }
+};
 
 class Solution {
 public:
@@ -18,83 +40,54 @@ public:
         int total_ones = 0;
         for (char c : s) if (c == '1') total_ones++;
 
-        struct Block {
-            int l, r, gain_left, gain_right, total_gain;
-        };
-        vector<Block> tradeable;
-        
-        vector<pair<int, int>> segs;
+        struct Block { int start, end, len; };
+        vector<Block> blocks;
         for (int i = 0; i < n; ) {
-            int j = i;
-            while (j < n && s[j] == s[i]) j++;
-            segs.push_back({i, j - 1});
-            i = j;
+            if (s[i] == '0') {
+                int start = i;
+                while (i < n && s[i] == '0') i++;
+                blocks.push_back({start, i - 1, i - start});
+            } else i++;
         }
 
-        for (int k = 1; k < (int)segs.size() - 1; ++k) {
-            int l = segs[k].first, r = segs[k].second;
-            if (s[l] == '1' && s[l-1] == '0' && s[r+1] == '0') {
-                int gl = segs[k-1].second - segs[k-1].first + 1;
-                int gr = segs[k+1].second - segs[k+1].first + 1;
-                tradeable.push_back({l, r, gl, gr, gl + gr});
-            }
+        if (blocks.empty()) return vector<int>(queries.size(), total_ones);
+
+        int m = blocks.size();
+        vector<int> pair_sums(m > 1 ? m - 1 : 0);
+        for (int i = 0; i < m - 1; ++i) {
+            pair_sums[i] = blocks[i].len + blocks[i + 1].len;
         }
 
-        int m = tradeable.size();
-        if (m == 0) return vector<int>(queries.size(), total_ones);
+        SegmentTree st(pair_sums);
+        vector<int> starts;
+        for (const auto& b : blocks) starts.push_back(b.start);
 
-        int max_log = 32 - __builtin_clz(m);
-        vector<vector<int>> st(max_log, vector<int>(m));
-        for (int i = 0; i < m; i++) st[0][i] = tradeable[i].total_gain;
-        for (int j = 1; j < max_log; j++) {
-            for (int i = 0; i + (1 << j) <= m; i++) {
-                st[j][i] = max(st[j-1][i], st[j-1][i + (1 << (j-1))]);
-            }
-        }
-
-        auto query_st = [&](int L, int R) {
-            if (L > R) return 0;
-            int j = 31 - __builtin_clz(R - L + 1);
-            return max(st[j][L], st[j][R - (1 << j) + 1]);
-        };
-
-        vector<int> results;
+        vector<int> ans;
         for (const auto& q : queries) {
-            int li = q[0], ri = q[1];
-            int start = -1, end = -1;
-            
-            int low = 0, high = m - 1;
-            while (low <= high) {
-                int mid = low + (high - low) / 2;
-                if (tradeable[mid].l >= li) { start = mid; high = mid - 1; } else low = mid + 1;
-            }
-            low = 0, high = m - 1;
-            while (low <= high) {
-                int mid = low + (high - low) / 2;
-                if (tradeable[mid].r <= ri) { end = mid; low = mid + 1; } else high = mid - 1;
+            int L = q[0], R = q[1];
+            int i = lower_bound(starts.begin(), starts.end(), L) - starts.begin();
+            if (i > 0 && blocks[i - 1].end >= L) i--;
+            int j = upper_bound(starts.begin(), starts.end(), R) - starts.begin() - 1;
+
+            if (i >= j) {
+                ans.push_back(total_ones);
+                continue;
             }
 
-            if (start != -1 && end != -1 && start <= end) {
-                int current_max = 0;
-                // Boundary: start block
-                current_max = max(current_max, min(tradeable[start].gain_left, tradeable[start].l - li) + 
-                                             (start == end ? min(tradeable[start].gain_right, ri - tradeable[start].r) : tradeable[start].gain_right));
-                
-                // Boundary: end block
-                if (start < end) {
-                    current_max = max(current_max, tradeable[end].gain_left + min(tradeable[end].gain_right, ri - tradeable[end].r));
-                }
+            int max_gain = 0;
+            int len_i = min(blocks[i].len, blocks[i].end - L + 1);
+            int len_j = min(blocks[j].len, R - blocks[j].start + 1);
 
-                // Internal blocks
-                if (start + 1 <= end - 1) {
-                    current_max = max(current_max, query_st(start + 1, end - 1));
-                }
-                results.push_back(total_ones + current_max);
+            if (j == i + 1) {
+                max_gain = len_i + len_j;
             } else {
-                results.push_back(total_ones);
+                max_gain = max(len_i + blocks[i + 1].len, blocks[j - 1].len + len_j);
+                if (j - 1 > i + 1) {
+                    max_gain = max(max_gain, st.query(1, 0, pair_sums.size() - 1, i + 1, j - 2));
+                }
             }
+            ans.push_back(total_ones + max_gain);
         }
-        return results;
+        return ans;
     }
 };
-# @lc code=end
