@@ -13,46 +13,60 @@ using namespace std;
 
 class Solution {
 public:
-    int minLength(string s, int numOps) {
+    /**
+     * Helper function to check if it is possible to achieve a maximum identical substring length of k
+     * within numOps operations.
+     */
+    bool check(int k, const string& s, int numOps) {
         int n = s.length();
         
-        auto check = [&](int k) -> bool {
-            if (k == 1) {
-                int flips_pattern1 = 0;
-                int flips_pattern2 = 0;
-                for (int i = 0; i < n; ++i) {
-                    // Pattern 1: 010101...
-                    if (s[i] != (i % 2 == 0 ? '0' : '1')) flips_pattern1++;
-                    // Pattern 2: 101010...
-                    if (s[i] != (i % 2 == 0 ? '1' : '0')) flips_pattern2++;
+        // Special case for k = 1: The string must be alternating (0101... or 1010...)
+        if (k == 1) {
+            int ops1 = 0;
+            for (int i = 0; i < n; ++i) {
+                // Check against pattern 0101...
+                if (s[i] - '0' != (i % 2)) {
+                    ops1++;
                 }
-                return min(flips_pattern1, flips_pattern2) <= numOps;
-            } else {
-                int total_flips = 0;
-                int current_run_len = 0;
-                for (int i = 0; i < n; ++i) {
-                    current_run_len++;
-                    if (i == n - 1 || s[i] != s[i + 1]) {
-                        total_flips += current_run_len / (k + 1);
-                        current_run_len = 0;
-                    }
-                }
-                return total_flips <= numOps;
             }
-        };
-        
-        int low = 1, high = n, ans = n;
-        while (low <= high) {
-            int mid = low + (high - low) / 2;
-            if (check(mid)) {
-                ans = mid;
-                high = mid - 1;
+            // ops1 is flips for 0101..., ops2 for 1010... is n - ops1
+            return min(ops1, n - ops1) <= numOps;
+        }
+
+        // General case for k > 1: Use greedy approach on contiguous blocks
+        int totalOps = 0;
+        int currentBlockLen = 0;
+        for (int i = 0; i < n; ++i) {
+            if (i > 0 && s[i] == s[i - 1]) {
+                currentBlockLen++;
             } else {
-                low = mid + 1;
+                totalOps += currentBlockLen / (k + 1);
+                currentBlockLen = 1;
             }
         }
+        // Add flips for the last block
+        totalOps += currentBlockLen / (k + 1);
         
-        return ans;
+        return totalOps <= numOps;
+    }
+
+    int minLength(string s, int numOps) {
+        int n = s.length();
+        int left = 1, right = n;
+        int result = n;
+
+        // Binary search for the minimum possible k
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (check(mid, s, numOps)) {
+                result = mid;
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
+        }
+
+        return result;
     }
 };
 # @lc code=end
