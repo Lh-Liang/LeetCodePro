@@ -13,7 +13,8 @@ using namespace std;
 
 class Solution {
 public:
-    vector<int> kmp(const string& s, const string& p) {
+    // Standard KMP to find all starting positions of pattern p in string s
+    vector<int> findAll(const string& s, const string& p) {
         if (p.empty()) return {};
         int n = s.size(), m = p.size();
         vector<int> pi(m);
@@ -35,68 +36,78 @@ public:
     }
 
     int shortestMatchingSubstring(string s, string p) {
+        int n = s.length();
         int firstStar = p.find('*');
         int secondStar = p.find('*', firstStar + 1);
-        
-        string A = p.substr(0, firstStar);
-        string B = p.substr(firstStar + 1, secondStar - firstStar - 1);
-        string C = p.substr(secondStar + 1);
-        
-        vector<int> vA = kmp(s, A);
-        vector<int> vB = kmp(s, B);
-        vector<int> vC = kmp(s, C);
-        
-        if (!A.empty() && vA.empty()) return -1;
-        if (!B.empty() && vB.empty()) return -1;
-        if (!C.empty() && vC.empty()) return -1;
-        
-        int ans = INT_MAX;
-        
-        if (!B.empty()) {
-            for (int j : vB) {
-                int i = -1;
-                if (A.empty()) {
-                    i = j;
+
+        string p1 = p.substr(0, firstStar);
+        string p2 = p.substr(firstStar + 1, secondStar - firstStar - 1);
+        string p3 = p.substr(secondStar + 1);
+
+        // Find all occurrences of the three parts
+        vector<int> L1 = findAll(s, p1);
+        vector<int> L2 = findAll(s, p2);
+        vector<int> L3 = findAll(s, p3);
+
+        // If a non-empty part is not found, no match is possible
+        if (!p1.empty() && L1.empty()) return -1;
+        if (!p2.empty() && L2.empty()) return -1;
+        if (!p3.empty() && L3.empty()) return -1;
+
+        int minLen = INT_MAX;
+
+        if (!p2.empty()) {
+            int ptr1 = 0, ptr3 = 0;
+            int best_i1 = -1;
+            // For each occurrence of the middle part p2
+            for (int i2 : L2) {
+                // Find the latest i1 that ends before or at i2
+                if (p1.empty()) {
+                    best_i1 = i2;
                 } else {
-                    auto it = upper_bound(vA.begin(), vA.end(), j - (int)A.length());
-                    if (it != vA.begin()) {
-                        i = *prev(it);
+                    while (ptr1 < (int)L1.size() && L1[ptr1] <= i2 - (int)p1.size()) {
+                        best_i1 = L1[ptr1];
+                        ptr1++;
                     }
                 }
-                
-                int k = -1;
-                if (C.empty()) {
-                    k = j + (int)B.length();
+
+                if (best_i1 == -1) continue;
+
+                // Find the earliest i3 that starts after or at the end of p2
+                int current_i3 = -1;
+                if (p3.empty()) {
+                    current_i3 = i2 + (int)p2.size();
                 } else {
-                    auto it = lower_bound(vC.begin(), vC.end(), j + (int)B.length());
-                    if (it != vC.end()) {
-                        k = *it;
+                    while (ptr3 < (int)L3.size() && L3[ptr3] < i2 + (int)p2.size()) {
+                        ptr3++;
+                    }
+                    if (ptr3 < (int)L3.size()) {
+                        current_i3 = L3[ptr3];
                     }
                 }
-                
-                if (i != -1 && k != -1) {
-                    ans = min(ans, k + (int)C.length() - i);
+
+                if (current_i3 != -1) {
+                    minLen = min(minLen, (int)(current_i3 + (int)p3.size() - best_i1));
                 }
             }
         } else {
-            if (!A.empty() && !C.empty()) {
-                for (int i : vA) {
-                    auto it = lower_bound(vC.begin(), vC.end(), i + (int)A.length());
-                    if (it != vC.end()) {
-                        int k = *it;
-                        ans = min(ans, k + (int)C.length() - i);
-                    }
+            // Case where p2 is empty (pattern is p1**p3)
+            if (p1.empty() && p3.empty()) return 0;
+            if (p1.empty()) return p3.size();
+            if (p3.empty()) return p1.size();
+
+            int ptr3 = 0;
+            for (int i1 : L1) {
+                while (ptr3 < (int)L3.size() && L3[ptr3] < i1 + (int)p1.size()) {
+                    ptr3++;
                 }
-            } else if (!A.empty()) {
-                ans = A.length();
-            } else if (!C.empty()) {
-                ans = C.length();
-            } else {
-                ans = 0;
+                if (ptr3 < (int)L3.size()) {
+                    minLen = min(minLen, (int)(L3[ptr3] + (int)p3.size() - i1));
+                }
             }
         }
-        
-        return (ans == INT_MAX) ? -1 : ans;
+
+        return minLen == INT_MAX ? -1 : minLen;
     }
 };
 # @lc code=end
