@@ -1,1 +1,71 @@
-[{"variable_name": "reasoning_rules", "content": "<general_reasoning_rules>\\n- Analyze <agent_history> to track progress, identify repeated failures, and adjust strategy.\\n- Reflect on the most recent \\\"Next Goal\\\" to ensure the current action aligns with the plan.\\n- If a tool's output is unexpected, analyze the error and consider alternative tools or parameters.\\n- Maintain a clear chain of thought, documenting assumptions and intermediate results.\\n- Prioritize accuracy and efficiency in every step.\\n</general_reasoning_rules>\\n<additional_reasoning_rules>\\n- Perform a 'state-dependency audit' for Dynamic Programming: every parameter in a recursive function that changes across calls must be included in the memoization key unless it is mathematically proven to be a deterministic function of other state variables.\\n- For sequence-based grid traversals, explicitly incorporate the sequence phase (e.g., parity of steps or expected value) into the state to prevent incorrect result sharing in memoization.\\n- When designing direction-based movements, verify that the order of direction vectors mathematically aligns with turn requirements (e.g., index i to (i+1)%4 for 90-degree clockwise turns).\\n- Identify potential edge cases (e.g., empty inputs, single-element grids, boundary constraints) and ensure logic handles them without special-case overhead.\\n</additional_reasoning_rules>"}, {"variable_name": "solution", "content": "{\\\"reasoning\\\": \\\"Step 1: The problem asks for the longest V-shaped diagonal segment starting with '1' and following the sequence 2, 0, 2, 0... with at most one 90-degree clockwise turn. This is a pathfinding problem with specific constraints, suitable for DP with memoization.\\\\n\\\\nStep 2: Define the state for memoization. To uniquely identify a subproblem, we need: (r, c) for the current cell, 'dir' for the current diagonal direction, 'turned' (boolean) for whether a turn has already occurred, and 'expected' (0 or 2) for the next required digit in the sequence.\\\\n\\\\nStep 3: Define directions and turns. Diagonal directions are (-1,-1), (-1,1), (1,1), (1,-1). To implement a 90-degree clockwise turn, we arrange these such that (dr[i], dc[i]) rotated 90 degrees clockwise results in (dr[(i+1)%4], dc[(i+1)%4]).\\\\n\\\\nStep 4: State-Dependency Audit. The parameters (r, c, dir, turned, expected) all change and affect the result independently. Therefore, the memoization key must encompass all five variables.\\\\n\\\\nStep 5: Iterate through every cell (i, j) in the grid. If grid[i][j] == 1, it's a potential start. From each '1', explore all 4 diagonal directions. The total length will be 1 (for the '1') + the result of the recursive search for the sequence starting with '2'.\\\", \\\"result\\\": \\\"#\\\\n# @lc app=leetcode id=3459 lang=cpp\\\\n#\\\\n# [3459] Length of Longest V-Shaped Diagonal Segment\\\\n#\\\\n\\\\n# @lc code=start\\\\n#include <vector>\\\\n#include <algorithm>\\\\n#include <cstring>\\\\n\\\\nusing namespace std;\\\\n\\\\nclass Solution {\\\\n    int n, m;\\\\n    int memo[500][500][4][2][2];\\\\n    // Directions arranged for 90-degree clockwise turns:\\\\n    // 0: Up-Left (-1,-1) -> 1: Up-Right (-1,1) -> 2: Down-Right (1,1) -> 3: Down-Left (1,-1)\\\\n    int dr[4] = {-1, -1, 1, 1};\\\\n    int dc[4] = {-1, 1, 1, -1};\\\\n\\\\n    int solve(int r, int c, int dir, int turned, int expected_val, const vector<vector<int>>& grid) {\\\\n        if (r < 0 || r >= n || c < 0 || c >= m || grid[r][c] != expected_val) {\\\\n            return 0;\\\\n        }\\\\n\\\\n        // expected_val is 0 or 2. Map 2 to 1 for indexing.\\\\n        int e_idx = (expected_val == 2 ? 1 : 0);\\\\n        if (memo[r][c][dir][turned][e_idx] != -1) {\\\\n            return memo[r][c][dir][turned][e_idx];\\\\n        }\\\\n\\\\n        int next_val = (expected_val == 2 ? 0 : 2);\\\\n        \\\\n        // Option 1: Continue straight\\\\n        int res = 1 + solve(r + dr[dir], c + dc[dir], dir, turned, next_val, grid);\\\\n\\\\n        // Option 2: 90-degree clockwise turn (only if not yet turned)\\\\n        if (turned == 0) {\\\\n            int next_dir = (dir + 1) % 4;\\\\n            res = max(res, 1 + solve(r + dr[next_dir], c + dc[next_dir], next_dir, 1, next_val, grid));\\\\n        }\\\\n\\\\n        return memo[r][c][dir][turned][e_idx] = res;\\\\n    }\\\\n\\\\npublic:\\\\n    int lenOfVDiagonal(vector<vector<int>>& grid) {\\\\n        n = grid.size();\\\\n        m = grid[0].size();\\\\n        \\\\n        memset(memo, -1, sizeof(memo));\\\\n        \\\\n        int max_len = 0;\\\\n        for (int i = 0; i < n; ++i) {\\\\n            for (int j = 0; j < m; ++j) {\\\\n                if (grid[i][j] == 1) {\\\\n                    max_len = max(max_len, 1);\\\\n                    for (int d = 0; d < 4; ++d) {\\\\n                        // Start path from '1', looking for '2' in direction d\\\\n                        max_len = max(max_len, 1 + solve(i + dr[d], j + dc[d], d, 0, 2, grid));\\\\n                    }\\\\n                }\\\\n            }\\\\n        }\\\\n        return max_len;\\\\n    }\\\\n};\\\\n# @lc code=end\\\"}"}]
+#include <vector>
+#include <algorithm>
+#include <cstring>
+
+using namespace std;
+
+class Solution {
+    int n, m;
+    int memo[500][500][4][2];
+    // Diagonal directions in clockwise order:
+    // 0: (-1, -1) Top-Left
+    // 1: (-1, 1)  Top-Right
+    // 2: (1, 1)   Bottom-Right
+    // 3: (1, -1)  Bottom-Left
+    int dr[4] = {-1, -1, 1, 1};
+    int dc[4] = {-1, 1, 1, -1};
+
+    int solve(int r, int c, int dir, int turned, const vector<vector<int>>& grid) {
+        if (memo[r][c][dir][turned] != -1) return memo[r][c][dir][turned];
+
+        int current_val = grid[r][c];
+        int next_val = 2 - current_val; // Toggles between 2 and 0
+        int res = 1;
+
+        // Option 1: Continue in the same diagonal direction
+        int nr = r + dr[dir];
+        int nc = c + dc[dir];
+        if (nr >= 0 && nr < n && nc >= 0 && nc < m && grid[nr][nc] == next_val) {
+            res = max(res, 1 + solve(nr, nc, dir, turned, grid));
+        }
+
+        // Option 2: Make a 90-degree clockwise turn (if not already turned)
+        if (turned == 0) {
+            int ndir = (dir + 1) % 4;
+            int nnr = r + dr[ndir];
+            int nnc = c + dc[ndir];
+            if (nnr >= 0 && nnr < n && nnc >= 0 && nnc < m && grid[nnr][nnc] == next_val) {
+                res = max(res, 1 + solve(nnr, nnc, ndir, 1, grid));
+            }
+        }
+
+        return memo[r][c][dir][turned] = res;
+    }
+
+public:
+    int lenOfVDiagonal(vector<vector<int>>& grid) {
+        n = grid.size();
+        m = grid[0].size();
+        
+        memset(memo, -1, sizeof(memo));
+
+        int max_len = 0;
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                if (grid[i][j] == 1) {
+                    max_len = max(max_len, 1);
+                    // Try starting in all 4 diagonal directions
+                    for (int d = 0; d < 4; ++d) {
+                        int ni = i + dr[d];
+                        int nj = j + dc[d];
+                        // The sequence must start 1 -> 2
+                        if (ni >= 0 && ni < n && nj >= 0 && nj < m && grid[ni][nj] == 2) {
+                            max_len = max(max_len, 1 + solve(ni, nj, d, 0, grid));
+                        }
+                    }
+                }
+            }
+        }
+        return max_len;
+    }
+};
