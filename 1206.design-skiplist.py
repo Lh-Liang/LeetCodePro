@@ -8,68 +8,69 @@
 import random
 
 class Node:
-    __slots__ = 'val', 'forward'
-    def __init__(self, val, level):
+    __slots__ = 'val', 'right', 'down'
+    def __init__(self, val=-1, right=None, down=None):
         self.val = val
-        self.forward = [None] * level
+        self.right = right
+        self.down = down
 
 class Skiplist:
+
     def __init__(self):
-        self.max_level = 16
-        self.head = Node(-1, self.max_level)
-        self.level = 0
+        # Initialize with a single dummy head representing the top level.
+        self.head = Node()
 
     def search(self, target: int) -> bool:
         curr = self.head
-        for i in range(self.level - 1, -1, -1):
-            while curr.forward[i] and curr.forward[i].val < target:
-                curr = curr.forward[i]
-        curr = curr.forward[0]
-        return curr is not None and curr.val == target
+        while curr:
+            # Move right as long as the next value is smaller than target
+            while curr.right and curr.right.val < target:
+                curr = curr.right
+            # If found, return True
+            if curr.right and curr.right.val == target:
+                return True
+            # Move down to search in the next level
+            curr = curr.down
+        return False
 
     def add(self, num: int) -> None:
-        update = [self.head] * self.max_level
+        # Track the nodes before the insertion point at each level
+        stack = []
         curr = self.head
-        for i in range(self.level - 1, -1, -1):
-            while curr.forward[i] and curr.forward[i].val < num:
-                curr = curr.forward[i]
-            update[i] = curr
+        while curr:
+            while curr.right and curr.right.val < num:
+                curr = curr.right
+            stack.append(curr)
+            curr = curr.down
         
-        lvl = self._random_level()
-        if lvl > self.level:
-            self.level = lvl
+        insert = True
+        down_node = None
+        # Insert levels from bottom up based on random choice
+        while insert and stack:
+            prev = stack.pop()
+            prev.right = Node(num, prev.right, down_node)
+            down_node = prev.right
+            insert = (random.random() < 0.5)
         
-        new_node = Node(num, lvl)
-        for i in range(lvl):
-            new_node.forward[i] = update[i].forward[i]
-            update[i].forward[i] = new_node
+        # If we still need to insert after reaching the top, add a new level
+        if insert:
+            self.head = Node(-1, Node(num, None, down_node), self.head)
 
     def erase(self, num: int) -> bool:
-        update = [self.head] * self.max_level
         curr = self.head
-        for i in range(self.level - 1, -1, -1):
-            while curr.forward[i] and curr.forward[i].val < num:
-                curr = curr.forward[i]
-            update[i] = curr
-        
-        curr = curr.forward[0]
-        if not curr or curr.val != num:
-            return False
-        
-        for i in range(self.level):
-            if update[i].forward[i] != curr:
-                break
-            update[i].forward[i] = curr.forward[i]
-        
-        while self.level > 0 and not self.head.forward[self.level - 1]:
-            self.level -= 1
-        return True
+        found = False
+        while curr:
+            # Move right as long as the next value is smaller than num
+            while curr.right and curr.right.val < num:
+                curr = curr.right
+            # If num is found at this level, remove the first occurrence
+            if curr.right and curr.right.val == num:
+                found = True
+                curr.right = curr.right.right
+                # Note: Continue moving down to remove the rest of the tower
+            curr = curr.down
+        return found
 
-    def _random_level(self):
-        lvl = 1
-        while lvl < self.max_level and random.random() < 0.5:
-            lvl += 1
-        return lvl
 
 # Your Skiplist object will be instantiated and called as such:
 # obj = Skiplist()
