@@ -1,57 +1,65 @@
-#
-# @lc app=leetcode id=3398 lang=cpp
-#
-# [3398] Smallest Substring With Identical Characters I
-#
-
-# @lc code=start
 #include <string>
-#include <vector>
 #include <algorithm>
+#include <vector>
 
 using namespace std;
 
+# @lc app=leetcode id=3398 lang=cpp
+# [3398] Smallest Substring With Identical Characters I
+
+# @lc code=start
 class Solution {
 public:
-    int minLength(string s, int numOps) {
+    /**
+     * Helper function to check if it's possible to make the longest identical substring length <= k
+     * using at most numOps flips.
+     */
+    bool check(int k, const string& s, int numOps) {
         int n = s.length();
-
-        auto check = [&](int k) {
-            if (k == 1) {
-                int ops0 = 0, ops1 = 0;
-                for (int i = 0; i < n; ++i) {
-                    // Pattern 0: 010101...
-                    if (s[i] != (i % 2 == 0 ? '0' : '1')) ops0++;
-                    // Pattern 1: 101010...
-                    else ops1++;
-                }
-                return min(ops0, ops1) <= numOps;
+        if (k == 1) {
+            // For k=1, the string must alternate: 0101... or 1010...
+            int count1 = 0, count2 = 0;
+            for (int i = 0; i < n; ++i) {
+                // Compare with 010101...
+                if (s[i] != (i % 2 == 0 ? '0' : '1')) count1++;
+                // Compare with 101010...
+                if (s[i] != (i % 2 == 0 ? '1' : '0')) count2++;
             }
-
-            int totalOps = 0;
-            int count = 1;
+            return min(count1, count2) <= numOps;
+        } else {
+            // For k > 1, greedily break blocks of identical characters.
+            int total_flips = 0;
+            int current_len = 1;
             for (int i = 1; i < n; ++i) {
                 if (s[i] == s[i - 1]) {
-                    count++;
+                    current_len++;
                 } else {
-                    totalOps += count / (k + 1);
-                    count = 1;
+                    // Minimum flips to break a block of length L into segments of max length k is L / (k + 1).
+                    total_flips += current_len / (k + 1);
+                    current_len = 1;
                 }
             }
-            totalOps += count / (k + 1);
-            return totalOps <= numOps;
-        };
+            total_flips += current_len / (k + 1);
+            return total_flips <= numOps;
+        }
+    }
 
-        int left = 1, right = n, ans = n;
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
-            if (check(mid)) {
+    int minLength(string s, int numOps) {
+        int n = s.length();
+        int low = 1, high = n;
+        int ans = n;
+
+        // Binary search for the smallest possible maximum length k.
+        while (low <= high) {
+            int mid = low + (high - low) / 2;
+            if (check(mid, s, numOps)) {
                 ans = mid;
-                right = mid - 1;
+                high = mid - 1;
             } else {
-                left = mid + 1;
+                low = mid + 1;
             }
         }
+
         return ans;
     }
 };
