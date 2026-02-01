@@ -5,6 +5,7 @@
 #
 
 # @lc code=start
+#include <iostream>
 #include <vector>
 #include <string>
 #include <algorithm>
@@ -17,55 +18,71 @@ public:
         int n = caption.length();
         if (n < 3) return "";
 
-        // dp[i] = minimum cost for suffix starting at i
-        vector<long long> dp(n + 1, 1e15);
+        const long long INF = 1e15;
+        vector<long long> dp(n + 1, INF);
+        vector<int> first_char(n + 1, 27); // Stores the char index (0-25) at dp[i]
+        vector<pair<int, int>> parent(n + 1, {-1, -1}); // {char, length}
+
         dp[n] = 0;
 
-        // Precompute prefix sums of costs for each character 'a'-'z'
-        // cost_sum[char_idx][i] = sum of costs to change caption[0...i-1] to char
-        vector<vector<long long>> cost_sum(26, vector<long long>(n + 1, 0));
+        // Precompute costs to change caption[i] to character c
+        vector<vector<int>> costs(26, vector<int>(n));
         for (int c = 0; c < 26; ++c) {
-            char target = 'a' + c;
             for (int i = 0; i < n; ++i) {
-                cost_sum[c][i + 1] = cost_sum[c][i] + abs(caption[i] - target);
+                costs[c][i] = abs(caption[i] - (char)('a' + c));
             }
         }
 
-        auto get_cost = [&](int start, int end, int char_idx) {
-            return cost_sum[char_idx][end] - cost_sum[char_idx][start];
-        };
-
-        // Fill DP table from right to left
         for (int i = n - 3; i >= 0; --i) {
             for (int c = 0; c < 26; ++c) {
-                for (int len : {3, 4, 5}) {
-                    if (i + len <= n) {
-                        dp[i] = min(dp[i], get_cost(i, i + len, c) + dp[i + len]);
+                long long current_block_cost = (long long)costs[c][i] + costs[c][i+1] + costs[c][i+2];
+                for (int len = 3; len <= 5; ++len) {
+                    if (i + len > n) break;
+                    if (len > 3) current_block_cost += costs[c][i + len - 1];
+
+                    if (dp[i + len] == INF) continue;
+
+                    long long total_cost = current_block_cost + dp[i + len];
+                    bool update = false;
+
+                    if (total_cost < dp[i]) {
+                        update = true;
+                    } else if (total_cost == dp[i]) {
+                        // Lexicographical check
+                        if (c < first_char[i]) {
+                            update = true;
+                        } else if (c == first_char[i]) {
+                            int prev_len = parent[i].second;
+                            // Compare sequence: c... (len times) + suffix(i+len) 
+                            // vs c... (prev_len times) + suffix(i+prev_len)
+                            if (len < prev_len) {
+                                // Length 3 vs 4: compare suffix[i+3][0] with 'c'
+                                if (first_char[i + len] < c) update = true;
+                            } else if (len > prev_len) {
+                                // Length 4 vs 3: compare 'c' with suffix[i+prev_len][0]
+                                if (c < first_char[i + prev_len]) update = true;
+                            }
+                        }
+                    }
+
+                    if (update) {
+                        dp[i] = total_cost;
+                        parent[i] = {c, len};
+                        first_char[i] = c;
                     }
                 }
             }
         }
 
-        if (dp[0] >= 1e15) return "";
+        if (dp[0] >= INF) return "";
 
-        // Reconstruct lexicographically smallest string
         string res = "";
-        int i = 0;
-        while (i < n) {
-            bool found = false;
-            for (int c = 0; c < 26; ++c) {
-                for (int len : {3, 4, 5}) {
-                    if (i + len <= n) {
-                        if (get_cost(i, i + len, c) + dp[i + len] == dp[i]) {
-                            res.append(len, (char)('a' + c));
-                            i += len;
-                            found = true;
-                            break;
-                        }
-                    }
-                }
-                if (found) break;
-            }
+        int curr = 0;
+        while (curr < n) {
+            int c = parent[curr].first;
+            int len = parent[curr].second;
+            res.append(len, (char)('a' + c));
+            curr += len;
         }
 
         return res;
