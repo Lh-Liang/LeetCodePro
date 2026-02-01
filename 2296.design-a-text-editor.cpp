@@ -1,8 +1,3 @@
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=2296 lang=cpp
 #
@@ -10,49 +5,54 @@ using namespace std;
 #
 
 # @lc code=start
+#include <string>
+#include <algorithm>
+
+using namespace std;
+
 class TextEditor {
 private:
+    // 'left' stores characters to the left of the cursor.
+    // 'right' stores characters to the right of the cursor in reverse order.
     string left;
     string right;
 
-    // Helper to get the last min(10, len) characters to the left of the cursor
-    string getLeft10() {
-        int len = min(10, (int)left.size());
-        return left.substr(left.size() - len);
-    }
-
 public:
     TextEditor() {
+        left.reserve(1000000);
+        right.reserve(1000000);
     }
     
     void addText(string text) {
-        left.append(text);
+        left += text;
     }
     
     int deleteText(int k) {
-        int toDelete = min(k, (int)left.size());
-        for (int i = 0; i < toDelete; ++i) {
+        int numToDelete = min(k, (int)left.size());
+        for (int i = 0; i < numToDelete; ++i) {
             left.pop_back();
         }
-        return toDelete;
+        return numToDelete;
     }
     
     string cursorLeft(int k) {
-        int toMove = min(k, (int)left.size());
-        while (toMove--) {
+        int numToMove = min(k, (int)left.size());
+        for (int i = 0; i < numToMove; ++i) {
             right.push_back(left.back());
             left.pop_back();
         }
-        return getLeft10();
+        int len = min(10, (int)left.size());
+        return left.substr(left.size() - len);
     }
     
     string cursorRight(int k) {
-        int toMove = min(k, (int)right.size());
-        while (toMove--) {
+        int numToMove = min(k, (int)right.size());
+        for (int i = 0; i < numToMove; ++i) {
             left.push_back(right.back());
             right.pop_back();
         }
-        return getLeft10();
+        int len = min(10, (int)left.size());
+        return left.substr(left.size() - len);
     }
 };
 
