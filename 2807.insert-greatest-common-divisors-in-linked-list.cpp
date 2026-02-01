@@ -15,27 +15,28 @@
  *     ListNode(int x, ListNode *next) : val(x), next(next) {}
  * };
  */
-#include <numeric>
-
 class Solution {
 public:
+    int getGCD(int a, int b) {
+        while (b) {
+            a %= b;
+            int temp = a;
+            a = b;
+            b = temp;
+        }
+        return a;
+    }
+
     ListNode* insertGreatestCommonDivisors(ListNode* head) {
         if (!head || !head->next) return head;
 
         ListNode* curr = head;
         while (curr->next) {
-            // Calculate GCD of current node and next node
-            int gcdVal = std::gcd(curr->val, curr->next->val);
-            
-            // Create and insert the new node
-            ListNode* newNode = new ListNode(gcdVal);
-            newNode->next = curr->next;
+            int gcdVal = getGCD(curr->val, curr->next->val);
+            ListNode* newNode = new ListNode(gcdVal, curr->next);
             curr->next = newNode;
-            
-            // Move to the next original node
             curr = newNode->next;
         }
-        
         return head;
     }
 };
