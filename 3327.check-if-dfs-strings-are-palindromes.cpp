@@ -13,54 +13,39 @@ using namespace std;
 
 class Solution {
 public:
+    void dfs(int u, const vector<vector<int>>& adj, const string& s, string& globalStr, int& time, vector<int>& start, vector<int>& end) {
+        int curr_start = time;
+        for (int v : adj[u]) {
+            dfs(v, adj, s, globalStr, time, start, end);
+        }
+        start[u] = curr_start;
+        globalStr[time] = s[u];
+        end[u] = time;
+        time++;
+    }
+
     vector<bool> findAnswer(vector<int>& parent, string s) {
         int n = parent.size();
         vector<vector<int>> adj(n);
         for (int i = 1; i < n; i++) {
             adj[parent[i]].push_back(i);
         }
-        // Requirement: children in increasing order
         for (int i = 0; i < n; i++) {
-            if (adj[i].size() > 1) sort(adj[i].begin(), adj[i].end());
+            sort(adj[i].begin(), adj[i].end());
         }
 
-        vector<int> L(n), R(n);
-        string global_str = "";
-        global_str.reserve(n);
+        string globalStr(n, ' ');
+        vector<int> start(n), end(n);
+        int time = 0;
+        dfs(0, adj, s, globalStr, time, start, end);
 
-        // Iterative DFS to handle deep trees and capture substring ranges
-        struct Frame {
-            int u;
-            int child_idx;
-        };
-        vector<Frame> st;
-        st.push_back({0, 0});
-        
-        while (!st.empty()) {
-            Frame& top = st.back();
-            int u = top.u;
-            if (top.child_idx == 0) {
-                L[u] = (int)global_str.size();
-            }
-            if (top.child_idx < (int)adj[u].size()) {
-                int v = adj[u][top.child_idx];
-                top.child_idx++;
-                st.push_back({v, 0});
-            } else {
-                global_str += s[u];
-                R[u] = (int)global_str.size() - 1;
-                st.pop_back();
-            }
+        // Manacher's algorithm to precompute palindrome radii
+        string t(2 * n + 1, '#');
+        for (int i = 0; i < n; i++) {
+            t[2 * i + 1] = globalStr[i];
         }
 
-        // Manacher's Algorithm for O(n) palindrome checks
-        string t = "#";
-        for (char c : global_str) {
-            t += c;
-            t += "#";
-        }
-
-        int m = (int)t.size();
+        int m = t.size();
         vector<int> p(m, 0);
         int center = 0, right = 0;
         for (int i = 0; i < m; i++) {
@@ -77,11 +62,14 @@ public:
 
         vector<bool> answer(n);
         for (int i = 0; i < n; i++) {
-            int len = R[i] - L[i] + 1;
-            int center_in_t = L[i] + R[i] + 1;
-            answer[i] = (p[center_in_t] >= len);
+            int L = start[i];
+            int R = end[i];
+            int len = R - L + 1;
+            // Map substring center in globalStr to center index in character-padded string t
+            int t_center = L + R + 1;
+            // If the palindrome radius at this center covers the substring length, it's a palindrome
+            answer[i] = (p[t_center] >= len);
         }
-
         return answer;
     }
 };
