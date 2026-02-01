@@ -7,23 +7,22 @@
 # @lc code=start
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        # Initialize variables
-        max_steps = 0
-        # Stack to hold pairs of (value, steps)
+        # stack will store (value, steps_to_be_removed)
         stack = []
-        # Iterating through each number in nums
-        for num in nums:
-            current_steps = 0
-            # While stack is not empty and top of stack is greater than num
-            while stack and stack[-1][0] <= num:
-                current_steps = max(current_steps, stack.pop()[1])
-            # If stack is not empty, increment steps for current number
-            if stack:
-                current_steps += 1
+        ans = 0
+        for x in nums:
+            t = 0
+            while stack and stack[-1][0] <= x:
+                t = max(t, stack.pop()[1])
+            
+            if not stack:
+                # x is the largest so far, won't be removed
+                t = 0
             else:
-                current_steps = 0
-            # Push current number with its steps onto the stack
-            max_steps = max(max_steps, current_steps)
-            stack.append((num, current_steps))
-        return max_steps
+                # x will be removed by stack[-1][0] at time t + 1
+                t = t + 1
+            
+            ans = max(ans, t)
+            stack.append((x, t))
+        return ans
 # @lc code=end
