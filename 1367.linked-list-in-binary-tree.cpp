@@ -30,16 +30,21 @@ class Solution {
 public:
     bool isSubPath(ListNode* head, TreeNode* root) {
         if (!root) return false;
-        if (checkPath(head, root)) return true;
-        return isSubPath(head, root->left) || isSubPath(head, root->right);
+        // Try starting the path from the current root, or look in subtrees
+        return checkPath(head, root) || isSubPath(head, root->left) || isSubPath(head, root->right);
     }
 
 private:
-    bool checkPath(ListNode* head, TreeNode* root) {
+    bool checkPath(ListNode* head, TreeNode* node) {
+        // If we reached the end of the list, the path is fully matched
         if (!head) return true;
-        if (!root) return false;
-        if (head->val != root->val) return false;
-        return checkPath(head->next, root->left) || checkPath(head->next, root->right);
+        // If we reached a leaf in the tree before the list, match failed
+        if (!node) return false;
+        // Value mismatch
+        if (head->val != node->val) return false;
+        
+        // Continue matching the next list node in the child nodes
+        return checkPath(head->next, node->left) || checkPath(head->next, node->right);
     }
 };
 # @lc code=end
