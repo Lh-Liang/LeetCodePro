@@ -12,47 +12,45 @@
 #         self.next = next
 class Solution:
     def reverseEvenLengthGroups(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        if not head or not head.next:
+        if not head:
             return head
         
-        # The first group always has length 1, which is odd, so it's never reversed.
-        # We start tracking from the second group (expected length 2).
-        prev_group_tail = head
-        curr = head.next
-        expected_group_len = 2
+        # The first group has length 1 (odd), so it's never reversed.
+        # We start by tracking the end of the first group.
+        prev_group_end = head
+        expected_len = 2
         
-        while curr:
-            # Count actual nodes available in the current group
-            temp = curr
-            actual_len = 0
-            while actual_len < expected_group_len and temp:
-                temp = temp.next
-                actual_len += 1
+        while prev_group_end.next:
+            # Count the actual number of nodes in the current group
+            count = 0
+            curr = prev_group_end.next
+            while curr and count < expected_len:
+                curr = curr.next
+                count += 1
             
-            if actual_len % 2 == 0:
-                # Reverse this group of actual_len nodes
-                # temp is the start of the next group
-                rev_prev = temp
-                rev_curr = curr
-                for _ in range(actual_len):
-                    rev_next = rev_curr.next
+            if count % 2 == 0:
+                # Reverse the current group of 'count' nodes
+                group_start = prev_group_end.next
+                # rev_prev is initialized to 'curr', which is the first node of the next group
+                rev_prev = curr 
+                rev_curr = group_start
+                for _ in range(count):
+                    nxt = rev_curr.next
                     rev_curr.next = rev_prev
                     rev_prev = rev_curr
-                    rev_curr = rev_next
+                    rev_curr = nxt
                 
-                # Connect previous group's tail to the new head of this reversed group
-                prev_group_tail.next = rev_prev
-                # The original start of the group (curr) is now the tail of the reversed group
-                prev_group_tail = curr
-                # Move curr to the start of the next group
-                curr = temp
+                # Connect the end of the previous group to the new head of this group
+                prev_group_end.next = rev_prev
+                # The old group_start is now the last node of this group
+                prev_group_end = group_start
             else:
-                # If the group length is odd, skip reversal and move pointers forward
-                for _ in range(actual_len):
-                    prev_group_tail = curr
-                    curr = curr.next
+                # Group length is odd, skip reversal and move prev_group_end forward
+                for _ in range(count):
+                    prev_group_end = prev_group_end.next
             
-            expected_group_len += 1
+            # Increment expected length for the next group
+            expected_len += 1
             
         return head
 # @lc code=end
