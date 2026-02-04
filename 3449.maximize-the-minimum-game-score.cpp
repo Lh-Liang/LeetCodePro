@@ -3,40 +3,36 @@
 #
 # [3449] Maximize the Minimum Game Score
 #
-
 # @lc code=start
 class Solution {
 public:
     long long maxScore(vector<int>& points, int m) {
         int n = points.size();
-        long long left = 0;
-        // Calculating a realistic upper bound based on maximum possible single index score contribution
-        long long right = *min_element(points.begin(), points.end()) * (m / n + 1);
-        
-        auto canAchieve = [&](long long target) {
-            vector<long long> gameScore(n, 0);
-            int movesUsed = 0;
-            for (int i = 0; i < n; ++i) {
-                if (gameScore[i] < target) {
-                    // Calculate how much we need and how many moves it would take
-                    long long needed = target - gameScore[i];
-                    long long maxAdditions = needed / points[i] + ((needed % points[i]) != 0);
-                    if ((movesUsed += maxAdditions) > m) return false;
-                    gameScore[i] += maxAdditions * points[i];
-                }
-            }
-            return true; // If all indices can achieve at least "target"
-        };
-        
+        long long left = 0, right = 1e12;
         while (left < right) {
-            long long mid = left + (right - left + 1) / 2; // Upper mid for correct convergence
-            if (canAchieve(mid)) {
+            long long mid = left + (right - left + 1) / 2;
+            if (canAchieve(points, m, mid)) {
                 left = mid;
             } else {
                 right = mid - 1;
             }
         }
-        return left; 
-    } 
-}; 
+        return left;
+    }
+    
+private:
+    bool canAchieve(const vector<int>& points, int m, long long target) {
+        vector<long long> gameScore(points.size(), 0);
+        int moves = 0;
+        for (int i = 0; i < points.size() && moves <= m; ++i) {
+            if (gameScore[i] < target) {
+                long long needed = target - gameScore[i];
+                if (needed > points[i]) return false; // Can't satisfy this with available points.
+                gameScore[i] += needed; // Use necessary moves to achieve target. 
+                moves += needed / points[i] + ((needed % points[i]) ? 1 : 0); // Calculate moves needed. 
+            } /
+       } /
+       return moves <= m; /
+   } /
+}; /
 # @lc code=end
