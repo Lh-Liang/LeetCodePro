@@ -7,13 +7,15 @@
 class Solution {
 public:
     int minOperations(vector<int>& nums) {
-        unordered_set<int> numSet(nums.begin(), nums.end());
-        if (numSet.size() == nums.size()) return 0; // Already unique
         int ops = 0;
-        while (nums.size() > numSet.size()) {
-            ops++;
-            nums.erase(nums.begin(), nums.begin() + min(3, (int)nums.size())); // Remove first three or less if size < 3
-            numSet = unordered_set<int>(nums.begin(), nums.end()); // Update set with current nums
+        while (!nums.empty()) {
+            // Check if all elements are distinct
+            unordered_set<int> s(nums.begin(), nums.end());
+            if (s.size() == nums.size()) break;
+            // Remove first three elements or all if less than three
+            int rem = min(3, (int)nums.size());
+            nums.erase(nums.begin(), nums.begin() + rem);
+            ++ops;
         }
         return ops;
     }
