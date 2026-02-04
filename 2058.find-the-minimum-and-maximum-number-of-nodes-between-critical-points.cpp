@@ -3,7 +3,6 @@
 #
 # [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
 #
-
 # @lc code=start
 /**
 * Definition for singly-linked list.
@@ -18,24 +17,29 @@
 class Solution {
 public:
     vector<int> nodesBetweenCriticalPoints(ListNode* head) {
-        vector<int> criticalPoints; // To store indices of critical points.
-        ListNode *prev = nullptr, *curr = head;
-        int index = 0; // Current index in the linked list. 
-        while (curr && curr->next) { // Traverse through the linked list. 
-            if (prev && ((curr->val > prev->val && curr->val > curr->next->val) || 
-                        (curr->val < prev->val && curr->val < curr->next->val))) { // Check for local maxima/minima. 
-                criticalPoints.push_back(index); // Record index if a critical point is found. 
-            } 
-            prev = curr; // Move to the next node. 
-            curr = curr->next; 
-            index++; // Increment index. 
-        } 
-        if (criticalPoints.size() < 2) return {-1, -1}; // Return [-1, -1] if less than two critical points exist. 
-        int minDistance = INT_MAX, maxDistance = criticalPoints.back() - criticalPoints.front(); 
-        for (int i = 1; i < criticalPoints.size(); ++i) { 
-            minDistance = min(minDistance, criticalPoints[i] - criticalPoints[i - 1]); // Calculate minimum distance between consecutive critical points. 
-        } 
-        return {minDistance, maxDistance}; // Return minimum and maximum distances found. 
+        vector<int> criticalIndices;
+        int idx = 0;
+        ListNode* prev = head;
+        ListNode* curr = head ? head->next : nullptr;
+        int pos = 1;
+        while (curr && curr->next) {
+            if ((curr->val > prev->val && curr->val > curr->next->val) ||
+                (curr->val < prev->val && curr->val < curr->next->val)) {
+                criticalIndices.push_back(pos);
+            }
+            prev = curr;
+            curr = curr->next;
+            ++pos;
+        }
+        if (criticalIndices.size() < 2) {
+            return {-1, -1};
+        }
+        int minDist = INT_MAX;
+        for (int i = 1; i < criticalIndices.size(); ++i) {
+            minDist = min(minDist, criticalIndices[i] - criticalIndices[i-1]);
+        }
+        int maxDist = criticalIndices.back() - criticalIndices.front();
+        return {minDist, maxDist};
     }
 };
 # @lc code=end
