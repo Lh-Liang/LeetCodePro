@@ -3,27 +3,19 @@
 #
 # [3779] Minimum Number of Operations to Have Distinct Elements
 #
-
 # @lc code=start
 class Solution {
 public:
     int minOperations(vector<int>& nums) {
-        int operations = 0;
-        while (nums.size() > 0) {
-            unordered_set<int> seen;
-            bool allDistinct = true;
-            for (int num : nums) {
-                if (seen.count(num)) {
-                    allDistinct = false;
-                    break;
-                }
-                seen.insert(num);
-            }
-            if (allDistinct) break; // Stop if all elements are distinct
-            nums.erase(nums.begin(), nums.begin() + min(3, static_cast<int>(nums.size())));
-            ++operations; // Increment operation count
+        unordered_set<int> numSet(nums.begin(), nums.end());
+        if (numSet.size() == nums.size()) return 0; // Already unique
+        int ops = 0;
+        while (nums.size() > numSet.size()) {
+            ops++;
+            nums.erase(nums.begin(), nums.begin() + min(3, (int)nums.size())); // Remove first three or less if size < 3
+            numSet = unordered_set<int>(nums.begin(), nums.end()); // Update set with current nums
         }
-        return operations;
+        return ops;
     }
 };
 # @lc code=end
