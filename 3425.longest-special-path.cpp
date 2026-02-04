@@ -1,61 +1,48 @@
-#include <vector>
-#include <algorithm>
+/*
+ * @lc app=leetcode id=3425 lang=cpp
+ *
+ * [3425] Longest Special Path
+ */
 
+#include <vector>
+#include <unordered_set>
+#include <functional>
+#include <algorithm>
 using namespace std;
 
+// @lc code=start
 class Solution {
-    int max_len = -1;
-    int min_nodes = 1e9;
-    vector<vector<pair<int, int>>> adj;
-    int last_seen_depth[50001];
-    int path_dists[50005];
-
-    void dfs(int u, int p, int depth, int current_dist, int current_start_depth, const vector<int>& nums) {
-        int val = nums[u];
-        int prev_depth = last_seen_depth[val];
-        
-        // The path must start after the last occurrence of the current node's value
-        int start_depth = max(current_start_depth, prev_depth + 1);
-        path_dists[depth + 1] = current_dist;
-        
-        int length = current_dist - path_dists[start_depth];
-        int nodes = depth - start_depth + 1;
-        
-        if (length > max_len) {
-            max_len = length;
-            min_nodes = nodes;
-        } else if (length == max_len) {
-            min_nodes = min(min_nodes, nodes);
-        }
-        
-        last_seen_depth[val] = depth;
-        
-        for (auto& edge : adj[u]) {
-            if (edge.first != p) {
-                dfs(edge.first, u, depth + 1, current_dist + edge.second, start_depth, nums);
-            }
-        }
-        
-        // Backtrack
-        last_seen_depth[val] = prev_depth;
-    }
-
 public:
     vector<int> longestSpecialPath(vector<vector<int>>& edges, vector<int>& nums) {
         int n = nums.size();
-        adj.assign(n, vector<pair<int, int>>());
-        for (const auto& e : edges) {
-            adj[e[0]].push_back({e[1], e[2]});
-            adj[e[1]].push_back({e[0], e[2]});
+        vector<vector<pair<int, int>>> adj(n);
+        for (const auto& edge : edges) {
+            adj[edge[0]].emplace_back(edge[1], edge[2]);
+            adj[edge[1]].emplace_back(edge[0], edge[2]);
         }
-        
-        for (int i = 0; i < 50001; ++i) last_seen_depth[i] = -1;
-        path_dists[0] = 0;
-        max_len = 0;
-        min_nodes = 1;
-        
-        dfs(0, -1, 0, 0, 0, nums);
-        
-        return {max_len, min_nodes};
+        int maxLength = 0;
+        int minNodes = n;
+        function<void(int, int, int, unordered_set<int>&)> dfs = [&](int node, int length, int nodesCount, unordered_set<int>& visited) {
+            if (length > maxLength) { 
+                maxLength = length; 
+                minNodes = nodesCount; 
+            } else if (length == maxLength) { 
+                minNodes = min(minNodes, nodesCount); 
+            } 
+            for (auto& [neighbor, weight] : adj[node]) { 
+                if (visited.find(nums[neighbor]) == visited.end()) { 
+                    visited.insert(nums[neighbor]); 
+                    dfs(neighbor, length + weight, nodesCount + 1, visited); 
+                    visited.erase(nums[neighbor]); 
+                } 
+            } 
+        };
+        for (int i = 0; i < n; ++i) { 
+            unordered_set<int> visited; 
+            visited.insert(nums[i]); 
+            dfs(i, 0, 1, visited); 
+        }
+        return {maxLength, minNodes};
     }
 };
+// @lc code=end
