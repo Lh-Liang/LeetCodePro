@@ -8,24 +8,67 @@
 class Solution {
 public:
     int minMaxWeight(int n, vector<vector<int>>& edges, int threshold) {
-        sort(edges.begin(), edges.end(), [](const vector<int>& a, const vector<int>& b) { return a[2] < b[2]; });
-        int left = 0, right = edges.size() - 1;
-        while (left < right) {
+        int left = 1, right = 1e6, ans = -1;
+        while (left <= right) {
             int mid = left + (right - left) / 2;
-            if (canAchieveMaxWeight(n, edges, mid, threshold)) {
-                right = mid;
+            // Step 1: Filter edges by candidate weight
+            vector<vector<int>> g(n);
+            vector<int> out_deg(n, 0);
+            for (const auto& e : edges) {
+                if (e[2] <= mid) {
+                    g[e[0]].push_back(e[1]);
+                    out_deg[e[0]]++;
+                }
+            }
+            // Step 2: Check outgoing edge count constraint independently
+            bool valid = true;
+            for (int i = 0; i < n; ++i) {
+                if (out_deg[i] > threshold) {
+                    valid = false;
+                    break;
+                }
+            }
+            if (!valid) {
+                left = mid + 1;
+                continue;
+            }
+            // Step 3: Check reachability independently in reversed graph
+            vector<vector<int>> rev_g(n);
+            for (int u = 0; u < n; ++u) {
+                for (int v : g[u]) {
+                    rev_g[v].push_back(u);
+                }
+            }
+            vector<bool> vis(n, false);
+            std::queue<int> q;
+            q.push(0);
+            vis[0] = true;
+            while (!q.empty()) {
+                int u = q.front(); q.pop();
+                for (int v : rev_g[u]) {
+                    if (!vis[v]) {
+                        vis[v] = true;
+                        q.push(v);
+                    }
+                }
+            }
+            // Step 4: Verify all nodes reach node 0
+            bool all_reach = true;
+            for (int i = 0; i < n; ++i) {
+                if (!vis[i]) {
+                    all_reach = false;
+                    break;
+                }
+            }
+            // Step 5: Update answer or adjust binary search
+            if (all_reach) {
+                ans = mid;
+                right = mid - 1;
             } else {
                 left = mid + 1;
             }
         }
-        return canAchieveMaxWeight(n, edges, left, threshold) ? edges[left][2] : -1;
+        return ans;
     }
-    
-private:
-    bool canAchieveMaxWeight(int n, const vector<vector<int>>& edges, int maxEdgeIdx, int threshold) {
-        // Implement graph traversal logic here using BFS/DFS ensuring all nodes reach 0 and respect threshold.
-        // Placeholder logic for traversal check. Actual implementation depends on specifics of threshold handling.
-        return true; // Assuming traversal check passes for demonstration purposes. Replace with actual logic.
-    } 
-}; 
+};
 # @lc code=end
