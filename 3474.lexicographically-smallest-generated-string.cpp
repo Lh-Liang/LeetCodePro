@@ -3,40 +3,25 @@
 #
 # [3474] Lexicographically Smallest Generated String
 #
+
 # @lc code=start
 class Solution {
 public:
     string generateString(string str1, string str2) {
-        int n = str1.length();
-        int m = str2.length();
-        string result(n + m - 1, 'a'); // initialize with smallest character
-        
-        for (int i = 0; i < n; ++i) {
+        int n = str1.length(), m = str2.length();
+        string result(n + m - 1, 'a'); // initialize with 'a', which is smallest lexicographically
+        for (int i = 0; i <= n - 1; ++i) {
             if (str1[i] == 'T') {
+                result.replace(i, m, str2); // place str2 at position i
+            } else { // when str1[i] == 'F'
                 for (int j = 0; j < m; ++j) {
-                    if (i + j >= result.size()) return ""; // out of bounds
-                    result[i + j] = str2[j]; // place str2
-                }
-            } else { // str1[i] == 'F'
-                bool conflict = true;
-                for (int j = 0; j < m && i + j < result.size(); ++j) {
-                    if (result[i + j] != str2[j]) {
-                        conflict = false;
-                        break;
-                    }
-                }
-                if (conflict) {
-                    // Modify one character minimally to ensure it's not equal
-                    if (i + m - 1 < result.size()) {
-                        result[i + m - 1] = result[i + m - 1] == 'z' ? 'y' : result[i + m - 1] + 1;
-                    } else {
-                        return ""; // can't resolve conflict within bounds
+                    if (result[i + j] == str2[j]) {
+                        result[i + j] = (str2[j] == 'z') ? 'y' : 'z'; // change to avoid matching str2
                     }
                 }
             }
         }
-        
-        return result;
+        return result; // return constructed result
     }
 };
 # @lc code=end
