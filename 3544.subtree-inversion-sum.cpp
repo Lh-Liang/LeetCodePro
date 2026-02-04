@@ -1,69 +1,36 @@
-#include <vector>
-#include <algorithm>
-
-using namespace std;
-
+# \@lc app=leetcode id=3544 lang=cpp
+# \@lc code=start
 class Solution {
 public:
     long long subtreeInversionSum(vector<vector<int>>& edges, vector<int>& nums, int k) {
         int n = nums.size();
-        vector<vector<int>> adj(n);
-        for (const auto& edge : edges) {
-            adj[edge[0]].push_back(edge[1]);
-            adj[edge[1]].push_back(edge[0]);
+        vector<vector<int>> tree(n);
+        vector<int> depth(n, -1);
+        vector<long long> subtree_sum(n);
+        vector<bool> visited(n, false);
+        
+        // Build the tree as an adjacency list
+        for (auto& edge : edges) {
+            tree[edge[0]].push_back(edge[1]);
+            tree[edge[1]].push_back(edge[0]);
         }
-
-        // dp[u][d] stores a pair: {max_sum with parity 0, max_sum with parity 1}
-        // d: distance to nearest inverted ancestor (1 to k)
-        vector<vector<pair<long long, long long>>> dp(n, vector<pair<long long, long long>>(k + 1));
-
-        // Iterative post-order traversal to avoid stack overflow
-        vector<int> order;
-        vector<int> parent(n, -1);
-        vector<int> stack = {0};
-        parent[0] = 0; 
-        while (!stack.empty()) {
-            int u = stack.back();
-            stack.pop_back();
-            order.push_back(u);
-            for (int v : adj[u]) {
-                if (parent[v] == -1) {
-                    parent[v] = u;
-                    stack.push_back(v);
+        
+        // DFS to calculate subtree sums and depths
+        function<void(int, int)> dfs = [&](int node, int d) {
+            visited[node] = true;
+            depth[node] = d;
+            subtree_sum[node] = nums[node];
+            for (int neighbor : tree[node]) {
+                if (!visited[neighbor]) {
+                    dfs(neighbor, d + 1);
+                    subtree_sum[node] += subtree_sum[neighbor];
                 }
             }
-        }
-
-        for (int i = n - 1; i >= 0; --i) {
-            int u = order[i];
-            for (int d = 1; d <= k; ++d) {
-                // Option 1: Don't invert current node u
-                long long res0 = (long long)nums[u];  // inherited parity 0
-                long long res1 = (long long)-nums[u]; // inherited parity 1
-                
-                for (int v : adj[u]) {
-                    if (v == parent[u]) continue;
-                    res0 += dp[v][min(k, d + 1)].first;
-                    res1 += dp[v][min(k, d + 1)].second;
-                }
-
-                // Option 2: Invert node u (only if distance constraint d == k is met)
-                if (d == k) {
-                    long long inv0 = (long long)-nums[u]; // flip parity 0 -> 1
-                    long long inv1 = (long long)nums[u];  // flip parity 1 -> 0
-                    for (int v : adj[u]) {
-                        if (v == parent[u]) continue;
-                        inv0 += dp[v][1].second; // child sees inverted ancestor at dist 1, parity 1
-                        inv1 += dp[v][1].first;  // child sees inverted ancestor at dist 1, parity 0
-                    }
-                    res0 = max(res0, inv0);
-                    res1 = max(res1, inv1);
-                }
-                dp[u][d] = {res0, res1};
-            }
-        }
-
-        // Result is max sum starting at root with no inverted ancestors (d=k, parity=0)
-        return dp[0][k].first;
-    }
-};
+        };
+dfs(0, 0);
+lng long max_sum = accumulate(nums.begin(), nums.end(), 0LL);
+fction<void(int)> optimizeInversion = [&](int node) {
+visted[node] = true;
+f (int neighbor : tree[node]) {if (!visited[neighbor]) { optimizeInversion(neighbor);}
+lng long gain = -2 * subtree_sum[node];bool can_invert = true; max_sum += max(0LL, gain); };
+fll(visited.begin(), visited.end(), false); optimizeInversion(0); return max_sum; }};# \@lc code=end
