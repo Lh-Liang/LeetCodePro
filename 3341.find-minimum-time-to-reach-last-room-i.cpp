@@ -1,1 +1,38 @@
-#\n# @lc app=leetcode id=3341 lang=cpp\n#\n# [3341] Find Minimum Time to Reach Last Room I\n#\n\n# @lc code=start\nclass Solution {\npublic:\n    int minTimeToReach(vector<vector<int>>& moveTime) {\n        int n = moveTime.size();\n        int m = moveTime[0].size();\n        vector<vector<int>> minTime(n, vector<int>(m, INT_MAX));\n        priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<>> pq;\n        pq.push({0, {0, 0}});\n        minTime[0][0] = 0;\n        vector<pair<int, int>> directions = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};\n        while (!pq.empty()) {\n            auto [current_time, position] = pq.top(); pq.pop();\n            int x = position.first;\n            int y = position.second;\n            if (x == n - 1 && y == m - 1) return current_time;\n            for (auto [dx, dy] : directions) {\n                int nx = x + dx;\n                int ny = y + dy;\n                if (nx >= 0 && nx < n && ny >= 0 && ny < m) {\n                    int wait_time = max(current_time + 1, moveTime[nx][ny]);\n                    if (minTime[nx][ny] > wait_time) {\n                        minTime[nx][ny] = wait_time;\n                        pq.push({wait_time, {nx, ny}});\n                    }\n                }\n            }\n        }\n        return -1; // Should not reach here if input is valid as per constraints. \ \ @lc code=end
+#
+# @lc app=leetcode id=3341 lang=cpp
+#
+# [3341] Find Minimum Time to Reach Last Room I
+#
+# @lc code=start
+#include <vector>
+#include <queue>
+using namespace std;
+class Solution {
+public:
+    int minTimeToReach(vector<vector<int>>& moveTime) {
+        int n = moveTime.size(), m = moveTime[0].size();
+        vector<vector<int>> minTime(n, vector<int>(m, INT_MAX));
+        priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<>> pq;
+        minTime[0][0] = 0;
+        pq.push({0, {0, 0}});
+        int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+        while (!pq.empty()) {
+            auto [curTime, pos] = pq.top(); pq.pop();
+            int x = pos.first, y = pos.second;
+            if (x == n-1 && y == m-1) return curTime;
+            if (curTime > minTime[x][y]) continue;
+            for (auto& d : dirs) {
+                int nx = x + d[0], ny = y + d[1];
+                if (nx >= 0 && nx < n && ny >= 0 && ny < m) {
+                    int nextTime = max(curTime + 1, moveTime[nx][ny]);
+                    if (nextTime < minTime[nx][ny]) {
+                        minTime[nx][ny] = nextTime;
+                        pq.push({nextTime, {nx, ny}});
+                    }
+                }
+            }
+        }
+        return -1;
+    }
+};
+# @lc code=end
