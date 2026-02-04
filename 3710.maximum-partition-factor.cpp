@@ -3,72 +3,52 @@
 #
 # [3710] Maximum Partition Factor
 #
+
 # @lc code=start
-#include <vector>
-#include <algorithm>
-#include <cmath>
-#include <queue>
-
-using namespace std;
-
 class Solution {
 public:
     int maxPartitionFactor(vector<vector<int>>& points) {
+        // Calculate all Manhattan distances between point pairs
+        vector<int> distances;
         int n = points.size();
-        if (n == 2) return 0;
-
-        vector<long long> distances;
-        distances.push_back(0);
         for (int i = 0; i < n; ++i) {
             for (int j = i + 1; j < n; ++j) {
-                distances.push_back(abs((long long)points[i][0] - points[j][0]) + abs((long long)points[i][1] - points[j][1]));
+                int dist = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1]);
+                distances.push_back(dist);
             }
         }
+        // Sort distances for binary search
         sort(distances.begin(), distances.end());
-        distances.erase(unique(distances.begin(), distances.end()), distances.end());
-
-        auto is_bipartite = [&](long long limit) {
-            if (limit == 0) return true;
-            vector<int> color(n, 0); // 0: uncolored, 1: group1, 2: group2
-            for (int i = 0; i < n; ++i) {
-                if (color[i] == 0) {
-                    queue<int> q;
-                    q.push(i);
-                    color[i] = 1;
-                    while (!q.empty()) {
-                        int u = q.front();
-                        q.pop();
-                        for (int v = 0; v < n; ++v) {
-                            if (u == v) continue;
-                            long long d = abs((long long)points[u][0] - points[v][0]) + abs((long long)points[u][1] - points[v][1]);
-                            if (d < limit) {
-                                if (color[v] == 0) {
-                                    color[v] = 3 - color[u];
-                                    q.push(v);
-                                } else if (color[v] == color[u]) {
-                                    return false;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            return true;
-        };
-
-        int low = 0, high = distances.size() - 1;
-        long long ans = 0;
-        while (low <= high) {
-            int mid = low + (high - low) / 2;
-            if (is_bipartite(distances[mid])) {
-                ans = distances[mid];
-                low = mid + 1;
+        // Binary search for maximum partition factor
+        int left = 0, right = distances.size() - 1;
+        while (left < right) {
+            int mid = (left + right + 1) / 2;
+            if (canPartition(points, distances[mid])) {
+                left = mid; // This distance can be achieved, try larger one
             } else {
-                high = mid - 1;
+                right = mid - 1; // Too large, try smaller one
             }
         }
-
-        return (int)ans;
+        return distances[left]; // Maximum partition factor found at left index     
+    }
+    
+    bool canPartition(const vector<vector<int>>& points, int minDist) {
+        // Use union-find to check if we can partition with this minimum distance
+        int n = points.size();
+        vector<int> parent(n);
+        iota(parent.begin(), parent.end(), 0);
+        function<int(int)> find = [&](int u) { return u == parent[u] ? u : parent[u] = find(parent[u]); };
+        auto unite = [&](int u, int v) { parent[find(u)] = find(v); };
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                if (abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1]) < minDist)
+                    unite(i, j);
+            }
+        }
+        unordered_set<int> roots;
+        for (int i = 0; i < n; ++i)
+            roots.insert(find(i));
+        return roots.size() >= 2; // Valid partition if there are at least two separate groups
     }
 };
 # @lc code=end
