@@ -1,67 +1,62 @@
+#
+# @lc app=leetcode id=3695 lang=cpp
+#
+# [3695] Maximize Alternating Sum Using Swaps
+#
+# @lc code=start
 #include <vector>
-#include <numeric>
 #include <algorithm>
-#include <map>
-
+#include <unordered_map>
 using namespace std;
 
 class Solution {
 public:
+    // Union-Find structure with path compression and union by rank
+    class UnionFind {
+    private:
+        vector<int> parent, rank;
+    public:
+        UnionFind(int size) : parent(size), rank(size, 0) {
+            for (int i = 0; i < size; ++i) {
+                parent[i] = i;
+            }
+        }
+        int find(int x) {
+            if (parent[x] != x) {
+                parent[x] = find(parent[x]); // Path compression
+            }
+            return parent[x];
+        }
+        void unionSets(int x, int y) {
+            int rootX = find(x);
+            int rootY = find(y);
+            if (rootX != rootY) {
+                if (rank[rootX] > rank[rootY]) {
+                    parent[rootY] = rootX;
+                } else if (rank[rootX] < rank[rootY]) {
+                    parent[rootX] = rootY;
+                } else {
+                    parent[rootY] = rootX;
+                    rank[rootX]++;
+                }
+            }
+        }
+    };
+
     long long maxAlternatingSum(vector<int>& nums, vector<vector<int>>& swaps) {
         int n = nums.size();
-        vector<int> parent(n);
-        iota(parent.begin(), parent.end(), 0);
-
-        // DSU Find with path compression
-        auto find_root = [&](auto self, int i) -> int {
-            if (parent[i] == i) return i;
-            return parent[i] = self(self, parent[i]);
-        };
-
-        // Build connected components of indices
-        for (const auto& s : swaps) {
-            int root_u = find_root(find_root, s[0]);
-            int root_v = find_root(find_root, s[1]);
-            if (root_u != root_v) {
-                parent[root_u] = root_v;
-            }
+        UnionFind uf(n);
+        for (const auto& swap : swaps) {
+            uf.unionSets(swap[0], swap[1]);
         }
 
-        // Group indices and values by their component root
-        // component_data[root] = {vector_of_values, count_of_even_indices}
-        struct Component {
-            vector<int> values;
-            int even_count = 0;
-        };
-        map<int, Component> groups;
-
+        unordered_map<int, vector<int>> components;
         for (int i = 0; i < n; ++i) {
-            int root = find_root(find_root, i);
-            groups[root].values.push_back(nums[i]);
-            if (i % 2 == 0) {
-                groups[root].even_count++;
-            }
+            components[uf.find(i)].push_back(nums[i]);
         }
 
-        long long total_max_sum = 0;
-
-        // Process each component independently
-        for (auto& [root, comp] : groups) {
-            sort(comp.values.begin(), comp.values.end());
-            
-            int total_in_comp = comp.values.size();
-            int odd_count = total_in_comp - comp.even_count;
-
-            // Smallest 'odd_count' values are assigned to odd indices (subtracted)
-            for (int i = 0; i < odd_count; ++i) {
-                total_max_sum -= (long long)comp.values[i];
-            }
-            // Largest 'even_count' values are assigned to even indices (added)
-            for (int i = odd_count; i < total_in_comp; ++i) {
-                total_max_sum += (long long)comp.values[i];
-            }
-        }
-
-        return total_max_sum;
-    }
-};
+        long long maxSum = 0;
+nint index = 0;
+nfor (auto& [root, componentNums] : components) {\nnsort(componentNums.begin(), componentNums.end(), greater<int>());\nnfor (int num : componentNums) {\nnmaxSum += (index % 2 == 0 ? num : -num);\nnindex++;\nn}\nn}\nnreturn maxSum;n}
+n};
+n# @lc code=end
