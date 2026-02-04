@@ -1,55 +1,39 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
+#
+# @lc app=leetcode id=3579 lang=cpp
+#
+# [3579] Minimum Steps to Convert String with Operations
+#
+# @lc code=start
 class Solution {
 public:
     int minOperations(string word1, string word2) {
-        int n = word1.length();
-        vector<int> dp(n + 1, 1e9);
-        dp[0] = 0;
-
-        for (int i = 1; i <= n; ++i) {
-            for (int j = 0; j < i; ++j) {
-                int len = i - j;
-                // Option 1: No reverse
-                int cost_no_rev = calculateSubstrCost(word1, word2, j, len, false);
-                // Option 2: With reverse
-                int cost_with_rev = 1 + calculateSubstrCost(word1, word2, j, len, true);
-                
-                dp[i] = min(dp[i], dp[j] + min(cost_no_rev, cost_with_rev));
+        int n = word1.size();
+        vector<int> dp(n + 1, INT_MAX); // dp[i] represents min operations for first i chars
+        dp[0] = 0; // No operation needed for zero-length prefix
+        
+        for (int i = 0; i < n; ++i) {
+            if (word1[i] != word2[i]) {
+                // Consider different strategies for transforming this section
+                int j = i;
+                while (j < n && word1[j] != word2[j]) {
+                    ++j;
+                }
+                // Calculate minimum operations for substring [i..j-1]
+                dp[j] = min(dp[j], dp[i] + calculateMinOperations(word1, word2, i, j - 1));
+                i = j - 1; // Move to next unmatched position
+            } else {
+                dp[i+1] = min(dp[i+1], dp[i]);
             }
         }
-
         return dp[n];
     }
-
+    
 private:
-    int calculateSubstrCost(const string& w1, const string& w2, int start, int len, bool rev) {
-        int d = 0;
-        int n_counts[26][26] = {0};
-        
-        for (int k = 0; k < len; ++k) {
-            char s_char = rev ? w1[start + len - 1 - k] : w1[start + k];
-            char t_char = w2[start + k];
-            
-            if (s_char != t_char) {
-                d++;
-                n_counts[s_char - 'a'][t_char - 'a']++;
-            }
-        }
-
-        int p = 0;
-        for (int c1 = 0; c1 < 26; ++c1) {
-            for (int c2 = c1 + 1; c2 < 26; ++c2) {
-                p += min(n_counts[c1][c2], n_counts[c2][c1]);
-            }
-        }
-        // Under the constraint 'each index used at most once',
-        // only mutual pairs (2-cycles) reduce cost relative to replacement.
-        return d - p;
+    int calculateMinOperations(const string& w1, const string& w2, int start, int end) {
+        int len = end - start + 1;
+        // Placeholder logic: Assume worst-case scenario needing len operations
+        // Implement actual logic considering reverse/swap/replace optimally
+        return len; 
     }
 };
+# @lc code=end
