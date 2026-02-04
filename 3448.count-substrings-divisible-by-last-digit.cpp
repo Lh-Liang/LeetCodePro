@@ -7,19 +7,22 @@
 class Solution {
 public:
     long long countSubstrings(string s) {
-        long long count = 0;
         int n = s.size();
+        long long ans = 0;
+        // For each position, consider all substrings ending at i up to length 20
         for (int i = 0; i < n; ++i) {
-            int num = 0;
-            for (int j = i; j < n; ++j) {
-                num = num * 10 + (s[j] - '0');
-                int last_digit = s[j] - '0';
-                if (last_digit != 0 && num % last_digit == 0) {
-                    count++;
-                }
+            if (s[i] == '0') continue; // last digit zero is not allowed
+            int d = s[i] - '0';
+            long long num = 0;
+            long long p10 = 1;
+            // Go backwards up to 20 characters to avoid overflow
+            for (int j = i; j >= 0 && i-j < 20; --j) {
+                num = (s[j] - '0') * p10 + num;
+                if (num % d == 0) ++ans;
+                p10 *= 10;
             }
         }
-        return count;
+        return ans;
     }
 };
 # @lc code=end
