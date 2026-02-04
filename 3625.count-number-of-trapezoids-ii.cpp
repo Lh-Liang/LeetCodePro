@@ -1,65 +1,45 @@
-#include <vector>
-#include <numeric>
-#include <map>
+# @lc app=leetcode id=3625 lang=cpp
+# # [3625] Count Number of Trapezoids II
 
+#include <vector>
+#include <unordered_set>
+#include <algorithm>
+#include <tuple>
 using namespace std;
 
 class Solution {
 public:
-    long long countTrapezoids(vector<vector<int>>& points) {
+    int countTrapezoids(vector<vector<int>>& points) {
+        auto slope_equal = [](const vector<int>& a, const vector<int>& b,
+                              const vector<int>& c, const vector<int>& d) {
+            // Calculate cross product to check if two lines are parallel
+            return (b[1] - a[1]) * (d[0] - c[0]) == (d[1] - c[1]) * (b[0] - a[0]);
+        };
+        
+        unordered_set<string> unique_trapezoids;
         int n = points.size();
-        // Map slope -> {Map line_constant -> count of segments}
-        // Slope represented as normalized (dx, dy)
-        map<pair<int, int>, map<long long, int>> slope_groups;
-
         for (int i = 0; i < n; ++i) {
             for (int j = i + 1; j < n; ++j) {
-                int dx = points[j][0] - points[i][0];
-                int dy = points[j][1] - points[i][1];
-                int g = std::gcd(dx, dy);
-                dx /= g; dy /= g;
-                if (dx < 0 || (dx == 0 && dy < 0)) {
-                    dx = -dx;
-                    dy = -dy;
+                for (int k = j + 1; k < n; ++k) {
+                    for (int l = k + 1; l < n; ++l) {
+                        // Check pairs for parallelism
+                        bool is_trapezoid = slope_equal(points[i], points[j], points[k], points[l]) ||
+                                            slope_equal(points[i], points[k], points[j], points[l]) ||
+                                            slope_equal(points[i], points[l], points[j], points[k]);
+                        if (is_trapezoid) {
+                            // Sort and encode points to ensure uniqueness
+                            vector<vector<int>> quad = {points[i], points[j], points[k], points[l]};
+                            sort(quad.begin(), quad.end());
+                            string key;
+                            for (const auto& p : quad) {
+                                key += to_string(p[0]) + "," + to_string(p[1]) + ";";
+                            }
+                            unique_trapezoids.insert(key);
+                        }
+                    }
                 }
-                
-                // Line equation: dy * x - dx * y = C
-                long long C = (long long)dy * points[i][0] - (long long)dx * points[i][1];
-                slope_groups[{dx, dy}][C]++;
             }
         }
-
-        long long total_pairs = 0;
-        for (auto const& [slope, lines] : slope_groups) {
-            long long slope_total_segments = 0;
-            long long sum_sq = 0;
-            for (auto const& [C, count] : lines) {
-                slope_total_segments += count;
-                sum_sq += (long long)count * count;
-            }
-            // Number of pairs of segments with same slope on different lines
-            total_pairs += (slope_total_segments * slope_total_segments - sum_sq) / 2;
-        }
-
-        // Count parallelograms using midpoint property: (x1+x2, y1+y2)
-        map<pair<int, int>, int> midpoints;
-        for (int i = 0; i < n; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                int mx = points[i][0] + points[j][0];
-                int my = points[i][1] + points[j][1];
-                midpoints[{mx, my}]++;
-            }
-        }
-
-        long long parallelograms = 0;
-        for (auto const& [mid, count] : midpoints) {
-            if (count >= 2) {
-                parallelograms += (long long)count * (count - 1) / 2;
-            }
-        }
-
-        // Total = (Trapezoids with 1 pair) + 2 * (Parallelograms)
-        // We want (Trapezoids with 1 pair) + (Parallelograms)
-        return total_pairs - parallelograms;
+        return unique_trapezoids.size();
     }
 };
