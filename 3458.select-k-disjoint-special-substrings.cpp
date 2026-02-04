@@ -3,71 +3,48 @@
 #
 # [3458] Select K Disjoint Special Substrings
 #
-
 # @lc code=start
-#include <vector>
-#include <string>
-#include <algorithm>
-#include <utility>
-
-using namespace std;
-
 class Solution {
 public:
     bool maxSubstringLength(string s, int k) {
-        if (k == 0) return true;
-        int n = s.length();
-        vector<int> first(26, -1);
-        vector<int> last(26, -1);
-        
-        // Step 1: Precompute first and last occurrences
-        for (int i = 0; i < n; ++i) {
-            int c = s[i] - 'a';
-            if (first[c] == -1) first[c] = i;
-            last[c] = i;
+        unordered_map<char, int> frequency;
+        for (char c : s) {
+            frequency[c]++;
         }
-
-        vector<pair<int, int>> candidates;
-        
-        // Step 2: Generate candidate special substrings
-        for (int i = 0; i < 26; ++i) {
-            if (first[i] == -1) continue;
-            
-            int L = first[i];
-            int R = last[i];
+        vector<pair<int, int>> potentialSubstrings;
+        int i = 0;
+        while (i < s.size()) {
+            // Find start of potential substring
+            while (i < s.size() && frequency[s[i]] != 1) {
+                i++;
+            }
+            int start = i;
+            // Find end of potential substring
+            while (i < s.size() && frequency[s[i]] == 1) {
+                i++;
+            }
+            int end = i;
+            if (end > start) {
+                potentialSubstrings.push_back({start, end});
+            }
+        }
+        // Validate isolation and count valid substrings
+        int specialCount = 0;
+        for (auto &range : potentialSubstrings) {
+            unordered_set<char> seen(s.begin() + range.first, s.begin() + range.second);
             bool valid = true;
-            
-            // Expand range to satisfy special substring property
-            for (int j = L; j <= R; ++j) {
-                int c = s[j] - 'a';
-                if (first[c] < L) {
-                    valid = false; // Character starts before our fixed L
+            for (char c : seen) {
+                if (frequency[c] != 1) { // Shouldn't appear more than once overall
+                    valid = false;
                     break;
                 }
-                R = max(R, last[c]);
             }
-            
-            // Must not be the entire string
-            if (valid && (R - L + 1 < n)) {
-                candidates.push_back({L, R});
+            if (valid) {
+                specialCount++;
+                if (specialCount >= k) return true;
             }
         }
-
-        // Step 3: Greedy Interval Scheduling
-        sort(candidates.begin(), candidates.end(), [](const pair<int, int>& a, const pair<int, int>& b) {
-            return a.second < b.second;
-        });
-
-        int count = 0;
-        int current_end = -1;
-        for (const auto& interval : candidates) {
-            if (interval.first > current_end) {
-                count++;
-                current_end = interval.second;
-            }
-        }
-
-        return count >= k;
+        return false;
     }
 };
 # @lc code=end
