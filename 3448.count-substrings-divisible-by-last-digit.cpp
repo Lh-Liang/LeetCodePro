@@ -5,58 +5,25 @@
 #
 
 # @lc code=start
-#include <string>
-#include <vector>
-
-using namespace std;
-
 class Solution {
 public:
     long long countSubstrings(string s) {
-        long long ans = 0;
-        // dp[d][r] stores the number of substrings ending at the current position
-        // that have a remainder r when divided by d.
-        long long dp[10][10];
-        for (int i = 0; i < 10; ++i) {
-            for (int j = 0; j < 10; ++j) {
-                dp[i][j] = 0;
+        int n = s.size();
+        long long count = 0;
+        // Iterate over each position in the string
+        for (int i = 0; i < n; ++i) {
+            int last_digit = s[i] - '0';
+            if (last_digit == 0) continue; // Skip if last digit is zero
+            int current_number = 0;
+            // Consider substrings ending at i
+            for (int j = i; j >= 0; --j) {
+                current_number = (current_number * 10 + (s[j] - '0')) % last_digit;
+                if (current_number == 0) {
+                    ++count;
+                }
             }
         }
-        
-        for (char c : s) {
-            int v = c - '0';
-            long long next_dp[10][10];
-            for (int i = 0; i < 10; ++i) {
-                for (int j = 0; j < 10; ++j) {
-                    next_dp[i][j] = 0;
-                }
-            }
-            
-            for (int d = 1; d <= 9; ++d) {
-                // Update existing substrings ending at previous index
-                for (int r = 0; r < d; ++r) {
-                    if (dp[d][r] > 0) {
-                        next_dp[d][(r * 10 + v) % d] += dp[d][r];
-                    }
-                }
-                // Add the new substring starting and ending at the current digit
-                next_dp[d][v % d]++;
-            }
-            
-            // Copy next_dp to dp
-            for (int d = 1; d <= 9; ++d) {
-                for (int r = 0; r < d; ++r) {
-                    dp[d][r] = next_dp[d][r];
-                }
-            }
-            
-            // If the current digit is non-zero, it is the divisor
-            if (v > 0) {
-                ans += dp[v][0];
-            }
-        }
-        
-        return ans;
+        return count;
     }
 };
 # @lc code=end
