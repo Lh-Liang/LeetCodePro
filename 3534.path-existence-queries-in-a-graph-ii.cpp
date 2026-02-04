@@ -1,90 +1,54 @@
-#
 # @lc app=leetcode id=3534 lang=cpp
 #
 # [3534] Path Existence Queries in a Graph II
 #
 # @lc code=start
 #include <vector>
-#include <algorithm>
+#include <queue>
 #include <cmath>
-
+#include <algorithm>
 using namespace std;
 
 class Solution {
 public:
     vector<int> pathExistenceQueries(int n, vector<int>& nums, int maxDiff, vector<vector<int>>& queries) {
-        if (n == 0) return {};
+        vector<int> parent(n);
+        vector<int> rank(n, 0);
+        vector<vector<int>> adjList(n); // Adjacency list for BFS
+        vector<int> result(queries.size(), -1);
 
-        // 1. Get unique sorted values
-        vector<int> sorted_nums = nums;
-        sort(sorted_nums.begin(), sorted_nums.end());
-        sorted_nums.erase(unique(sorted_nums.begin(), sorted_nums.end()), sorted_nums.end());
-        int m = sorted_nums.size();
-
-        // 2. Precompute jumps (Binary Lifting)
-        // The maximum distance can be m-1. We need max_log such that 2^max_log >= m.
-        int max_log = 0;
-        while ((1 << max_log) < m) max_log++;
-        if (max_log == 0) max_log = 1;
-        
-        vector<vector<int>> jump(m, vector<int>(max_log));
-
-        for (int i = 0; i < m; ++i) {
-            auto it = upper_bound(sorted_nums.begin(), sorted_nums.end(), sorted_nums[i] + maxDiff);
-            jump[i][0] = distance(sorted_nums.begin(), prev(it));
-        }
-
-        for (int k = 1; k < max_log; ++k) {
-            for (int i = 0; i < m; ++i) {
-                jump[i][k] = jump[jump[i][k-1]][k-1];
+        // Helper functions for Union-Find with path compression and union by rank
+        function<int(int)> find = [&](int x) {
+            if (parent[x] != x) {
+                parent[x] = find(parent[x]);
             }
-        }
+            return parent[x];
+        };
 
-        // 3. Process queries
-        vector<int> results;
-        results.reserve(queries.size());
-        for (const auto& q : queries) {
-            int u = q[0], v = q[1];
-            if (u == v) {
-                results.push_back(0);
-                continue;
-            }
-            int val_u = nums[u], val_v = nums[v];
-            if (val_u > val_v) swap(val_u, val_v);
-
-            int idx_u = lower_bound(sorted_nums.begin(), sorted_nums.end(), val_u) - sorted_nums.begin();
-            int idx_v = lower_bound(sorted_nums.begin(), sorted_nums.end(), val_v) - sorted_nums.begin();
-
-            // Check reachability using the deepest level of the jump table
-            // Since 2^(max_log-1) might be less than m-1, we use the property that
-            // if we can't reach idx_v in the max power of 2 steps, we check if the
-            // furthest possible node in the component reaches idx_v.
-            int curr = idx_u;
-            if (jump[curr][max_log - 1] < idx_v) {
-                // Even with the largest jump, we might need more steps.
-                // We can use the jump table to move as far as possible.
-                for (int k = max_log - 1; k >= 0; --k) {
-                    curr = jump[curr][k];
-                }
-                if (curr < idx_v) {
-                    results.push_back(-1);
-                    continue;
+        auto unionSet = [&](int x, int y) {
+            int rootX = find(x);
+            int rootY = find(y);
+            if (rootX != rootY) {
+                if (rank[rootX] > rank[rootY]) {
+                    parent[rootY] = rootX;
+                } else if (rank[rootX] < rank[rootY]) {
+                    parent[rootX] = rootY;
+                } else {
+                    parent[rootY] = rootX;
+                    rank[rootX]++;
                 }
             }
+        };
 
-            // Binary lifting to find min steps
-            int steps = 0;
-            curr = idx_u;
-            for (int k = max_log - 1; k >= 0; --k) {
-                if (jump[curr][k] < idx_v) {
-                    curr = jump[curr][k];
-                    steps += (1 << k);
-                }
-            }
-            results.push_back(steps + 1);
+        // Initialize Union-Find structure with each node as its own parent initially
+        iota(parent.begin(), parent.end(), 0);
+
+        // Create edges based on maxDiff condition using sorting to reduce complexity
+        vector<pair<int, int>> indexedNums(n);
+        for (int i = 0; i < n; ++i) {
+            indexedNums[i] = {nums[i], i};
         }
+        sort(indexedNums.begin(), indexedNums.end());
 
-        return results;
-    }
-};
-# @lc code=end
+        // Build adjacency list only for valid connections within maxDiff range using sorted order
+        for (int i = 0; i < n; ++i) {	for (int j = i + 1; j < n && (indexedNums[j].first - indexedNums[i].first <= maxDiff); ++j) { unionSet(indexedNums[i].second, indexedNums[j].second); adjList[indexedNums[i].second].push_back(indexedNums[j].second); adjList[indexedNums[j].second].push_back(indexedNums[i].second); } }	// Process each query and determine connectivity using Union-Find and BFS if necessary	for (int qIdx = 0; qIdx < queries.size(); ++qIdx) { auto [u, v] = queries[qIdx]; if (find(u) == find(v)) { // If connected in same component // Use BFS to find shortest path length queue<pair<int,int>> qBFS; vector<bool> visited(n, false); qBFS.push({u, 0}); visited[u] = true; bool found = false; while (!qBFS.empty()) { auto [node, dist] = qBFS.front(); qBFS.pop(); if (node == v) { result[qIdx] = dist; found = true; break; } for (auto neighbor : adjList[node]) { if (!visited[neighbor]) { visited[neighbor] = true; qBFS.push({neighbor, dist + 1}); } } } if (!found) { result[qIdx] = -1; } // If not found after BFS } else { result[qIdx] = -1; // Nodes not connected } } return result;} }; # @lc code=end
