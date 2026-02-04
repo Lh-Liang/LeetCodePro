@@ -3,93 +3,67 @@
 #
 # [3515] Shortest Path in a Weighted Tree
 #
-
 # @lc code=start
-#include <vector>
-#include <utility>
-#include <stack>
-
-using namespace std;
-
-class FenwickTree {
-    int n;
-    vector<long long> tree;
-public:
-    FenwickTree(int n) : n(n), tree(n + 1, 0) {}
-    void update(int i, long long delta) {
-        if (i <= 0 || i > n) return;
-        for (; i <= n; i += i & -i) tree[i] += delta;
-    }
-    long long query(int i) {
-        long long sum = 0;
-        for (; i > 0; i -= i & -i) sum += tree[i];
-        return sum;
-    }
-};
-
 class Solution {
 public:
     vector<int> treeQueries(int n, vector<vector<int>>& edges, vector<vector<int>>& queries) {
-        vector<vector<pair<int, int>>> adj(n + 1);
+        // Step 1: Build adjacency list from edges
+        unordered_map<int, vector<pair<int, int>>> graph;
         for (const auto& edge : edges) {
-            adj[edge[0]].push_back({edge[1], edge[2]});
-            adj[edge[1]].push_back({edge[0], edge[2]});
+            int u = edge[0], v = edge[1], w = edge[2];
+            graph[u].push_back({v, w});
+            graph[v].push_back({u, w});
         }
+        
+        vector<int> answer;
 
-        vector<int> in(n + 1), out(n + 1), depth(n + 1), edge_weight_to_parent(n + 1, 0);
-        int timer = 0;
-
-        // Iterative DFS to avoid stack overflow
-        struct Frame {
-            int u, p, d, neighbor_idx;
-        };
-        stack<Frame> st;
-        st.push({1, 0, 0, 0});
-        in[1] = ++timer;
-
-        while (!st.empty()) {
-            Frame& top = st.top();
-            int u = top.u, p = top.p, d = top.d;
-
-            if (top.neighbor_idx < adj[u].size()) {
-                auto [v, w] = adj[u][top.neighbor_idx];
-                top.neighbor_idx++;
-                if (v != p) {
-                    in[v] = ++timer;
-                    depth[v] = d + 1;
-                    edge_weight_to_parent[v] = w;
-                    st.push({v, u, d + 1, 0});
+        // Helper function to update weights
+        auto updateWeight = [&](int u, int v, int newWeight) {
+            for (auto &neighbor : graph[u]) {
+                if (neighbor.first == v) {
+                    neighbor.second = newWeight;
+                    break;
                 }
-            } else {
-                out[u] = timer;
-                st.pop();
             }
-        }
-
-        FenwickTree bit(n);
-        // Initial distances using difference array logic in Fenwick Tree
-        for (int i = 1; i <= n; ++i) {
-            if (edge_weight_to_parent[i] != 0) {
-                bit.update(in[i], edge_weight_to_parent[i]);
-                bit.update(out[i] + 1, -edge_weight_to_parent[i]);
+            for (auto &neighbor : graph[v]) {
+                if (neighbor.first == u) {
+                    neighbor.second = newWeight;
+                    break;
+                }
             }
-        }
+        };
 
-        vector<int> results;
-        for (const auto& q : queries) {
-            if (q[0] == 1) {
-                int u = q[1], v = q[2], w_new = q[3];
-                int child = (depth[u] > depth[v]) ? u : v;
-                int delta = w_new - edge_weight_to_parent[child];
-                bit.update(in[child], delta);
-                bit.update(out[child] + 1, -delta);
-                edge_weight_to_parent[child] = w_new;
-            } else {
-                results.push_back((int)bit.query(in[q[1]]));
+        // Helper function to compute shortest path using Dijkstra's algorithm
+        auto computeShortestPath = [&](int x) -> int {
+            priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq; // min-heap for Dijkstra's
+            unordered_map<int, int> distance;
+            for (int i = 1; i <= n; ++i) distance[i] = INT_MAX; // Initialize all distances as infinity
+            distance[1] = 0; // Distance from root to itself is 0
+            pq.push({0, 1}); // Start from root node with distance 0
+            
+            while (!pq.empty()) {
+                auto [dist, node] = pq.top(); pq.pop();
+                if (node == x) return dist; // Found target node x \\ Early exit if target is reached
+                if (dist > distance[node]) continue; // Skip if this is not the best known distance
+                for (const auto& [neighbor, weight] : graph[node]) {
+                    int newDist = dist + weight;
+                    if (newDist < distance[neighbor]) { // Relaxation step
+                        distance[neighbor] = newDist;
+                        pq.push({newDist, neighbor});
+                    }
+                }
             }
-        }
+            return -1; // Not reachable but should never happen in a valid tree query.
+        };
 
-        return results;
-    }
-};
-# @lc code=end
+        // Process each query
+        for (const auto& query : queries) {
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."if (query[0] == 1) { // Update query [1,u,v,w']
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."updateWeight(query[1], query[2], query[3]);
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."} else if (query[0] == 2) { // Shortest path query [2,x]
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."answer.push_back(computeShortestPath(query[1]));
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."}
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."}
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."return answer;
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."}
+appropriate spacing and logic handling of updates and paths efficiently using Dijkstra's approach while ensuring correct syntax."};
