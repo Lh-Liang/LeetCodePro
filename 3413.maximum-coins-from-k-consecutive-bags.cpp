@@ -1,31 +1,35 @@
-#
-# @lc app=leetcode id=3413 lang=cpp
-#
-# [3413] Maximum Coins From K Consecutive Bags
-#
-
-# @lc code=start
 class Solution {
 public:
     long long maximumCoins(vector<vector<int>>& coins, int k) {
-        map<int, int> coinMap;
-        for (auto &c : coins) {
-            coinMap[c[0]] += c[2];
-            coinMap[c[1] + 1] -= c[2];
+        map<int, long long> points;
+        // Accumulate coins at each point
+        for (auto& coin : coins) {
+            points[coin[0]] += coin[2];
+            points[coin[1] + 1] -= coin[2];
         }
-        long long maxCoins = 0, currentCoins = 0;
-        vector<pair<int, int>> points(coinMap.begin(), coinMap.end());
-        size_t left = 0, right = 0; 
-        while (right < points.size()) {
-            currentCoins += points[right].second;
-            while (points[right].first - points[left].first >= k) {
-                currentCoins -= points[left].second;
-                ++left;
+        // Create prefix sum array
+        vector<pair<int, long long>> prefix;
+        long long sum = 0;
+        for (auto& p : points) {
+            sum += p.second;
+            if (!prefix.empty() && prefix.back().first == p.first - 1) {
+                prefix.back().second = sum;
+            } else {
+                prefix.emplace_back(p.first - 1, sum);
+                prefix.emplace_back(p.first, sum);
             }
-            maxCoins = max(maxCoins, currentCoins);
-            ++right;
         }
-        return maxCoins;
-    }
+        // Apply sliding window on accumulated values to find max within k consecutive positions
+        long long max_coins = 0;
+        int n = prefix.size(); 
+        for (int i = 0, j = 0; i < n && j < n;) { 
+            if (prefix[j].first - prefix[i].first + 1 <= k) { 
+                max_coins = max(max_coins, j > 0 ? prefix[j].second - (i > 0 ? prefix[i-1].second : 0LL) : prefix[j].second); 
+                ++j; 
+            } else { 
+                ++i; 
+            } 
+        } 
+        return max_coins; 
+    } 
 };
-# @lc code=end
