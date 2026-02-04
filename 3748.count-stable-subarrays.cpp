@@ -8,28 +8,18 @@
 class Solution {
 public:
     vector<long long> countStableSubarrays(vector<int>& nums, vector<vector<int>>& queries) {
-        int n = nums.size();
-        vector<int> longestStable(n, n); // longest stable segment starting from each index
-        
-        // Preprocess to find longest stable segments starting at each index
-        for (int i = n - 2; i >= 0; --i) {
-            if (nums[i] <= nums[i + 1]) {
-                longestStable[i] = longestStable[i + 1];
-            } else {
-                longestStable[i] = i + 1;
-            }
-        }
-        
-        vector<long long> ans;
-        // Process each query using precomputed stability information
-        for (auto &q : queries) {
-            int li = q[0], ri = q[1];
+        vector<long long> ans(queries.size(), 0);
+        for (int q = 0; q < queries.size(); ++q) {
+            int l = queries[q][0], r = queries[q][1];
             long long count = 0;
-            for (int start = li; start <= ri; ++start) {
-                int endLimit = min(ri + 1, longestStable[start]);
-                count += endLimit - start;
+            int start = l;
+            for (int end = l; end <= r; ++end) {
+                while (start < end && nums[start] > nums[end]) {
+                    ++start;
+                }
+                count += end - start + 1;
             }
-            ans.push_back(count);
+            ans[q] = count;
         }
         return ans;
     }
