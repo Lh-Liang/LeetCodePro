@@ -5,67 +5,41 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <algorithm>
-#include <functional>
-
-using namespace std;
-
 class Solution {
-    struct DP {
-        long long f0; // Max sum if node u can use k slots
-        long long f1; // Max sum if node u can use k-1 slots
-    };
-
-    vector<vector<pair<int, int>>> adj;
-    int K;
-
-    DP dfs(int u, int p) {
-        long long base_sum = 0;
-        vector<long long> positive_gains;
-
-        for (auto& edge : adj[u]) {
-            int v = edge.first;
-            int w = edge.second;
-            if (v == p) continue;
-
-            DP res = dfs(v, u);
-            // By default, we assume we don't keep the edge (u, v)
-            base_sum += res.f0;
-            
-            // Gain if we keep the edge (u, v): (w + dp[v][1]) - dp[v][0]
-            long long gain = (long long)w + res.f1 - res.f0;
-            if (gain > 0) {
-                positive_gains.push_back(gain);
-            }
-        }
-
-        // Sort gains descending to pick the best edges to keep
-        sort(positive_gains.begin(), positive_gains.end(), greater<long long>());
-
-        long long f0 = base_sum;
-        for (int i = 0; i < min((int)positive_gains.size(), K); ++i) {
-            f0 += positive_gains[i];
-        }
-
-        long long f1 = base_sum;
-        for (int i = 0; i < min((int)positive_gains.size(), K - 1); ++i) {
-            f1 += positive_gains[i];
-        }
-
-        return {f0, f1};
-    }
-
 public:
     long long maximizeSumOfWeights(vector<vector<int>>& edges, int k) {
-        int n = edges.size() + 1;
-        adj.assign(n, vector<pair<int, int>>());
-        for (const auto& e : edges) {
-            adj[e[0]].push_back({e[1], e[2]});
-            adj[e[1]].push_back({e[0], e[2]});
+        // Sort edges by weight in descending order.
+        sort(edges.begin(), edges.end(), [](const vector<int>& a, const vector<int>& b) { return a[2] > b[2]; });
+        unordered_map<int, int> degree; // To track degree of each node.
+        vector<int> parent(edges.size() + 1), rank(edges.size() + 1, 0);
+        iota(parent.begin(), parent.end(), 0); // Initialize union-find structure.
+        
+        function<int(int)> find = [&](int u) {
+            if (parent[u] != u) parent[u] = find(parent[u]);
+            return parent[u];
+        };
+        
+        auto union_sets = [&](int u, int v) {
+            u = find(u);
+            v = find(v);
+            if (u != v) {
+                if (rank[u] < rank[v]) swap(u, v);
+                parent[v] = u;
+                if (rank[u] == rank[v]) rank[u]++;
+            }
+        };
+
+        long long maxSum = 0;
+        for (const auto& edge : edges) {
+            int u = edge[0], v = edge[1], w = edge[2];
+            if (degree[u] < k && degree[v] < k && find(u) != find(v)) { // Check constraints and connectivity before adding edge.
+                maxSum += w;
+                degree[u]++;
+                degree[v]++;
+                union_sets(u, v);
+            }
         }
-        K = k;
-        return dfs(0, -1).f0;
+        return maxSum;
     }
 };
 # @lc code=end
