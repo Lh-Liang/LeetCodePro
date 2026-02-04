@@ -1,1 +1,26 @@
-#\n# @lc app=leetcode id=3434 lang=cpp\n#\n# [3434] Maximum Frequency After Subarray Operation\n#\n\n# @lc code=start\nclass Solution {\npublic:\n    int maxFrequency(vector<int>& nums, int k) {\n        std::sort(nums.begin(), nums.end());\n        int left = 0;\n        long total = 0;\n        int max_freq = 0;\n        for (int right = 0; right < nums.size(); ++right) {\n            total += nums[right];\n            while ((long)nums[right] * (right - left + 1) > total + k) {\n                total -= nums[left];\n                ++left;\n            }\n            max_freq = std::max(max_freq, right - left + 1);\n        }\n        return max_freq;\n    }\n};\n# @lc code=end
+#
+# @lc app=leetcode id=3434 lang=cpp
+#
+# [3434] Maximum Frequency After Subarray Operation
+#
+# @lc code=start
+class Solution {
+public:
+    int maxFrequency(vector<int>& nums, int k) {
+        sort(nums.begin(), nums.end());
+        int left = 0, right = 0;
+        long long total = 0;
+        int maxFreq = 0;
+        while (right < nums.size()) {
+            total += nums[right];
+            while ((right - left + 1) * nums[right] - total > k) {
+                total -= nums[left];
+                left++;
+            }
+            maxFreq = max(maxFreq, right - left + 1);
+            right++;
+        }
+        return maxFreq;
+    }
+};
+# @lc code=end
