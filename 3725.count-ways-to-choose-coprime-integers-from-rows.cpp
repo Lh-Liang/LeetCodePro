@@ -1,34 +1,28 @@
-# @lc code=start
-#include <vector>
-#include <numeric> // for gcd
-typedef long long ll;
-const int MOD = 1000000007;
-using namespace std;
+#
+# @lc app=leetcode id=3725 lang=cpp
+#
+# [3725] Count Ways to Choose Coprime Integers from Rows
+#
 
+# @lc code=start
 class Solution {
 public:
     int countCoprime(vector<vector<int>>& mat) {
+        const int MOD = 1e9 + 7;
         int m = mat.size();
-        int n = mat[0].size();
-        vector<vector<ll>> dp(m, vector<ll>(151));
-        // Initialize for the first row
-        for (int num : mat[0]) {
-            dp[0][num]++;
-        }
-        
-        // Fill dp table for subsequent rows
-        for (int i = 1; i < m; ++i) {
-            vector<ll> new_dp(151);
-            for (int num : mat[i]) {
+        vector<int> dp(151, 0); // dp[g] represents how many ways we can choose numbers with gcd g
+        dp[1] = 1; // Initialize with gcd of 1 as valid starting point
+        for (const auto &row : mat) {
+            vector<int> new_dp(151, 0);
+            for (int num : row) {
                 for (int g = 1; g <= 150; ++g) {
-                    int new_gcd = gcd(g, num);
-                    new_dp[new_gcd] = (new_dp[new_gcd] + dp[i-1][g]) % MOD;
+                    int new_gcd = gcd(num, g);
+                    new_dp[new_gcd] = (new_dp[new_gcd] + dp[g]) % MOD;
                 }
             }
-            dp[i] = new_dp;
+            dp = new_dp; // Update dp array for next row processing
         }
-        
-        return dp[m-1][1]; // Return the count of combinations with GCD=1
+        return dp[1]; // Number of ways with GCD as 1 is the result needed.
     }
 };
 # @lc code=end
