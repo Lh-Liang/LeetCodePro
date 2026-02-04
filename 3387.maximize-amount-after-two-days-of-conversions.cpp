@@ -5,63 +5,47 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <string>
-#include <unordered_map>
-#include <queue>
-#include <algorithm>
-
-using namespace std;
-
 class Solution {
 public:
     double maxAmount(string initialCurrency, vector<vector<string>>& pairs1, vector<double>& rates1, vector<vector<string>>& pairs2, vector<double>& rates2) {
-        // Helper function to find all reachable currencies and their rates from a start currency
-        auto getRates = [&](const string& start, const vector<vector<string>>& pairs, const vector<double>& rates) {
-            unordered_map<string, vector<pair<string, double>>> adj;
-            for (int i = 0; i < (int)pairs.size(); ++i) {
-                adj[pairs[i][0]].push_back({pairs[i][1], rates[i]});
-                adj[pairs[i][1]].push_back({pairs[i][0], 1.0 / rates[i]});
+        unordered_map<string, double> maxCurrencyDay1;
+        maxCurrencyDay1[initialCurrency] = 1.0;
+        
+        // Dynamic programming approach for Day 1 conversions
+        for (int iteration = 0; iteration < pairs1.size(); ++iteration) {
+            for (int i = 0; i < pairs1.size(); ++i) {
+                string from = pairs1[i][0], to = pairs1[i][1];
+                double rate = rates1[i];
+                if (maxCurrencyDay1.find(from) != maxCurrencyDay1.end()) {
+                    maxCurrencyDay1[to] = max(maxCurrencyDay1[to], maxCurrencyDay1[from] * rate);
+                }
             }
+        }
+        
+        double maxAmountAfterDay2 = 0.0;
+        
+        // Use results from Day 1 to start conversions for Day 2
+        for (auto& [currency, amount] : maxCurrencyDay1) {
+            unordered_map<string, double> maxCurrencyDay2;
+            maxCurrencyDay2[currency] = amount;
             
-            unordered_map<string, double> dist;
-            dist[start] = 1.0;
-            queue<string> q;
-            q.push(start);
-            
-            while (!q.empty()) {
-                string u = q.front();
-                q.pop();
-                
-                for (auto& edge : adj[u]) {
-                    if (dist.find(edge.first) == dist.end()) {
-                        dist[edge.first] = dist[u] * edge.second;
-                        q.push(edge.first);
+            // Dynamic programming approach for Day 2 conversions
+            for (int iteration = 0; iteration < pairs2.size(); ++iteration) {
+                for (int i = 0; i < pairs2.size(); ++i) {
+                    string from = pairs2[i][0], to = pairs2[i][1];
+                    double rate = rates2[i];
+                    if (maxCurrencyDay2.find(from) != maxCurrencyDay2.end()) {
+                        maxCurrencyDay2[to] = max(maxCurrencyDay2[to], maxCurrencyDay2[from] * rate);
                     }
                 }
             }
-            return dist;
-        };
-
-        // Day 1: Maximize amount of any currency starting from initialCurrency
-        unordered_map<string, double> day1_rates = getRates(initialCurrency, pairs1, rates1);
-        
-        // Day 2: Find conversion rates from initialCurrency to others to calculate the return path
-        unordered_map<string, double> day2_rates = getRates(initialCurrency, pairs2, rates2);
-
-        double max_val = 1.0; // Default: do nothing on both days
-
-        // For every currency held at the end of Day 1, try converting it back on Day 2
-        for (auto const& [curr, r1] : day1_rates) {
-            // If currency 'curr' is part of the Day 2 graph
-            if (day2_rates.count(curr)) {
-                // Final amount = (initial -> curr on Day 1) * (curr -> initial on Day 2)
-                // Since day2_rates[curr] is (initial -> curr), the inverse is (1.0 / day2_rates[curr])
-                max_val = max(max_val, r1 / day2_rates[curr]);
+            
+            // Obtain maximum in initial currency after all possible conversions on both days
+            if (maxCurrencyDay2.find(initialCurrency) != maxCurrencyDay2.end()) {
+                maxAmountAfterDay2 = max(maxAmountAfterDay2, maxCurrencyDay2[initialCurrency]);
             }
         }
-
-        return max_val;
+        return maxAmountAfterDay2;
     }
-};
-# @lc code=end
+}; 
+ewline # @lc code=end
