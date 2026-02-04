@@ -9,28 +9,19 @@ class Solution {
 public:
     long long totalWaviness(long long num1, long long num2) {
         long long total_waviness = 0;
-        // Optimized method to handle large ranges without iterating through each number directly
-        for (long long i = num1; i <= num2; ++i) {
-            // Handle digits efficiently without conversion to string
-            std::vector<int> digits;
-            long long temp = i;
-            while (temp > 0) {
-                digits.push_back(temp % 10);
-                temp /= 10;
-            }
-            std::reverse(digits.begin(), digits.end());
-            int n = digits.size();
-            if (n < 3) continue; // Skip numbers with fewer than three digits.
+        for (long long num = num1; num <= num2; ++num) {
+            std::string s = std::to_string(num);
+            if (s.length() < 3) continue; // skip numbers with less than 3 digits
             int waviness = 0;
-            for (int j = 1; j < n - 1; ++j) {
-                if ((digits[j] > digits[j - 1] && digits[j] > digits[j + 1]) || 
-                    (digits[j] < digits[j - 1] && digits[j] < digits[j + 1])) {
-                    ++waviness;
-                }
-            }
-            total_waviness += waviness;
-        }
-        return total_waviness;
-    }
-};
+            for (size_t i = 1; i < s.length() - 1; ++i) {
+                if ((s[i] > s[i-1] && s[i] > s[i+1]) || 
+                    (s[i] < s[i-1] && s[i] < s[i+1])) { 
+                    ++waviness; 
+                } 
+            } 
+            total_waviness += waviness; 
+        } 
+        return total_waviness; 
+    } 
+}; 
 # @lc code=end
