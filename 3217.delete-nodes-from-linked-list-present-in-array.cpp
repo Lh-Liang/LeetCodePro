@@ -3,6 +3,7 @@
 #
 # [3217] Delete Nodes From Linked List Present in Array
 #
+
 # @lc code=start
 /**
 * Definition for singly-linked list.
@@ -14,22 +15,24 @@
 *     ListNode(int x, ListNode *next) : val(x), next(next) {}
 * };
 */
+#include <unordered_set>
 class Solution {
 public:
-    ListNode* modifiedList(vector<int>& nums, ListNode* head) {
-        std::unordered_set<int> numSet(nums.begin(), nums.end()); // Step 1: Convert nums to set for quick lookup.
-        ListNode dummy(0); // Step 2: Create a dummy node.
-        dummy.next = head; // Point dummy node to head. 
-        ListNode *prev = &dummy; // Step 3: Initialize prev pointer at dummy. 
-        while (head != nullptr) { 
-            if (numSet.count(head->val)) { 
-                prev->next = head->next; // Skip node if value is in numSet. 
-            } else { 
-                prev = head; // Move prev pointer if no removal needed. 
-            } 
-            head = head->next; // Move forward in list. 
-        } 
-        return dummy.next; // Step 4: Return modified list starting from dummy.next. 
-    } 
-}; 
+    ListNode* modifiedList(std::vector<int>& nums, ListNode* head) {
+        std::unordered_set<int> to_delete(nums.begin(), nums.end());
+        ListNode dummy(0, head);
+        ListNode* prev = &dummy;
+        ListNode* curr = head;
+        while (curr) {
+            if (to_delete.count(curr->val)) {
+                prev->next = curr->next;
+                // Optionally delete curr to free memory if needed
+            } else {
+                prev = curr;
+            }
+            curr = curr->next;
+        }
+        return dummy.next;
+    }
+};
 # @lc code=end
