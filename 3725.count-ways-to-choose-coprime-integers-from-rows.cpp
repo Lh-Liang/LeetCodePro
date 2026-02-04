@@ -3,26 +3,35 @@
 #
 # [3725] Count Ways to Choose Coprime Integers from Rows
 #
-
 # @lc code=start
+#include <vector>
+#include <unordered_map>
+#include <algorithm>
+using namespace std;
 class Solution {
 public:
     int countCoprime(vector<vector<int>>& mat) {
-        const int MOD = 1e9 + 7;
+        constexpr int MOD = 1e9+7;
         int m = mat.size();
-        vector<int> dp(151, 0); // dp[g] represents how many ways we can choose numbers with gcd g
-        dp[1] = 1; // Initialize with gcd of 1 as valid starting point
-        for (const auto &row : mat) {
-            vector<int> new_dp(151, 0);
-            for (int num : row) {
-                for (int g = 1; g <= 150; ++g) {
-                    int new_gcd = gcd(num, g);
-                    new_dp[new_gcd] = (new_dp[new_gcd] + dp[g]) % MOD;
+        unordered_map<int, int> dp;
+        // Initialize dp with the first row
+        for (int v : mat[0]) dp[v]++;
+        // Process each subsequent row
+        for (int i = 1; i < m; ++i) {
+            unordered_map<int, int> next;
+            for (auto& [g, count] : dp) {
+                for (int v : mat[i]) {
+                    int ng = gcd(g, v);
+                    next[ng] = (next[ng] + count) % MOD;
                 }
             }
-            dp = new_dp; // Update dp array for next row processing
+            dp = std::move(next);
         }
-        return dp[1]; // Number of ways with GCD as 1 is the result needed.
+        return dp.count(1) ? dp[1] : 0;
+    }
+    int gcd(int a, int b) {
+        while (b) { int t = b; b = a % b; a = t; }
+        return a;
     }
 };
 # @lc code=end
