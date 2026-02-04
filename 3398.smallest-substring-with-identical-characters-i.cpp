@@ -9,18 +9,34 @@ class Solution {
 public:
     int minLength(string s, int numOps) {
         int n = s.size();
-        vector<int> count(2, 0); // count[0] for '0's, count[1] for '1's
-        int l = 0, maxFreq = 0;
-        // Sliding window approach
-        for (int r = 0; r < n; ++r) {
-            count[s[r] - '0']++; 
-            maxFreq = max(maxFreq, count[s[r] - '0']);
-            if (r - l + 1 - maxFreq > numOps) {
-                count[s[l] - '0']--;
-                l++; 
+        int left = 1, right = n;
+        auto check = [&](int l) {
+            int flips = 0;
+            int cnt = 1;
+            for (int i = 1; i < n; ++i) {
+                if (s[i] == s[i-1]) {
+                    cnt++;
+                    if (cnt > l) {
+                        flips++;
+                        cnt = 1;
+                    }
+                } else {
+                    cnt = 1;
+                }
+            }
+            return flips <= numOps;
+        };
+        int ans = n;
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (check(mid)) {
+                ans = mid;
+                right = mid - 1;
+            } else {
+                left = mid + 1;
             }
         }
-        return n - l; 
+        return ans;
     }
-}; 
+};
 # @lc code=end
