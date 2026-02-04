@@ -5,60 +5,32 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <queue>
-#include <algorithm>
-#include <climits>
-
-using namespace std;
-
 class Solution {
 public:
     int minTimeToReach(vector<vector<int>>& moveTime) {
         int n = moveTime.size();
         int m = moveTime[0].size();
-        
-        // dist[r][c] stores the minimum time to reach room (r, c)
-        vector<vector<int>> dist(n, vector<int>(m, INT_MAX));
-        
-        // Priority queue stores {time, {row, col}}, ordered by time ascending (min-heap)
-        priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<pair<int, pair<int, int>>>> pq;
-        
-        dist[0][0] = 0;
-        pq.push({0, {0, 0}});
-        
-        int dr[] = {0, 0, 1, -1};
-        int dc[] = {1, -1, 0, 0};
-        
+        vector<vector<int>> minTime(n, vector<int>(m, INT_MAX)); // Initialize min times as infinity
+        priority_queue<tuple<int, int, int>, vector<tuple<int, int, int>>, greater<tuple<int, int, int>>> pq;
+        pq.emplace(0, 0, 0); // Start at (0, 0) with time=0
+        minTime[0][0] = 0;
+        vector<pair<int,int>> directions = {{1,0}, {-1,0}, {0,1}, {0,-1}}; // Possible moves: down, up, right, left
         while (!pq.empty()) {
-            int t = pq.top().first;
-            int r = pq.top().second.first;
-            int c = pq.top().second.second;
-            pq.pop();
-            
-            // Standard Dijkstra optimization: skip if a better path was already processed
-            if (t > dist[r][c]) continue;
-            
-            // Early exit if we reached the target
-            if (r == n - 1 && c == m - 1) return t;
-            
-            for (int i = 0; i < 4; ++i) {
-                int nr = r + dr[i];
-                int nc = c + dc[i];
-                
-                if (nr >= 0 && nr < n && nc >= 0 && nc < m) {
-                    // Arrival time is max of (current time, opening time) + 1 second travel
-                    int arrival = max(t, moveTime[nr][nc]) + 1;
-                    
-                    if (arrival < dist[nr][nc]) {
-                        dist[nr][nc] = arrival;
-                        pq.push({arrival, {nr, nc}});
+            auto [current_time, x, y] = pq.top(); pq.pop();
+            if (x == n - 1 && y == m - 1) return current_time; // Reached destination
+            for (auto [dx, dy] : directions) {
+                int nx = x + dx; 
+                int ny = y + dy; 
+                if (nx >= 0 && nx < n && ny >= 0 && ny < m) { // Check bounds
+                    int next_time = max(current_time + 1, moveTime[nx][ny]); // Calculate next possible time
+                    if (next_time < minTime[nx][ny]) { // Check if this is a better option
+                        minTime[nx][ny] = next_time;
+                        pq.emplace(next_time, nx, ny);
                     }
                 }
             }
-        }
-        
-        return dist[n - 1][m - 1];
-    }
-};
+        } 
+        return -1; // Unreachable code due to constraints ensuring a path exists. 
+    } 
+}; 
 # @lc code=end
