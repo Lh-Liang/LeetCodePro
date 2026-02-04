@@ -5,59 +5,33 @@
 #
 
 # @lc code=start
+#include <cmath>
+#include <string>
+#include <bitset>
+#include <sstream>
+
 class Solution {
 public:
     int countBinaryPalindromes(long long n) {
-        if (n == 0) return 1;
-        
-        long long count = 1; // For n = 0
-        
-        // Determine the number of bits B in n
-        int B = 0;
-        long long temp = n;
-        while (temp > 0) {
-            temp >>= 1;
-            B++;
+        int count = 0;
+        int maxBits = std::floor(std::log2(n)) + 1; // Calculate maximum bits needed for n
+        for (int len = 1; len <= maxBits; ++len) { // Length of binary palindrome halves
+            long long maxHalf = 1LL << ((len + 1) / 2);
+            for (long long half = 0; half < maxHalf; ++half) {
+                std::stringstream ss;
+                ss << std::bitset<64>(half).to_string();
+                std::string halfStr = ss.str();
+                halfStr.erase(0, halfStr.find_first_not_of('0'));
+                if (halfStr.empty()) halfStr = "0";
+                
+                // Mirror the half string to create full palindrome
+                std::string fullPalindrome = halfStr + std::string(halfStr.rbegin() + (len % 2), halfStr.rend());
+                long long palindromeNum = std::stoll(fullPalindrome, nullptr, 2);
+                if (palindromeNum > n) continue; // Continue instead of return to check all possible lengths
+                ++count;
+            }
         }
-        
-        // Count palindromes with length l < B
-        for (int l = 1; l < B; ++l) {
-            int K = (l + 1) / 2;
-            count += (1LL << (K - 1));
-        }
-        
-        // Count palindromes with length B
-        int K = (B + 1) / 2;
-        long long prefix_n = n >> (B - K);
-        long long first_prefix = (1LL << (K - 1));
-        
-        // All prefixes from first_prefix to prefix_n - 1
-        count += (prefix_n - first_prefix);
-        
-        // Check the palindrome formed by prefix_n itself
-        if (constructPalindrome(prefix_n, B) <= n) {
-            count++;
-        }
-        
-        return (int)count;
-    }
-
-private:
-    long long constructPalindrome(long long prefix, int total_len) {
-        long long res = prefix;
-        int K = (total_len + 1) / 2;
-        int bits_to_mirror = total_len / 2;
-        
-        // We mirror the first 'bits_to_mirror' bits of the prefix in reverse
-        // If total_len is even (2K), we mirror all K bits.
-        // If total_len is odd (2K-1), we mirror K-1 bits (skipping the middle bit).
-        long long mirror_source = (total_len % 2 == 0) ? prefix : (prefix >> 1);
-        
-        for (int i = 0; i < bits_to_mirror; ++i) {
-            res = (res << 1) | (mirror_source & 1);
-            mirror_source >>= 1;
-        }
-        return res;
+        return count;
     }
 };
 # @lc code=end
