@@ -3,88 +3,40 @@
 #
 # [3474] Lexicographically Smallest Generated String
 #
-
 # @lc code=start
-#include <string>
-#include <vector>
-#include <algorithm>
-
-using namespace std;
-
 class Solution {
 public:
     string generateString(string str1, string str2) {
         int n = str1.length();
         int m = str2.length();
-        int L = n + m - 1;
-        string word(L, '?');
-        vector<bool> fixed(L, false);
-
+        string result(n + m - 1, 'a'); // initialize with smallest character
+        
         for (int i = 0; i < n; ++i) {
             if (str1[i] == 'T') {
                 for (int j = 0; j < m; ++j) {
-                    if (word[i + j] != '?' && word[i + j] != str2[j]) return "";
-                    word[i + j] = str2[j];
-                    fixed[i + j] = true;
+                    if (i + j >= result.size()) return ""; // out of bounds
+                    result[i + j] = str2[j]; // place str2
                 }
-            }
-        }
-
-        for (int i = 0; i < L; ++i) {
-            if (word[i] == '?') word[i] = 'a';
-        }
-
-        auto is_match = [&](int idx) {
-            if (idx < 0 || idx >= n) return false;
-            for (int j = 0; j < m; ++j) {
-                if (word[idx + j] != str2[j]) return false;
-            }
-            return true;
-        };
-
-        for (int i = 0; i < n; ++i) {
-            if (str1[i] == 'F' && is_match(i)) {
-                int target = -1;
-                for (int k = i + m - 1; k >= i; --k) {
-                    if (!fixed[k]) {
-                        target = k;
+            } else { // str1[i] == 'F'
+                bool conflict = true;
+                for (int j = 0; j < m && i + j < result.size(); ++j) {
+                    if (result[i + j] != str2[j]) {
+                        conflict = false;
                         break;
                     }
                 }
-
-                if (target == -1) return "";
-
-                bool solved = false;
-                char original = word[target];
-                for (char c = 'b'; c <= 'z'; ++c) {
-                    word[target] = c;
-                    if (!is_match(i)) {
-                        bool conflict = false;
-                        // Check if this change creates a match at any previous 'F' index
-                        for (int prev = max(0, target - m + 1); prev < i; ++prev) {
-                            if (str1[prev] == 'F' && is_match(prev)) {
-                                conflict = true;
-                                break;
-                            }
-                        }
-                        if (!conflict) {
-                            solved = true;
-                            break;
-                        }
+                if (conflict) {
+                    // Modify one character minimally to ensure it's not equal
+                    if (i + m - 1 < result.size()) {
+                        result[i + m - 1] = result[i + m - 1] == 'z' ? 'y' : result[i + m - 1] + 1;
+                    } else {
+                        return ""; // can't resolve conflict within bounds
                     }
                 }
-                if (!solved) return "";
             }
         }
-
-        // Final verification pass
-        for (int i = 0; i < n; ++i) {
-            bool match = is_match(i);
-            if (str1[i] == 'T' && !match) return "";
-            if (str1[i] == 'F' && match) return "";
-        }
-
-        return word;
+        
+        return result;
     }
 };
 # @lc code=end
