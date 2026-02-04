@@ -1,25 +1,27 @@
-#
-# @lc app=leetcode id=3457 lang=cpp
-#
-# [3457] Eat Pizzas!
-#
+//
+// @lc app=leetcode id=3457 lang=cpp
+//
+// [3457] Eat Pizzas!
+//
 
-# @lc code=start
+// @lc code=start
 class Solution {
 public:
     long long maxWeight(vector<int>& pizzas) {
-        std::sort(pizzas.begin(), pizzas.end(), std::greater<int>());
-        long long totalWeight = 0;
         int n = pizzas.size();
-        for (int i = 0; i < n; i += 4) {
-            // Odd days: Gain Z (the largest of 4)
-            totalWeight += pizzas[i];
-            // Even days: Gain Y (the second largest of 4) if applicable
-            if (i + 2 < n) {
-                totalWeight += pizzas[i + 2];
+        sort(pizzas.begin(), pizzas.end());
+        long long total = 0;
+        int day = 1;
+        for (int i = n - 1; i >= 3; i -= 4) {
+            // pizzas[i-3], pizzas[i-2], pizzas[i-1], pizzas[i]
+            if (day % 2 == 1) {
+                total += pizzas[i];      // Odd day: add largest (Z)
+            } else {
+                total += pizzas[i - 1];  // Even day: add second largest (Y)
             }
+            day++;
         }
-        return totalWeight;
+        return total;
     }
 };
-# @lc code=end
+// @lc code=end
