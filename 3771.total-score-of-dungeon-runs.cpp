@@ -3,29 +3,27 @@
 #
 # [3771] Total Score of Dungeon Runs
 #
+
 # @lc code=start
 class Solution {
 public:
     long long totalScore(int hp, vector<int>& damage, vector<int>& requirement) {
         int n = damage.size();
-        long long total = 0;
-        
-        // Iterate over all starting positions from 1 to n
-        for (int start = 0; start < n; ++start) {
-            int current_hp = hp;
-            long long score = 0;
-            // Traverse from current start position to end
-            for (int i = start; i < n; ++i) {
-                current_hp -= damage[i];
-                if (current_hp >= requirement[i]) {
-                    ++score;
-                } else if (current_hp <= 0) { // No point in going further if HP is non-positive
-                    break;
-                }
-            }
-            total += score; // Add score from this starting point to total score. 
+        // Precompute prefix sums of damage
+        vector<long long> prefix_damage(n + 1, 0);
+        for (int i = 0; i < n; ++i) {
+            prefix_damage[i + 1] = prefix_damage[i] + damage[i];
         }
-        return total; 
-    } 
-}; 
+        long long ans = 0;
+        // For each room i, count the number of starting positions j <= i such that
+        // hp - (prefix_damage[i+1] - prefix_damage[j]) >= requirement[i]
+        // Rearranged: prefix_damage[j] >= requirement[i] + prefix_damage[i+1] - hp
+        for (int i = 0; i < n; ++i) {
+            long long threshold = requirement[i] + prefix_damage[i+1] - hp;
+            auto it = lower_bound(prefix_damage.begin(), prefix_damage.begin() + i + 1, threshold);
+            ans += (prefix_damage.begin() + i + 1) - it;
+        }
+        return ans;
+    }
+};
 # @lc code=end
