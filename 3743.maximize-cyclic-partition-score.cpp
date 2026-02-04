@@ -3,45 +3,29 @@
 #
 # [3743] Maximize Cyclic Partition Score
 #
+
 # @lc code=start
 class Solution {
 public:
     long long maximumScore(vector<int>& nums, int k) {
         int n = nums.size();
-        vector<vector<long long>> dp(n, vector<long long>(k + 1, LLONG_MIN));
-        
-        // Initialize base case for one partition (full range)
-        for (int start = 0; start < n; ++start) {
-            int minVal = INT_MAX, maxVal = INT_MIN;
-            for (int end = start; end < start + n; ++end) {
-                minVal = min(minVal, nums[end % n]);
-                maxVal = max(maxVal, nums[end % n]);
-                if (end - start + 1 <= n) { // Ensure not exceeding cyclic wrap
-                    dp[end % n][1] = max(dp[end % n][1], (long long)(maxVal - minVal));
+        vector<long long> dp(k + 1);
+        vector<int> extendedNums(nums.begin(), nums.end());
+        extendedNums.insert(extendedNums.end(), nums.begin(), nums.end());
+        long long maxScore = 0;
+        for (int i = 0; i < n; ++i) {
+            vector<long long> currentDp(k + 1);
+            int minVal = extendedNums[i], maxVal = extendedNums[i];
+            for (int j = i; j < i + n && j < extendedNums.size(); ++j) {
+                minVal = min(minVal, extendedNums[j]);
+                maxVal = max(maxVal, extendedNums[j]);
+                int range = maxVal - minVal;
+                for (int p = k; p >= 1; --p) {
+                    currentDp[p] = max(currentDp[p], dp[p - 1] + range);
                 }
             }
+            dp.swap(currentDp);
         }
-
-        // Fill DP table considering cyclic nature efficiently using modulo
-        for (int j = 2; j <= k; ++j) {
-            for (int end = 0; end < n; ++end) {
-                int minVal = INT_MAX, maxVal = INT_MIN;
-                for (int split = end + n - 1; split >= end; --split) {
-                    minVal = min(minVal, nums[split % n]);
-                    maxVal = max(maxVal, nums[split % n]);
-                    if ((split + n - end) % n > 0 && dp[(split-1+n)%n][j-1] != LLONG_MIN) { // Ensure valid split point and previous state exists
-                        dp[end][j] = max(dp[end][j], dp[(split-1+n)%n][j-1] + (maxVal - minVal));
-                    }
-                }
-            }
-        }
-
-        // Find maximum possible score with up to k partitions
-        long long result = LLONG_MIN;
-        for(int i = 0; i < n; ++i) {
-            result = max(result, dp[i][k]);
-        }
-        return result;
+        return *max_element(dp.begin(), dp.end());
     }
 };
-# @lc code=end
