@@ -1,79 +1,57 @@
-#include <iostream>
-#include <vector>
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
 #
 # @lc app=leetcode id=3441 lang=cpp
 #
 # [3441] Minimum Cost Good Caption
 #
-
 # @lc code=start
 class Solution {
 public:
     string minCostGoodCaption(string caption) {
         int n = caption.length();
-        if (n < 3) return "";
-
-        // cost[i][c] is the cost to change caption[i] to character 'a' + c
-        vector<vector<int>> cost(n, vector<int>(26));
-        for (int i = 0; i < n; ++i) {
-            for (int c = 0; c < 26; ++c) {
-                cost[i][c] = abs(caption[i] - ('a' + c));
-            }
+        if (n < 3) return ""; // Impossible to have good caption if length < 3.
+        vector<pair<int, int>> groups; // Stores start index and length of each group.
+        for (int i = 0; i < n;) {
+            int j = i;
+            while (j < n && caption[j] == caption[i]) ++j;
+            int len = j - i;
+            groups.push_back({i, len});
+            i = j;
         }
-
-        // pref[c][i] is the prefix sum of costs to change characters to 'a' + c
-        vector<vector<int>> pref(26, vector<int>(n + 1, 0));
-        for (int c = 0; c < 26; ++c) {
-            for (int i = 0; i < n; ++i) {
-                pref[c][i + 1] = pref[c][i] + cost[i][c];
-            }
-        }
-
-        auto get_cost = [&](int l, int r, int c) {
-            return pref[c][r + 1] - pref[c][l];
-        };
-
-        const long long INF = 1e15;
-        vector<long long> dp(n + 1, INF);
-        vector<pair<int, int>> parent(n + 1, {-1, -1}); // {charIndex, length}
-
-        dp[n] = 0;
-
-        for (int i = n - 3; i >= 0; --i) {
-            for (int k = 3; k <= 5; ++k) {
-                if (i + k > n) break;
-                for (int c = 0; c < 26; ++c) {
-                    long long current_cost = (long long)get_cost(i, i + k - 1, c) + dp[i + k];
-                    if (current_cost < dp[i]) {
-                        dp[i] = current_cost;
-                        parent[i] = {c, k};
-                    } else if (current_cost == dp[i]) {
-                        // Lexicographical tie-break: smaller char is better
-                        if (parent[i].first == -1 || c < parent[i].first) {
-                            parent[i] = {c, k};
-                        }
-                    }
+        for (auto& [start, len] : groups) {
+            if (len >= 3) continue; // Already a valid group.
+            // Attempt to expand this group using adjacent characters.
+            char targetChar = caption[start];
+            if (start > 0 && start + len < n) { // Between two different chars
+                char prevChar = caption[start - 1];
+                char nextChar = caption[start + len];
+                char changeChar = min(prevChar, nextChar); // Choose smaller lexicographical option if possible.
+                for (int k = start; k < start + len; ++k) {
+                    caption[k] = changeChar;
                 }
+            } else if (start > 0) { // At end of string or only one side available
+                char prevChar = caption[start - 1];
+                for (int k = start; k < start + len; ++k) {
+                    caption[k] = prevChar;
+                }
+            } else if (start + len < n) { // At start of string
+                char nextChar = caption[start + len];
+                for (int k = start; k < start + len; ++k) {
+                    caption[k] = nextChar;
+                }
+            } else {
+                return ""; // No valid transformation possible at boundaries without adjacent options.
             }
         }
-
-        if (dp[0] >= INF) return "";
-
-        string res = "";
-        int curr = 0;
-        while (curr < n) {
-            int c = parent[curr].first;
-            int k = parent[curr].second;
-            for (int j = 0; j < k; ++j) res += (char)('a' + c);
-            curr += k;
+        // Verify final result forms valid groups after all transformations.
+        for (int i = 0; i < n;) {
+            int j = i;
+            while (j < n && caption[j] == caption[i]) ++j;
+            int len = j - i;
+            if (len < 3) return "";
+            i = j;
         }
-
-        return res;
+        return caption;
     }
 };
-# @lc code=end
+integrate_vertical_transformation_strategy();
+integrate_global_lexicographical_order_maintenance();
