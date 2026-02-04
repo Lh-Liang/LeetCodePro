@@ -1,73 +1,71 @@
-#
 # @lc app=leetcode id=3768 lang=cpp
-#
 # [3768] Minimum Inversion Count in Subarrays of Fixed Length
-#
 
-# @lc code=start
 #include <vector>
 #include <algorithm>
-
 using namespace std;
 
+class FenwickTree {
+public:
+    vector<int> tree;
+    int size;
+
+    FenwickTree(int n) : size(n) {
+        tree.resize(n + 1, 0);
+    }
+
+    void update(int index, int delta) {
+        for (; index <= size; index += index & -index) {
+            tree[index] += delta;
+        }
+    }
+
+    int query(int index) const {
+        int sum = 0;
+        for (; index > 0; index -= index & -index) {
+            sum += tree[index];
+        }
+        return sum;
+    }
+};
+
 class Solution {
-    vector<int> bit;
-    int bit_size;
-
-    void update(int idx, int val) {
-        for (; idx <= bit_size; idx += idx & -idx)
-            bit[idx] += val;
-    }
-
-    int query(int idx) {
-        int res = 0;
-        for (; idx > 0; idx -= idx & -idx)
-            res += bit[idx];
-        return res;
-    }
-
 public:
     long long minInversionCount(vector<int>& nums, int k) {
         int n = nums.size();
-        if (k <= 1) return 0;
+        long long min_inversions = LLONG_MAX;
 
-        // Coordinate compression
-        vector<int> coords = nums;
-        sort(coords.begin(), coords.end());
-        coords.erase(unique(coords.begin(), coords.end()), coords.end());
-        
-        auto get_rank = [&](int x) {
-            return lower_bound(coords.begin(), coords.end(), x) - coords.begin() + 1;
-        };
+        // Coordinate compression to fit within Fenwick Tree range
+        vector<int> sorted_nums(nums.begin(), nums.end());
+        sort(sorted_nums.begin(), sorted_nums.end());
+        for (int& num : nums) {
+            num = lower_bound(sorted_nums.begin(), sorted_nums.end(), num) - sorted_nums.begin() + 1;
+        }
 
-        vector<int> ranks(n);
-        for (int i = 0; i < n; ++i) ranks[i] = get_rank(nums[i]);
+        // Use Fenwick Tree for inversion counting within window size k
+        FenwickTree fenwick_tree(n);
 
-        bit_size = coords.size();
-        bit.assign(bit_size + 1, 0);
-
-        long long current_inv = 0;
+        // Initial calculation for first window
+        long long current_inversions = 0;
         for (int i = 0; i < k; ++i) {
-            // Elements > current rank are (elements_processed - elements_<=_current_rank)
-            current_inv += (i - query(ranks[i]));
-            update(ranks[i], 1);
+            current_inversions += i - fenwick_tree.query(nums[i]);
+            fenwick_tree.update(nums[i], 1);
+        }
+        min_inversions = min(min_inversions, current_inversions);
+
+        // Slide window across entire array and update inversions accordingly
+        for (int i = k; i < n; ++i) {
+            // Remove influence of element going out of window from fenwick tree & inversions count
+            fenwick_tree.update(nums[i - k], -1);
+            current_inversions -= fenwick_tree.query(nums[i - k] - 1);
+
+            // Add influence of new element into window
+            current_inversions += (k - 1) - fenwick_tree.query(nums[i]);
+            fenwick_tree.update(nums[i], 1);
+
+            min_inversions = min(min_inversions, current_inversions);
         }
 
-        long long min_inv = current_inv;
-
-        for (int i = 0; i < n - k; ++i) {
-            // Remove nums[i]: it was the first element, so it was greater than query(ranks[i]-1) elements
-            current_inv -= query(ranks[i] - 1);
-            update(ranks[i], -1);
-            
-            // Add nums[i+k]: it is the last element, so it is smaller than ((k-1) - query(ranks[i+k])) elements
-            current_inv += ((k - 1) - query(ranks[i + k]));
-            update(ranks[i + k], 1);
-            
-            if (current_inv < min_inv) min_inv = current_inv;
-        }
-
-        return min_inv;
-    }
+         return min_inversions;
+     }
 };
-# @lc code=end
