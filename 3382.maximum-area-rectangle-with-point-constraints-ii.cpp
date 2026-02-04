@@ -5,105 +5,47 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <algorithm>
-#include <unordered_map>
-
-using namespace std;
-
-// Iterative Segment Tree for range maximum query
-class SegmentTree {
-    int n;
-    vector<int> tree;
-public:
-    SegmentTree(int n) : n(n), tree(2 * n, -1) {}
-    
-    void update(int i, int val) {
-        for (tree[i += n] = val; i > 1; i >>= 1)
-            tree[i >> 1] = max(tree[i], tree[i ^ 1]);
-    }
-    
-    int query(int l, int r) { // range [l, r] inclusive
-        int res = -1;
-        for (l += n, r += n + 1; l < r; l >>= 1, r >>= 1) {
-            if (l & 1) res = max(res, tree[l++]);
-            if (r & 1) res = max(res, tree[--r]);
-        }
-        return res;
-    }
-};
-
-struct Point {
-    int x, y, y_idx;
-};
-
 class Solution {
 public:
     long long maxRectangleArea(vector<int>& xCoord, vector<int>& yCoord) {
-        int n = xCoord.size();
-        if (n < 4) return -1;
-        
-        // Coordinate compression for y-coordinates
-        vector<int> ys = yCoord;
-        sort(ys.begin(), ys.end());
-        ys.erase(unique(ys.begin(), ys.end()), ys.end());
-        int m = ys.size();
-
-        vector<Point> points(n);
-        for (int i = 0; i < n; ++i) {
-            points[i].x = xCoord[i];
-            points[i].y = yCoord[i];
-            points[i].y_idx = (int)(lower_bound(ys.begin(), ys.end(), yCoord[i]) - ys.begin());
+        unordered_map<int, unordered_set<int>> points;
+        // Store all points in a map by their x-coordinate
+        for (int i = 0; i < xCoord.size(); ++i) {
+            points[xCoord[i]].insert(yCoord[i]);
         }
-
-        // Sort points by x then y
-        sort(points.begin(), points.end(), [](const Point& a, const Point& b) {
-            if (a.x != b.x) return a.x < b.x;
-            return a.y < b.y;
-        });
-
-        SegmentTree st(m);
-        unordered_map<long long, int> lastX;
-        lastX.reserve(n);
         long long maxArea = -1;
-
-        for (int i = 0; i < n; ) {
-            int j = i;
-            while (j < n && points[j].x == points[i].x) j++;
-
-            // Process all adjacent pairs in current x-column
-            for (int k = i; k < j - 1; ++k) {
-                int y1_idx = points[k].y_idx;
-                int y2_idx = points[k + 1].y_idx;
-                
-                // Unique key for the pair of y-indices
-                long long key = 1LL * y1_idx * m + y2_idx;
-                auto it = lastX.find(key);
-                if (it != lastX.end()) {
-                    int lx = it->second;
-                    // If max x in [y1, y2] range is lx, no points are inside or on border
-                    if (st.query(y1_idx, y2_idx) == lx) {
-                        long long area = 1LL * (points[i].x - lx) * (points[k + 1].y - points[k].y);
-                        if (area > maxArea) maxArea = area;
+        // Iterate over pairs of different x-coordinates
+        for (auto it1 = points.begin(); it1 != points.end(); ++it1) {
+            for (auto it2 = std::next(it1); it2 != points.end(); ++it2) {
+                int x1 = it1->first, x2 = it2->first;
+                vector<int> commonYs;
+                // Find common y-coordinates for these x-pairs
+                for (int y : it1->second) {
+                    if (it2->second.count(y)) {
+                        commonYs.push_back(y);
                     }
                 }
+                // Need at least two common y-values to form a rectangle
+                if (commonYs.size() < 2) continue;
+                sort(commonYs.begin(), commonYs.end());
+                // Check all pairs of y-values to form potential rectangles
+                for (int j = 1; j < commonYs.size(); ++j) {
+                    int y1 = commonYs[j-1], y2 = commonYs[j];
+                    bool validRectangle = true;
+                    // Ensure no other points within the potential rectangle's bounds
+                    for (int k = min(x1,x2)+1; k < max(x1,x2); ++k) {
+                        if ((points[k].count(y1)) || (points[k].count(y2))) { \\ Points on rectangle edges
+                            validRectangle = false; \\ Invalidate rectangle if any point lies on border or inside
+                            break;
+                        }
+                    }
+                    if (!validRectangle) continue;
+                    long long area = static_cast<long long>(abs(x2 - x1)) * static_cast<long long>(abs(y2 - y1));
+                    maxArea = max(maxArea, area);
+                }
             }
-
-            // Update segment tree with current x for each point in this column
-            for (int k = i; k < j; ++k) {
-                st.update(points[k].y_idx, points[i].x);
-            }
-
-            // Record current x for the adjacent pairs to be used in future columns
-            for (int k = i; k < j - 1; ++k) {
-                long long key = 1LL * points[k].y_idx * m + points[k + 1].y_idx;
-                lastX[key] = points[i].x;
-            }
-
-            i = j;
         }
-
-        return maxArea;
+        return maxArea == -1 ? -1 : maxArea; // Return correct maxArea value if found
     }
 };
 # @lc code=end
