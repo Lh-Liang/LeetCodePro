@@ -1,91 +1,52 @@
-#include <vector>
-#include <string>
-#include <unordered_map>
-#include <algorithm>
-#include <queue>
+#
+# @lc app=leetcode id=3435 lang=cpp
+#
+# [3435] Frequencies of Shortest Supersequences
+#
 
-using namespace std;
-
+# @lc code=start
 class Solution {
 public:
     vector<vector<int>> supersequences(vector<string>& words) {
-        unordered_map<char, int> char_to_idx;
-        vector<char> idx_to_char;
-        for (const string& w : words) {
-            for (char c : w) {
-                if (char_to_idx.find(c) == char_to_idx.end()) {
-                    char_to_idx[c] = idx_to_char.size();
-                    idx_to_char.push_back(c);
+        unordered_set<string> unique_scs;
+        // Generate all potential SCSs for word pairs and store them in unique_scs set to filter permutations
+        for (int i = 0; i < words.size(); ++i) {
+            for (int j = i + 1; j < words.size(); ++j) {
+                // Generate SCS for each pair using a helper function that maintains order
+                string scs = generateSCS(words[i], words[j]);
+                if (!scs.empty()) {
+                    unique_scs.insert(scs);
                 }
             }
         }
-
-        int n = idx_to_char.size();
-        vector<pair<int, int>> edges;
-        for (const string& w : words) {
-            if (w[0] != w[1]) {
-                edges.push_back({char_to_idx[w[0]], char_to_idx[w[1]]});
-            }
-        }
-
-        auto is_dag = [&](int mask) {
-            vector<int> in_degree(n, 0);
-            vector<vector<int>> adj(n);
-            int count = 0;
-            for (auto& edge : edges) {
-                if (((mask >> edge.first) & 1) && ((mask >> edge.second) & 1)) {
-                    adj[edge.first].push_back(edge.second);
-                    in_degree[edge.second]++;
-                }
-            }
-
-            queue<int> q;
-            for (int i = 0; i < n; ++i) {
-                if (((mask >> i) & 1)) {
-                    count++;
-                    if (in_degree[i] == 0) q.push(i);
-                }
-            }
-
-            int visited = 0;
-            while (!q.empty()) {
-                int u = q.front();
-                q.pop();
-                visited++;
-                for (int v : adj[u]) {
-                    if (--in_degree[v] == 0) q.push(v);
-                }
-            }
-            return visited == count;
-        };
-
-        int max_nodes = 0;
-        vector<int> best_masks;
-
-        for (int mask = 0; mask < (1 << n); ++mask) {
-            int bits = __builtin_popcount(mask);
-            if (bits < max_nodes) continue;
-
-            if (is_dag(mask)) {
-                if (bits > max_nodes) {
-                    max_nodes = bits;
-                    best_masks.clear();
-                }
-                best_masks.push_back(mask);
-            }
-        }
-
-        vector<vector<int>> results;
-        for (int mask : best_masks) {
+        
+        vector<vector<int>> result;
+        for (const string& scs : unique_scs) {
             vector<int> freq(26, 0);
-            for (int i = 0; i < n; ++i) {
-                int char_idx = idx_to_char[i] - 'a';
-                if ((mask >> i) & 1) freq[char_idx] = 1;
-                else freq[char_idx] = 2;
+            for (char c : scs) {
+                freq[c - 'a']++;
             }
-            results.push_back(freq);
+            result.push_back(freq);
         }
-
-        return results;
+        return result;
+    }
+    
+    string generateSCS(const string& a, const string& b) {
+        // Merging two strings into a shortest common supersequence while keeping order intact
+        int m = a.size(), n = b.size();
+        int i = 0, j = 0;
+        string scs;
+        while (i < m || j < n) {
+            if (i < m && j < n && a[i] == b[j]) {
+                scs += a[i];
+                ++i; ++j;
+            } else if (i < m && (j >= n || a[i] != b[j])) {
+                scs += a[i++];
+            } else if (j < n && (i >= m || a[i] != b[j])) {
+                scs += b[j++];
+            }
+        }
+        return scs;
     }
 };
+# @lc code=end
