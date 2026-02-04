@@ -8,20 +8,20 @@ class Solution {
 public:
     long long countMajoritySubarrays(vector<int>& nums, int target) {
         int n = nums.size();
-        unordered_map<int, int> balance_count; // Track occurrences of each balance
-        int balance = 0; // Balance of target occurrences minus non-target occurrences
-        balance_count[0] = 1; // Initial state: zero balance has one occurrence
         long long result = 0;
+        unordered_map<int, int> prefixCount;
+        prefixCount[0] = 1;
+        int currentCount = 0;
         for (int i = 0; i < n; ++i) {
             if (nums[i] == target) {
-                balance += 1;
+                currentCount++;
             } else {
-                balance -= 1;
+                currentCount--;
             }
-            // Check if there exists a previous state where the adjusted balance indicates majority
-            result += balance_count[balance - 1];
-            // Update current balance occurrence in map
-            balance_count[balance] += 1;
+            if (prefixCount.find(currentCount - 1) != prefixCount.end()) {
+                result += prefixCount[currentCount - 1];
+            }
+            prefixCount[currentCount]++;
         }
         return result;
     }
