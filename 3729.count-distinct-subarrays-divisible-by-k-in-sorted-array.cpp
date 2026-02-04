@@ -8,27 +8,19 @@
 class Solution {
 public:
     long long numGoodSubarrays(vector<int>& nums, int k) {
-        unordered_map<int, int> modCount;
-        unordered_set<string> uniqueSubarrays;
-        int prefixSum = 0;
-        long long count = 0;
-        modCount[0] = 1; // Initial condition for subarray starting from index 0
-        string currentSeq = "";
+        unordered_set<long long> prefixes;
+        long long current_sum = 0;
+        long long result = 0;
+        prefixes.insert(0); // To handle subarray starting from index 0
         for (int num : nums) {
-            currentSeq += to_string(num) + ",";
-            prefixSum += num;
-            int mod = prefixSum % k;
-            if (mod < 0) mod += k; // Normalize negative mods to positive equivalents
-            if (modCount.count(mod)) {
-                // Check if this sequence is already counted
-                if (uniqueSubarrays.find(currentSeq) == uniqueSubarrays.end()) {
-                    count += modCount[mod];
-                    uniqueSubarrays.insert(currentSeq);
-                }
+            current_sum += num;
+            if (prefixes.count(current_sum % k)) {
+                result++; // Found a new good subarray ending at this point
+            } else {
+                prefixes.insert(current_sum % k); // Record this mod result as seen
             }
-            modCount[mod]++;
         }
-        return count;
+        return result; // Return total count of distinct good subarrays
     }
 };
 # @lc code=end
