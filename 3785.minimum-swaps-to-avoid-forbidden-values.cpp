@@ -10,27 +10,21 @@ public:
     int minSwaps(vector<int>& nums, vector<int>& forbidden) {
         int n = nums.size();
         int swaps = 0;
-        vector<bool> visited(n, false); // Track visited indices
+        unordered_map<int, int> numIndex; // To track number positions
+        unordered_map<int, int> forbidIndex; // To track forbidden number positions
+        
+        // Initialize maps
         for (int i = 0; i < n; ++i) {
-            if (nums[i] != forbidden[i] || visited[i]) continue;
-            bool swapped = false;
-            // Find a suitable swap candidate.
-            for (int j = 0; j < n && !swapped; ++j) {
-                if (i != j && nums[j] != forbidden[j] && nums[i] != forbidden[j] && nums[j] != forbidden[i]) {
-                    swap(nums[i], nums[j]);
-                    ++swaps;
-                    swapped = true;
-                    visited[i] = visited[j] = true; // Mark as visited
-                }
-            }
-            // If no suitable candidate found, return -1.
-            if (!swapped) return -1;
+            numIndex[nums[i]] = i;
+            forbidIndex[forbidden[i]] = i;
         }
-        // Verification step: Ensure no element equals its forbidden counterpart.
-        for (int k = 0; k < n; ++k) {
-            if (nums[k] == forbidden[k]) return -1;
-        }
-        return swaps;
-    }
-}; 
-# @lc code=end
+        
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] == forbidden[i]) { // Conflict exists here
+                bool swapped = false;
+                
+                // Try finding a non-conflicting swap partner
+                for (int j = 0; j < n && !swapped; ++j) {
+                    if (j != i && nums[j] != forbidden[j] && nums[j] != forbidden[i]) { // Valid swap partner found 
+                        swap(nums[i], nums[j]);
+                        swaps++;                           swapped = true;                     }                 }                 if (!swapped) return -1; // If no valid swap partner found, return -1             }         }         return swaps;   } };  # @lc code=end
