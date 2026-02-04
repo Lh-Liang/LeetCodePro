@@ -1,71 +1,45 @@
-#include <vector>
-#include <algorithm>
-#include <cstring>
+#
+# @lc app=leetcode id=3459 lang=cpp
+#
+# [3459] Length of Longest V-Shaped Diagonal Segment
+#
 
-using namespace std;
-
+# @lc code=start
 class Solution {
-    int n, m;
-    int memo[500][500][4][2];
-    // Diagonal directions in clockwise order:
-    // 0: (-1, -1) Top-Left
-    // 1: (-1, 1)  Top-Right
-    // 2: (1, 1)   Bottom-Right
-    // 3: (1, -1)  Bottom-Left
-    int dr[4] = {-1, -1, 1, 1};
-    int dc[4] = {-1, 1, 1, -1};
-
-    int solve(int r, int c, int dir, int turned, const vector<vector<int>>& grid) {
-        if (memo[r][c][dir][turned] != -1) return memo[r][c][dir][turned];
-
-        int current_val = grid[r][c];
-        int next_val = 2 - current_val; // Toggles between 2 and 0
-        int res = 1;
-
-        // Option 1: Continue in the same diagonal direction
-        int nr = r + dr[dir];
-        int nc = c + dc[dir];
-        if (nr >= 0 && nr < n && nc >= 0 && nc < m && grid[nr][nc] == next_val) {
-            res = max(res, 1 + solve(nr, nc, dir, turned, grid));
-        }
-
-        // Option 2: Make a 90-degree clockwise turn (if not already turned)
-        if (turned == 0) {
-            int ndir = (dir + 1) % 4;
-            int nnr = r + dr[ndir];
-            int nnc = c + dc[ndir];
-            if (nnr >= 0 && nnr < n && nnc >= 0 && nnc < m && grid[nnr][nnc] == next_val) {
-                res = max(res, 1 + solve(nnr, nnc, ndir, 1, grid));
-            }
-        }
-
-        return memo[r][c][dir][turned] = res;
-    }
-
 public:
     int lenOfVDiagonal(vector<vector<int>>& grid) {
-        n = grid.size();
-        m = grid[0].size();
+        int n = grid.size();
+        if (n == 0) return 0;
+        int m = grid[0].size();
+        if (m == 0) return 0;
+        int maxLength = 0;
         
-        memset(memo, -1, sizeof(memo));
-
-        int max_len = 0;
+        const vector<pair<int, int>> directions = {{-1, -1}, {-1, 1}, {1, -1}, {1, 1}};
+        auto inBounds = [&](int x, int y) {
+            return x >= 0 && x < n && y >= 0 && y < m;
+        };
+        
+        vector<vector<vector<int>>> dp(n, vector<vector<int>>(m, vector<int>(4, -1))); // DP table for memoization
+        
         for (int i = 0; i < n; ++i) {
             for (int j = 0; j < m; ++j) {
-                if (grid[i][j] == 1) {
-                    max_len = max(max_len, 1);
-                    // Try starting in all 4 diagonal directions
-                    for (int d = 0; d < 4; ++d) {
-                        int ni = i + dr[d];
-                        int nj = j + dc[d];
-                        // The sequence must start 1 -> 2
-                        if (ni >= 0 && ni < n && nj >= 0 && nj < m && grid[ni][nj] == 2) {
-                            max_len = max(max_len, 1 + solve(ni, nj, d, 0, grid));
-                        }
+                if (grid[i][j] == 1) { // Starting point must be '1'
+                    for (int d = 0; d < directions.size(); ++d) {
+                        maxLength = max(maxLength, explore(grid, dp, i, j, d));
                     }
                 }
             }
         }
-        return max_len;
+        return maxLength;
     }
-};
+    
+private:
+    int explore(vector<vector<int>>& grid, vector<vector<vector<int>>>& dp,
+                int x, int y, int dirIndex) {
+        const vector<pair<int,int>> directions = {{-1,-1}, {-1,1}, {1,-1}, {1,1}};
+        queue<tuple<int,int,int,int>> q; // x,y,direction,length
+        q.push({x + directions[dirIndex].first,
+y + directions[dirIndex].second,
+dirIndex,
+grid[x][y] == 2 ? 2 : (grid[x][y] == 0 ? -2 : -3)});
+dp[x][y][dirIndex] = grid[x][y] == ""return=""length=""");while(q.empty())versing:""q.pop()=""tuple<int,int>nextMove=""");}");return=""};};}");
