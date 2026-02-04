@@ -3,39 +3,52 @@
 #
 # [1670] Design Front Middle Back Queue
 #
-
 # @lc code=start
-#include <deque>
+#include <vector>
 using namespace std;
 class FrontMiddleBackQueue {
 public:
-    deque<int> dq;
-    FrontMiddleBackQueue() { }
-    void pushFront(int val) { dq.push_front(val); }
-    void pushMiddle(int val) { 
-        int mid = dq.size() / 2; 
-        dq.insert(dq.begin() + mid, val); 
+    vector<int> q;
+    FrontMiddleBackQueue() {
     }
-    void pushBack(int val) { dq.push_back(val); }
-    int popFront() { 
-        if(dq.empty()) return -1; 
-        int val = dq.front(); 
-        dq.pop_front(); 
-        return val; 
+    void pushFront(int val) {
+        q.insert(q.begin(), val);
     }
-    int popMiddle() { 
-        if(dq.empty()) return -1; 
-        int mid = (dq.size() - 1) / 2; 
-        auto it = dq.begin() + mid; 
-        int val = *it; 
-        dq.erase(it); 
-        return val; 
+    void pushMiddle(int val) {
+        q.insert(q.begin() + (q.size() / 2), val);
     }
-    int popBack() { 
-        if(dq.empty()) return -1; 
-        int val = dq.back(); 
-        dq.pop_back(); 
-        return val; 
+    void pushBack(int val) {
+        q.push_back(val);
+    }
+    int popFront() {
+        if (q.empty()) return -1;
+        int val = q.front();
+        q.erase(q.begin());
+        return val;
+    }
+    int popMiddle() {
+        if (q.empty()) return -1;
+        int mid = (q.size() - 1) / 2;
+        int val = q[mid];
+        q.erase(q.begin() + mid);
+        return val;
+    }
+    int popBack() {
+        if (q.empty()) return -1;
+        int val = q.back();
+        q.pop_back();
+        return val;
     }
 };
-done
+
+/**
+* Your FrontMiddleBackQueue object will be instantiated and called as such:
+* FrontMiddleBackQueue* obj = new FrontMiddleBackQueue();
+* obj->pushFront(val);
+* obj->pushMiddle(val);
+* obj->pushBack(val);
+* int param_4 = obj->popFront();
+* int param_5 = obj->popMiddle();
+* int param_6 = obj->popBack();
+*/
+# @lc code=end
