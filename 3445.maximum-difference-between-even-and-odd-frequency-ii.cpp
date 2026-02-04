@@ -1,63 +1,41 @@
-#
-# @lc app=leetcode id=3445 lang=cpp
-#
-# [3445] Maximum Difference Between Even and Odd Frequency II
-#
 # @lc code=start
-#include <vector>
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
-class Solution {
-public:
-    int maxDifference(string s, int k) {
-        int n = s.length();
-        vector<vector<int>> P(n + 1, vector<int>(5, 0));
-        for (int i = 0; i < n; ++i) {
-            for (int c = 0; c < 5; ++c) {
-                P[i + 1][c] = P[i][c];
-            }
-            P[i + 1][s[i] - '0']++;
-        }
-
-        int max_diff = -1e9;
-
-        for (int a = 0; a < 5; ++a) {
-            for (int b = 0; b < 5; ++b) {
-                if (a == b) continue;
-
-                vector<vector<int>> min_val(2, vector<int>(2, 1e9));
-                int processed_until = -1;
-                int last_b_idx = -1;
-
-                for (int j = 0; j <= n; ++j) {
-                    int limit = min(j - k, last_b_idx);
-                    
-                    while (processed_until < limit) {
-                        processed_until++;
-                        int i = processed_until;
-                        int pa = P[i][a] & 1;
-                        int pb = P[i][b] & 1;
-                        min_val[pa][pb] = min(min_val[pa][pb], P[i][a] - P[i][b]);
-                    }
-
-                    int target_pa = 1 - (P[j][a] & 1);
-                    int target_pb = P[j][b] & 1;
-                    
-                    if (min_val[target_pa][target_pb] != 1e9) {
-                        max_diff = max(max_diff, (P[j][a] - P[j][b]) - min_val[target_pa][target_pb]);
-                    }
-
-                    if (j < n && (s[j] - '0') == b) {
-                        last_b_idx = j;
-                    }
-                }
-            }
-        }
-
-        return max_diff;
-    }
-};
+class Solution:
+    def maxDifference(self, s: str, k: int) -> int:
+        from collections import defaultdict
+        n = len(s)
+        max_diff = float('-inf')
+        freq = defaultdict(int)
+        
+        # Step 2: Initialize frequency map for first k-length substring
+        for i in range(k):
+            freq[s[i]] += 1
+        
+        def find_max_diff(freq):
+            odd_freq_chars = [char for char, count in freq.items() if count % 2 != 0]
+            even_freq_chars = [char for char, count in freq.items() if count % 2 == 0 and count > 0]
+            max_local_diff = float('-inf')
+            for odd_char in odd_freq_chars:
+                for even_char in even_freq_chars:
+                    diff = freq[odd_char] - freq[even_char]
+                    max_local_diff = max(max_local_diff, diff)
+            return max_local_diff
+        
+        # Step 3 & 5: Slide window and calculate differences
+        max_diff = find_max_diff(freq)
+        for start in range(1, n - k + 1):
+            outgoing_char = s[start - 1]
+            incoming_char = s[start + k - 1]
+            
+            # Update frequencies
+            freq[outgoing_char] -= 1
+            if freq[outgoing_char] == 0:
+                del freq[outgoing_char]
+            freq[incoming_char] += 1
+            
+            # Step 4 & 5: Calculate current max difference
+            current_diff = find_max_diff(freq)
+            max_diff = max(max_diff, current_diff)
+        
+        # Step 6: Return result
+        return max_diff if max_diff != float('-inf') else -1
 # @lc code=end
