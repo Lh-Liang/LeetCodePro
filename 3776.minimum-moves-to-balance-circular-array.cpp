@@ -1,62 +1,45 @@
-#
-# @lc app=leetcode id=3776 lang=cpp
-#
-# [3776] Minimum Moves to Balance Circular Array
-#
-
 # @lc code=start
-#include <vector>
-#include <numeric>
-#include <algorithm>
-#include <cmath>
-
-using namespace std;
-
 class Solution {
 public:
     long long minMoves(vector<int>& balance) {
         int n = balance.size();
-        long long total_sum = 0;
-        int neg_idx = -1;
-
+        long long deficit = 0;
+        int negativeIndex = -1;
+        
+        // Find the negative balance and calculate its absolute value
         for (int i = 0; i < n; ++i) {
-            total_sum += balance[i];
             if (balance[i] < 0) {
-                neg_idx = i;
+                deficit = -balance[i];
+                negativeIndex = i;
+                break;
             }
         }
 
-        if (total_sum < 0) return -1;
-        if (neg_idx == -1) return 0;
+        // If no negative balance is found, return 0 as no moves are needed
+        if (negativeIndex == -1) return 0;
 
-        long long deficit = -static_cast<long long>(balance[neg_idx]);
-        struct Source {
-            int amount;
-            int distance;
-        };
-        vector<Source> sources;
+        long long moves = 0;
+        int left = (negativeIndex + n - 1) % n;
+        int right = (negativeIndex + 1) % n;
 
-        for (int i = 0; i < n; ++i) {
-            if (balance[i] > 0) {
-                int dist = abs(i - neg_idx);
-                dist = min(dist, n - dist);
-                sources.push_back({balance[i], dist});
+        // Try balancing from both sides of the negative index
+        while (deficit > 0 && left != right) {
+            if (balance[left] > 0) {
+                long long transferLeft = min(deficit, static_cast<long long>(balance[left]));
+                deficit -= transferLeft;
+                balance[left] -= transferLeft;
+                moves += transferLeft * ((negativeIndex + n - left) % n);
             }
+            left = (left + n - 1) % n;
+
+            if (balance[right] > 0) {
+                long long transferRight = min(deficit, static_cast<long long>(balance[right]));
+                deficit -= transferRight;
+                balance[right] -= transferRight;
+                moves += transferRight * ((right + n - negativeIndex) % n);
+            }
+            right = (right + 1) % n;
         }
 
-        sort(sources.begin(), sources.end(), [](const Source& a, const Source& b) {
-            return a.distance < b.distance;
-        });
-
-        long long total_moves = 0;
-        for (const auto& src : sources) {
-            if (deficit <= 0) break;
-            long long take = min((long long)src.amount, deficit);
-            total_moves += take * src.distance;
-            deficit -= take;
-        }
-
-        return total_moves;
-    }
-};
-# @lc code=end
+        // Verify if all balances are non-negative after processing
+        for(int i=0; i<n; i++) {\
