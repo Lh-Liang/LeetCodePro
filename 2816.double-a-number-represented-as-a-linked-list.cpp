@@ -3,24 +3,45 @@
 #
 # [2816] Double a Number Represented as a Linked List
 #
-
 # @lc code=start
+/**
+* Definition for singly-linked list.
+* struct ListNode {
+*     int val;
+*     ListNode *next;
+*     ListNode() : val(0), next(nullptr) {}
+*     ListNode(int x) : val(x), next(nullptr) {}
+*     ListNode(int x, ListNode *next) : val(x), next(next) {}
+* };
+*/
 class Solution {
 public:
-    ListNode* doubleIt(ListNode* head) {
-        if (!head) return head;
-        ListNode* current = head;
-        int carry = 0;
-        while (current) {
-            int sum = current->val * 2 + carry;
-            current->val = sum % 10;
-            carry = sum / 10;
-            if (!current->next && carry > 0) {
-                current->next = new ListNode(carry);
-                break;
-            }
-            current = current->next;
+    ListNode* reverseList(ListNode* head) {
+        ListNode* prev = nullptr;
+        while(head) {
+            ListNode* next = head->next;
+            head->next = prev;
+            prev = head;
+            head = next;
         }
+        return prev;
+    }
+    ListNode* doubleIt(ListNode* head) {
+        head = reverseList(head);
+        ListNode* curr = head;
+        int carry = 0;
+        ListNode* prev = nullptr;
+        while(curr) {
+            int total = curr->val * 2 + carry;
+            curr->val = total % 10;
+            carry = total / 10;
+            prev = curr;
+            curr = curr->next;
+        }
+        if(carry) {
+            prev->next = new ListNode(carry);
+        }
+        head = reverseList(head);
         return head;
     }
 };
