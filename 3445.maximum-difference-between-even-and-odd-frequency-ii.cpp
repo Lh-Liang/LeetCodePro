@@ -8,28 +8,42 @@
 class Solution {
 public:
     int maxDifference(string s, int k) {
-        int max_diff = -1; // Initialize maximum difference as -1 (impossible case)
-        int n = s.length();
-        for (int start = 0; start <= n - k; ++start) {
-            vector<int> freq(5, 0); // Initialize frequency vector for digits '0' to '4'
-            for (int end = start; end < n; ++end) {
-                freq[s[end] - '0']++;
-                if (end - start + 1 >= k) { // Only consider substrings of at least length k
-                    int max_odd = INT_MIN, min_even = INT_MAX;
-                    for (int num = 0; num <= 4; ++num) {
-                        if (freq[num] % 2 == 1) { // Odd frequency check
-                            max_odd = max(max_odd, freq[num]);
-                        } else if (freq[num] > 0) { // Even and non-zero frequency check
-                            min_even = min(min_even, freq[num]);
-                        }
-                    }
-                    if (max_odd != INT_MIN && min_even != INT_MAX) { // Valid odd/even found in substring
-                        max_diff = max(max_diff, max_odd - min_even);
+        // Step 1: Extract constraints and requirements (already done above)
+        // Step 2: Use a sliding window approach for all substrings of length >= k
+        // Step 3: For each window, maintain a frequency array for digits '0' to '4'
+        // Step 4: For each possible (odd-freq a, even-nonzero-freq b) pair, compute difference
+        // Step 5: Track the maximum difference overall
+        int n = s.size();
+        int res = INT_MIN;
+        for (int len = k; len <= n; ++len) {
+            vector<int> freq(5, 0);
+            // Initialize frequency for first window of length 'len'
+            for (int i = 0; i < len; ++i) freq[s[i] - '0']++;
+            // Check window
+            res = max(res, getMaxDiff(freq));
+            // Slide window
+            for (int i = len; i < n; ++i) {
+                freq[s[i - len] - '0']--;
+                freq[s[i] - '0']++;
+                res = max(res, getMaxDiff(freq));
+            }
+        }
+        return res;
+    }
+    
+    int getMaxDiff(const vector<int>& freq) {
+        int ans = INT_MIN;
+        for (int a = 0; a < 5; ++a) {
+            if (freq[a] % 2 == 1) { // odd freq
+                for (int b = 0; b < 5; ++b) {
+                    if (a == b) continue;
+                    if (freq[b] > 0 && freq[b] % 2 == 0) { // even and nonzero
+                        ans = max(ans, freq[a] - freq[b]);
                     }
                 }
             }
         }
-        return max_diff; // Return maximum difference found or -1 if none valid found. 
+        return ans;
     }
-}; 
+};
 # @lc code=end
