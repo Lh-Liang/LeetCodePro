@@ -8,15 +8,15 @@
 class Solution {
 public:
     long long maxWeight(vector<int>& pizzas) {
-        sort(pizzas.begin(), pizzas.end());
+        std::sort(pizzas.begin(), pizzas.end(), std::greater<int>());
         long long totalWeight = 0;
         int n = pizzas.size();
-        for (int i = n - 1; i >= 0; i -= 4) {
-            // Odd days: take Z (largest) from group of four
-            totalWeight += pizzas[i]; 
-            if (i - 2 >= 0) { 
-                // Even days: take Y (second largest) from group of four
-                totalWeight += pizzas[i - 2]; 
+        for (int i = 0; i < n; i += 4) {
+            // Odd days: Gain Z (the largest of 4)
+            totalWeight += pizzas[i];
+            // Even days: Gain Y (the second largest of 4) if applicable
+            if (i + 2 < n) {
+                totalWeight += pizzas[i + 2];
             }
         }
         return totalWeight;
