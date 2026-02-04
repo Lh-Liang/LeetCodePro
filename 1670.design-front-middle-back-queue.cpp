@@ -1,83 +1,33 @@
-#
 # @lc app=leetcode id=1670 lang=cpp
-#
 # [1670] Design Front Middle Back Queue
 #
-
 # @lc code=start
 #include <deque>
+using namespace std;
 
 class FrontMiddleBackQueue {
-    std::deque<int> left, right;
-
-    // Invariant: 0 <= right.size() - left.size() <= 1
-    void rebalance() {
-        if (left.size() > right.size()) {
-            right.push_front(left.back());
-            left.pop_back();
-        } else if (right.size() > left.size() + 1) {
-            left.push_back(right.front());
-            right.pop_front();
+private:
+    deque<int> front;
+    deque<int> back;
+    
+    void balance() {
+        // Ensure that front does not have more than one extra element than back
+        if (front.size() > back.size() + 1) {
+            back.push_front(front.back());
+            front.pop_back();
+        } else if (back.size() > front.size()) {
+            front.push_back(back.front());
+            back.pop_front();
         }
     }
-
+    
 public:
-    FrontMiddleBackQueue() {}
-
+    FrontMiddleBackQueue() {
+        
+    }
+    
     void pushFront(int val) {
-        left.push_front(val);
-        rebalance();
-    }
-
-    void pushMiddle(int val) {
-        if (left.size() == right.size()) {
-            right.push_front(val);
-        } else {
-            left.push_back(val);
-        }
-        // Invariant is naturally maintained by this logic, but rebalance is safe.
-        rebalance();
-    }
-
-    void pushBack(int val) {
-        right.push_back(val);
-        rebalance();
-    }
-
-    int popFront() {
-        if (right.empty()) return -1;
-        int val;
-        if (left.empty()) {
-            val = right.front();
-            right.pop_front();
-        } else {
-            val = left.front();
-            left.pop_front();
-        }
-        rebalance();
-        return val;
-    }
-
-    int popMiddle() {
-        if (right.empty()) return -1;
-        int val;
-        if (left.size() == right.size()) {
-            val = left.back();
-            left.pop_back();
-        } else {
-            val = right.front();
-            right.pop_front();
-        }
-        rebalance();
-        return val;
-    }
-
-    int popBack() {
-        if (right.empty()) return -1;
-        int val = right.back();
-        right.pop_back();
-        rebalance();
-        return val;
-    }
-};
-# @lc code=end
+        front.push_front(val);
+        balance();																	
+    }	 	 	 	 	 	 	 	 	 	 	  void pushMiddle(int val) {           // Insert into middle by pushing into front when equal or more elements in front       if (front.size() >= back.size()) {           front.push_back(val);       } else {           back.push_front(val);       }       balance();     }      void pushBack(int val) {         back.push_back(val);         balance();     }      int popFront() {         if (front.empty() && back.empty()) return -1;         int val = front.empty() ? back.front() : front.front();         if (!front.empty()) {             front.pop_front();         } else {             back.pop_front();         }         balance();         return val;     }      int popMiddle() {         if (front.empty() && back.empty()) return -1;         int val = (front.size() > back.size()) ? front.back() : back.front();         if (front.size() > back.size()) {             front.pop_back();         } else {             back.pop_front();         }         balance();         return val;     }      int popBack() {         if (back.empty() && front.empty()) return -1;         int val = !back.empty() ? back.back() : front.back();         if (!back.empty()) {             back.pop_back();         } else {             front.pop_back();         }         balance();         return val;     }};
+t
