@@ -1,35 +1,54 @@
+#
 # @lc app=leetcode id=3768 lang=cpp
 #
 # [3768] Minimum Inversion Count in Subarrays of Fixed Length
 #
+
 # @lc code=start
+class BIT {
+public:
+    vector<int> tree;
+    int n;
+    BIT(int sz) : n(sz), tree(sz+2, 0) {}
+    void add(int i, int x) {
+        for (++i; i <= n+1; i += i & -i) tree[i] += x;
+    }
+    int sum(int i) {
+        int s = 0;
+        for (++i; i > 0; i -= i & -i) s += tree[i];
+        return s;
+    }
+    int range(int l, int r) {
+        return sum(r) - sum(l-1);
+    }
+};
 class Solution {
 public:
     long long minInversionCount(vector<int>& nums, int k) {
         int n = nums.size();
-        long long min_inv_count = LLONG_MAX;
-        vector<int> bit(n + 1, 0);
-        auto update = [&](int idx, int val) {
-            while (idx <= n) {
-                bit[idx] += val;
-                idx += idx & -idx;
-            }
-        };
-        auto query = [&](int idx) {
-            int sum = 0;
-            while (idx > 0) {
-                sum += bit[idx];
-                idx -= idx & -idx;
-            }
-            return sum;
-        };
-        for (int i = 0; i < k; ++i) {
-            update(nums[i], 1);
+        vector<int> arr = nums;
+        sort(arr.begin(), arr.end());
+        arr.erase(unique(arr.begin(), arr.end()), arr.end());
+        vector<int> compressed(n);
+        for (int i = 0; i < n; ++i) {
+            compressed[i] = lower_bound(arr.begin(), arr.end(), nums[i]) - arr.begin();
         }
-        long long current_inv_count = 0;
+        int m = arr.size();
+        BIT bit(m);
+        long long inv = 0;
         for (int i = 0; i < k; ++i) {
-            current_inv_count += query(n) - query(nums[i]);
+            inv += bit.range(compressed[i]+1, m-1);
+            bit.add(compressed[i], 1);
         }
-        min_inv_count = min(min_inv_count, current_inv_count);
+        long long res = inv;
         for (int i = k; i < n; ++i) {
-            update(nums[i - k], -1); // Remove element going out of window. " update(nums[i], 1); // Add new element into window. " // Calculate inversions with new element added into the window. " current_inv_count -= query(nums[i - k] - 1); " current_inv_count += query(n) - query(nums[i]); " min_inv_count = min(min_inv_count, current_inv_count); " } " return min_inv_count; " } " }; " # @lc code=end
+            bit.add(compressed[i-k], -1);
+            inv -= bit.range(0, compressed[i-k]-1);
+            inv += bit.range(compressed[i]+1, m-1);
+            bit.add(compressed[i], 1);
+            res = min(res, inv);
+        }
+        return res;
+    }
+};
+# @lc code=end
