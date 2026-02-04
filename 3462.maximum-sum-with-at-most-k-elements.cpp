@@ -3,28 +3,29 @@
 #
 # [3462] Maximum Sum With at Most K Elements
 #
-
 # @lc code=start
-#include <vector>
-#include <queue>
-#include <algorithm>
-using namespace std;
 class Solution {
 public:
     long long maxSum(vector<vector<int>>& grid, vector<int>& limits, int k) {
-        vector<int> selectedElements;
-        for (int i = 0; i < grid.size(); ++i) {
-            sort(grid[i].begin(), grid[i].end(), greater<int>()); // Sort each row in descending order.
-            for (int j = 0; j < min((int)grid[i].size(), limits[i]); ++j) {
-                selectedElements.push_back(grid[i][j]); // Collect top elements within limit.
+        int n = grid.size();
+        vector<long long> dp(k + 1, 0);
+        for (int i = 0; i < n; ++i) {
+            vector<int> row = grid[i];
+            sort(row.rbegin(), row.rend());
+            vector<long long> prefix(1, 0);
+            int lim = min((int)row.size(), limits[i]);
+            for (int j = 0; j < lim; ++j) {
+                prefix.push_back(prefix.back() + row[j]);
             }
+            vector<long long> ndp = dp;
+            for (int t = 1; t <= lim; ++t) {
+                for (int x = k; x >= t; --x) {
+                    ndp[x] = max(ndp[x], dp[x-t] + prefix[t]);
+                }
+            }
+            dp = move(ndp);
         }
-        sort(selectedElements.begin(), selectedElements.end(), greater<int>()); // Sort collected elements globally.
-        long long sum = 0;
-        for (int i = 0; i < min(k, (int)selectedElements.size()); ++i) {
-            sum += selectedElements[i]; // Sum up to K largest elements.
-        }
-        return sum; // Return maximum sum of selected elements.
+        return *max_element(dp.begin(), dp.end());
     }
 };
 # @lc code=end
