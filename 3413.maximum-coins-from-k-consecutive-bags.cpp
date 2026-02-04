@@ -1,35 +1,62 @@
+#
+# @lc app=leetcode id=3413 lang=cpp
+#
+# [3413] Maximum Coins From K Consecutive Bags
+#
+
+# @lc code=start
 class Solution {
 public:
     long long maximumCoins(vector<vector<int>>& coins, int k) {
-        map<int, long long> points;
-        // Accumulate coins at each point
-        for (auto& coin : coins) {
-            points[coin[0]] += coin[2];
-            points[coin[1] + 1] -= coin[2];
+        using ll = long long;
+        vector<array<ll, 3>> intervals;
+        for (const auto& c : coins) {
+            intervals.push_back({(ll)c[0], (ll)c[1], (ll)c[2]});
         }
-        // Create prefix sum array
-        vector<pair<int, long long>> prefix;
-        long long sum = 0;
-        for (auto& p : points) {
-            sum += p.second;
-            if (!prefix.empty() && prefix.back().first == p.first - 1) {
-                prefix.back().second = sum;
+        sort(intervals.begin(), intervals.end());
+        int n = intervals.size();
+        // Build a list of all interval boundaries
+        vector<ll> points;
+        for (const auto& seg : intervals) {
+            points.push_back(seg[0]);
+            points.push_back(seg[1] + 1);
+        }
+        sort(points.begin(), points.end());
+        points.erase(unique(points.begin(), points.end()), points.end());
+        // For each interval between two points, compute its coin value
+        vector<ll> coin_in_gap(points.size() - 1, 0);
+        int j = 0;
+        for (int i = 0; i < points.size() - 1; ++i) {
+            ll l = points[i], r = points[i + 1] - 1;
+            while (j < n && intervals[j][1] < l) ++j;
+            if (j < n && intervals[j][0] <= l && r <= intervals[j][1]) {
+                coin_in_gap[i] = intervals[j][2];
             } else {
-                prefix.emplace_back(p.first - 1, sum);
-                prefix.emplace_back(p.first, sum);
+                coin_in_gap[i] = 0;
             }
         }
-        // Apply sliding window on accumulated values to find max within k consecutive positions
-        long long max_coins = 0;
-        int n = prefix.size(); 
-        for (int i = 0, j = 0; i < n && j < n;) { 
-            if (prefix[j].first - prefix[i].first + 1 <= k) { 
-                max_coins = max(max_coins, j > 0 ? prefix[j].second - (i > 0 ? prefix[i-1].second : 0LL) : prefix[j].second); 
-                ++j; 
-            } else { 
-                ++i; 
-            } 
-        } 
-        return max_coins; 
-    } 
+        // Sliding window over the compressed intervals
+        int left = 0;
+        ll curr_sum = 0, max_sum = 0, curr_len = 0;
+        for (int right = 0; right < coin_in_gap.size(); ++right) {
+            ll seg_len = points[right + 1] - points[right];
+            curr_sum += coin_in_gap[right] * seg_len;
+            curr_len += seg_len;
+            while (curr_len > k) { // shrink from left
+                ll remove_len = min(curr_len - k, points[left + 1] - points[left]);
+                curr_sum -= coin_in_gap[left] * remove_len;
+                curr_len -= remove_len;
+                if (remove_len == points[left + 1] - points[left]) {
+                    ++left;
+                } else {
+                    break;
+                }
+            }
+            if (curr_len == k) {
+                max_sum = max(max_sum, curr_sum);
+            }
+        }
+        return max_sum;
+    }
 };
+# @lc code=end
