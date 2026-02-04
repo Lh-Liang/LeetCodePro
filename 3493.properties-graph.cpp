@@ -9,31 +9,46 @@ class Solution {
 public:
     int numberOfComponents(vector<vector<int>>& properties, int k) {
         int n = properties.size();
-        vector<vector<int>> adj(n);
-        
-        // Calculate intersections and build graph
-        auto intersect = [](const vector<int>& a, const vector<int>& b) {
-            unordered_set<int> setA(a.begin(), a.end());
-            unordered_set<int> setB(b.begin(), b.end());
-            int common = 0;
-            for (int num : setA) {
-                if (setB.count(num)) common++;
-            }
-            return common;
-        };
-        
+        // Preprocess all properties as sets for efficient intersection
+        vector<unordered_set<int>> sets(n);
+        for (int i = 0; i < n; ++i) {
+            sets[i] = unordered_set<int>(properties[i].begin(), properties[i].end());
+        }
+
+        // Build adjacency list
+        vector<vector<int>> graph(n);
         for (int i = 0; i < n; ++i) {
             for (int j = i + 1; j < n; ++j) {
-                if (intersect(properties[i], properties[j]) >= k) {
-                    adj[i].push_back(j);
-                    adj[j].push_back(i);
+                int count = 0;
+                for (int val : sets[i]) {
+                    if (sets[j].count(val)) ++count;
+                }
+                if (count >= k) {
+                    graph[i].push_back(j);
+                    graph[j].push_back(i);
                 }
             }
         }
-        
-        // Count connected components using DFS or union-find (DFS here)
+
+        // Count connected components using DFS
         vector<bool> visited(n, false);
+        int components = 0;
         function<void(int)> dfs = [&](int node) {
             visited[node] = true;
-            for (int neighbor : adj[node]) {
-                if (!visited[neighbor]) dfs(neighbor);
+            for (int nei : graph[node]) {
+                if (!visited[nei]) dfs(nei);
+            }
+        };
+
+        for (int i = 0; i < n; ++i) {
+            if (!visited[i]) {
+                ++components;
+                dfs(i);
+            }
+        }
+        // Verification step: ensure all nodes visited and components count matches expected disconnected groups
+        // (for debugging or extension)
+        return components;
+    }
+};
+# @lc code=end
