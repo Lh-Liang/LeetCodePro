@@ -9,25 +9,18 @@ class Solution {
 public:
     int minLength(string s, int numOps) {
         int n = s.size();
-        if (numOps >= n) return 1; // Can flip all to same character
-        int result = n; // Start with maximum possible length
-        int left = 0;
-        int maxIdentical = 0;
-        vector<int> count(2, 0); // Counts for '0' and '1'
-        
-        for (int right = 0; right < n; ++right) {
-            ++count[s[right] - '0'];
-            maxIdentical = max(maxIdentical, count[s[right] - '0']);
-            
-            while ((right - left + 1) - maxIdentical > numOps) { // Too many flips needed
-                --count[s[left] - '0'];
-                ++left;
-                maxIdentical = max(count[0], count[1]); // Update maxIdentical after shrinking
+        vector<int> count(2, 0); // count[0] for '0's, count[1] for '1's
+        int l = 0, maxFreq = 0;
+        // Sliding window approach
+        for (int r = 0; r < n; ++r) {
+            count[s[r] - '0']++; 
+            maxFreq = max(maxFreq, count[s[r] - '0']);
+            if (r - l + 1 - maxFreq > numOps) {
+                count[s[l] - '0']--;
+                l++; 
             }
-            
-            result = min(result, right - left + 1); // Minimize longest segment after adjustments
         }
-        return result;
+        return n - l; 
     }
-};
+}; 
 # @lc code=end
