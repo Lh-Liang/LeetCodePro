@@ -1,1 +1,48 @@
-[{"variable": "reasoning_rules", "content": "<general_reasoning_rules>\n- Analyze <agent_history> to track progress, identify repeated failures, and adjust strategies.\n- Reflect on the most recent \"Next Goal\" to determine if it was achieved; if not, understand why and pivot.\n- Break down complex tasks into smaller, verifiable sub-goals.\n- Use available tools to verify assumptions and validate intermediate results.\n- Prioritize simple, robust solutions before attempting complex optimizations.\n- If a strategy fails multiple times, explicitly list what was tried and why it failed before proposing a new approach.\n- Ensure all constraints and edge cases are addressed in the final solution.\n</general_reasoning_rules>\n<additional_reasoning_rules>\n- Strictly adhere to the requested output schema. The final response must be a single JSON object containing only the fields specified in the prompt (e.g., 'reasoning' and 'result'), not a list of variable updates.\n- The 'reasoning' field must exclusively contain the step-by-step logical derivation of the solution. Avoid meta-commentary about agent rules, internal state, or the improvement process.\n- For tree path problems, decompose the path (u to v) into two monotonic segments: u to LCA and LCA to v. Define the cumulative weight property for each segment to ensure binary lifting correctly identifies the transition point.\n- When implementing boundary searches (like finding the 'first' node satisfying a condition), verify that the logic correctly distinguishes between the last node that fails the condition and the first node that meets it.\n</additional_reasoning_rules>"}, {"variable": "solution", "content": "{\\n    \\\"reasoning\\\": \\\"Step 1: Precompute LCA and cumulative weights. Use binary lifting to find the Lowest Common Ancestor (LCA) and store the distance from the root to each node (depth_w). The total weight of the path (u, v) is calculated as W = depth_w[u] + depth_w[v] - 2 * depth_w[LCA(u, v)]. The threshold for the median is T = ceil(W / 2).\\\\n\\\\nStep 2: Determine which segment the median lies on. If the weight from u to LCA (depth_w[u] - depth_w[LCA]) is >= T, the median is on the path from u up to LCA. Otherwise, it is on the path from LCA down to v.\\\\n\\\\nStep 3: Binary lifting search. \\\\n- Case 1 (u to LCA): Find the highest ancestor of u such that the weight from u to that ancestor is < T. The node immediately above this ancestor is the first node where the sum >= T.\\\\n- Case 2 (LCA to v): The required weight from u to the median node is T. This means the weight from v to the median node must be W - T. We find the highest ancestor of v such that the weight from v to that ancestor is <= (W - T). The highest such ancestor is our median node because we are moving from v back toward u.\\\\n\\\\nStep 4: Edge cases. Handle cases where n=2 or the median is the LCA itself.\\\",\\n    \\\"result\\\": \\\"#include <vector>\\\\n#include <algorithm>\\\\n#include <queue>\\\\n\\\\nusing namespace std;\\\\n\\\\nclass Solution {\\\\n    int LOG;\\\\n    vector<vector<pair<int, int>>> adj;\\\\n    vector<vector<int>> up;\\\\n    vector<int> depth;\\\\n    vector<long long> dist;\\\\n\\\\n    void build(int n) {\\\\n        LOG = 0;\\\\n        while ((1 << (LOG + 1)) <= n) LOG++;\\\\n        up.assign(n, vector<int>(LOG + 1, -1));\\\\n        depth.assign(n, 0);\\\\n        dist.assign(n, 0);\\\\n        \\\\n        queue<int> q;\\\\n        q.push(0);\\\\n        vector<bool> visited(n, false);\\\\n        visited[0] = true;\\\\n        \\\\n        while (!q.empty()) {\\\\n            int u = q.front(); q.pop();\\\\n            for (auto& edge : adj[u]) {\\\\n                int v = edge.first, w = edge.second;\\\\n                if (!visited[v]) {\\\\n                    visited[v] = true;\\\\n                    depth[v] = depth[u] + 1;\\\\n                    dist[v] = dist[u] + w;\\\\n                    up[v][0] = u;\\\\n                    q.push(v);\\\\n                }\\\\n            }\\\\n        }\\\\n        \\\\n        for (int i = 1; i <= LOG; i++) {\\\\n            for (int u = 0; u < n; u++) {\\\\n                if (up[u][i-1] != -1)\\\\n                    up[u][i] = up[up[u][i-1]][i-1];\\\\n            }\\\\n        }\\\\n    }\\\\n\\\\n    int get_lca(int u, int v) {\\\\n        if (depth[u] < depth[v]) swap(u, v);\\\\n        for (int i = LOG; i >= 0; i--) {\\\\n            if (up[u][i] != -1 && depth[up[u][i]] >= depth[v])\\\\n                u = up[u][i];\\\\n        }\\\\n        if (u == v) return u;\\\\n        for (int i = LOG; i >= 0; i--) {\\\\n            if (up[u][i] != up[v][i]) {\\\\n                u = up[u][i];\\\\n                v = up[v][i];\\\\n            }\\\\n        }\\\\n        return up[u][0];\\\\n    }\\\\n\\\\npublic:\\\\n    vector<int> findMedian(int n, vector<vector<int>>& edges, vector<vector<int>>& queries) {\\\\n        adj.assign(n, {});\\\\n        for (auto& e : edges) {\\\\n            adj[e[0]].push_back({e[1], e[2]});\\\\n            adj[e[1]].push_back({e[0], e[2]});\\\\n        }\\\\n        build(n);\\\\n        \\\\n        vector<int> ans;\\\\n        for (auto& q : queries) {\\\\n            int u = q[0], v = q[1];\\\\n            int lca = get_lca(u, v);\\\\n            long long total_w = (dist[u] - dist[lca]) + (dist[v] - dist[lca]);\\\\n            long long target = (total_w + 1) / 2;\\\\n            \\\\n            if (dist[u] - dist[lca] >= target) {\\\\n                int curr = u;\\\\n                for (int i = LOG; i >= 0; i--) {\\\\n                    if (up[curr][i] != -1 && depth[up[curr][i]] >= depth[lca]) {\\\\n                        if (dist[u] - dist[up[curr][i]] < target) {\\\\n                            curr = up[curr][i];\\\\n                        }\\\\n                    }\\\\n                }\\\\n                ans.push_back(dist[u] - dist[curr] >= target ? curr : up[curr][0]);\\\\n            } else {\\\\n                long long from_v = total_w - target;\\\\n                int curr = v;\\\\n                for (int i = LOG; i >= 0; i--) {\\\\n                    if (up[curr][i] != -1 && depth[up[curr][i]] >= depth[lca]) {\\\\n                        if (dist[v] - dist[up[curr][i]] <= from_v) {\\\\n                            curr = up[curr][i];\\\\n                        }\\\\n                    }\\\\n                }\\\\n                ans.push_back(curr);\\\\n            }\\\\n        }\\\\n        return ans;\\\\n    }\\\\n};\\\"\\n}"}]
+# @lc app=leetcode id=3585 lang=cpp
+# [3585] Find Weighted Median Node in Tree
+
+# @lc code=start
+class Solution {
+public:
+    vector<int> findMedian(int n, vector<vector<int>>& edges, vector<vector<int>>& queries) {
+        // Step 1: Build adjacency list for tree representation
+        unordered_map<int, vector<pair<int, int>>> adj;
+        for (const auto& edge : edges) {
+            int u = edge[0], v = edge[1], w = edge[2];
+            adj[u].push_back({v, w});
+            adj[v].push_back({u, w});
+        }
+        
+        // Step 2: Preprocess using DFS to calculate depths and distances from root
+        vector<int> parent(n), depth(n), dist(n);
+        function<void(int, int)> dfs = [&](int node, int par) {
+            for (const auto &[neighbor, weight] : adj[node]) {
+                if (neighbor == par) continue;
+                parent[neighbor] = node;
+                depth[neighbor] = depth[node] + 1;
+                dist[neighbor] = dist[node] + weight;
+                dfs(neighbor, node);
+            }
+        };
+        dfs(0, -1);
+
+        // Step 3: Implement binary lifting for LCA calculation (omitted here)
+        auto findLCA = [&](int u, int v) -> int {
+            if (depth[u] < depth[v]) swap(u, v);
+            // Bring u and v to same depth
+            while (depth[u] > depth[v]) {
+                u = parent[u];
+            }
+            if (u == v) return u;
+            while (parent[u] != parent[v]) {
+                u = parent[u];
+                v = parent[v];
+            }
+            return parent[u];
+        };
+
+        vector<int> result;
+        for (const auto& query : queries) {
+            int u = query[0], v = query[1];
+            int lca = findLCA(u, v);
+            // Calculate total path weightint totalPathWeight = dist[u] + dist[v] - 2 * dist[lca]; double halfWeight = totalPathWeight / 2.0; // Traverse from u towards LCA accumulating weightsint currNode = u; double cumWeight = 0; while(currNode != lca && cumWeight < halfWeight){ cumWeight += dist[currNode] - dist[parent[currNode]]; currNode=parent[currNode]; } if(cumWeight >= halfWeight){ result.push_back(currNode); continue; } // Traverse from LCA towards v if necessary currNode=lca; while(currNode != v && cumWeight < halfWeight){ cumWeight += dist[currNode]-dist[parent[currNode]]; currNode=parent[currNode]; } result.push_back(currNode); }	return result;    }	};# @lc code=end
