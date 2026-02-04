@@ -9,28 +9,22 @@
 #include <queue>
 #include <algorithm>
 using namespace std;
-
 class Solution {
 public:
     long long maxSum(vector<vector<int>>& grid, vector<int>& limits, int k) {
-        priority_queue<int> pq;
-        // Iterate over each row in the grid
+        vector<int> selectedElements;
         for (int i = 0; i < grid.size(); ++i) {
-            // Sort each row in descending order to prioritize larger elements
-            sort(grid[i].rbegin(), grid[i].rend());
-            // Add eligible elements up to limit[i] into the max-heap
-            for (int j = 0; j < min(limits[i], (int)grid[i].size()); ++j) {
-                pq.push(grid[i][j]);
+            sort(grid[i].begin(), grid[i].end(), greater<int>()); // Sort each row in descending order.
+            for (int j = 0; j < min((int)grid[i].size(), limits[i]); ++j) {
+                selectedElements.push_back(grid[i][j]); // Collect top elements within limit.
             }
         }
-        long long sum = 0; // Variable to store the maximum sum of selected elements
-        // Extract up to k elements from the heap for maximum sum calculation
-        while (k > 0 && !pq.empty()) {
-            sum += pq.top(); // Add largest element from heap to sum
-            pq.pop(); // Remove the element from heap after adding it to sum
-            --k; // Decrement k as one element has been selected and added
+        sort(selectedElements.begin(), selectedElements.end(), greater<int>()); // Sort collected elements globally.
+        long long sum = 0;
+        for (int i = 0; i < min(k, (int)selectedElements.size()); ++i) {
+            sum += selectedElements[i]; // Sum up to K largest elements.
         }
-        return sum; // Return maximum sum obtained with at most k elements respecting all constraints
+        return sum; // Return maximum sum of selected elements.
     }
 };
 # @lc code=end
