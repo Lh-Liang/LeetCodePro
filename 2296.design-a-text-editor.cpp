@@ -5,63 +5,52 @@
 #
 
 # @lc code=start
-#include <string>
-#include <algorithm>
-
-using namespace std;
-
 class TextEditor {
-private:
-    // 'left' stores characters to the left of the cursor.
-    // 'right' stores characters to the right of the cursor in reverse order.
-    string left;
-    string right;
-
+    std::deque<char> left, right;
 public:
-    TextEditor() {
-        left.reserve(1000000);
-        right.reserve(1000000);
+    TextEditor() {}
+    void addText(std::string text) {
+        for (char c : text) left.push_back(c);
     }
-    
-    void addText(string text) {
-        left += text;
-    }
-    
     int deleteText(int k) {
-        int numToDelete = min(k, (int)left.size());
-        for (int i = 0; i < numToDelete; ++i) {
+        int count = 0;
+        while (!left.empty() && k > 0) {
             left.pop_back();
-        }
-        return numToDelete;
-    }
-    
-    string cursorLeft(int k) {
-        int numToMove = min(k, (int)left.size());
-        for (int i = 0; i < numToMove; ++i) {
-            right.push_back(left.back());
-            left.pop_back();
-        }
-        int len = min(10, (int)left.size());
-        return left.substr(left.size() - len);
-    }
-    
-    string cursorRight(int k) {
-        int numToMove = min(k, (int)right.size());
-        for (int i = 0; i < numToMove; ++i) {
-            left.push_back(right.back());
-            right.pop_back();
-        }
-        int len = min(10, (int)left.size());
-        return left.substr(left.size() - len);
-    }
+            --k; 
+            ++count; 
+        } 
+        return count; 
+    } 
+    std::string cursorLeft(int k) { 
+        while (k > 0 && !left.empty()) { 
+            right.push_front(left.back()); 
+            left.pop_back(); 
+            --k; 
+        } 
+        return getLeftContext(); 
+    } 
+    std::string cursorRight(int k) { 
+        while (k > 0 && !right.empty()) { 
+            left.push_back(right.front()); 
+            right.pop_front(); 
+            --k; 
+        } 
+        return getLeftContext(); 
+    } 
+private: 
+    std::string getLeftContext() { 
+        int len = std::min(10, (int)left.size());
+        std::string result; result.reserve(len);  for (int i = left.size() - len; i < left.size(); ++i) result += left[i];
+ return result;
+ }
 };
 
 /**
- * Your TextEditor object will be instantiated and called as such:
- * TextEditor* obj = new TextEditor();
- * obj->addText(text);
- * int param_2 = obj->deleteText(k);
- * string param_3 = obj->cursorLeft(k);
- * string param_4 = obj->cursorRight(k);
- */
+* Your TextEditor object will be instantiated and called as such:
+* TextEditor* obj = new TextEditor();
+* obj->addText(text);
+* int param_2 = obj->deleteText(k);
+* string param_3 = obj->cursorLeft(k);
+* string param_4 = obj->cursorRight(k);
+*/
 # @lc code=end
