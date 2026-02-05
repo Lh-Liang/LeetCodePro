@@ -7,32 +7,46 @@
 class Solution {
 public:
     long long minMoves(vector<int>& balance) {
-        long long total = 0;
+        long long sum = 0;
         int n = balance.size();
-        for (int b : balance) total += b;
-        if (total < 0) return -1;
-        int neg = -1;
+        for (int b : balance) sum += b;
+        if (sum < 0) return -1;
+        int negIdx = -1;
         for (int i = 0; i < n; ++i) {
-            if (balance[i] < 0) { neg = i; break; }
+            if (balance[i] < 0) {
+                negIdx = i;
+                break;
+            }
         }
-        if (neg == -1) return 0;
-        long long need = -balance[neg];
-        vector<pair<long long, int>> sources; // pair: (distance, units)
-        for (int d = 1; d < n; ++d) {
-            int l = (neg - d + n) % n;
-            int r = (neg + d) % n;
-            if (balance[l] > 0) sources.push_back({d, balance[l]});
-            if (l != r && balance[r] > 0) sources.push_back({d, balance[r]});
-        }
-        sort(sources.begin(), sources.end());
+        if (negIdx == -1) return 0; // All non-negative
+        long long deficit = -balance[negIdx];
         long long moves = 0;
-        for (auto [dist, units] : sources) {
-            long long take = min(need, (long long)units);
-            moves += take * dist;
-            need -= take;
-            if (need == 0) break;
+        int left = (negIdx - 1 + n) % n;
+        int right = (negIdx + 1) % n;
+        while (deficit > 0) {
+            // Find closest nonzero surplus to negIdx
+            int l = left, r = right, d = 1;
+            bool found = false;
+            while (d < n && !found) {
+                if (balance[l] > 0) {
+                    long long t = min((long long)balance[l], deficit);
+                    balance[l] -= t;
+                    deficit -= t;
+                    moves += t * d;
+                    found = true;
+                } else if (balance[r] > 0) {
+                    long long t = min((long long)balance[r], deficit);
+                    balance[r] -= t;
+                    deficit -= t;
+                    moves += t * d;
+                    found = true;
+                }
+                l = (l - 1 + n) % n;
+                r = (r + 1) % n;
+                ++d;
+            }
+            if (!found) return -1; // Shouldn't happen, but for safety
         }
-        if (need > 0) return -1;
         return moves;
     }
 };
