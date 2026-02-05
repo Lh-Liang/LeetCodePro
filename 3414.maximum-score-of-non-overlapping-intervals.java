@@ -1,48 +1,83 @@
-#
-# @lc app=leetcode id=3414 lang=java
-#
-# [3414] Maximum Score of Non-overlapping Intervals
-#
-
-# @lc code=start
 import java.util.*;
-
 class Solution {
     public int[] maximumWeight(List<List<Integer>> intervals) {
-        // Convert list of lists to an array for easier manipulation and sorting.
         int n = intervals.size();
-        int[][] arr = new int[n][3];
-        for (int i = 0; i < n; i++) {
-            arr[i][0] = intervals.get(i).get(0); // li
-            arr[i][1] = intervals.get(i).get(1); // ri
-            arr[i][2] = intervals.get(i).get(2); // weighti
+        int[][] arr = new int[n][4]; // [start, end, weight, original_idx]
+        for (int i = 0; i < n; ++i) {
+            List<Integer> curr = intervals.get(i);
+            arr[i][0] = curr.get(0);
+            arr[i][1] = curr.get(1);
+            arr[i][2] = curr.get(2);
+            arr[i][3] = i;
         }
-        
-        // Sort by end time, then start time for lexicographical order.
-        Arrays.sort(arr, (a, b) -> {
-            if (a[1] != b[1]) return Integer.compare(a[1], b[1]);
-            return Integer.compare(a[0], b[0]);
-        });
-        
-        // Dynamic programming table and choice tracking.
-        int[] dp = new int[n + 1]; // Initialize DP table for max scores.
-        List<Integer>[] choices = new List[n + 1]; // To track indices chosen for max score.
-        for (int i = 0; i <= n; i++) choices[i] = new ArrayList<>();
-        
-        for (int i = 0; i < n; i++) {
-            int[] current = arr[i];
-            int currentWeight = current[2];
-            
-            // Find last non-overlapping interval using binary search or linear scan backward.
-            int k = -1;
-            int l = 0, r = i - 1;
-            while (l <= r) {
-                int mid = l + (r - l) / 2;
-                if (arr[mid][1] < current[0]) {
-                    k = mid;
-                    l = mid + 1;
+        Arrays.sort(arr, Comparator.comparingInt(a -> a[1]));
+        int[] prev = new int[n];
+        Arrays.fill(prev, -1);
+        for (int i = 0; i < n; ++i) {
+            int lo = 0, hi = i - 1, p = -1;
+            while (lo <= hi) {
+                int mid = (lo + hi) / 2;
+                if (arr[mid][1] < arr[i][0]) {
+                    p = mid; lo = mid + 1;
                 } else {
-                    r = mid - 1;
+                    hi = mid - 1;
                 }
             }
-            	// Option not to take current interval.			if(dp[i+1]<dp[i]){dp[i+1]=dp[i];choices[i+1].addAll(choices[i]);}			// Option to take current interval if possible.int weightWithCurrent=currentWeight+(k>=0?dp[k+1]:0);			if(weightWithCurrent>dp[i+1]){			    dp[i+1]=weightWithCurrent;			    choices[i+1].clear();			    if(k>=0)choices[i+1].addAll(choices[k+1]);choices[i+1].add(i);}       }	// Reconstruct result from choices stored in DP table.List<Integer> resultIndices=choices[n];Collections.sort(resultIndices);// Ensure lexicographical order.int[]resultArray=new int[Math.min(resultIndices.size(),4)];// Limit result to up to four indices.for(int i=0;i<resultArray.length;i++){resultArray[i]=resultIndices.get(i);}return resultArray;}# @lc code=end
+            prev[i] = p;
+        }
+        class State {
+            long score;
+            ArrayList<Integer> indices;
+            State(long s, ArrayList<Integer> idxs) { score = s; indices = idxs; }
+        }
+        State[][] dp = new State[n + 1][5];
+        for (int i = 0; i <= n; ++i) {
+            for (int k = 0; k <= 4; ++k) {
+                dp[i][k] = new State(0, new ArrayList<>());
+            }
+        }
+        for (int i = 1; i <= n; ++i) {
+            for (int k = 1; k <= 4; ++k) {
+                State notPick = dp[i-1][k];
+                State pick = null;
+                int pre = prev[i-1];
+                if (pre >= 0) pick = dp[pre+1][k-1];
+                else if (k == 1) pick = new State(0, new ArrayList<>());
+                if (pick != null) {
+                    long newScore = pick.score + arr[i-1][2];
+                    ArrayList<Integer> newIdx = new ArrayList<>(pick.indices);
+                    newIdx.add(arr[i-1][3]);
+                    if (newScore > notPick.score) {
+                        dp[i][k] = new State(newScore, newIdx);
+                    } else if (newScore == notPick.score) {
+                        if (compare(newIdx, notPick.indices) < 0) {
+                            dp[i][k] = new State(newScore, newIdx);
+                        } else {
+                            dp[i][k] = notPick;
+                        }
+                    } else {
+                        dp[i][k] = notPick;
+                    }
+                } else {
+                    dp[i][k] = notPick;
+                }
+            }
+        }
+        State best = dp[n][1];
+        for (int k = 2; k <= 4; ++k) {
+            State cur = dp[n][k];
+            if (cur.score > best.score) best = cur;
+            else if (cur.score == best.score && compare(cur.indices, best.indices) < 0) best = cur;
+        }
+        int[] res = new int[best.indices.size()];
+        for (int i = 0; i < res.length; ++i) res[i] = best.indices.get(i);
+        return res;
+    }
+    private int compare(List<Integer> a, List<Integer> b) {
+        int n = Math.min(a.size(), b.size());
+        for (int i = 0; i < n; ++i) {
+            if (!a.get(i).equals(b.get(i))) return a.get(i) - b.get(i);
+        }
+        return a.size() - b.size();
+    }
+}
