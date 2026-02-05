@@ -3,45 +3,34 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
+
 # @lc code=start
 class Solution {
-    public int countBinaryPalindromes(long n) {
-        int count = 0;
-        int maxLength = Long.toBinaryString(n).length();
-        
-        // Generate palindromes for each possible bit length
-        for (int len = 1; len <= maxLength; len++) {
-            // Generate palindromes with 'len' bits
-            count += generatePalindromes(len, n);
-        }
-        return count;
-    }
-    
-    private int generatePalindromes(int length, long n) {
-        int halfLength = (length + 1) / 2;
-        int start = 1 << (halfLength - 1); // Start with smallest half palindrome of this length
-        int end = (1 << halfLength); // End with largest half palindrome of this length
-        int count = 0;
-        
-        for (int i = start; i < end; i++) {
-            long palindrome = createPalindrome(i, length % 2 == 0);
-            if (palindrome <= n) {
+    public long countBinaryPalindromes(long n) {
+        long count = 0;
+        int maxLen = Long.toBinaryString(n).length();
+        // Include 0 in the loop by handling length 1
+        for (int len = 1; len <= maxLen; ++len) {
+            int halfLen = (len + 1) / 2;
+            long start = (len == 1) ? 0 : (1L << (halfLen - 1)); // allow zero for length 1 only
+            long end = 1L << halfLen;
+            for (long half = start; half < end; ++half) {
+                long candidate = buildPalindrome(half, len % 2 == 1);
+                if (candidate > n) break;
                 count++;
             }
         }
         return count;
     }
-    
-    private long createPalindrome(int half, boolean evenLength) {
-        long result = half;
-        if (!evenLength) {
-            half >>= 1; // Remove the middle bit for odd length
-        }
+    // Helper to build palindrome from half
+    private long buildPalindrome(long half, boolean odd) {
+        long res = half;
+        if (odd) half >>= 1;
         while (half > 0) {
-            result = (result << 1) | (half & 1);
+            res = (res << 1) | (half & 1);
             half >>= 1;
         }
-        return result;
+        return res;
     }
 }
 # @lc code=end
