@@ -28,21 +28,21 @@
 *         this.left = left;
 *         this.right = right;
 *     }
+* }
 */
 class Solution {
     public boolean isSubPath(ListNode head, TreeNode root) {
-        if (head == null) return true; // If linked list is empty, it matches by default.
-        if (root == null) return false; // No more nodes to match against.
-        // Try to match starting from current root or its children.
-        return dfs(head, root) || isSubPath(head, root.left) || isSubPath(head, root.right);
+        if (root == null) return false;
+        // Check from this node, or from left subtree, or right subtree
+        return checkPath(head, root) || isSubPath(head, root.left) || isSubPath(head, root.right);
     }
-    
-    // Helper function to check path starting from specific tree node & list head.
-    private boolean dfs(ListNode head, TreeNode root) {
-        if (head == null) return true; // Entire LinkedList matched
-        if (root == null || head.val != root.val) return false; // Mismatch or end of branch reached
-        // Check both child paths recursively
-        return dfs(head.next, root.left) || dfs(head.next, root.right);
+    // Helper function to check if list matches from this tree node
+    private boolean checkPath(ListNode head, TreeNode node) {
+        if (head == null) return true; // Finished list: success
+        if (node == null) return false; // Finished tree, list not done: fail
+        if (head.val != node.val) return false;
+        // Try to match next list node with left or right child
+        return checkPath(head.next, node.left) || checkPath(head.next, node.right);
     }
 }
 # @lc code=end
