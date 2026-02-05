@@ -1,1 +1,63 @@
-#\n# @lc app=leetcode id=3646 lang=java\n#\n# [3646] Next Special Palindrome Number\n#\n\n# @lc code=start\nclass Solution {\n    public long specialPalindrome(long n) {\n        long candidate = n + 1;\n        while (true) {\n            String candidateStr = Long.toString(candidate);\n            String firstHalf = candidateStr.substring(0, (candidateStr.length() + 1) / 2);\n            String mirrored = mirrorAndCheckSpecial(firstHalf, candidateStr.length(), n);\n            if (mirrored != null) {\n                return Long.parseLong(mirrored);\n            } else {\n                candidate = generateNextCandidate(candidate); // Generate next strategic candidate \u000a     } \u000a    } \u000a} \u000a    \u000a    private String mirrorAndCheckSpecial(String firstHalf, int length, long n) { \u000a     // Construct a palindrome by mirroring the first half and check for special condition \u000a     StringBuilder sb = new StringBuilder(firstHalf); \u000a     if (length % 2 == 0) { \u000a         sb.append(new StringBuilder(firstHalf).reverse()); \u000a     } else { \u000a         sb.append(new StringBuilder(firstHalf.substring(0, firstHalf.length() - 1)).reverse()); \u000a     } \u000a     long mirroredNumber = Long.parseLong(sb.toString()); \u000a     if (mirroredNumber > n && isSpecial(mirroredNumber)) { \u000a         return sb.toString(); \u000a     } \u000a     return null; \u000a} \u000a    \u000a    private boolean isSpecial(long number) { \u000a         int[] counts = new int[10]; \u000a         String str = Long.toString(number); \u000a         for (char c : str.toCharArray()) { \u000a             counts[c - '0']++; \u000a         } \u000a         for (int i = 0; i < counts.length; i++) { \u000a             if (counts[i] != 0 && counts[i] != i) { \u000a                 return false; // Check special condition for each digit's frequency \\\ @lc code=end
+#
+# @lc app=leetcode id=3646 lang=java
+#
+# [3646] Next Special Palindrome Number
+#
+# @lc code=start
+class Solution {
+    // Helper to check if a string is a palindrome
+    private boolean isPalindrome(String s) {
+        int l = 0, r = s.length() - 1;
+        while (l < r) {
+            if (s.charAt(l++) != s.charAt(r--)) return false;
+        }
+        return true;
+    }
+    // Helper to count digit frequencies
+    private int[] countDigits(String s) {
+        int[] count = new int[10];
+        for (char c : s.toCharArray()) count[c - '0']++;
+        return count;
+    }
+    // Helper to check the special property
+    private boolean isSpecial(int[] count) {
+        for (int d = 0; d <= 9; ++d) {
+            if (count[d] != 0 && count[d] != d) return false;
+        }
+        return true;
+    }
+    // Generate palindromes of given length recursively, no early pruning on partial candidates
+    private void generatePalindromes(int pos, char[] curr, int len, long limit, long[] result) {
+        if (result[0] != -1) return; // already found
+        if (pos >= (len + 1) / 2) {
+            String s = new String(curr);
+            long val = Long.parseLong(s);
+            if (val > limit) {
+                int[] count = countDigits(s);
+                if (isPalindrome(s) && isSpecial(count)) {
+                    result[0] = val;
+                }
+            }
+            return;
+        }
+        for (char d = (pos == 0 ? '1' : '0'); d <= '9'; ++d) {
+            curr[pos] = d;
+            curr[len - 1 - pos] = d;
+            generatePalindromes(pos + 1, curr, len, limit, result);
+            if (result[0] != -1) return;
+        }
+    }
+    public long specialPalindrome(long n) {
+        String nStr = Long.toString(n + 1);
+        int minLen = nStr.length();
+        int maxLen = 18;
+        for (int len = minLen; len <= maxLen; ++len) {
+            char[] curr = new char[len];
+            long[] result = new long[]{-1};
+            generatePalindromes(0, curr, len, n, result);
+            if (result[0] != -1) return result[0];
+        }
+        return -1;
+    }
+}
+# @lc code=end
