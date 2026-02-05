@@ -8,19 +8,23 @@
 class Solution {
 public:
     int totalSteps(vector<int>& nums) {
-        int n = nums.size(), ans = 0;
-        stack<pair<int, int>> st; // pair: value, steps needed
+        int n = nums.size();
+        vector<int> steps(n, 0);
+        stack<int> st;
+        int res = 0;
         for (int i = 0; i < n; ++i) {
-            int maxT = 0;
-            while (!st.empty() && nums[i] >= st.top().first) {
-                maxT = max(maxT, st.top().second);
+            int curr_steps = 0;
+            while (!st.empty() && nums[i] > nums[st.top()]) {
+                curr_steps = max(curr_steps + 1, steps[st.top()]);
                 st.pop();
             }
-            int step = st.empty() ? 0 : maxT + 1;
-            ans = max(ans, step);
-            st.push({nums[i], step});
+            if (!st.empty()) {
+                steps[i] = curr_steps;
+                res = max(res, steps[i]);
+            }
+            st.push(i);
         }
-        return ans;
+        return res;
     }
 };
 # @lc code=end
