@@ -5,26 +5,40 @@
 #
 
 # @lc code=start
+#include <vector>
+#include <algorithm>
+
 class Solution {
 public:
-    int totalSteps(vector<int>& nums) {
+    int totalSteps(std::vector<int>& nums) {
         int n = nums.size();
-        vector<int> steps(n, 0);
-        stack<int> st;
-        int res = 0;
-        for (int i = 0; i < n; ++i) {
-            int curr_steps = 0;
-            while (!st.empty() && nums[i] > nums[st.top()]) {
-                curr_steps = max(curr_steps + 1, steps[st.top()]);
-                st.pop();
+        int ans = 0;
+        // Stack stores pairs of {value, steps_to_be_removed}
+        // Using a vector as a stack for efficiency
+        std::vector<std::pair<int, int>> st;
+        
+        for (int x : nums) {
+            int t = 0;
+            // While current x is greater than or equal to stack top,
+            // x 'covers' the removal process of those elements.
+            while (!st.empty() && st.back().first <= x) {
+                t = std::max(t, st.back().second);
+                st.pop_back();
             }
-            if (!st.empty()) {
-                steps[i] = curr_steps;
-                res = max(res, steps[i]);
+            
+            // If stack is empty, x has no larger element to its left to remove it.
+            // Otherwise, x is removed at step t + 1.
+            if (st.empty()) {
+                t = 0;
+            } else {
+                t = t + 1;
             }
-            st.push(i);
+            
+            ans = std::max(ans, t);
+            st.push_back({x, t});
         }
-        return res;
+        
+        return ans;
     }
 };
 # @lc code=end
