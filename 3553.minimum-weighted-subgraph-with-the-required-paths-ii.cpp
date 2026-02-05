@@ -3,55 +3,50 @@
 #
 # [3553] Minimum Weighted Subgraph With the Required Paths II
 #
-
 # @lc code=start
-#include <vector>
-#include <algorithm>
-using namespace std;
-
 class Solution {
 public:
-    static const int LOG = 17; // 2^17 > 1e5
+    const int LOG = 17; // 2^17 > 1e5
     vector<vector<pair<int, int>>> adj;
-    vector<vector<int>> up; // up[v][i]: the 2^i-th ancestor of v
-    vector<int> depth, tin, tout;
-    vector<long long> weightFromRoot;
-    int timer = 0, n;
+    vector<vector<int>> up;
+    vector<int> depth, parent;
+    vector<long long> weightToRoot;
+    int n;
 
-    void dfs(int v, int p, int d, long long w) {
-        tin[v] = ++timer;
-        up[v][0] = p;
-        depth[v] = d;
-        weightFromRoot[v] = w;
-        for (int i = 1; i < LOG; ++i) {
-            up[v][i] = up[up[v][i-1]][i-1];
+    void dfs(int u, int p, int d, long long w) {
+        parent[u] = p;
+        depth[u] = d;
+        weightToRoot[u] = w;
+        for (auto [v, wgt] : adj[u]) {
+            if (v == p) continue;
+            dfs(v, u, d + 1, w + wgt);
         }
-        for (auto& [to, wt] : adj[v]) {
-            if (to != p) {
-                dfs(to, v, d+1, w+wt);
-            }
-        }
-        tout[v] = ++timer;
     }
 
-    bool isAncestor(int u, int v) {
-        return tin[u] <= tin[v] && tout[u] >= tout[v];
+    void preprocessLCA() {
+        for (int i = 0; i < n; ++i) up[i][0] = parent[i];
+        for (int j = 1; j < LOG; ++j) {
+            for (int i = 0; i < n; ++i) {
+                if (up[i][j-1] != -1)
+                    up[i][j] = up[up[i][j-1]][j-1];
+            }
+        }
     }
 
     int lca(int u, int v) {
-        if (isAncestor(u, v)) return u;
-        if (isAncestor(v, u)) return v;
-        for (int i = LOG-1; i >= 0; --i) {
-            if (!isAncestor(up[u][i], v)) {
-                u = up[u][i];
+        if (depth[u] < depth[v]) swap(u, v);
+        for (int k = LOG - 1; k >= 0; --k) {
+            if (up[u][k] != -1 && depth[up[u][k]] >= depth[v])
+                u = up[u][k];
+        }
+        if (u == v) return u;
+        for (int k = LOG - 1; k >= 0; --k) {
+            if (up[u][k] != -1 && up[u][k] != up[v][k]) {
+                u = up[u][k];
+                v = up[v][k];
             }
         }
-        return up[u][0];
-    }
-
-    long long pathWeight(int u, int v) {
-        int a = lca(u, v);
-        return weightFromRoot[u] + weightFromRoot[v] - 2 * weightFromRoot[a];
+        return parent[u];
     }
 
     vector<int> minimumWeight(vector<vector<int>>& edges, vector<vector<int>>& queries) {
@@ -59,27 +54,25 @@ public:
         adj.assign(n, {});
         for (auto& e : edges) {
             int u = e[0], v = e[1], w = e[2];
-            adj[u].push_back({v, w});
-            adj[v].push_back({u, w});
+            adj[u].emplace_back(v, w);
+            adj[v].emplace_back(u, w);
         }
-        up.assign(n, vector<int>(LOG));
+        parent.assign(n, -1);
         depth.assign(n, 0);
-        tin.assign(n, 0);
-        tout.assign(n, 0);
-        weightFromRoot.assign(n, 0);
-        timer = 0;
-        dfs(0, 0, 0, 0);
+        weightToRoot.assign(n, 0);
+        up.assign(n, vector<int>(LOG, -1));
+        dfs(0, -1, 0, 0);
+        preprocessLCA();
         vector<int> ans;
         for (auto& q : queries) {
             int s1 = q[0], s2 = q[1], d = q[2];
-            int l1 = lca(s1, d);
-            int l2 = lca(s2, d);
-            int l3 = lca(s1, s2);
-            int l = lca(l1, l2); // LCA of all three nodes
-            // Calculate the total weight ensuring no double-counting
-            long long res = weightFromRoot[s1] + weightFromRoot[s2] + weightFromRoot[d] - weightFromRoot[l1] - weightFromRoot[l2] - weightFromRoot[l3];
-            // Verification: the result is the sum of unique edges in the union of the paths
-            ans.push_back((int)res);
+            int lca1 = lca(s1, d);
+            int lca2 = lca(s2, d);
+            int lca12 = lca(s1, s2);
+            int lcaAll = lca(lca1, lca2);
+            long long total = weightToRoot[s1] + weightToRoot[s2] + weightToRoot[d]
+                - weightToRoot[lca1] - weightToRoot[lca2] - weightToRoot[lca12] + weightToRoot[lcaAll];
+            ans.push_back((int)total);
         }
         return ans;
     }
