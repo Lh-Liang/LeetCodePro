@@ -1,49 +1,79 @@
-#
-# @lc app=leetcode id=3625 lang=java
-#
-# [3625] Count Number of Trapezoids II
-#
-
-# @lc code=start
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.Arrays;
-
+//
+// @lc app=leetcode id=3625 lang=java
+//
+// [3625] Count Number of Trapezoids II
+//
+// @lc code=start
+import java.util.*;
 class Solution {
     public int countTrapezoids(int[][] points) {
         int n = points.length;
-        if (n < 4) return 0;
-        Set<String> uniqueTrapezoids = new HashSet<>();
-        Map<String, Set<int[]>> slopeMap = new HashMap<>();
-        
-        // Calculate slopes among all point pairs and group them
-        for (int i = 0; i < n; i++) {
-            for (int j = i + 1; j < n; j++) {
-                String slope = calculateSlope(points[i], points[j]);
-                
-                if (!slopeMap.containsKey(slope)) {
-                    slopeMap.put(slope, new HashSet<>());
-                }
-                slopeMap.get(slope).add(new int[]{i, j});
-            }
-        }
-        
-        // Check possible trapezoid formations
-        for (String slope : slopeMap.keySet()) {
-            Set<int[]> linePairs = slopeMap.get(slope);
-            Integer[] indices = linePairs.stream().flatMapToInt(Arrays::stream).distinct().boxed().toArray(Integer[]::new);
-            int len = indices.length;
-            if (len >= 4) {
-                for (int a = 0; a < len - 3; a++) {
-                    for (int b = a + 1; b < len - 2; b++) {
-                        for (int c = b + 1; c < len - 1; c++) {
-                            for (int d = c + 1; d < len; d++) {
-                                int[] quartet = {indices[a], indices[b], indices[c], indices[d]};
-                                String configKey = getConfigurationKey(quartet);
-                                uniqueTrapezoids.add(configKey);
+        Set<String> seen = new HashSet<>();
+        int count = 0;
+        // Generate all combinations of 4 points
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                for (int k = j + 1; k < n; ++k) {
+                    for (int l = k + 1; l < n; ++l) {
+                        int[][] quad = {points[i], points[j], points[k], points[l]};
+                        // Instead of all permutations, only check all unique cyclic orderings to avoid redundancy
+                        for (int[] order : new int[][]{{0,1,2,3},{0,1,3,2},{0,2,1,3}}) {
+                            int[][] poly = {
+                                quad[order[0]], quad[order[1]], quad[order[2]], quad[order[3]]
+                            };
+                            if (isConvex(poly) && hasParallelSides(poly)) {
+                                int[][] sortedPoly = Arrays.copyOf(poly, 4);
+                                Arrays.sort(sortedPoly, (a, b) -> {
+                                    if (a[0] != b[0]) return Integer.compare(a[0], b[0]);
+                                    return Integer.compare(a[1], b[1]);
+                                });
+                                StringBuilder sb = new StringBuilder();
+                                for (int[] pt : sortedPoly) sb.append(pt[0]).append(',').append(pt[1]).append(';');
+                                String key = sb.toString();
+                                if (!seen.contains(key)) {
+                                    seen.add(key);
+                                    count++;
+                                }
+                                break; // Only count once per set of 4 points
                             }
                         }
                     }
-                }	 		}		}		return uniqueTrapezoids.size();    		// Return size of the unique trapezoid set as result    	}	    	private String calculateSlope(int[] p1, int[] p2) {      int dy = p2[1] - p1[1];      int dx = p2[0] - p1[0];      // Handle vertical lines by defining consistent representation      if (dx == 0) return dy > 0 ? "Infinity" : "-Infinity";      int gcdValue = gcd(dy, dx);     // Use GCD to reduce dy and dx      dy /= gcdValue;       dx /= gcdValue;   // Maintain consistency in representation by ensuring positive denominator      if (dx < 0) {          dy *= -1;          dx *= -1;      }      return dy + "/" + dx;}    private int gcd(int a, int b) {   // Recursive method to find greatest common divisor     if(b == 0) return Math.abs(a);   // Base condition for recursion end     return gcd(b, a % b);}   private String getConfigurationKey(int[] quartet) {   Arrays.sort(quartet);   // Sort quartet array     return Arrays.toString(quartet);   // Return sorted array as string } } # @lc code=end
+                }
+            }
+        }
+        return count;
+    }
+    private boolean isConvex(int[][] quad) {
+        int n = quad.length;
+        int prev = 0;
+        for (int i = 0; i < n; ++i) {
+            int[] a = quad[i];
+            int[] b = quad[(i + 1) % n];
+            int[] c = quad[(i + 2) % n];
+            int cross = crossProduct(a, b, c);
+            if (cross == 0) return false;
+            if (prev == 0) prev = cross > 0 ? 1 : -1;
+            else if ((cross > 0 ? 1 : -1) != prev) return false;
+        }
+        return true;
+    }
+    private int crossProduct(int[] a, int[] b, int[] c) {
+        int x1 = b[0] - a[0];
+        int y1 = b[1] - a[1];
+        int x2 = c[0] - b[0];
+        int y2 = c[1] - b[1];
+        return x1 * y2 - y1 * x2;
+    }
+    private boolean hasParallelSides(int[][] quad) {
+        return isParallel(quad[0], quad[1], quad[2], quad[3]) ||
+               isParallel(quad[1], quad[2], quad[3], quad[0]);
+    }
+    private boolean isParallel(int[] a, int[] b, int[] c, int[] d) {
+        int dx1 = b[0] - a[0];
+        int dy1 = b[1] - a[1];
+        int dx2 = d[0] - c[0];
+        int dy2 = d[1] - c[1];
+        return dx1 * dy2 == dy1 * dx2;
+    }
+}
+// @lc code=end
