@@ -4,48 +4,53 @@
 # [1670] Design Front Middle Back Queue
 #
 # @lc code=start
-import java.util.Deque;
 import java.util.LinkedList;
 
 class FrontMiddleBackQueue {
-    private Deque<Integer> frontDeque;
-    private Deque<Integer> backDeque;
-    
+    LinkedList<Integer> q;
+
     public FrontMiddleBackQueue() {
-        frontDeque = new LinkedList<>();
-        backDeque = new LinkedList<>();
+        q = new LinkedList<>();
     }
-    
+
     public void pushFront(int val) {
-        frontDeque.addFirst(val);
-        balance();
+        q.addFirst(val);
     }
-    
+
     public void pushMiddle(int val) {
-        if (frontDeque.size() > backDeque.size()) {
-            backDeque.addFirst(frontDeque.removeLast());
-        }
-        frontDeque.addLast(val);
-        balance();
+        int idx = q.size() / 2;
+        q.add(idx, val);
     }
-    
+
     public void pushBack(int val) {
-        backDeque.addLast(val);
-        balance();
+        q.addLast(val);
     }
-    
+
     public int popFront() {
-        if (frontDeque.isEmpty() && backDeque.isEmpty()) return -1;
-        int value = !frontDeque.isEmpty() ? frontDeque.removeFirst() : backDeque.removeFirst();
-        balance();
-        return value;
+        if (q.isEmpty()) return -1;
+        return q.removeFirst();
     }
 
-    public int popMiddle() {		   		
-		if (frontDeque.isEmpty() && backDeque.isEmpty()) return -1;		   		
-		int value = (frontDeque.size() >= backDeque.size()) ? frontDeque.removeLast() : backDeque.removeFirst();		   		
-		balance();		   		
-		return value;		   	
-}	
+    public int popMiddle() {
+        if (q.isEmpty()) return -1;
+        int idx = (q.size() - 1) / 2;
+        return q.remove(idx);
+    }
 
-public int popBack() {  	  	   	   	  if (backDeque.isEmpty() && frontDeque.isEmpty()) return -1;  	  	   	   	  int value = !backDeque.isEmpty() ? backDeque.removeLast() : frontDeque.removeLast();  	balance(); return value; }  private void balance(){while(frontDequeue.size()>backDequeue.size()+1){backDequeue.addFirst(frontDequeue.removeLast());}while(backDequeue.size()>frontDequeue.size()){frontDequeue.addLast(backDequeue.removeFirst());}} # @lc code=end
+    public int popBack() {
+        if (q.isEmpty()) return -1;
+        return q.removeLast();
+    }
+}
+
+/**
+* Your FrontMiddleBackQueue object will be instantiated and called as such:
+* FrontMiddleBackQueue obj = new FrontMiddleBackQueue();
+* obj.pushFront(val);
+* obj.pushMiddle(val);
+* obj.pushBack(val);
+* int param_4 = obj.popFront();
+* int param_5 = obj.popMiddle();
+* int param_6 = obj.popBack();
+*/
+# @lc code=end
