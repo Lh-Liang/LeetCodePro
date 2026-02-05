@@ -4,50 +4,71 @@
 # [2296] Design a Text Editor
 #
 # @lc code=start
-import java.util.*;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Iterator;
+
 class TextEditor {
-    Deque<Character> left; // Text to the left of cursor
-    Deque<Character> right; // Text to the right of cursor
+    private Deque<Character> left;
+    private Deque<Character> right;
+
     public TextEditor() {
-        left = new ArrayDeque<>();
-        right = new ArrayDeque<>();
+        left = new LinkedList<>();
+        right = new LinkedList<>();
     }
+
     public void addText(String text) {
         for (char c : text.toCharArray()) {
-            left.offerLast(c);
+            left.addLast(c);
         }
     }
+
     public int deleteText(int k) {
-        int count = 0;
-        while (count < k && !left.isEmpty()) {
-            left.pollLast();
-            count++;
+        int deleted = 0;
+        while (deleted < k && !left.isEmpty()) {
+            left.removeLast();
+            deleted++;
         }
-        return count;
+        return deleted;
     }
+
     public String cursorLeft(int k) {
         while (k > 0 && !left.isEmpty()) {
-            right.offerFirst(left.pollLast());
+            right.addFirst(left.removeLast());
             k--;
         }
-        return getLeftText();
+        return getLast10();
     }
+
     public String cursorRight(int k) {
         while (k > 0 && !right.isEmpty()) {
-            left.offerLast(right.pollFirst());
+            left.addLast(right.removeFirst());
             k--;
         }
-        return getLeftText();
+        return getLast10();
     }
-    private String getLeftText() {
+
+    // Efficiently get the last up to 10 characters from the left stack without iterating the entire stack
+    private String getLast10() {
         StringBuilder sb = new StringBuilder();
-        Iterator<Character> iter = left.descendingIterator();
-        int count = 10; // We only need last 10 characters
-        while (count > 0 && iter.hasNext()) {
-            sb.append(iter.next());
-            count--;
+        Iterator<Character> it = left.descendingIterator();
+        int cnt = 0;
+        // Collect up to 10 characters from the end of the left stack
+        while (it.hasNext() && cnt < 10) {
+            sb.append(it.next());
+            cnt++;
         }
-        return sb.reverse().toString(); // Reverse because we added in reverse order
+        // Since we built the string in reverse, reverse it before returning
+        return sb.reverse().toString();
     }
 }
-deque "/return # @lc code=end
+
+/**
+* Your TextEditor object will be instantiated and called as such:
+* TextEditor obj = new TextEditor();
+* obj.addText(text);
+* int param_2 = obj.deleteText(k);
+* String param_3 = obj.cursorLeft(k);
+* String param_4 = obj.cursorRight(k);
+*/
+# @lc code=end
