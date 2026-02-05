@@ -29,14 +29,15 @@ class Solution {
 public:
     bool isSubPath(ListNode* head, TreeNode* root) {
         if (!root) return false;
-        // Try to match from this node, or from left or right subtree
-        return dfs(head, root) || isSubPath(head, root->left) || isSubPath(head, root->right);
+        if (match(head, root)) return true;
+        return isSubPath(head, root->left) || isSubPath(head, root->right);
     }
-    bool dfs(ListNode* head, TreeNode* node) {
+    
+    bool match(ListNode* head, TreeNode* node) {
         if (!head) return true;
         if (!node) return false;
-        if (node->val != head->val) return false;
-        return dfs(head->next, node->left) || dfs(head->next, node->right);
+        if (head->val != node->val) return false;
+        return match(head->next, node->left) || match(head->next, node->right);
     }
 };
 # @lc code=end
