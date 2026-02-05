@@ -5,84 +5,77 @@
 #
 
 # @lc code=start
-#include <vector>
-#include <string>
-#include <set>
-#include <algorithm>
-using namespace std;
 class Solution {
 public:
-    // Check if a digit profile can form a palindrome
-    bool canFormPalindrome(const vector<int>& counts) {
-        int odd = 0, len = 0;
-        for (int k = 0; k < 9; ++k) {
-            if (counts[k] % 2) ++odd;
-            len += counts[k];
+    // Helper to check if a number string is palindrome
+    bool isPalindrome(const string& s) {
+        int l = 0, r = s.size() - 1;
+        while (l < r) {
+            if (s[l++] != s[r--]) return false;
         }
-        if (len == 0) return false;
-        if (len % 2 == 0) return odd == 0;
-        else return odd == 1;
+        return true;
     }
-    // Generate all unique permutations of half, using std::next_permutation
-    void generateUniqueHalves(vector<int>& half, set<vector<int>>& uniqueHalves) {
-        sort(half.begin(), half.end());
-        do {
-            if (half.empty() || half[0] != 0)  // Avoid leading zeros
-                uniqueHalves.insert(half);
-        } while (next_permutation(half.begin(), half.end()));
-    }
-    // Build unique palindromic numbers for a given digit profile
-    void buildUniquePalindromes(const vector<int>& counts, long long n, long long& best) {
-        vector<int> half;
-        int center = -1;
-        for (int k = 0; k < 9; ++k) {
-            if (counts[k] % 2) center = k + 1;
-            for (int i = 0; i < counts[k] / 2; ++i) half.push_back(k + 1);
-        }
-        set<vector<int>> uniqueHalves;
-        generateUniqueHalves(half, uniqueHalves);
-        for (const auto& h : uniqueHalves) {
-            string s;
-            for (int d : h) s += (char)('0' + d);
-            string rev_s(s.rbegin(), s.rend());
-            if (center != -1) s += (char)('0' + center);
-            s += rev_s;
-            if (s.empty() || s[0] == '0') continue; // Universal leading zero check
-            // Explicitly verify all digit frequency constraints
-            vector<int> digitCount(10, 0);
-            for (char c : s) digitCount[c - '0']++;
-            bool valid = true;
-            for (int d = 1; d <= 9; ++d) {
-                if (digitCount[d] && digitCount[d] != d) {
-                    valid = false;
-                    break;
-                }
-            }
-            if (!valid) continue;
-            long long val = stoll(s);
-            if (val > n && (best == -1 || val < best)) best = val;
-        }
-    }
-    // Recursively build all valid profiles
-    void dfs(vector<int>& counts, int pos, vector<vector<int>>& profiles) {
-        if (pos == 9) {
-            if (canFormPalindrome(counts)) profiles.push_back(counts);
+    // Try possible digit count combinations
+    void backtrack(vector<int>& counts, int idx, vector<vector<int>>& combs) {
+        if (idx > 9) {
+            int total = 0;
+            for (int k = 1; k <= 9; ++k) total += counts[k];
+            if (total > 0) combs.push_back(counts);
             return;
         }
-        counts[pos] = 0;
-        dfs(counts, pos + 1, profiles);
-        counts[pos] = pos + 1;
-        dfs(counts, pos + 1, profiles);
+        // Option: don't use this digit
+        counts[idx] = 0; backtrack(counts, idx+1, combs);
+        // Option: use this digit exactly idx times
+        counts[idx] = idx; backtrack(counts, idx+1, combs);
+    }
+    // Generate all palindromes from a given digit count
+    void buildPalindromes(vector<int>& counts, int len, string& curr, int pos, vector<string>& pals) {
+        if (pos >= len/2) {
+            string pal = curr;
+            if (len % 2) {
+                for (int mid = 1; mid <= 9; ++mid) {
+                    if (counts[mid] % 2 == 1) {
+                        pal[len/2] = '0' + mid;
+                        pals.push_back(pal);
+                        break;
+                    }
+                }
+            } else pals.push_back(pal);
+            return;
+        }
+        for (int d = 1; d <= 9; ++d) {
+            if (counts[d] >= 2) {
+                curr[pos] = curr[len-1-pos] = '0' + d;
+                counts[d] -= 2;
+                buildPalindromes(counts, len, curr, pos+1, pals);
+                counts[d] += 2;
+            }
+        }
     }
     long long specialPalindrome(long long n) {
-        vector<vector<int>> profiles;
-        vector<int> counts(9, 0);
-        dfs(counts, 0, profiles);
-        long long best = -1;
-        for (const auto& prof : profiles) {
-            buildUniquePalindromes(prof, n, best);
+        vector<vector<int>> combs;
+        vector<int> counts(10, 0);
+        backtrack(counts, 1, combs);
+        long long res = -1;
+        for (auto& c : combs) {
+            int total = 0, odd = 0;
+            for (int k = 1; k <= 9; ++k) {
+                total += c[k];
+                if (c[k] % 2) ++odd;
+            }
+            if (odd > 1) continue;
+            string curr(total, '0');
+            vector<string> pals;
+            buildPalindromes(c, total, curr, 0, pals);
+            for (auto& s : pals) {
+                if (s[0] == '0') continue;
+                long long val = stoll(s);
+                if (val > n && (res == -1 || val < res)) {
+                    res = val;
+                }
+            }
         }
-        return best;
+        return res;
     }
 };
 # @lc code=end
