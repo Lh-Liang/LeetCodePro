@@ -6,43 +6,71 @@
 
 # @lc code=start
 import java.util.*;
-
 class Solution {
-    private static final int MOD = 1000000007;
-    private List<Integer>[] tree;
-    private int[] vals;
-    
+    private static final int MOD = 1_000_000_007;
+
+    // Helper: extract digit mask from value, ensure correctness for all values
+    private int getDigitMask(int val) {
+        int mask = 0;
+        while (val > 0) {
+            int d = val % 10;
+            mask |= (1 << d);
+            val /= 10;
+        }
+        return mask;
+    }
+
     public int goodSubtreeSum(int[] vals, int[] par) {
         int n = vals.length;
-        this.vals = vals;
-        tree = new ArrayList[n];
-        for (int i = 0; i < n; i++) {
-            tree[i] = new ArrayList<>();
-        }
-        for (int i = 1; i < n; i++) {
-            tree[par[i]].add(i);
-        }
-        
-        long[] maxScore = new long[n];
-        dfs(0, maxScore);
-        
-        long totalScore = 0;
-        for (long score : maxScore) {
-            totalScore = (totalScore + score) % MOD;
-        }
-        return (int) totalScore;
+        List<Integer>[] tree = new ArrayList[n];
+        for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
+        for (int i = 1; i < n; ++i) tree[par[i]].add(i);
+
+        int[] maxScore = new int[n];
+        dfs(0, vals, tree, maxScore);
+        long total = 0;
+        for (int score : maxScore) total = (total + score) % MOD;
+        return (int) total;
     }
-    
-    private void dfs(int node, long[] maxScore) {
-        boolean[] usedDigits = new boolean[10]; // To track used digits in subtree values.
-        maxScore[node] = dfsHelper(node, usedDigits); // Calculate score for this subtree. 
+
+    // DFS: For each node, maintain map: digitMask -> maxSum
+    private Map<Integer, Integer> dfs(int u, int[] vals, List<Integer>[] tree, int[] maxScore) {
+        Map<Integer, Integer> dp = new HashMap<>();
+        int selfMask = getDigitMask(vals[u]);
+        // Handle repeated digits in value: only include node itself if digits are unique
+        if (Integer.bitCount(selfMask) == String.valueOf(vals[u]).length()) {
+            dp.put(selfMask, vals[u]);
+        }
+        for (int v : tree[u]) {
+            Map<Integer, Integer> childDP = dfs(v, vals, tree, maxScore);
+            Map<Integer, Integer> newDP = new HashMap<>(dp);
+            // Break down merging for verifiability
+            for (Map.Entry<Integer, Integer> e1 : dp.entrySet()) {
+                int mask1 = e1.getKey(), sum1 = e1.getValue();
+                for (Map.Entry<Integer, Integer> e2 : childDP.entrySet()) {
+                    int mask2 = e2.getKey(), sum2 = e2.getValue();
+                    // Only merge if masks do not overlap
+                    if ((mask1 & mask2) == 0) {
+                        int mergedMask = mask1 | mask2;
+                        int mergedSum = sum1 + sum2;
+                        // Update if merged sum is greater; verify no digit overlap
+                        newDP.put(mergedMask, Math.max(newDP.getOrDefault(mergedMask, 0), mergedSum));
+                    }
+                }
+            }
+            // Also consider childDP entries alone (in case parent dp is empty)
+            for (Map.Entry<Integer, Integer> e : childDP.entrySet()) {
+                int mask = e.getKey(), sum = e.getValue();
+                newDP.put(mask, Math.max(newDP.getOrDefault(mask, 0), sum));
+            }
+            dp = newDP;
+        }
+        // Maximum among all digit masks is the good subset score for this node
+        int max = 0;
+        for (int v : dp.values()) max = Math.max(max, v);
+        // Edge case: if no good subset, ensure at least 0
+        maxScore[u] = max;
+        return dp;
     }
-    
-    private long dfsHelper(int node, boolean[] usedDigits) {
-        long currSum = vals[node]; // Start with current node value.
-        if (!addDigits(vals[node], usedDigits)) return 0; // If cannot add due to digit conflict.
-        for (int child : tree[node]) { 
-            currSum += dfsHelper(child, usedDigits); // Sum up valid scores from children.
-            currSum %= MOD; // Apply modulo to prevent overflow.
- removeDigits(vals[node], usedDigits); // Backtrack on digits.
- return currSum; }/ Adds digits of value if not yet used in subtree. Returns false if conflict occurs.\u21e8\u21e8boolean addDigits(int value, boolean[] usedDigits) { \u21e8\u21e8while (value > 0) { \u21e8\u21e8int digit = value % 10; \u21e8\u21e8if \(usedDigits[digit]) return false; \ u\21e8\ u\21e8usedDigits[digit] = true; \ u\21e8\ u\21e8value /= 10;} \ u\21e8return true;} \ removeDigits(int value, boolean[] usedDigits) { while (value > 0) { int digit = value % 10; usedDigits[digit] = false; value /= 10;} }
+}
+# @lc code=end
