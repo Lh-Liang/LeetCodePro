@@ -1,83 +1,68 @@
-// @lc app=leetcode id=3414 lang=cpp
-//
-// [3414] Maximum Score of Non-overlapping Intervals
-//
+#
+# @lc app=leetcode id=3414 lang=cpp
+#
+# [3414] Maximum Score of Non-overlapping Intervals
+#
 
-// @lc code=start
+# @lc code=start
 #include <vector>
 #include <algorithm>
 using namespace std;
-
 class Solution {
 public:
     vector<int> maximumWeight(vector<vector<int>>& intervals) {
         int n = intervals.size();
-        vector<pair<pair<int,int>, pair<int,int>>> arr; // ((end, start), (weight, orig_idx))
+        vector<tuple<int,int,int,int>> tmp;
         for (int i = 0; i < n; ++i) {
-            arr.push_back({{intervals[i][1], intervals[i][0]}, {intervals[i][2], i}});
+            tmp.emplace_back(intervals[i][1], intervals[i][0], intervals[i][2], i);
         }
-        sort(arr.begin(), arr.end());
-        // Precompute previous non-overlapping interval for each interval
-        vector<int> prev(n, -1);
-        for (int i = 0; i < n; ++i) {
-            int l = 0, r = i-1, ans = -1;
-            while (l <= r) {
+        sort(tmp.begin(), tmp.end());
+        // dp[i][k]: pair of (score, indices) for first i intervals, using k intervals
+        vector<vector<pair<long long, vector<int>>>> dp(n+1, vector<pair<long long, vector<int>>>(5, {0, {}}));
+        vector<int> ends(n);
+        for (int i = 0; i < n; ++i) ends[i] = get<0>(tmp[i]);
+        for (int i = 1; i <= n; ++i) {
+            auto [end, start, weight, idx] = tmp[i-1];
+            // find prev that does not overlap
+            int l = 0, r = i-1, pre = 0;
+            while (l < r) {
                 int m = (l + r) / 2;
-                if (arr[m].first.first < arr[i].first.second) { // arr[m].end < arr[i].start
-                    ans = m;
-                    l = m + 1;
-                } else {
-                    r = m - 1;
-                }
+                if (ends[m] < start) l = m+1;
+                else r = m;
             }
-            prev[i] = ans;
-        }
-        // dp[i][k]: max weight for first i+1 intervals with k intervals chosen
-        // Also track the corresponding indices for lex smallest
-        vector<vector<long long>> dp(n, vector<long long>(5, 0));
-        vector<vector<vector<int>>> idxs(n, vector<vector<int>>(5));
-        for (int i = 0; i < n; ++i) {
+            pre = (ends[0] < start) ? l+1 : 0;
             for (int k = 1; k <= 4; ++k) {
-                // Option 1: don't take this interval
-                if (i > 0) {
+                // not take
+                if (dp[i-1][k].first > dp[i][k].first || 
+                    (dp[i-1][k].first == dp[i][k].first && dp[i-1][k].second < dp[i][k].second)) {
                     dp[i][k] = dp[i-1][k];
-                    idxs[i][k] = idxs[i-1][k];
                 }
-                // Option 2: take this interval
-                long long cand = arr[i].second.first;
-                vector<int> cand_idxs = {arr[i].second.second};
-                if (prev[i] != -1 && k > 1) {
-                    cand += dp[prev[i]][k-1];
-                    cand_idxs = idxs[prev[i]][k-1];
-                    cand_idxs.push_back(arr[i].second.second);
-                }
-                // Lexicographical order is maintained through DP construction
-                if (cand > dp[i][k] || (cand == dp[i][k] && (idxs[i][k].empty() || lexicographical_compare(cand_idxs.begin(), cand_idxs.end(), idxs[i][k].begin(), idxs[i][k].end())))) {
-                    dp[i][k] = cand;
-                    idxs[i][k] = cand_idxs;
+                // take
+                if (dp[pre][k-1].first + weight > dp[i][k].first) {
+                    dp[i][k].first = dp[pre][k-1].first + weight;
+                    dp[i][k].second = dp[pre][k-1].second;
+                    dp[i][k].second.push_back(idx);
+                } else if (dp[pre][k-1].first + weight == dp[i][k].first) {
+                    auto cand = dp[pre][k-1].second;
+                    cand.push_back(idx);
+                    if (cand < dp[i][k].second) {
+                        dp[i][k].second = cand;
+                    }
                 }
             }
         }
-        // Find the best among k = 1..4
         long long best = 0;
-        vector<int> answer;
+        vector<int> ans;
         for (int k = 1; k <= 4; ++k) {
-            if (dp[n-1][k] > best || (dp[n-1][k] == best && (answer.empty() || lexicographical_compare(idxs[n-1][k].begin(), idxs[n-1][k].end(), answer.begin(), answer.end())))) {
-                best = dp[n-1][k];
-                answer = idxs[n-1][k];
+            if (dp[n][k].first > best) {
+                best = dp[n][k].first;
+                ans = dp[n][k].second;
+            } else if (dp[n][k].first == best && (ans.empty() || dp[n][k].second < ans)) {
+                ans = dp[n][k].second;
             }
         }
-        // General verification step: check non-overlap and size constraints
-        for (int i = 1; i < (int)answer.size(); ++i) {
-            int idx_prev = answer[i-1];
-            int idx_cur = answer[i];
-            if (!(intervals[idx_prev][1] < intervals[idx_cur][0])) {
-                // Overlapping found, should not happen
-                return {};
-            }
-        }
-        if (answer.size() > 4) return {};
-        return answer;
+        sort(ans.begin(), ans.end());
+        return ans;
     }
 };
-// @lc code=end
+# @lc code=end
