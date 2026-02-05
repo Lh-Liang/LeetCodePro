@@ -9,20 +9,20 @@ class Solution {
 public:
     long long countNonDecreasingSubarrays(vector<int>& nums, int k) {
         int n = nums.size();
-        vector<long long> prefix(n, 0);
-        // prefix[i]: sum of max(0, nums[j-1] - nums[j]) for j in 1..i
-        for(int i = 1; i < n; ++i) {
-            prefix[i] = prefix[i-1] + max(0, nums[i-1] - nums[i]);
-        }
         long long ans = 0;
-        int r = 0;
-        for(int l = 0; l < n; ++l) {
-            // For current l, move r as far as possible: prefix[r]-prefix[l] <= k
-            if (r < l) r = l;
-            while(r < n && prefix[r] - prefix[l] <= k) {
-                ++r;
+        for (int left = 0; left < n; ++left) {
+            long long used = 0;
+            int max_val = nums[left];
+            for (int right = left + 1; right < n; ++right) {
+                if (nums[right] < max_val) {
+                    used += max_val - nums[right];
+                    if (used > k) break;
+                } else {
+                    max_val = nums[right];
+                }
             }
-            ans += r - l;
+            // The number of valid subarrays starting at left is (right - left)
+            ans += (right - left);
         }
         return ans;
     }
