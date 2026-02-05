@@ -1,50 +1,66 @@
-#
-# @lc app=leetcode id=3413 lang=java
-#
-# [3413] Maximum Coins From K Consecutive Bags
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3413 lang=java
+//
+// [3413] Maximum Coins From K Consecutive Bags
+//
+// @lc code=start
 import java.util.*;
-
 class Solution {
     public long maximumCoins(int[][] coins, int k) {
-        // Step 1: Use a map to apply range updates efficiently
-        Map<Integer, Long> delta = new TreeMap<>();
-        for (int[] coin : coins) {
-            int li = coin[0], ri = coin[1], ci = coin[2];
-            delta.put(li, delta.getOrDefault(li, 0L) + ci);
-            delta.put(ri + 1, delta.getOrDefault(ri + 1, 0L) - ci);
-        }
-        
-        // Step 2: Calculate prefix sums and use sliding window to find max sum for k consecutive positions
-        long currentSum = 0;
-        long maxCoins = 0;
-        LinkedList<Long> windowSums = new LinkedList<>();
-        int lastPosition = -1; // Track the last position processed
-        
-        for (Map.Entry<Integer, Long> entry : delta.entrySet()) {
-            int pos = entry.getKey();
-            long change = entry.getValue();
-            
-            if (lastPosition != -1 && pos > lastPosition + 1) {
-                // Fill gaps between positions if they exist
-                while (windowSums.size() < k && lastPosition < pos - 1) {
-                    windowSums.add(currentSum);
-                    maxCoins = Math.max(maxCoins, currentSum);
-                    lastPosition++;
-                }
+        Arrays.sort(coins, (a, b) -> Integer.compare(a[0], b[0]));
+        List<int[]> segs = new ArrayList<>();
+        int n = coins.length;
+        int prev = 0;
+        for (int i = 0; i < n; ++i) {
+            int l = coins[i][0], r = coins[i][1], c = coins[i][2];
+            if (prev + 1 < l) {
+                segs.add(new int[]{prev + 1, l - 1, 0});
             }
-            
-            currentSum += change; // Apply change at this position
-            windowSums.add(currentSum);
-            if (windowSums.size() > k) {
-                currentSum -= windowSums.poll(); // Slide the window forward by removing oldest entry
-            }
-            
-            maxCoins = Math.max(maxCoins, currentSum); // Update max coins found so far
-            lastPosition = pos;
+            segs.add(new int[]{l, r, c});
+            prev = r;
         }
-        return maxCoins; 
+        long totalBags = 0;
+        for (int[] seg : segs) {
+            totalBags += (long)seg[1] - seg[0] + 1;
+        }
+        if (k > totalBags) return 0;
+        int leftSeg = 0, rightSeg = 0;
+        int leftPos = segs.get(0)[0], rightPos = segs.get(0)[0] - 1;
+        long currSum = 0, maxSum = 0;
+        int needed = k;
+        while (needed > 0 && rightSeg < segs.size()) {
+            int[] seg = segs.get(rightSeg);
+            int segStart = Math.max(seg[0], rightPos + 1);
+            int segLen = seg[1] - segStart + 1;
+            int take = (int)Math.min(needed, segLen);
+            currSum += (long)take * seg[2];
+            rightPos += take;
+            needed -= take;
+            if (segStart + take - 1 == seg[1]) rightSeg++;
+        }
+        if (rightPos - leftPos + 1 == k) {
+            maxSum = currSum;
+        }
+        while (rightPos < segs.get(segs.size() - 1)[1]) {
+            int[] lseg = segs.get(leftSeg);
+            currSum -= lseg[2];
+            leftPos++;
+            if (leftPos > lseg[1]) {
+                leftSeg++;
+                if (leftSeg < segs.size()) leftPos = segs.get(leftSeg)[0];
+            }
+            if (rightSeg < segs.size() && rightPos + 1 > segs.get(rightSeg)[1]) {
+                rightSeg++;
+            }
+            if (rightSeg < segs.size()) {
+                currSum += segs.get(rightSeg)[2];
+            }
+            rightPos++;
+            if (rightPos - leftPos + 1 == k) {
+                maxSum = Math.max(maxSum, currSum);
+            }
+        }
+        return maxSum;
     }
 }
-# @lc code=end
+// @lc code=end
