@@ -3,32 +3,40 @@
 #
 # [3604] Minimum Time to Reach Destination in Directed Graph
 #
-
 # @lc code=start
+import java.util.*;
 class Solution {
     public int minTime(int n, int[][] edges) {
-        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> Integer.compare(a[1], b[1]));
-        Map<Integer, List<int[]>> adj = new HashMap<>();
-        for (int[] edge : edges) {
-            adj.computeIfAbsent(edge[0], k -> new ArrayList<>()).add(new int[]{edge[1], edge[2], edge[3]});
+        List<int[]>[] graph = new List[n];
+        for (int i = 0; i < n; i++) graph[i] = new ArrayList<>();
+        for (int[] e : edges) {
+            // e = [u, v, start, end]
+            graph[e[0]].add(new int[]{e[1], e[2], e[3]});
         }
-        pq.offer(new int[]{0, 0}); // Start from node 0 at time 0.
-        Map<Integer, Integer> visited = new HashMap<>();
+        // min-heap: [current time, node]
+        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
+        pq.offer(new int[]{0, 0});
+        int[] minArrival = new int[n];
+        Arrays.fill(minArrival, Integer.MAX_VALUE);
+        minArrival[0] = 0;
         while (!pq.isEmpty()) {
-            int[] current = pq.poll();
-            int node = current[0], time = current[1];
+            int[] curr = pq.poll();
+            int time = curr[0], node = curr[1];
             if (node == n - 1) return time;
-            if (visited.containsKey(node) && visited.get(node) <= time) continue;
-            visited.put(node, time);
-            for (int[] edge : adj.getOrDefault(node, Collections.emptyList())) {
-                int nextNode = edge[0], startTime = edge[1], endTime = edge[2];
-                if (time <= endTime) {
-                    int newTime = Math.max(time + 1, startTime);
-                    pq.offer(new int[]{nextNode, newTime});
+            if (time > minArrival[node]) continue;
+            for (int[] edge : graph[node]) {
+                int next = edge[0], start = edge[1], end = edge[2];
+                if (time > end) continue; // Can't take this edge anymore
+                int depart = Math.max(time, start); // Wait if needed
+                if (depart > end) continue;
+                int arrive = depart + 1;
+                if (arrive < minArrival[next]) {
+                    minArrival[next] = arrive;
+                    pq.offer(new int[]{arrive, next});
                 }
             }
         }
-        return -1; // Return -1 if destination is unreachable.
+        return -1;
     }
 }
 # @lc code=end
