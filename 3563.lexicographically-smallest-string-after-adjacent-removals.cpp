@@ -3,35 +3,23 @@
 #
 # [3563] Lexicographically Smallest String After Adjacent Removals
 #
-# @lc code=start
-#include <string>
-#include <unordered_map>
-using namespace std;
 
+# @lc code=start
 class Solution {
 public:
     string lexicographicallySmallestString(string s) {
-        unordered_map<string, string> memo;
-        return dfs(s, memo);
-    }
-private:
-    // Helper to check if two chars are consecutive (circular)
-    bool consecutive(char a, char b) {
-        return (abs(a-b) == 1) || (a == 'a' && b == 'z') || (a == 'z' && b == 'a');
-    }
-    string dfs(const string& s, unordered_map<string, string>& memo) {
-        if (memo.count(s)) return memo[s];
-        string res = s; // Option to do nothing
-        int n = s.size();
-        for (int i = 0; i < n-1; ++i) {
-            if (consecutive(s[i], s[i+1])) {
-                string ns = s.substr(0,i) + s.substr(i+2);
-                string candidate = dfs(ns, memo);
-                if (candidate < res) res = candidate;
+        string stk;
+        auto is_consecutive = [](char a, char b) {
+            return (abs(a - b) == 1) || (a == 'a' && b == 'z') || (a == 'z' && b == 'a');
+        };
+        for (char c : s) {
+            if (!stk.empty() && is_consecutive(stk.back(), c)) {
+                stk.pop_back();
+            } else {
+                stk.push_back(c);
             }
         }
-        memo[s] = res;
-        return res;
+        return stk;
     }
 };
 # @lc code=end
