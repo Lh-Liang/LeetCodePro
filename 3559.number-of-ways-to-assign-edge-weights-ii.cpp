@@ -3,30 +3,31 @@
 #
 # [3559] Number of Ways to Assign Edge Weights II
 #
+
 # @lc code=start
 class Solution {
 public:
-    static constexpr int MOD = 1e9 + 7;
+    const int MOD = 1e9 + 7;
     int n;
-    vector<vector<int>> tree;
-    vector<int> depth;
+    vector<vector<int>> adj;
     vector<vector<int>> up;
+    vector<int> depth;
     int LOG;
-
-    void dfs(int u, int p) {
-        up[u][0] = p;
+    
+    void dfs(int v, int p) {
+        up[v][0] = p;
         for (int i = 1; i <= LOG; ++i) {
-            if (up[u][i-1] != -1)
-                up[u][i] = up[up[u][i-1]][i-1];
+            if (up[v][i-1] != -1)
+                up[v][i] = up[up[v][i-1]][i-1];
         }
-        for (int v : tree[u]) {
-            if (v != p) {
-                depth[v] = depth[u] + 1;
-                dfs(v, u);
+        for (int u : adj[v]) {
+            if (u != p) {
+                depth[u] = depth[v] + 1;
+                dfs(u, v);
             }
         }
     }
-
+    
     int lca(int u, int v) {
         if (depth[u] < depth[v]) swap(u, v);
         for (int i = LOG; i >= 0; --i) {
@@ -42,43 +43,42 @@ public:
         }
         return up[u][0];
     }
-
-    int fastPow(int a, int b) {
+    
+    int modpow(int a, int b, int m) {
         int res = 1;
         while (b) {
-            if (b & 1) res = 1LL * res * a % MOD;
-            a = 1LL * a * a % MOD;
+            if (b & 1) res = (1LL * res * a) % m;
+            a = (1LL * a * a) % m;
             b >>= 1;
         }
         return res;
     }
-
+    
     vector<int> assignEdgeWeights(vector<vector<int>>& edges, vector<vector<int>>& queries) {
         n = edges.size() + 1;
-        tree.resize(n + 1);
+        LOG = 0;
+        while ((1 << LOG) <= n) ++LOG;
+        adj.assign(n + 1, vector<int>());
         for (auto& e : edges) {
             int u = e[0], v = e[1];
-            tree[u].push_back(v);
-            tree[v].push_back(u);
+            adj[u].push_back(v);
+            adj[v].push_back(u);
         }
-        LOG = 0;
-        while ((1 << LOG) <= n) LOG++;
         up.assign(n + 1, vector<int>(LOG + 1, -1));
         depth.assign(n + 1, 0);
         dfs(1, -1);
-        vector<int> answer;
+        vector<int> res;
         for (auto& q : queries) {
             int u = q[0], v = q[1];
             if (u == v) {
-                answer.push_back(0);
+                res.push_back(0);
                 continue;
             }
-            int ancestor = lca(u, v);
-            int k = depth[u] + depth[v] - 2 * depth[ancestor];
-            int ways = fastPow(2, k - 1);
-            answer.push_back(ways);
+            int anc = lca(u, v);
+            int L = depth[u] + depth[v] - 2 * depth[anc];
+            res.push_back(modpow(2, L-1, MOD));
         }
-        return answer;
+        return res;
     }
 };
 # @lc code=end
