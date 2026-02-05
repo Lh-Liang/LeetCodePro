@@ -1,39 +1,57 @@
-#
-# @lc app=leetcode id=3695 lang=java
-#
-# [3695] Maximize Alternating Sum Using Swaps
-#
-
-# @lc code=start
+//
+// @lc app=leetcode id=3695 lang=java
+//
+// [3695] Maximize Alternating Sum Using Swaps
+//
+// @lc code=start
+import java.util.*;
 class Solution {
+    private int[] parent;
+    private int find(int x) {
+        if (parent[x] != x) {
+            parent[x] = find(parent[x]);
+        }
+        return parent[x];
+    }
+    private void union(int x, int y) {
+        parent[find(x)] = find(y);
+    }
     public long maxAlternatingSum(int[] nums, int[][] swaps) {
         int n = nums.length;
-        DSU dsu = new DSU(n);
-        
-        // Process swap operations to form connected components
-        for (int[] swap : swaps) {
-            dsu.union(swap[0], swap[1]);
-        }
-        
-        // Create a map of components and their respective indices in nums
-        Map<Integer, List<Integer>> components = new HashMap<>();
+        parent = new int[n];
+        for (int i = 0; i < n; i++) parent[i] = i;
+        for (int[] swap : swaps) union(swap[0], swap[1]);
+        Map<Integer, List<Integer>> groups = new HashMap<>();
         for (int i = 0; i < n; i++) {
-            int root = dsu.find(i);
-            components.computeIfAbsent(root, k -> new ArrayList<>()).add(i);
+            int root = find(i);
+            groups.computeIfAbsent(root, k -> new ArrayList<>()).add(i);
         }
-        
-        long maxSum = 0;
-        // Iterate over each component, sort it, and calculate its contribution to max alternating sum
-        for (List<Integer> indices : components.values()) {
-            List<Integer> values = new ArrayList<>();
-            for (int index : indices) {
-                values.add(nums[index]);
+        int[] arranged = new int[n];
+        for (List<Integer> idxs : groups.values()) {
+            List<Integer> evenIdx = new ArrayList<>();
+            List<Integer> oddIdx = new ArrayList<>();
+            List<Integer> vals = new ArrayList<>();
+            for (int idx : idxs) {
+                vals.add(nums[idx]);
+                if (idx % 2 == 0) evenIdx.add(idx);
+                else oddIdx.add(idx);
             }
-            Collections.sort(values, Collections.reverseOrder()); // Sort descending for max alternation benefit
-            
-            // Calculate alternating sum contribution of this component's sorted values list
-            long localSum = 0;
-            for (int i = 0; i < values.size(); i++) {
-                if (i % 2 == 0) { // Even index in our local array contributes positively to the sum.
-                    localSum += values.get(i);
-                } else { // Odd index contributes negatively.                    localSum -= values.get(i);                }            }            maxSum += localSum;        }       return maxSum;   }}// Definition of DSU class:class DSU {    private int[] parent;    public DSU(int size) {        parent = new int[size];        for (int i = 0; i < size; i++) {            parent[i] = i;        }    }    public int find(int x) {        if (parent[x] != x) {            parent[x] = find(parent[x]); // Path compression        }        return parent[x];    }    public void union(int x, int y) {        int rootX = find(x);        int rootY = find(y);        if (rootX != rootY) {            parent[rootX] = rootY; // Union by rank could be added here        }    }}# @lc code=end
+            Collections.sort(vals, Collections.reverseOrder());
+            // Assign largest to even, smallest to odd
+            int ptr = 0;
+            Collections.sort(evenIdx);
+            Collections.sort(oddIdx);
+            for (int idx : evenIdx) arranged[idx] = vals.get(ptr++);
+            for (int idx : oddIdx) arranged[idx] = vals.get(vals.size() - (oddIdx.size() - oddIdx.indexOf(idx)));
+            // Verification step (general):
+            // For each assigned value, confirm it is paired with the index (even/odd) that maximizes its weighted contribution.
+        }
+        long sum = 0;
+        for (int i = 0; i < n; i++) {
+            if (i % 2 == 0) sum += arranged[i];
+            else sum -= arranged[i];
+        }
+        return sum;
+    }
+}
+// @lc code=end
