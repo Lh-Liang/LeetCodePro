@@ -1,37 +1,52 @@
-#
 # @lc app=leetcode id=2058 lang=java
 #
 # [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
 #
 # @lc code=start
 /**
-* Definition for singly-linked list.
-* public class ListNode {
-*     int val;
-*     ListNode next;
-*     ListNode() {}
-*     ListNode(int val) { this.val = val; }
-*     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
-* }
-*/
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
 class Solution {
     public int[] nodesBetweenCriticalPoints(ListNode head) {
-        if (head == null || head.next == null || head.next.next == null) return new int[]{-1, -1};
-        int minDist = Integer.MAX_VALUE;
-        int firstCPIndex = -1;
-        int lastCPIndex = -1;
-        int index = 1; // Start from second node as we need at least one prev node
-        List<Integer> cpIndices = new ArrayList<>(); 
-        ListNode prev = head, curr = head.next; 
-        while (curr != null && curr.next != null) { 
-            if ((curr.val > prev.val && curr.val > curr.next.val) || (curr.val < prev.val && curr.val < curr.next.val)) { 
-                if (firstCPIndex == -1) firstCPIndex = index; 
-                else minDist = Math.min(minDist, index - lastCPIndex); 
-                lastCPIndex = index; 
-                cpIndices.add(index); 
-            } 
-            index++; 
-            prev = curr; 
-            curr = curr.next; 
-        } 
-        if (cpIndices.size() < 2) return new int[]{-1, -1};	else return new int[]{minDist, cpIndices.get(cpIndices.size()-1) - firstCPIndex};	}	}	# @lc code=end
+        int firstCritical = -1;
+        int prevCritical = -1;
+        int minDistance = Integer.MAX_VALUE;
+        int index = 0;
+        List<Integer> criticalPoints = new ArrayList<>();
+
+        ListNode prev = null;
+        ListNode current = head;
+
+        while (current != null && current.next != null) {
+            if (prev != null && (current.val > prev.val && current.val > current.next.val ||
+                                 current.val < prev.val && current.val < current.next.val)) {
+                if (firstCritical == -1) {
+                    firstCritical = index;
+                } else {
+                    minDistance = Math.min(minDistance, index - prevCritical);
+                }
+                prevCritical = index;
+                criticalPoints.add(index);
+            }
+            prev = current;
+            current = current.next;
+            index++;
+        }
+
+        if (criticalPoints.size() < 2) {
+            return new int[]{-1, -1};
+        }
+
+        int maxDistance = criticalPoints.get(criticalPoints.size() - 1) - firstCritical;
+
+        return new int[]{minDistance, maxDistance};
+    }
+}
+# @lc code=end
