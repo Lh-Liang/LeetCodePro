@@ -1,3 +1,10 @@
+#
+# @lc app=leetcode id=3327 lang=cpp
+#
+# [3327] Check if DFS Strings Are Palindromes
+#
+
+# @lc code=start
 class Solution {
 public:
     vector<bool> findAnswer(vector<int>& parent, string s) {
@@ -10,26 +17,19 @@ public:
             sort(tree[i].begin(), tree[i].end());
         }
         vector<bool> answer(n);
-        function<void(int, string&)> dfs = [&](int node, string& dfsStr) {
-            for (int child : tree[node]) {
-                dfs(child, dfsStr);
-            }
-            dfsStr.push_back(s[node]);
+        string dfsStr;
+        function<void(int)> dfs = [&](int x) {
+            for (int y : tree[x]) dfs(y);
+            dfsStr += s[x];
         };
         for (int i = 0; i < n; ++i) {
-            string dfsStr;
-            dfs(i, dfsStr);
-            int l = 0, r = dfsStr.size() - 1;
-            bool isPalindrome = true;
-            while (l < r) {
-                if (dfsStr[l] != dfsStr[r]) {
-                    isPalindrome = false;
-                    break;
-                }
-                ++l; --r;
-            }
-            answer[i] = isPalindrome;
+            dfsStr.clear();
+            dfs(i);
+            string t = dfsStr;
+            reverse(t.begin(), t.end());
+            answer[i] = (dfsStr == t);
         }
         return answer;
     }
 };
+# @lc code=end
