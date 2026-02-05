@@ -7,65 +7,72 @@
 # @lc code=start
 class Solution {
 public:
-    using ll = long long;
+    typedef long long ll;
     vector<vector<int>> tree;
-    vector<int> vals;
     int K;
-    // dp[node][d]: max sum for subtree rooted at node, where d is distance to nearest inverted ancestor (0<=d<k)
-    vector<vector<ll>> dp;
-
-    void dfs(int node, int parent) {
-        dp[node] = vector<ll>(K, 0);
-        // Base DP for leaf: value if not inverted
-        dp[node][K-1] = vals[node];
-        // For merging, maintain DP for both not inverting and inverting at this node
-        // Merge children's DP for not inverting at this node
-        for (int child : tree[node]) {
-            if (child == parent) continue;
-            dfs(child, node);
-            vector<ll> newDp(K, LLONG_MIN);
-            // For not inverting at this node: increment distance to inverted ancestor by 1
-            for (int d = 1; d < K; ++d) {
-                if (dp[node][d] == LLONG_MIN) continue;
-                for (int cd = 0; cd < K; ++cd) {
-                    if (dp[child][cd] == LLONG_MIN) continue;
-                    newDp[d] = max(newDp[d], dp[node][d] + dp[child][min(cd+1,K-1)]);
+    vector<vector<ll>> dfs(int u, int parent, const vector<int>& nums) {
+        // dp[d]: max sum if the closest inversion among ancestors is d edges away (0 <= d <= K)
+        vector<vector<ll>> childDPs;
+        for (int v : tree[u]) {
+            if (v == parent) continue;
+            childDPs.push_back(dfs(v, u, nums));
+        }
+        // dp0: not inverting at this node
+        // dp1: inverting at this node (if allowed)
+        vector<ll> dp0(K+2, 0), dp1(K+2, 0);
+        // Base cases
+        dp0[0] = nums[u];
+        dp1[0] = -nums[u];
+        for (auto& cdp : childDPs) {
+            vector<ll> newDp0(K+2, LLONG_MIN/2), newDp1(K+2, LLONG_MIN/2);
+            // Merge for not inverting here: increment ancestor inversion distance for children
+            for (int d = 0; d <= K; ++d) {
+                for (int cd = 0; cd <= K; ++cd) {
+                    if (dp0[d] == LLONG_MIN/2 || cdp[cd] == LLONG_MIN/2) continue;
+                    int nd = min(d, cd+1);
+                    newDp0[nd] = max(newDp0[nd], dp0[d] + cdp[cd]);
                 }
             }
-            // For base case: d=K-1 (no inverted ancestor in range)
-            for (int cd = 0; cd < K; ++cd) {
-                if (dp[child][cd] == LLONG_MIN) continue;
-                newDp[K-1] = max(newDp[K-1], dp[node][K-1] + dp[child][min(cd+1,K-1)]);
+            swap(dp0, newDp0);
+        }
+        // Case: invert at this node (if ancestor inversion at least k away)
+        // Only possible if ancestor inversion distance >= K
+        for (int d = 0; d <= K; ++d) {
+            if (d < K) dp1[d] = LLONG_MIN/2;
+        }
+        for (auto& cdp : childDPs) {
+            vector<ll> newDp1(K+2, LLONG_MIN/2);
+            for (int d = 0; d <= K; ++d) {
+                for (int cd = 0; cd <= K; ++cd) {
+                    if (dp1[d] == LLONG_MIN/2 || cdp[cd] == LLONG_MIN/2) continue;
+                    int nd = min(d, cd+1);
+                    newDp1[nd] = max(newDp1[nd], dp1[d] + cdp[cd]);
+                }
             }
-            dp[node] = newDp;
+            swap(dp1, newDp1);
         }
-        // Try inverting at this node (only if no inverted ancestor within k)
-        // When we invert, all values in this subtree (including this node) are negated
-        // After inversion, the distance to an inverted ancestor resets to 0
-        ll inv_sum = -vals[node];
-        for (int child : tree[node]) {
-            if (child == parent) continue;
-            // When inverting here, children must not invert within k-1 edges (distance 0)
-            inv_sum += -dp[child][0];
+        // Now, if we invert at this node, must flip whole subtree
+        for (int d = 0; d <= K; ++d) {
+            dp1[d] = dp1[d];
         }
-        // Update dp[node][0] if inversion yields a better result
-        dp[node][0] = max(dp[node][0], inv_sum);
+        // Compose final dp for this node:
+        vector<ll> dp(K+2, LLONG_MIN/2);
+        for (int d = 0; d <= K; ++d)
+            dp[d] = max(dp0[d], dp1[d]);
+        return {dp};
     }
-
     long long subtreeInversionSum(vector<vector<int>>& edges, vector<int>& nums, int k) {
         int n = nums.size();
         tree.assign(n, {});
-        vals = nums;
         K = k;
         for (auto& e : edges) {
             tree[e[0]].push_back(e[1]);
             tree[e[1]].push_back(e[0]);
         }
-        dp.assign(n, vector<ll>(K, 0));
-        dfs(0, -1);
-        ll ans = LLONG_MIN;
-        for (int d = 0; d < K; ++d) ans = max(ans, dp[0][d]);
-        return ans;
+        auto dp = dfs(0, -1, nums)[0];
+        ll res = LLONG_MIN;
+        for (int d = 0; d <= K; ++d) res = max(res, dp[d]);
+        return res;
     }
 };
 # @lc code=end
