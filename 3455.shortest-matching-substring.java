@@ -1,31 +1,53 @@
-# @lc code=start
+/*
+ * @lc app=leetcode id=3455 lang=java
+ *
+ * [3455] Shortest Matching Substring
+ */
+// @lc code=start
 class Solution {
     public int shortestMatchingSubstring(String s, String p) {
-        // Find indices of '*' in pattern p
+        int n = s.length();
         int firstStar = p.indexOf('*');
         int secondStar = p.indexOf('*', firstStar + 1);
-        if (secondStar == -1) return -1; // Ensure exactly two '*'
-        
-        // Extract segments based on '*' positions
         String prefix = p.substring(0, firstStar);
         String middle = p.substring(firstStar + 1, secondStar);
         String suffix = p.substring(secondStar + 1);
-
-        int minLength = Integer.MAX_VALUE;
-
-        // Efficient search using two pointers
-        for (int i = 0; i <= s.length() - prefix.length(); i++) {
-            if (s.startsWith(prefix, i)) {
-                for (int j = i + prefix.length(); j <= s.length() - suffix.length(); j++) {
-                    if ((middle.isEmpty() || s.substring(i + prefix.length(), j).contains(middle)) && s.startsWith(suffix, j)) {
-                        minLength = Math.min(minLength, j + suffix.length() - i);
-                        break; // Stop further checks once we find a valid match
+        // Special case: pattern is just '**'
+        if (prefix.isEmpty() && middle.isEmpty() && suffix.isEmpty()) {
+            return 0;
+        }
+        int minLen = Integer.MAX_VALUE;
+        for (int i = 0; i <= n - prefix.length(); ++i) {
+            if (!prefix.isEmpty() && !s.startsWith(prefix, i)) continue;
+            int prefixEnd = i + prefix.length();
+            // Suffix must be after prefix
+            for (int j = prefixEnd; j <= n - suffix.length(); ++j) {
+                if (!suffix.isEmpty() && !s.startsWith(suffix, j)) continue;
+                int candidateStart = i;
+                int candidateEnd = j + suffix.length();
+                if (candidateEnd > n) continue;
+                // Check middle
+                boolean middleMatch = false;
+                if (middle.isEmpty()) {
+                    middleMatch = true;
+                } else {
+                    // Search for middle in [prefixEnd, j] (inclusive)
+                    int midSearchStart = Math.max(prefixEnd, candidateStart);
+                    int midSearchEnd = Math.min(j, n - middle.length());
+                    for (int midPos = midSearchStart; midPos <= midSearchEnd; ++midPos) {
+                        if (s.startsWith(middle, midPos)) {
+                            middleMatch = true;
+                            break;
+                        }
                     }
+                }
+                if (middleMatch) {
+                    int len = candidateEnd - candidateStart;
+                    if (len < minLen) minLen = len;
                 }
             }
         }
-
-        return minLength == Integer.MAX_VALUE ? -1 : minLength;
+        return minLen == Integer.MAX_VALUE ? -1 : minLen;
     }
 }
-# @lc code=end
+// @lc code=end
