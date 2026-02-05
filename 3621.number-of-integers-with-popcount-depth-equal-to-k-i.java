@@ -1,37 +1,61 @@
+#
+# @lc app=leetcode id=3621 lang=java
+#
+# [3621] Number of Integers With Popcount-Depth Equal to K I
+#
 # @lc code=start
 class Solution {
-    public long popcountDepth(long n, int k) {
-        // Precompute factorial values up to a reasonable limit for combination calculations
-        long[] factorial = new long[65];
-        factorial[0] = 1;
-        for (int i = 1; i < 65; i++) {
-            factorial[i] = factorial[i - 1] * i;
+    private int[] depthMemo = new int[100];
+    
+    private int popcountDepth(int x) {
+        if (x == 1) return 0;
+        if (depthMemo[x] != 0) return depthMemo[x];
+        int next = Integer.bitCount(x);
+        depthMemo[x] = 1 + popcountDepth(next);
+        return depthMemo[x];
+    }
+    
+    private long comb(int n, int k) {
+        if (k < 0 || n < k) return 0;
+        long res = 1;
+        for (int i = 1; i <= k; i++) {
+            res = res * (n - i + 1) / i;
         }
-        
-        // Helper function to calculate combinations
-        long comb(int n, int r) {
-            if (r > n) return 0;
-            return factorial[n] / (factorial[r] * factorial[n - r]);
-        }
-
-        // DP table where dp[i][j] represents count of numbers with length i having popcount-depth j
-        long[][] dp = new long[65][k + 1];
-        dp[0][0] = 1; // Base case: Only number '1' has depth 0 with length 0
-
-        // Iterate over possible lengths up to the bit-length of n
-        int maxBits = Long.toBinaryString(n).length();
-        for (int bitLength = 1; bitLength <= maxBits; bitLength++) {
-            for (int depth = 0; depth <= k; depth++) {
-                // Calculate possible transitions from previous lengths/depths
-                for (int popCount = 0; popCount < bitLength; popCount++) {
-                    if (depth > 0) {
-                        dp[bitLength][depth] += dp[popCount][depth - 1] * comb(bitLength - 1, popCount);
-                    }
-                }
+        return res;
+    }
+    
+    private long countWithSetBits(long n, int setBits) {
+        String bin = Long.toBinaryString(n);
+        int len = bin.length();
+        long res = 0;
+        int cnt = 0;
+        for (int i = 0; i < len; i++) {
+            if (bin.charAt(i) == '1') {
+                int rem = len - i - 1;
+                res += comb(rem, setBits - cnt - 1);
+                cnt++;
             }
         }
-
-        return dp[maxBits][k];
+        if (cnt == setBits) res++;
+        return res;
+    }
+    
+    public long popcountDepth(long n, int k) {
+        // Step 4: Explicitly handle special edge cases
+        if (k == 0) return (n >= 1) ? 1 : 0; // Only x=1 qualifies if n>=1
+        int maxS = 60;
+        for (int i = 0; i <= maxS; i++) depthMemo[i] = 0;
+        long ans = 0;
+        for (int s = 1; s <= maxS; s++) {
+            if (popcountDepth(s) == k - 1) {
+                long cnt = countWithSetBits(n, s);
+                ans += cnt;
+            }
+        }
+        if (k == 1) ans--; // Subtract x=1 (since popcount-depth of 1 is 0)
+        // Step 5: Systematically validate all special-case adjustments
+        // Step 6: Ensure strict output format adherence (handled by return type here)
+        return ans;
     }
 }
 # @lc code=end
