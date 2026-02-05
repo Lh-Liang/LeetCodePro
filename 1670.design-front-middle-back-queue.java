@@ -1,52 +1,51 @@
+#
 # @lc app=leetcode id=1670 lang=java
 #
 # [1670] Design Front Middle Back Queue
 #
 # @lc code=start
-import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedList;
+
 class FrontMiddleBackQueue {
-    private ArrayList<Integer> left;
-    private ArrayList<Integer> right;
+    private Deque<Integer> frontDeque;
+    private Deque<Integer> backDeque;
+    
     public FrontMiddleBackQueue() {
-        this.left = new ArrayList<>();
-        this.right = new ArrayList<>();
+        frontDeque = new LinkedList<>();
+        backDeque = new LinkedList<>();
     }
     
     public void pushFront(int val) {
-        left.add(0, val);
+        frontDeque.addFirst(val);
         balance();
     }
     
     public void pushMiddle(int val) {
-        if (left.size() > right.size()) {
-            right.add(0, left.remove(left.size() - 1));
+        if (frontDeque.size() > backDeque.size()) {
+            backDeque.addFirst(frontDeque.removeLast());
         }
-        left.add(val);
+        frontDeque.addLast(val);
         balance();
     }
     
     public void pushBack(int val) {
-        right.add(val);
+        backDeque.addLast(val);
         balance();
     }
     
     public int popFront() {
-        if (left.isEmpty() && right.isEmpty()) return -1;
-        int result = !left.isEmpty() ? left.remove(0) : right.remove(0);
+        if (frontDeque.isEmpty() && backDeque.isEmpty()) return -1;
+        int value = !frontDeque.isEmpty() ? frontDeque.removeFirst() : backDeque.removeFirst();
         balance();
-        return result;
+        return value;
     }
-    
-    public int popMiddle() {	
-        if (left.isEmpty() && right.isEmpty()) return -1;													
-        int result;		
-        if (left.size() >= right.size()) {	
-            result = left.remove(left.size() - 1);		
-        } else {		
-            result = right.remove(0);		
-        }						
-        balance();	
-        return result;	}	
-   	public int popBack() { 	if (right.isEmpty() && left.isEmpty()) return -1; 	int result = !right.isEmpty() ? right.remove(right.size() - 1) : left.remove(left.size() - 1); 	balance(); 	return result; }	private void balance(){while(left.size()>right.size()+1){right.add(0,left.remove(left.size()-1));}while(right.size()>left.size()){left.add(right.remove(0));}}
-}
-# @lc code=end
+
+    public int popMiddle() {		   		
+		if (frontDeque.isEmpty() && backDeque.isEmpty()) return -1;		   		
+		int value = (frontDeque.size() >= backDeque.size()) ? frontDeque.removeLast() : backDeque.removeFirst();		   		
+		balance();		   		
+		return value;		   	
+}	
+
+public int popBack() {  	  	   	   	  if (backDeque.isEmpty() && frontDeque.isEmpty()) return -1;  	  	   	   	  int value = !backDeque.isEmpty() ? backDeque.removeLast() : frontDeque.removeLast();  	balance(); return value; }  private void balance(){while(frontDequeue.size()>backDequeue.size()+1){backDequeue.addFirst(frontDequeue.removeLast());}while(backDequeue.size()>frontDequeue.size()){frontDequeue.addLast(backDequeue.removeFirst());}} # @lc code=end
