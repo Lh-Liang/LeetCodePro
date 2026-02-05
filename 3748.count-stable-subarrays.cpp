@@ -3,37 +3,49 @@
 #
 # [3748] Count Stable Subarrays
 #
+
 # @lc code=start
 class Solution {
 public:
     vector<long long> countStableSubarrays(vector<int>& nums, vector<vector<int>>& queries) {
         int n = nums.size();
-        vector<int> seg_start(n), seg_end(n);
+        vector<int> run_start(n), run_end(n);
+        // Precompute the runs
         int l = 0;
         while (l < n) {
             int r = l;
-            while (r + 1 < n && nums[r] <= nums[r + 1]) ++r;
-            for (int k = l; k <= r; ++k) {
-                seg_start[k] = l;
-                seg_end[k] = r;
+            while (r + 1 < n && nums[r] <= nums[r+1]) ++r;
+            for (int i = l; i <= r; ++i) {
+                run_start[i] = l;
+                run_end[i] = r;
             }
             l = r + 1;
         }
-        vector<long long> result;
-        for (auto& q : queries) {
-            int left = q[0], right = q[1];
-            long long ans = 0;
-            int i = left;
-            while (i <= right) {
-                int s = max(i, seg_start[i]);
-                int e = min(seg_end[i], right);
-                long long len = e - s + 1;
-                ans += len * (len + 1) / 2;
-                i = e + 1;
-            }
-            result.push_back(ans);
+        // Precompute prefix sums of stable subarrays count up to each position
+        vector<long long> prefix(n+1);
+        int i = 0;
+        while (i < n) {
+            int j = run_end[i];
+            long long len = j - i + 1;
+            long long cnt = len * (len + 1) / 2;
+            prefix[j+1] = prefix[i] + cnt;
+            i = j + 1;
         }
-        return result;
+        // Compute answer for each query
+        vector<long long> ans;
+        for (auto& q : queries) {
+            int l = q[0], r = q[1];
+            long long res = 0;
+            int i = l;
+            while (i <= r) {
+                int seg_r = min(run_end[i], r);
+                long long len = seg_r - i + 1;
+                res += len * (len + 1) / 2;
+                i = seg_r + 1;
+            }
+            ans.push_back(res);
+        }
+        return ans;
     }
 };
 # @lc code=end
