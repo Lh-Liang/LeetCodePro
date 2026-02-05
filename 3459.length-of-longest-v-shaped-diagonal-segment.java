@@ -1,1 +1,69 @@
-#\n# @lc app=leetcode id=3459 lang=java\n#\n# [3459] Length of Longest V-Shaped Diagonal Segment\n#\n\n# @lc code=start\nclass Solution {\n    public int lenOfVDiagonal(int[][] grid) {\n        int maxLength = 0;\n        int n = grid.length;\n        int m = grid[0].length;\n        \n        // Directions for diagonal movement: {dx, dy}\n        int[][] directions = {{1, 1}, {1, -1}, {-1, -1}, {-1, 1}};\n        \n        // Define turn mappings using custom keys to allow clockwise turns\n        Map<String, int[]> turnMap = new HashMap<>();\n        turnMap.put("11", new int[]{-1, 1}); // ↘ to ↙\n        turnMap.put("-11", new int[]{-1, -1}); // ↖ to ↗ \n        turnMap.put("-1-1", new int[]{1, -1}); // ↙ to ↘ \n        turnMap.put("1-1", new int[]{1, 1}); // ↗ to ↘ \n        \n        for (int i = 0; i < n; i++) {\n            for (int j = 0; j < m; j++) {\n                if (grid[i][j] == 1) { // Start only from '1'\n                    for (int[] dir : directions) {\n                        maxLength = Math.max(maxLength, findVShape(grid, i, j, dir, turnMap));\n                    }\n                }\n            }\n        }\n        return maxLength;\n    }\n    \n    private int findVShape(int[][] grid, int startX, int startY, int[] direction, Map<String,int[]> turnMap) {\tint length = 0;     boolean hasTurned = false;     int x = startX;     int y = startY;     int expectedValueIndex = 0; // To track expected sequence position ["2", "0"]     int[] sequenceValues = {2, 0}; // Possible values in sequence after '1'      while (x >= 0 && x < grid.length && y >= 0 && y < grid[0].length) {         if (!hasTurned && canTurn(x + direction[0], y + direction[1], grid)) {             String currentDirectionKey = direction[0] + "" + direction[1];             direction = turnMap.get(currentDirectionKey);             hasTurned = true;         }         if (grid[x][y] == sequenceValues[expectedValueIndex]) {             length++;             expectedValueIndex = (expectedValueIndex + 1) % sequenceValues.length;             x += direction[0];             y += direction[1];         } else {             break;         }     }     return length > 0 ? length + 1 : length; // Include initial '1' in count } private boolean canTurn(int x, int y, int[][] grid) {     return x >= 0 && x < grid.length && y >= 0 && y < grid[0].length && (grid[x][y] == sequenceValues[expectedValueIndex]); }} # @lc code=end
+#
+# @lc app=leetcode id=3459 lang=java
+#
+# [3459] Length of Longest V-Shaped Diagonal Segment
+#
+# @lc code=start
+class Solution {
+    private static final int[][] DIRS = {
+        {1, 1},   // ↘
+        {1, -1},  // ↙
+        {-1, -1}, // ↖
+        {-1, 1}   // ↗
+    };
+    // Clockwise turn mapping: 0→1, 1→2, 2→3, 3→0
+    private static final int[] TURN = {1, 2, 3, 0};
+    private int n, m;
+    private int[][] grid;
+    private int maxLen;
+    private Integer[][][][][] memo;
+    // Alternation: expectedVals[0] = 2, expectedVals[1] = 0
+    private static final int[] expectedVals = {2, 0};
+
+    public int lenOfVDiagonal(int[][] grid) {
+        this.n = grid.length;
+        this.m = grid[0].length;
+        this.grid = grid;
+        this.maxLen = 0;
+        this.memo = new Integer[n][m][4][2][2]; // x, y, dir, parity, turned
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                if (grid[i][j] == 1) {
+                    for (int dir = 0; dir < 4; ++dir) {
+                        maxLen = Math.max(maxLen, dfs(i, j, dir, 1, 0, 0));
+                    }
+                }
+            }
+        }
+        return maxLen;
+    }
+
+    private int dfs(int x, int y, int dir, int len, int parity, int turned) {
+        if (memo[x][y][dir][parity][turned] != null) {
+            return memo[x][y][dir][parity][turned] + len - 1;
+        }
+        int res = len;
+        int nx = x + DIRS[dir][0];
+        int ny = y + DIRS[dir][1];
+        int nextExpected = expectedVals[parity];
+        if (inGrid(nx, ny) && grid[nx][ny] == nextExpected) {
+            res = Math.max(res, dfs(nx, ny, dir, len + 1, parity ^ 1, turned));
+        }
+        // Try to turn if not turned yet
+        if (turned == 0) {
+            int ndir = TURN[dir];
+            int tx = x + DIRS[ndir][0];
+            int ty = y + DIRS[ndir][1];
+            if (inGrid(tx, ty) && grid[tx][ty] == nextExpected) {
+                res = Math.max(res, dfs(tx, ty, ndir, len + 1, parity ^ 1, 1));
+            }
+        }
+        memo[x][y][dir][parity][turned] = res - len + 1;
+        return res;
+    }
+
+    private boolean inGrid(int x, int y) {
+        return x >= 0 && x < n && y >= 0 && y < m;
+    }
+}
+# @lc code=end
