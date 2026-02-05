@@ -1,1 +1,39 @@
-#\n# @lc app=leetcode id=2807 lang=java\n#\n# [2807] Insert Greatest Common Divisors in Linked List\n#\n# @lc code=start\n/**\n * Definition for singly-linked list.\n * public class ListNode {\n *     int val;\n *     ListNode next;\n *     ListNode() {}\n *     ListNode(int val) { this.val = val; }\n *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }\n * }\n */\nclass Solution {\n    public ListNode insertGreatestCommonDivisors(ListNode head) {\n        if (head == null || head.next == null) return head;\n        \n        ListNode current = head;\n        while (current != null && current.next != null) {\n            int gcdValue = gcd(current.val, current.next.val);\n            ListNode gcdNode = new ListNode(gcdValue);\n            gcdNode.next = current.next;\n            current.next = gcdNode;\n            current = gcdNode.next; // move two steps forward to skip inserted node and move to next original node.\n        }\n        return head;\n    }\n    \n    private int gcd(int a, int b) {\n        while (b != 0) {\n            int temp = b;\n            b = a % b;\n            a = temp;\n        }\n        return a;\n    } \n}\ns # @lc code=end
+#
+# @lc app=leetcode id=2807 lang=java
+#
+# [2807] Insert Greatest Common Divisors in Linked List
+#
+# @lc code=start
+/**
+* Definition for singly-linked list.
+* public class ListNode {
+*     int val;
+*     ListNode next;
+*     ListNode() {}
+*     ListNode(int val) { this.val = val; }
+*     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+* }
+*/
+class Solution {
+    private int gcd(int a, int b) {
+        while (b != 0) {
+            int temp = b;
+            b = a % b;
+            a = temp;
+        }
+        return a;
+    }
+
+    public ListNode insertGreatestCommonDivisors(ListNode head) {
+        ListNode curr = head;
+        while (curr != null && curr.next != null) {
+            int g = gcd(curr.val, curr.next.val);
+            ListNode newNode = new ListNode(g);
+            newNode.next = curr.next;
+            curr.next = newNode;
+            curr = newNode.next;
+        }
+        return head;
+    }
+}
+# @lc code=end
