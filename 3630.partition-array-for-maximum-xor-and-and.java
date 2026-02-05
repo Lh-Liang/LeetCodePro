@@ -1,28 +1,37 @@
-# @lc app=leetcode id=3630 lang=python3
-# [3630] Partition Array for Maximum XOR and AND
+/*
+ * @lc app=leetcode id=3630 lang=java
+ *
+ * [3630] Partition Array for Maximum XOR and AND
+ */
 
-# @lc code=start
-class Solution:
-    def maximizeXorAndXor(self, nums: List[int]) -> int:
-        from functools import lru_cache
-        
-        n = len(nums)
-        
-        # Use lru_cache for memoization
-        @lru_cache(None)
-        def dfs(index: int, xorA: int, andB: int, xorC: int) -> int:
-            if index == n:
-                return xorA + andB + xorC
-            
-            current_num = nums[index]
-            # Option 1: Add current_num to A (XOR)
-            option1 = dfs(index + 1, xorA ^ current_num, andB, xorC)
-            # Option 2: Add current_num to B (AND)
-            option2 = dfs(index + 1, xorA, andB & current_num if andB else current_num, xorC)
-            # Option 3: Add current_num to C (XOR)
-            option3 = dfs(index + 1, xorA, andB, xorC ^ current_num)
-            
-            return max(option1, option2, option3)
-        
-        return dfs(0, 0, 0xfffffffff if nums else 0x0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f0f , 0) # Assume initial AND as all bits set for correct bitwise operation on first element.
-# @lc code=end
+// @lc code=start
+class Solution {
+    public long maximizeXorAndXor(int[] nums) {
+        long[] max = new long[1];
+        dfs(nums, 0, 0, false, 0, false, 0, false, max);
+        return max[0];
+    }
+    // xorA, hasA: current XOR and non-empty flag for group A
+    // andB, hasB: current AND and non-empty flag for group B
+    // xorC, hasC: current XOR and non-empty flag for group C
+    private void dfs(int[] nums, int idx, int xorA, boolean hasA, int andB, boolean hasB, int xorC, boolean hasC, long[] max) {
+        if (idx == nums.length) {
+            long andBValue = hasB ? andB : 0;
+            long sum = (hasA ? xorA : 0) + andBValue + (hasC ? xorC : 0);
+            if (sum > max[0]) max[0] = sum;
+            return;
+        }
+        int num = nums[idx];
+        // Assign to A
+        dfs(nums, idx + 1, xorA ^ num, true, andB, hasB, xorC, hasC, max);
+        // Assign to B
+        if (!hasB) {
+            dfs(nums, idx + 1, xorA, hasA, num, true, xorC, hasC, max);
+        } else {
+            dfs(nums, idx + 1, xorA, hasA, andB & num, true, xorC, hasC, max);
+        }
+        // Assign to C
+        dfs(nums, idx + 1, xorA, hasA, andB, hasB, xorC ^ num, true, max);
+    }
+}
+// @lc code=end
