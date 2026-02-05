@@ -6,29 +6,32 @@
 
 # @lc code=start
 /**
-* Definition for singly-linked list.
-* struct ListNode {
-*     int val;
-*     ListNode *next;
-*     ListNode() : val(0), next(nullptr) {}
-*     ListNode(int x) : val(x), next(nullptr) {}
-*     ListNode(int x, ListNode *next) : val(x), next(next) {}
-* };
-*/
+ * Definition for singly-linked list.
+ * struct ListNode {
+ *     int val;
+ *     ListNode *next;
+ *     ListNode() : val(0), next(nullptr) {}
+ *     ListNode(int x) : val(x), next(nullptr) {}
+ *     ListNode(int x, ListNode *next) : val(x), next(next) {}
+ * };
+ */
 #include <unordered_set>
+#include <vector>
+
 class Solution {
 public:
-    ListNode* modifiedList(vector<int>& nums, ListNode* head) {
-        std::unordered_set<int> val_set(nums.begin(), nums.end());
+    ListNode* modifiedList(std::vector<int>& nums, ListNode* head) {
+        std::unordered_set<int> st(nums.begin(), nums.end());
         ListNode dummy(0, head);
-        ListNode* prev = &dummy;
-        while (prev->next) {
-            if (val_set.count(prev->next->val)) {
-                ListNode* tmp = prev->next;
-                prev->next = tmp->next;
-                delete tmp;
+        ListNode* curr = &dummy;
+
+        while (curr->next != nullptr) {
+            if (st.count(curr->next->val)) {
+                ListNode* temp = curr->next;
+                curr->next = curr->next->next;
+                // Optional: delete temp;
             } else {
-                prev = prev->next;
+                curr = curr->next;
             }
         }
         return dummy.next;
