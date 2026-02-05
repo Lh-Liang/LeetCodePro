@@ -18,27 +18,23 @@ class Solution {
 public:
     vector<int> nodesBetweenCriticalPoints(ListNode* head) {
         vector<int> criticalIndices;
-        int idx = 0;
         ListNode* prev = head;
-        ListNode* curr = head ? head->next : nullptr;
-        int pos = 1;
+        ListNode* curr = head->next;
+        int idx = 1;
         while (curr && curr->next) {
             if ((curr->val > prev->val && curr->val > curr->next->val) ||
                 (curr->val < prev->val && curr->val < curr->next->val)) {
-                criticalIndices.push_back(pos);
+                criticalIndices.push_back(idx);
             }
             prev = curr;
             curr = curr->next;
-            ++pos;
+            idx++;
         }
-        if (criticalIndices.size() < 2) {
-            return {-1, -1};
-        }
-        int minDist = INT_MAX;
-        for (int i = 1; i < criticalIndices.size(); ++i) {
+        if (criticalIndices.size() < 2) return {-1, -1};
+        int minDist = INT_MAX, maxDist = criticalIndices.back() - criticalIndices.front();
+        for (size_t i = 1; i < criticalIndices.size(); ++i) {
             minDist = min(minDist, criticalIndices[i] - criticalIndices[i-1]);
         }
-        int maxDist = criticalIndices.back() - criticalIndices.front();
         return {minDist, maxDist};
     }
 };
