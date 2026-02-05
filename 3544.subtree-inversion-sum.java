@@ -1,45 +1,45 @@
+#
 # @lc app=leetcode id=3544 lang=java
 #
 # [3544] Subtree Inversion Sum
 #
+
 # @lc code=start
 class Solution {
     public long subtreeInversionSum(int[][] edges, int[] nums, int k) {
-        // Step 1: Construct adjacency list
-        List<Integer>[] adj = new ArrayList[nums.length];
-        for (int i = 0; i < nums.length; i++) {
-            adj[i] = new ArrayList<>();
+        int n = nums.length;
+        List<Integer>[] tree = new List[n];
+        for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
+        for (int[] e : edges) {
+            tree[e[0]].add(e[1]);
+            tree[e[1]].add(e[0]);
         }
-        for (int[] edge : edges) {
-            adj[edge[0]].add(edge[1]);
-            adj[edge[1]].add(edge[0]);
-        }
-
-        // Step 2: Compute initial subtree sums using DFS
-        long[] subtreeSums = new long[nums.length];
-        boolean[] visited = new boolean[nums.length];
-        dfs(0, -1, nums, adj, subtreeSums);
-
-        // Step 3 & 4: Strategy for inversion with constraint verification
-        long maxSum = calculateMaxSum(0, nums, adj, subtreeSums, k);
-
-        return maxSum;
+        // dp[u][d]: max sum for node u with distance d from last inversion
+        long[][] dp = new long[n][k+2];
+        boolean[][] visited = new boolean[n][k+2];
+        return dfs(0, -1, k+1, tree, nums, k, dp, visited);
     }
-    
-    private void dfs(int node, int parent, int[] nums, List<Integer>[] adj, long[] subtreeSums) {
-        subtreeSums[node] = nums[node];
-        for (int neighbor : adj[node]) {
-            if (neighbor != parent) {
-                dfs(neighbor, node, nums, adj, subtreeSums);
-                subtreeSums[node] += subtreeSums[neighbor];
+    private long dfs(int u, int parent, int dist, List<Integer>[] tree, int[] nums, int k, long[][] dp, boolean[][] visited) {
+        if (visited[u][dist]) return dp[u][dist];
+        visited[u][dist] = true;
+        // Case 1: Do not invert at u
+        long sum1 = nums[u];
+        for (int v : tree[u]) {
+            if (v == parent) continue;
+            sum1 += dfs(v, u, Math.min(dist+1, k+1), tree, nums, k, dp, visited);
+        }
+        long res = sum1;
+        // Case 2: Invert at u, if allowed
+        if (dist >= k) {
+            long sum2 = -nums[u];
+            for (int v : tree[u]) {
+                if (v == parent) continue;
+                sum2 += dfs(v, u, 1, tree, nums, k, dp, visited);
             }
+            res = Math.max(res, sum2);
         }
-    }
-    
-    private long calculateMaxSum(int rootNode, int[] nums, List<Integer>[] adj, long[] subtreeSums, int k) {
-        // TO BE IMPLEMENTED: Logic that respects constraints and computes max possible sum using inversions.
-        // Consider dynamic programming or greedy strategies to select optimal nodes to invert.
-        return Arrays.stream(subtreeSums).sum(); // Simplified logic placeholder for demonstration purposes.
+        dp[u][dist] = res;
+        return res;
     }
 }
 # @lc code=end
