@@ -1,19 +1,19 @@
+#
 # @lc app=leetcode id=3534 lang=cpp
 #
 # [3534] Path Existence Queries in a Graph II
 #
 # @lc code=start
 #include <vector>
-#include <algorithm>
 #include <queue>
+#include <algorithm>
 #include <unordered_map>
-#include <unordered_set>
 using namespace std;
 
 class DSU {
 public:
     vector<int> parent, rank;
-    DSU(int n) : parent(n), rank(n, 1) {
+    DSU(int n) : parent(n), rank(n, 0) {
         for (int i = 0; i < n; ++i) parent[i] = i;
     }
     int find(int x) {
@@ -21,78 +21,74 @@ public:
         return parent[x];
     }
     void unite(int x, int y) {
-        int xr = find(x), yr = find(y);
-        if (xr == yr) return;
-        if (rank[xr] < rank[yr]) swap(xr, yr);
-        parent[yr] = xr;
-        if (rank[xr] == rank[yr]) rank[xr]++;
-    }
-    bool connected(int x, int y) {
-        return find(x) == find(y);
+        int rx = find(x), ry = find(y);
+        if (rx == ry) return;
+        if (rank[rx] < rank[ry]) parent[rx] = ry;
+        else if (rank[rx] > rank[ry]) parent[ry] = rx;
+        else { parent[ry] = rx; rank[rx]++; }
     }
 };
 
 class Solution {
 public:
     vector<int> pathExistenceQueries(int n, vector<int>& nums, int maxDiff, vector<vector<int>>& queries) {
-        vector<pair<int,int>> numidx(n);
-        for (int i = 0; i < n; ++i) numidx[i] = {nums[i], i};
-        sort(numidx.begin(), numidx.end());
+        vector<int> idx(n);
+        for (int i = 0; i < n; ++i) idx[i] = i;
+        sort(idx.begin(), idx.end(), [&](int a, int b) { return nums[a] < nums[b]; });
         DSU dsu(n);
-        int left = 0;
-        for (int right = 0; right < n; ++right) {
-            while (numidx[right].first - numidx[left].first > maxDiff) ++left;
-            for (int i = left; i < right; ++i) {
-                dsu.unite(numidx[right].second, numidx[i].second);
+        // Build connected components
+        for (int i = 0; i + 1 < n; ++i) {
+            if (nums[idx[i+1]] - nums[idx[i]] <= maxDiff) {
+                dsu.unite(idx[i], idx[i+1]);
             }
         }
+        // Build adjacency list for BFS
         vector<vector<int>> adj(n);
-        left = 0;
-        for (int right = 0; right < n; ++right) {
-            while (numidx[right].first - numidx[left].first > maxDiff) ++left;
-            for (int i = left; i < right; ++i) {
-                int u = numidx[right].second, v = numidx[i].second;
-                adj[u].push_back(v);
-                adj[v].push_back(u);
+        for (int i = 0; i < n; ++i) {
+            // For all possible j: |nums[i] - nums[j]| <= maxDiff
+            // Since we already connected with DSU, we only need to connect consecutive in sorted order
+            if (i > 0 && abs(nums[idx[i]] - nums[idx[i-1]]) <= maxDiff) {
+                adj[idx[i]].push_back(idx[i-1]);
+            }
+            if (i + 1 < n && abs(nums[idx[i]] - nums[idx[i+1]]) <= maxDiff) {
+                adj[idx[i]].push_back(idx[i+1]);
             }
         }
-        vector<int> answer(queries.size(), -1);
-        for (int i = 0; i < queries.size(); ++i) {
+        int q = queries.size();
+        vector<int> answer(q, -1);
+        // Preprocess queries
+        unordered_map<int, vector<pair<int, int>>> grouped; // source -> list of (query_idx, target)
+        for (int i = 0; i < q; ++i) {
             int u = queries[i][0], v = queries[i][1];
             if (u == v) {
                 answer[i] = 0;
-            } else if (!dsu.connected(u, v)) {
+            } else if (dsu.find(u) != dsu.find(v)) {
                 answer[i] = -1;
+            } else {
+                grouped[u].emplace_back(i, v);
             }
         }
-        unordered_map<int, unordered_map<int, int>> cache;
-        for (int i = 0; i < queries.size(); ++i) {
-            int u = queries[i][0], v = queries[i][1];
-            if (u == v || !dsu.connected(u, v)) continue;
-            if (cache.count(u) && cache[u].count(v)) {
-                answer[i] = cache[u][v];
-                continue;
-            }
+        // For each group, run BFS from the source to all targets
+        for (auto& [src, query_list] : grouped) {
+            unordered_map<int, int> targets;
+            for (auto& [qi, tgt] : query_list) targets[tgt] = qi;
             vector<int> dist(n, -1);
             queue<int> q;
-            dist[u] = 0;
-            q.push(u);
-            bool found = false;
-            while (!q.empty()) {
-                int x = q.front(); q.pop();
-                for (int y : adj[x]) {
-                    if (dist[y] == -1) {
-                        dist[y] = dist[x] + 1;
-                        if (y == v) {
-                            answer[i] = dist[y];
-                            cache[u][v] = dist[y];
-                            found = true;
-                            break;
-                        }
-                        q.push(y);
+            dist[src] = 0;
+            q.push(src);
+            int remain = targets.size();
+            while (!q.empty() && remain > 0) {
+                int node = q.front(); q.pop();
+                if (targets.count(node)) {
+                    answer[targets[node]] = dist[node];
+                    remain--;
+                }
+                for (int nei : adj[node]) {
+                    if (dist[nei] == -1) {
+                        dist[nei] = dist[node] + 1;
+                        q.push(nei);
                     }
                 }
-                if (found) break;
             }
         }
         return answer;
