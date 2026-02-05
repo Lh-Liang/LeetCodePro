@@ -9,19 +9,37 @@ class Solution {
 public:
     long long totalScore(int hp, vector<int>& damage, vector<int>& requirement) {
         int n = damage.size();
-        // Precompute prefix sums of damage
-        vector<long long> prefix_damage(n + 1, 0);
+        vector<long long> prefix(n + 1, 0);
         for (int i = 0; i < n; ++i) {
-            prefix_damage[i + 1] = prefix_damage[i] + damage[i];
+            prefix[i + 1] = prefix[i] + damage[i];
         }
-        long long ans = 0;
-        // For each room i, count the number of starting positions j <= i such that
-        // hp - (prefix_damage[i+1] - prefix_damage[j]) >= requirement[i]
-        // Rearranged: prefix_damage[j] >= requirement[i] + prefix_damage[i+1] - hp
+        vector<long long> diff(n + 2, 0);
         for (int i = 0; i < n; ++i) {
-            long long threshold = requirement[i] + prefix_damage[i+1] - hp;
-            auto it = lower_bound(prefix_damage.begin(), prefix_damage.begin() + i + 1, threshold);
-            ans += (prefix_damage.begin() + i + 1) - it;
+            // We want to find the earliest start index j such that:
+            // hp - (prefix[i + 1] - prefix[j]) >= requirement[i]
+            // <=> prefix[j] <= hp - requirement[i] + prefix[i + 1]
+            long long target = hp - requirement[i] + prefix[i + 1];
+            // Binary search for leftmost j in [0, i + 1) such that prefix[j] <= target
+            int l = 0, r = i + 1;
+            int res = i + 1;
+            while (l < r) {
+                int m = (l + r) / 2;
+                if (prefix[m] <= target) {
+                    res = m;
+                    r = m;
+                } else {
+                    l = m + 1;
+                }
+            }
+            if (res <= i) {
+                diff[res] += 1;
+                diff[i + 1] -= 1;
+            }
+        }
+        long long ans = 0, cur = 0;
+        for (int i = 0; i < n; ++i) {
+            cur += diff[i];
+            ans += cur;
         }
         return ans;
     }
