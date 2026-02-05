@@ -18,23 +18,21 @@ class Solution {
 public:
     int gcd(int a, int b) {
         while (b != 0) {
-            int t = b;
+            int temp = b;
             b = a % b;
-            a = t;
+            a = temp;
         }
         return a;
     }
     ListNode* insertGreatestCommonDivisors(ListNode* head) {
+        if (!head || !head->next) return head;
         ListNode* curr = head;
         while (curr && curr->next) {
             int g = gcd(curr->val, curr->next->val);
-            ListNode* newNode = new ListNode(g, curr->next);
-            curr->next = newNode;
-            // Verify connection: newNode should point to the original next node
-            // Confirm inserted value matches GCD
-            curr = newNode->next;
+            ListNode* node = new ListNode(g, curr->next);
+            curr->next = node;
+            curr = node->next;
         }
-        // Optionally, traverse the list here to ensure structure is correct
         return head;
     }
 };
