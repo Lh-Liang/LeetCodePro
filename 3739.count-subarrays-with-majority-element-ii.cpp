@@ -8,37 +8,31 @@ class Solution {
 public:
     long long countMajoritySubarrays(vector<int>& nums, int target) {
         int n = nums.size();
-        vector<int> arr(n);
-        for (int i = 0; i < n; ++i) {
-            arr[i] = (nums[i] == target) ? 1 : -1;
-        }
-        vector<long long> prefix(n + 1, 0);
-        for (int i = 0; i < n; ++i) {
-            prefix[i+1] = prefix[i] + arr[i];
-        }
-        // For prefix sums, we want for subarray [l, r]:
-        // prefix[r+1] - prefix[l] > 0 => prefix[l] < prefix[r+1]
-        // Count for each r+1, the number of prefix[l] < prefix[r+1] (l in [0, r+1))
-        vector<long long> all_vals = prefix;
-        sort(all_vals.begin(), all_vals.end());
-        all_vals.erase(unique(all_vals.begin(), all_vals.end()), all_vals.end());
-        int m = all_vals.size();
-        vector<int> bit(m + 2, 0);
-        auto add = [&](int idx) {
-            for (++idx; idx < bit.size(); idx += idx & -idx) ++bit[idx];
-        };
-        auto sum = [&](int idx) {
-            int res = 0;
-            for (++idx; idx > 0; idx -= idx & -idx) res += bit[idx];
-            return res;
-        };
+        unordered_map<int, long long> balance_count;
+        int balance = 0;
         long long ans = 0;
-        for (int i = 0; i < prefix.size(); ++i) {
-            int idx = lower_bound(all_vals.begin(), all_vals.end(), prefix[i]) - all_vals.begin();
-            if (i > 0) {
-                ans += sum(idx - 1);
-            }
-            add(idx);
+        balance_count[0] = 1; // Prefix at -1 is 0
+        for (int i = 0; i < n; ++i) {
+            if (nums[i] == target) balance++;
+            else balance--;
+            // For (i+1) elements, target is majority if balance > (i+1)/2
+            // We need to find number of j < i such that balance_j < balance - (i-j)/2
+            // But we can use a different trick: for each prefix, keep counts
+            // Instead, let's use offset technique:
+            // Use an array to store first occurrence of balance
+            // Or, for all previous balance values smaller than current,
+            // but that's not efficient.
+            // Instead, let's preprocess: For each prefix, when balance exceeds previous max, count.
+            // Let's use a different prefix sum trick:
+            // Actually, since for subarray [l, r], majority means 2*(count of target in [l,r]) > (r-l+1),
+            // which is equivalent to: (prefix[r+1] - prefix[l]) * 2 > r-l+1
+            // Let's try an O(n log n) solution:
+            // Let's store prefix balances and use ordered map.
+            // But for now, let's keep the efficient O(n) solution for the constraints.
+
+            // For each position, count number of earlier prefix balances less than current balance
+            ans += balance_count[balance - 1];
+            balance_count[balance]++;
         }
         return ans;
     }
