@@ -7,44 +7,63 @@
 class Solution {
 public:
     int maxDistance(int side, vector<vector<int>>& points, int k) {
-        // Binary search template for answer
         int n = points.size();
-        // Precompute all pairwise Manhattan distances
-        vector<vector<int>> dist(n, vector<int>(n, 0));
+        // Precompute Manhattan distances between all pairs
+        vector<vector<int>> dists(n, vector<int>(n, 0));
         for (int i = 0; i < n; ++i) {
             for (int j = 0; j < n; ++j) {
-                dist[i][j] = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1]);
+                dists[i][j] = abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1]);
             }
         }
-        // Helper: can we select k points with at least 'd' min distance?
-        function<bool(int)> can = [&](int d) {
-            vector<int> idxs;
-            function<bool(int, int)> dfs = [&](int pos, int chosen) {
-                if (chosen == k) return true;
-                if (n - pos < k - chosen) return false;
-                for (int i = pos; i < n; ++i) {
+        // Helper to check if we can select k points with at least dist apart
+        vector<int> chosen;
+        function<bool(int, int)> dfs = [&](int idx, int cnt) {
+            if (cnt == k) return true;
+            if (n - idx < k - cnt) return false;
+            for (int i = idx; i < n; ++i) {
+                bool ok = true;
+                for (int c : chosen) {
+                    if (dists[c][i] < cur_d) { ok = false; break; }
+                }
+                if (ok) {
+                    chosen.push_back(i);
+                    if (dfs(i+1, cnt+1)) return true;
+                    chosen.pop_back();
+                }
+            }
+            return false;
+        };
+        int left = 0, right = 2*side, ans = 0;
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            int cur_d = mid;
+            chosen.clear();
+            // Capture cur_d in lambda
+            bool possible = false;
+            auto dfs2 = [&](auto&& self, int idx, int cnt) -> bool {
+                if (cnt == k) return true;
+                if (n - idx < k - cnt) return false;
+                for (int i = idx; i < n; ++i) {
                     bool ok = true;
-                    for (int idx : idxs) {
-                        if (dist[i][idx] < d) { ok = false; break; }
+                    for (int c : chosen) {
+                        if (dists[c][i] < cur_d) { ok = false; break; }
                     }
                     if (ok) {
-                        idxs.push_back(i);
-                        if (dfs(i+1, chosen+1)) return true;
-                        idxs.pop_back();
+                        chosen.push_back(i);
+                        if (self(self, i+1, cnt+1)) return true;
+                        chosen.pop_back();
                     }
                 }
                 return false;
             };
-            idxs.clear();
-            return dfs(0,0);
-        };
-        int lo = 0, hi = 2*side+1;
-        while (lo < hi) {
-            int mid = lo + (hi - lo) / 2;
-            if (can(mid)) lo = mid+1;
-            else hi = mid;
+            if (dfs2(dfs2, 0, 0)) {
+                ans = mid;
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
         }
-        return lo-1;
+        return ans;
     }
 };
 # @lc code=end
