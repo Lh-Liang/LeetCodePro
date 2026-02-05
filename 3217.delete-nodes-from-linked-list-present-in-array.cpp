@@ -18,19 +18,18 @@
 #include <unordered_set>
 class Solution {
 public:
-    ListNode* modifiedList(std::vector<int>& nums, ListNode* head) {
-        std::unordered_set<int> to_delete(nums.begin(), nums.end());
+    ListNode* modifiedList(vector<int>& nums, ListNode* head) {
+        std::unordered_set<int> val_set(nums.begin(), nums.end());
         ListNode dummy(0, head);
         ListNode* prev = &dummy;
-        ListNode* curr = head;
-        while (curr) {
-            if (to_delete.count(curr->val)) {
-                prev->next = curr->next;
-                // Optionally delete curr to free memory if needed
+        while (prev->next) {
+            if (val_set.count(prev->next->val)) {
+                ListNode* tmp = prev->next;
+                prev->next = tmp->next;
+                delete tmp;
             } else {
-                prev = curr;
+                prev = prev->next;
             }
-            curr = curr->next;
         }
         return dummy.next;
     }
