@@ -3,31 +3,32 @@
 #
 # [3341] Find Minimum Time to Reach Last Room I
 #
+
 # @lc code=start
 #include <vector>
 #include <queue>
+#include <tuple>
 using namespace std;
 class Solution {
 public:
     int minTimeToReach(vector<vector<int>>& moveTime) {
         int n = moveTime.size(), m = moveTime[0].size();
         vector<vector<int>> minTime(n, vector<int>(m, INT_MAX));
-        priority_queue<pair<int, pair<int, int>>, vector<pair<int, pair<int, int>>>, greater<>> pq;
+        priority_queue<tuple<int, int, int>, vector<tuple<int, int, int>>, greater<tuple<int, int, int>>> pq;
+        pq.push({0, 0, 0}); // time, x, y
         minTime[0][0] = 0;
-        pq.push({0, {0, 0}});
-        int dirs[4][2] = {{1,0},{-1,0},{0,1},{0,-1}};
+        vector<pair<int, int>> dirs = {{0,1},{1,0},{0,-1},{-1,0}};
         while (!pq.empty()) {
-            auto [curTime, pos] = pq.top(); pq.pop();
-            int x = pos.first, y = pos.second;
-            if (x == n-1 && y == m-1) return curTime;
-            if (curTime > minTime[x][y]) continue;
+            auto [t, x, y] = pq.top(); pq.pop();
+            if (x == n-1 && y == m-1) return t;
+            if (t > minTime[x][y]) continue;
             for (auto& d : dirs) {
-                int nx = x + d[0], ny = y + d[1];
+                int nx = x + d.first, ny = y + d.second;
                 if (nx >= 0 && nx < n && ny >= 0 && ny < m) {
-                    int nextTime = max(curTime + 1, moveTime[nx][ny]);
-                    if (nextTime < minTime[nx][ny]) {
-                        minTime[nx][ny] = nextTime;
-                        pq.push({nextTime, {nx, ny}});
+                    int arrive = max(t + 1, moveTime[nx][ny]);
+                    if (arrive < minTime[nx][ny]) {
+                        minTime[nx][ny] = arrive;
+                        pq.push({arrive, nx, ny});
                     }
                 }
             }
