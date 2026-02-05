@@ -5,45 +5,44 @@
 #
 
 # @lc code=start
+import java.util.*;
 class Solution {
     public List<Integer> remainingMethods(int n, int k, int[][] invocations) {
-        Set<Integer> suspicious = new HashSet<>();
-        Map<Integer, List<Integer>> graph = new HashMap<>();
-        Map<Integer, List<Integer>> reverseGraph = new HashMap<>();
-        
-        // Build graph and reverse graph for easy traversal
-        for (int[] invocation : invocations) {
-            graph.computeIfAbsent(invocation[0], x -> new ArrayList<>()).add(invocation[1]);
-            reverseGraph.computeIfAbsent(invocation[1], x -> new ArrayList<>()).add(invocation[0]);
+        // Step 1: Build adjacency list
+        List<Integer>[] graph = new ArrayList[n];
+        for (int i = 0; i < n; ++i) graph[i] = new ArrayList<>();
+        for (int[] inv : invocations) {
+            graph[inv[0]].add(inv[1]);
         }
-        
-        // Use BFS to find all reachable nodes from k (suspicious nodes)
-        Queue<Integer> queue = new LinkedList<>();
-        queue.add(k);
-        while (!queue.isEmpty()) {
-            int method = queue.poll();
-            if (suspicious.add(method)) { // Add if not already visited/suspicious
-                List<Integer> children = graph.get(method);
-                if (children != null) { queue.addAll(children); } 
-            }  
-        }
-        
-        // Validate: Check that no non-suspicious node invokes any suspicious node
-        for (int node : suspicious) {
-            List<Integer> invokers = reverseGraph.get(node);
-            if (invokers != null) {
-                for (int invoker : invokers) {
-                    if (!suspicious.contains(invoker)) {
-                        return IntStream.range(0, n).boxed().collect(Collectors.toList()); // Return all nodes
-                    }
-                }
+        // Step 2: Find all suspicious methods (reachable from k)
+        boolean[] suspicious = new boolean[n];
+        Deque<Integer> stack = new ArrayDeque<>();
+        stack.push(k);
+        while (!stack.isEmpty()) {
+            int cur = stack.pop();
+            if (suspicious[cur]) continue;
+            suspicious[cur] = true;
+            for (int nei : graph[cur]) {
+                if (!suspicious[nei]) stack.push(nei);
             }
         }
-
-        // If valid, return only non-suspicious nodes
-        return IntStream.range(0, n)
-                        .filter(method -> !suspicious.contains(method))
-                        .boxed().collect(Collectors.toList());
+        // Step 3: Check for invocations from outside suspicious set to inside
+        for (int[] inv : invocations) {
+            int from = inv[0], to = inv[1];
+            if (!suspicious[from] && suspicious[to]) {
+                List<Integer> all = new ArrayList<>();
+                for (int i = 0; i < n; ++i) all.add(i);
+                return all;
+            }
+        }
+        // Step 4: Return all non-suspicious methods
+        List<Integer> res = new ArrayList<>();
+        for (int i = 0; i < n; ++i) {
+            if (!suspicious[i]) res.add(i);
+        }
+        // Step 5: Verify output satisfies all problem constraints (e.g., edge cases, cycles)
+        // (In this implementation, all constraints are covered by previous steps)
+        return res;
     }
 }
 # @lc code=end
