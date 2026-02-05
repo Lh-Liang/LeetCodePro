@@ -1,54 +1,37 @@
+#
 # @lc app=leetcode id=3530 lang=java
 #
 # [3530] Maximum Profit from Valid Topological Order in DAG
 #
 # @lc code=start
-import java.util.*;
-
 class Solution {
     public int maxProfit(int n, int[][] edges, int[] score) {
-        // Step 1: Build graph and calculate in-degrees
-        List<Integer>[] graph = new ArrayList[n];
-        int[] inDegree = new int[n];
-        for (int i = 0; i < n; i++) {
-            graph[i] = new ArrayList<>();
+        int[] indegree = new int[n];
+        List<Integer>[] adj = new List[n];
+        for (int i = 0; i < n; ++i) adj[i] = new ArrayList<>();
+        for (int[] e : edges) {
+            adj[e[0]].add(e[1]);
+            indegree[e[1]]++;
         }
-        for (int[] edge : edges) {
-            graph[edge[0]].add(edge[1]);
-            inDegree[edge[1]]++;
+        // Prerequisite mask for each node
+        int[] pre = new int[n];
+        for (int u = 0; u < n; ++u) {
+            for (int v : adj[u]) pre[v] |= (1 << u);
         }
-
-        // Step 2: Backtrack to find maximum profit by exploring all topological sorts
-        return backtrack(new ArrayList<>(), new boolean[n], inDegree, graph, score);
-    }
-
-    private int backtrack(List<Integer> currentOrder, boolean[] visited, int[] inDegree, List<Integer>[] graph, int[] score) {
-        if (currentOrder.size() == visited.length) {
-            // Calculate profit for this order
-            return calculateProfit(currentOrder, score);
-        }
-
-        int maxProfit = 0;
-        for (int i = 0; i < visited.length; i++) {
-            if (!visited[i] && inDegree[i] == 0) {
-                // Choose node i and add it to currentOrder
-                visited[i] = true;
-                currentOrder.add(i);
-                // Temporarily decrease in-degree of neighbors
-                for (int neighbor : graph[i]) {
-                    inDegree[neighbor]--;
+        int size = 1 << n;
+        int[] dp = new int[size];
+        Arrays.fill(dp, Integer.MIN_VALUE);
+        dp[0] = 0;
+        for (int mask = 0; mask < size; ++mask) {
+            int pos = Integer.bitCount(mask);
+            for (int i = 0; i < n; ++i) {
+                if ((mask & (1 << i)) == 0 && (mask & pre[i]) == pre[i]) {
+                    int next = mask | (1 << i);
+                    dp[next] = Math.max(dp[next], dp[mask] + score[i] * (pos + 1));
                 }
-                // Recurse with updated state
-                maxProfit = Math.max(maxProfit, backtrack(currentOrder, visited, inDegree, graph, score));
-                // Backtrack - undo choices
-                for (int neighbor : graph[i]) {
-                    inDegree[neighbor]++;
-                }
-                currentOrder.remove(currentOrder.size() - 1);
-                visited[i] = false;
             }
         }
-        return maxProfit;
+        return dp[size - 1];
     }
-
-    private int calculateProfit(List<Integer> order, int[] score) {								 					 	 	 	 	 	 	 	 	 	 			 	    int profit = 0;	    for (int i = 0; i < order.size(); i++) {          profit += score[order.get(i)] * (i + 1);      }      return profit;   }   } # @lc code=end
+}
+# @lc code=end
