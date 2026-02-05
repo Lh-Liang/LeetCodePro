@@ -1,43 +1,32 @@
-#
 # @lc app=leetcode id=3503 lang=java
 #
 # [3503] Longest Palindrome After Substring Concatenation I
 #
-
 # @lc code=start
 class Solution {
     public int longestPalindrome(String s, String t) {
-        int maxLength = 0;
-        // Iterate over all substrings of s
-        for (int i = 0; i <= s.length(); i++) {
-            for (int j = i; j <= s.length(); j++) {
+        int maxLen = 0;
+        for (int i = 0; i <= s.length(); ++i) {
+            for (int j = i; j <= s.length(); ++j) {
                 String subS = s.substring(i, j);
-                // Iterate over all substrings of t
-                for (int k = 0; k <= t.length(); k++) {
-                    for (int l = k; l <= t.length(); l++) {
+                for (int k = 0; k <= t.length(); ++k) {
+                    for (int l = k; l <= t.length(); ++l) {
                         String subT = t.substring(k, l);
-                        // Concatenate and check if palindrome
                         String candidate = subS + subT;
                         if (isPalindrome(candidate)) {
-                            maxLength = Math.max(maxLength, candidate.length());
+                            maxLen = Math.max(maxLen, candidate.length());
                         }
                     }
                 }
             }
         }
-        return maxLength;
+        return maxLen;
     }
-    
-    // Helper method to check if a string is a palindrome
-    private boolean isPalindrome(String str) {
-        int left = 0;
-        int right = str.length() - 1;
+    private boolean isPalindrome(String s) {
+        int left = 0, right = s.length() - 1;
         while (left < right) {
-            if (str.charAt(left) != str.charAt(right)) {
-                return false;
-            }
-            left++;
-            right--;
+            if (s.charAt(left) != s.charAt(right)) return false;
+            ++left; --right;
         }
         return true;
     }
