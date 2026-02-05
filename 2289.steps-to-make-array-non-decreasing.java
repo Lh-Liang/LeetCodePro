@@ -3,25 +3,23 @@
 #
 # [2289] Steps to Make Array Non-decreasing
 #
-
 # @lc code=start
 class Solution {
     public int totalSteps(int[] nums) {
-        Stack<int[]> stack = new Stack<>(); // Element and its steps count
+        Stack<int[]> stack = new Stack<>(); // Stack to hold pairs of (number, steps)
         int maxSteps = 0;
-        for (int num : nums) {
-            int currentSteps = 0;
-            // Check if current number causes previous numbers in stack to be removed
-            while (!stack.isEmpty() && stack.peek()[0] <= num) {
-                currentSteps = Math.max(currentSteps, stack.pop()[1]);
+        for (int i = nums.length - 1; i >= 0; i--) {
+            int steps = 0;
+            while (!stack.isEmpty() && stack.peek()[0] < nums[i]) {
+                steps = Math.max(steps, stack.pop()[1]); // Remove smaller elements and calculate steps required for removal
             }
-            // Calculate max steps needed to remove
-            currentSteps = (stack.isEmpty()) ? 0 : currentSteps + 1;
-            maxSteps = Math.max(maxSteps, currentSteps);
-            // Push current number and its calculated steps onto the stack
-            stack.push(new int[]{num, currentSteps});
-        }
-        return maxSteps;
-    }
+            if (!stack.isEmpty()) { // If a larger number exists ahead, increment step count
+                steps++; 
+            } 
+            maxSteps = Math.max(maxSteps, steps); // Track max steps needed for any element
+            stack.push(new int[]{nums[i], steps}); // Push current element with its step count onto stack
+        } 
+        return maxSteps; 
+    } 
 }
 # @lc code=end
