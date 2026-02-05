@@ -7,95 +7,103 @@
 # @lc code=start
 #include <vector>
 #include <cstdlib>
-#include <ctime>
+
+using namespace std;
+
+struct Node {
+    int val;
+    vector<Node*> next;
+    Node(int v, int level) : val(v), next(level, nullptr) {}
+};
 
 class Skiplist {
-    struct Node {
-        int val;
-        std::vector<Node*> forward;
-        Node(int v, int level) : val(v), forward(level, nullptr) {}
-    };
-    static constexpr int MAX_LEVEL = 16;
-    static constexpr float P = 0.5;
+private:
     Node* head;
-    int level;
-    
+    const int MAX_LEVEL = 16;
+    const float P = 0.5;
+
     int randomLevel() {
-        int lvl = 1;
-        while (((double)std::rand() / RAND_MAX) < P && lvl < MAX_LEVEL) {
-            lvl++;
+        int lv = 1;
+        while (lv < MAX_LEVEL && (float)rand() / RAND_MAX < P) {
+            lv++;
         }
-        return lvl;
+        return lv;
     }
+
 public:
     Skiplist() {
-        std::srand(std::time(nullptr));
         head = new Node(-1, MAX_LEVEL);
-        level = 1;
     }
     
+    ~Skiplist() {
+        Node* curr = head;
+        while (curr) {
+            Node* temp = curr->next[0];
+            delete curr;
+            curr = temp;
+        }
+    }
+
     bool search(int target) {
         Node* curr = head;
-        for (int i = level - 1; i >= 0; --i) {
-            while (curr->forward[i] && curr->forward[i]->val < target) {
-                curr = curr->forward[i];
+        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
+            while (curr->next[i] && curr->next[i]->val < target) {
+                curr = curr->next[i];
             }
         }
-        curr = curr->forward[0];
-        return curr && curr->val == target;
+        curr = curr->next[0];
+        return curr != nullptr && curr->val == target;
     }
-    
+
     void add(int num) {
-        std::vector<Node*> update(MAX_LEVEL, nullptr);
+        vector<Node*> update(MAX_LEVEL);
         Node* curr = head;
-        for (int i = level - 1; i >= 0; --i) {
-            while (curr->forward[i] && curr->forward[i]->val < num) {
-                curr = curr->forward[i];
+        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
+            while (curr->next[i] && curr->next[i]->val < num) {
+                curr = curr->next[i];
             }
             update[i] = curr;
         }
-        int lvl = randomLevel();
-        if (lvl > level) {
-            for (int i = level; i < lvl; ++i) {
-                update[i] = head;
-            }
-            level = lvl;
-        }
-        Node* node = new Node(num, lvl);
-        for (int i = 0; i < lvl; ++i) {
-            node->forward[i] = update[i]->forward[i];
-            update[i]->forward[i] = node;
+
+        int lv = randomLevel();
+        Node* newNode = new Node(num, lv);
+        for (int i = 0; i < lv; i++) {
+            newNode->next[i] = update[i]->next[i];
+            update[i]->next[i] = newNode;
         }
     }
-    
+
     bool erase(int num) {
-        std::vector<Node*> update(MAX_LEVEL, nullptr);
+        vector<Node*> update(MAX_LEVEL);
         Node* curr = head;
-        for (int i = level - 1; i >= 0; --i) {
-            while (curr->forward[i] && curr->forward[i]->val < num) {
-                curr = curr->forward[i];
+        for (int i = MAX_LEVEL - 1; i >= 0; i--) {
+            while (curr->next[i] && curr->next[i]->val < num) {
+                curr = curr->next[i];
             }
             update[i] = curr;
         }
-        curr = curr->forward[0];
-        if (!curr || curr->val != num) return false;
-        for (int i = 0; i < level; ++i) {
-            if (update[i]->forward[i] != curr) break;
-            update[i]->forward[i] = curr->forward[i];
+
+        curr = curr->next[0];
+        if (curr == nullptr || curr->val != num) {
+            return false;
+        }
+
+        for (int i = 0; i < MAX_LEVEL; i++) {
+            if (update[i]->next[i] != curr) {
+                break;
+            }
+            update[i]->next[i] = curr->next[i];
         }
         delete curr;
-        while (level > 1 && head->forward[level - 1] == nullptr) {
-            --level;
-        }
         return true;
     }
 };
 
 /**
-* Your Skiplist object will be instantiated and called as such:
-* Skiplist* obj = new Skiplist();
-* bool param_1 = obj->search(target);
-* obj->add(num);
-* bool param_3 = obj->erase(num);
-*/
+ * Your Skiplist object will be instantiated and called as such:
+ * Skiplist* obj = new Skiplist();
+ * bool param_1 = obj->search(target);
+ * obj->add(num);
+ * bool param_3 = obj->erase(num);
+ */
 # @lc code=end
