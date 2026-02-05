@@ -1,1 +1,67 @@
-#\n# @lc app=leetcode id=3470 lang=java\n#\n# [3470] Permutations IV\n#\n# @lc code=start\nimport java.util.ArrayList;\nimport java.util.List;\nimport java.math.BigInteger;\n\nclass Solution {\n    public int[] permute(int n, long k) {\n        // Initialize lists for odd and even numbers separately\n        List<Integer> odds = new ArrayList<>();\n        List<Integer> evens = new ArrayList<>();\n        for (int i = 1; i <= n; i++) {\n            if (i % 2 == 0) evens.add(i);\n            else odds.add(i);\n        }\n        // Calculate total permutations possible with alternating constraints using combinatorial approach \n        BigInteger totalPermutations = calculateTotalPermutations(n); \n        if (BigInteger.valueOf(k).compareTo(totalPermutations) > 0) { \n            return new int[0]; // Return empty list if k exceeds total permutations \n        } \n        int[] result = new int[n]; \n        boolean useOdd = true; // Start with odd as in lexicographical order, can be dynamic based on input state \n        for (int i = 0; i < n; i++) { \n            List<Integer> targetList = useOdd ? odds : evens; // Determine list based on position parity \n            BigInteger factorial = factorial(targetList.size() - 1); // Calculate factorial of remaining elements size minus one using BigInteger to handle large values \n            int index = BigInteger.valueOf(k - 1).divide(factorial).intValue(); // Determine the index to pick from targetList using combinatorial logic \n            result[i] = targetList.get(index); // Set result at current position \n            targetList.remove(index); // Remove used element from consideration \n            k -= index * factorial.longValue(); // Reduce k by covered permutations \n            useOdd = !useOdd; // Alternate between odd and even for next position \n        } \n        return result; \n    } \\\u003cnprivate BigInteger factorial(int num) { \\\u003cif (num == 0) return BigInteger.ONE; \\\u003cBigInteger fact = BigInteger.ONE; \\\u003cfor (int i = 2; i <= num; i++) { \\\u003cfact = fact.multiply(BigInteger.valueOf(i)); \\\u003c} \\\u003creturn fact; \\\u003c} \\\u003cnprivate BigInteger calculateTotalPermutations(int n) { \\\u003c// Logic to calculate total number of valid alternating permutations can be implemented here, possibly using similar combinatorial methods. \\\u003creturn BigInteger.ZERO; // Placeholder implementation \\\u003c} # @lc code=end
+#
+# @lc app=leetcode id=3470 lang=java
+#
+# [3470] Permutations IV
+#
+
+# @lc code=start
+import java.util.*;
+class Solution {
+    public int[] permute(int n, long k) {
+        // Use a boolean array to track used numbers for scalability
+        boolean[] used = new boolean[n + 1];
+        int[] res = new int[n];
+        // Memoization cache: (usedKey, lastParity) -> count
+        Map<String, Long> dp = new HashMap<>();
+        // Helper to create a scalable key for memoization
+        String makeKey(boolean[] used, int lastParity) {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 1; i <= n; ++i) sb.append(used[i] ? '1' : '0');
+            sb.append(',').append(lastParity);
+            return sb.toString();
+        }
+        // DP function: count valid completions from current state
+        java.util.function.BiFunction<boolean[], Integer, Long> count = new java.util.function.BiFunction<>() {
+            public Long apply(boolean[] usedArr, Integer lastParity) {
+                String key = makeKey(usedArr, lastParity);
+                if (dp.containsKey(key)) return dp.get(key);
+                int usedCount = 0;
+                for (int i = 1; i <= n; ++i) if (usedArr[i]) ++usedCount;
+                if (usedCount == n) return 1L;
+                long total = 0L;
+                for (int i = 1; i <= n; ++i) {
+                    if (!usedArr[i] && (lastParity == -1 || (i % 2 != lastParity))) {
+                        usedArr[i] = true;
+                        total += apply(usedArr, i % 2);
+                        usedArr[i] = false;
+                    }
+                }
+                dp.put(key, total);
+                return total;
+            }
+        };
+        int lastParity = -1;
+        for (int pos = 0; pos < n; ++pos) {
+            boolean found = false;
+            for (int v = 1; v <= n; ++v) {
+                if (used[v]) continue;
+                if (lastParity != -1 && (v % 2 == lastParity)) continue;
+                used[v] = true;
+                long c = count.apply(used, v % 2);
+                used[v] = false;
+                if (c < k) {
+                    k -= c;
+                } else {
+                    res[pos] = v;
+                    used[v] = true;
+                    lastParity = v % 2;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) return new int[0];
+        }
+        return res;
+    }
+}
+# @lc code=end
