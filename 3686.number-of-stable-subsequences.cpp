@@ -8,37 +8,37 @@
 class Solution {
 public:
     int countStableSubsequences(vector<int>& nums) {
-        const int MOD = 1e9 + 7;
-        int n = nums.size();
-        // dp[i][last_parity][consecutive]:
-        // Number of ways up to i, last selected element has parity last_parity, consecutive same parity elements
-        vector<vector<vector<int>>> dp(n+1, vector<vector<int>>(2, vector<int>(3, 0)));
-        // Base case: no elements selected yet
-        dp[0][0][0] = dp[0][1][0] = 1; // 1 way: empty subsequence
-        for (int i = 0; i < n; ++i) {
-            int p = nums[i] % 2;
-            for (int last=0; last<2; ++last) {
-                for (int c=0; c<3; ++c) {
-                    int ways = dp[i][last][c];
-                    if (!ways) continue;
-                    // Skip nums[i]
-                    dp[i+1][last][c] = (dp[i+1][last][c] + ways) % MOD;
-                    // Pick nums[i]
-                    if (c < 2 && last == p) {
-                        dp[i+1][p][c+1] = (dp[i+1][p][c+1] + ways) % MOD;
-                    } else if (last != p) {
-                        dp[i+1][p][1] = (dp[i+1][p][1] + ways) % MOD;
+        static const int MOD = 1e9 + 7;
+        // dp[last_parity][run] = number of ways
+        // run = 0 (no element), 1 (one in a row), 2 (two in a row)
+        vector<vector<int>> dp(2, vector<int>(3, 0));
+        dp[0][0] = dp[1][0] = 1; // empty subsequence (for transition)
+        for (int x : nums) {
+            int p = x % 2;
+            vector<vector<int>> ndp(2, vector<int>(3, 0));
+            // For every possible previous state
+            for (int last_p = 0; last_p <= 1; ++last_p) {
+                for (int run = 0; run <= 2; ++run) {
+                    int val = dp[last_p][run];
+                    if (!val) continue;
+                    // Option 1: skip (carry over)
+                    ndp[last_p][run] = (ndp[last_p][run] + val) % MOD;
+                    // Option 2: take
+                    if (run < 2 && last_p == p) {
+                        ndp[p][run+1] = (ndp[p][run+1] + val) % MOD;
+                    }
+                    if (last_p != p) {
+                        ndp[p][1] = (ndp[p][1] + val) % MOD;
                     }
                 }
             }
+            dp = ndp;
         }
+        // Remove empty subsequence
         int ans = 0;
-        // Sum all non-empty subsequences
-        for (int last=0; last<2; ++last) {
-            for (int c=1; c<3; ++c) {
-                ans = (ans + dp[n][last][c]) % MOD;
-            }
-        }
+        for (int p = 0; p <= 1; ++p)
+            for (int run = 1; run <= 2; ++run)
+                ans = (ans + dp[p][run]) % MOD;
         return ans;
     }
 };
