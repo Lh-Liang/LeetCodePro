@@ -1,40 +1,60 @@
+#
 # @lc app=leetcode id=3562 lang=java
 #
 # [3562] Maximum Profit from Trading Stocks with Discounts
 #
 # @lc code=start
-import java.util.*;
 class Solution {
     public int maxProfit(int n, int[] present, int[] future, int[][] hierarchy, int budget) {
-        // Convert hierarchy into adjacency list for traversal
-        List<Integer>[] tree = new ArrayList[n + 1];
-        for (int i = 0; i <= n; i++) {
-            tree[i] = new ArrayList<>();
+        // Build tree structure
+        List<Integer>[] tree = new ArrayList[n];
+        for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
+        for (int[] edge : hierarchy) {
+            tree[edge[0] - 1].add(edge[1] - 1);
         }
-        for (int[] pair : hierarchy) {
-            tree[pair[0]].add(pair[1]);
+        // dp[u][b][0]: max profit for node u in subtree, budget b, boss didn't buy
+        // dp[u][b][1]: max profit for node u in subtree, budget b, boss did buy (discount)
+        int[][][] dp = new int[n][budget + 1][2];
+        dfs(0, tree, present, future, dp, budget);
+        int ans = 0;
+        for (int b = 0; b <= budget; ++b) {
+            ans = Math.max(ans, Math.max(dp[0][b][0], dp[0][b][1]));
         }
-        
-        // DP array
-        int[][] dp = new int[n + 1][budget + 1];
-        for (int i = 0; i <= n; i++) {
-            Arrays.fill(dp[i], -1); // Initialize dp with uncomputed state
-        }
-        
-        return dfs(1, budget, present, future, tree, dp);
+        return ans;
     }
-    
-    private int dfs(int empId, int budget,
-                    int[] present, int[] future,
-                    List<Integer>[] tree,
-                    int[][] dp) {
-        if (dp[empId][budget] != -1) return dp[empId][budget];
 
-        // Max profit without buying current employee's stock
-        int maxProfit = 0;
-
-        // Calculate direct profit if this employee buys their stock
-        int cost = present[empId - 1];
-        if (budget >= cost) {
-            maxProfit = Math.max(maxProfit,
-future[empId - 1] - cost + dfsSubordinates(empId, budget - cost, present, future, tree));	}	// Explore subordinates without affecting them (no discount)	for (int sub : tree[empId]) {		maxProfit += dfs(sub,budget,present,future);}	dp[empId][budget]=maxProfit;	return maxProfit;	}	private int dfsSubordinates(int empId,int budget,int[] present,int[] future,List<Integer>[] tree){	int maxProfit=0;	for(int sub:tree[empId]){		// Check if discount applies		int discountedCost=present[sub-1]/2;		if(budget>=discountedCost){			maxProfit+=Math.max(	future[sub-1]-discountedCost+dfsSubordinates(sub,budget-discountedCost,present,future),dfs(sub,budget,present,future));	}	}	dp table will be filled through a DFS traversal handling discounts for subordinates.	return maxProfit;	}	}	# @lc code=end
+    private void dfs(int u, List<Integer>[] tree, int[] present, int[] future, int[][][] dp, int budget) {
+        // Prepare DP for this node
+        // Base cases: only self
+        int cost0 = present[u];
+        int profit0 = future[u] - present[u];
+        int cost1 = present[u] / 2;
+        int profit1 = future[u] - cost1;
+        for (int b = 0; b <= budget; ++b) {
+            dp[u][b][0] = 0;
+            dp[u][b][1] = 0;
+            if (b >= cost0) dp[u][b][0] = profit0;
+            if (b >= cost1) dp[u][b][1] = profit1;
+        }
+        // Merge with children
+        for (int v : tree[u]) {
+            dfs(v, tree, present, future, dp, budget);
+            int[][] ndp = new int[budget + 1][2];
+            for (int b = 0; b <= budget; ++b) {
+                ndp[b][0] = dp[u][b][0];
+                ndp[b][1] = dp[u][b][1];
+            }
+            // Merge child v
+            for (int b = budget; b >= 0; --b) {
+                for (int cb = 0; cb <= b; ++cb) {
+                    // If u not bought, v must use no-discount
+                    ndp[b][0] = Math.max(ndp[b][0], dp[u][b - cb][0] + dp[v][cb][0]);
+                    // If u bought, v can use discounted or non-discounted
+                    ndp[b][1] = Math.max(ndp[b][1], dp[u][b - cb][1] + Math.max(dp[v][cb][0], dp[v][cb][1]));
+                }
+            }
+            dp[u] = ndp;
+        }
+    }
+}
+# @lc code=end
