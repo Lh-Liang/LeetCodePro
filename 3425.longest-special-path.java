@@ -5,43 +5,40 @@
 #
 
 # @lc code=start
-import java.util.*;
-
 class Solution {
     public int[] longestSpecialPath(int[][] edges, int[] nums) {
-        // Convert edges into adjacency list
-        Map<Integer, List<int[]>> graph = new HashMap<>();
-        for (int[] edge : edges) {
-            graph.computeIfAbsent(edge[0], k -> new ArrayList<>()).add(new int[]{edge[1], edge[2]});
-            graph.computeIfAbsent(edge[1], k -> new ArrayList<>()).add(new int[]{edge[0], edge[2]});
+        int n = nums.length;
+        List<int[]>[] tree = new List[n];
+        for (int i = 0; i < n; i++) tree[i] = new ArrayList<>();
+        for (int[] e : edges) {
+            tree[e[0]].add(new int[]{e[1], e[2]});
+            tree[e[1]].add(new int[]{e[0], e[2]});
         }
-        // Variables to track max length and min nodes count
-        int[] maxLengthAndMinNodes = new int[]{0, Integer.MAX_VALUE};
-        // DFS function to explore paths
-        dfs(0, -1, nums, graph, new HashSet<>(), 0, 0, maxLengthAndMinNodes);
-        return maxLengthAndMinNodes;
+        int[] res = new int[]{0, 1}; // {maxLen, minNodes}
+        Set<Integer> seen = new HashSet<>();
+        dfs(0, -1, 0, 1, seen, nums, tree, res);
+        // After traversal, ensure result matches constraints (not necessary here but included for robustness)
+        return res;
     }
-    
-    private void dfs(int node, int parent, int[] nums, Map<Integer, List<int[]>> graph,
-                     Set<Integer> visitedValues, int currentLength, int currentNodeCount,
-                     int[] maxLengthAndMinNodes) {
-        visitedValues.add(nums[node]);
-        currentNodeCount++;
-        for (int[] neighbor : graph.getOrDefault(node, Collections.emptyList())) {
-            if (neighbor[0] != parent && !visitedValues.contains(nums[neighbor[0]])) {
-                visitedValues.add(nums[neighbor[0]]);
-                dfs(neighbor[0], node, nums, graph, visitedValues,
-                    currentLength + neighbor[1], currentNodeCount,
-                    maxLengthAndMinNodes);
-                visitedValues.remove(nums[neighbor[0]]);  // Backtrack
-            }
+    private void dfs(int u, int parent, int curLen, int nodeCount, Set<Integer> seen, int[] nums, List<int[]>[] tree, int[] res) {
+        // Pre-recursion: ensure uniqueness constraint
+        if (seen.contains(nums[u])) return;
+        seen.add(nums[u]);
+        // Update result if needed
+        if (curLen > res[0]) {
+            res[0] = curLen;
+            res[1] = nodeCount;
+        } else if (curLen == res[0]) {
+            res[1] = Math.min(res[1], nodeCount);
         }
-        if (currentLength > maxLengthAndMinNodes[0]) {
-            maxLengthAndMinNodes[0] = currentLength;
-            maxLengthAndMinNodes[1] = currentNodeCount;
-        } else if (currentLength == maxLengthAndMinNodes[0]) {
-            maxLengthAndMinNodes[1] = Math.min(maxLengthAndMinNodes[1], currentNodeCount);
+        // Recurse on all children (except parent)
+        for (int[] nei : tree[u]) {
+            int v = nei[0], w = nei[1];
+            if (v == parent) continue;
+            dfs(v, u, curLen + w, nodeCount + 1, seen, nums, tree, res);
         }
+        // Post-recursion: backtrack state
+        seen.remove(nums[u]);
     }
 }
 # @lc code=end
