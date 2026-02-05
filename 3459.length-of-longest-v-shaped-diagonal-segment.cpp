@@ -1,33 +1,58 @@
+#
+# @lc app=leetcode id=3459 lang=cpp
+#
+# [3459] Length of Longest V-Shaped Diagonal Segment
+#
+# @lc code=start
 class Solution {
 public:
-    int lenOfVDiagonal(vector<vector<int>>& grid) {
-        int n = grid.size(), m = grid[0].size();
+    int n, m;
+    vector<vector<int>> grid;
+    // Directions: [dr, dc] for the four diagonals
+    const vector<pair<int, int>> dirs = { {1,1}, {1,-1}, {-1,1}, {-1,-1} };
+    // For each direction, the index of its clockwise 90-degree turn
+    const vector<int> clockwise = {1,3,0,2};
+    // dp cache: r, c, dir, turn_used, parity (0: expect 2, 1: expect 0)
+    int dp[500][500][4][2][2];
+    
+    int dfs(int r, int c, int dir, bool turned, int parity) {
+        if (r<0 || r>=n || c<0 || c>=m) return 0;
+        int expected = parity ? 0 : 2;
+        if (grid[r][c] != expected) return 0;
+        int &res = dp[r][c][dir][turned][parity];
+        if (res != -1) return res;
+        int len = 1;
+        // Continue in same direction
+        len = max(len, 1 + dfs(r + dirs[dir].first, c + dirs[dir].second, dir, turned, parity ^ 1));
+        // If not turned yet, try turn
+        if (!turned) {
+            int ndir = clockwise[dir];
+            len = max(len, 1 + dfs(r + dirs[ndir].first, c + dirs[ndir].second, ndir, 1, parity ^ 1));
+        }
+        return res = len;
+    }
+    int lenOfVDiagonal(vector<vector<int>>& grid_) {
+        grid = grid_;
+        n = grid.size();
+        m = grid[0].size();
+        memset(dp, -1, sizeof(dp));
         int ans = 0;
-        const vector<pair<int,int>> dirs = {{1,1}, {1,-1}, {-1,1}, {-1,-1}};
-        const vector<int> turn = {1,3,0,2};
-        vector<vector<vector<vector<int>>>> dp(n, vector<vector<vector<int>>>(m, vector<vector<int>>(4, vector<int>(2,-1))));
-        function<int(int,int,int,int,int)> dfs = [&](int x, int y, int dir, int turnUsed, int seqIdx) -> int {
-            if (x<0 || y<0 || x>=n || y>=m) return 0;
-            int expected = seqIdx == 0 ? 1 : ((seqIdx-1)%2==0 ? 2 : 0);
-            if (grid[x][y] != expected) return 0;
-            if (dp[x][y][dir][turnUsed] >= seqIdx) return 0;
-            dp[x][y][dir][turnUsed] = seqIdx;
-            int res = 1;
-            res = max(res, 1 + dfs(x+dirs[dir].first, y+dirs[dir].second, dir, turnUsed, seqIdx+1));
-            if (!turnUsed) {
-                int newDir = turn[dir];
-                res = max(res, 1 + dfs(x+dirs[newDir].first, y+dirs[newDir].second, newDir, 1, seqIdx+1));
-            }
-            return res;
-        };
-        for (int i=0;i<n;++i) {
-            for (int j=0;j<m;++j) {
-                if (grid[i][j]!=1) continue;
-                for (int d=0;d<4;++d) {
-                    ans = max(ans, dfs(i,j,d,0,0));
+        for (int r=0; r<n; ++r) {
+            for (int c=0; c<m; ++c) {
+                if (grid[r][c] == 1) {
+                    for (int d=0; d<4; ++d) {
+                        int nr = r + dirs[d].first, nc = c + dirs[d].second;
+                        // Start dfs only if next cell exists and matches the expected first (2)
+                        if (nr>=0 && nr<n && nc>=0 && nc<m && grid[nr][nc]==2) {
+                            ans = max(ans, 2 + dfs(nr + dirs[d].first, nc + dirs[d].second, d, 0, 1));
+                        } else {
+                            ans = max(ans, 1);
+                        }
+                    }
                 }
             }
         }
-        return ans>0?ans:0;
+        return ans;
     }
 };
+# @lc code=end
