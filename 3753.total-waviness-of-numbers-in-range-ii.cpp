@@ -7,43 +7,46 @@
 # @lc code=start
 class Solution {
 public:
-    long long totalWaviness(long long num1, long long num2) {
-        return getWaviness(num2) - getWaviness(num1 - 1);
-    }
-private:
     using ll = long long;
-    // dp[pos][tight][prev1][prev2][lead_zero]
-    ll dp[20][2][11][11][2];
-    string S;
-    int N;
-    // Recursive DP function
-    ll dfs(int pos, int tight, int prev1, int prev2, int lead_zero, int count) {
-        if (pos == N) return count;
-        if (dp[pos][tight][prev1][prev2][lead_zero] != -1) return dp[pos][tight][prev1][prev2][lead_zero];
+    ll dp[20][11][11][2][2];
+    vector<int> digits;
+
+    ll dfs(int pos, int prev1, int prev2, bool tight, bool start) {
+        if (pos == digits.size()) return 0;
+        if (dp[pos][prev1][prev2][tight][start] != -1) return dp[pos][prev1][prev2][tight][start];
         ll res = 0;
-        int up = tight ? (S[pos] - '0') : 9;
+        int up = tight ? digits[pos] : 9;
         for (int d = 0; d <= up; ++d) {
-            int nlead_zero = lead_zero && d == 0;
-            int nprev1 = nlead_zero ? 10 : d;
-            int nprev2 = prev1;
-            int ntight = (tight && d == up);
-            int ncount = count;
-            // Only check for peak/valley if we have at least three digits (no leading zeros)
-            if (!lead_zero && prev2 != 10 && prev1 != 10) {
-                if (prev1 > prev2 && prev1 > d) ncount += 1;
-                if (prev1 < prev2 && prev1 < d) ncount += 1;
+            bool nstart = start || d > 0;
+            bool ntight = tight && (d == up);
+            if (!nstart) {
+                res += dfs(pos + 1, 10, 10, ntight, nstart);
+            } else {
+                int wave = 0;
+                if (prev2 != 10 && prev1 != 10) {
+                    if (prev1 > prev2 && prev1 > d) ++wave;
+                    if (prev1 < prev2 && prev1 < d) ++wave;
+                }
+                res += dfs(pos + 1, d, prev1, ntight, nstart) + wave + 0LL;
             }
-            res += dfs(pos + 1, ntight, nprev1, nprev2, nlead_zero, ncount);
         }
-        return dp[pos][tight][prev1][prev2][lead_zero] = res;
+        return dp[pos][prev1][prev2][tight][start] = res;
     }
-    ll getWaviness(ll num) {
-        if (num < 100) return 0; // No waviness for numbers < 100
-        S = to_string(num);
-        N = S.size();
+
+    ll waviness(ll x) {
+        digits.clear();
+        while (x) {
+            digits.push_back(x % 10);
+            x /= 10;
+        }
+        if (digits.empty()) digits.push_back(0);
+        reverse(digits.begin(), digits.end());
         memset(dp, -1, sizeof(dp));
-        // prev1 and prev2 set to 10 to indicate 'no digit yet'
-        return dfs(0, 1, 10, 10, 1, 0);
+        return dfs(0, 10, 10, 1, 0);
+    }
+
+    long long totalWaviness(long long num1, long long num2) {
+        return waviness(num2) - waviness(num1 - 1);
     }
 };
 # @lc code=end
