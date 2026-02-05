@@ -7,41 +7,51 @@
 # @lc code=start
 class Solution {
     public int maxDifference(String s, int k) {
-        Map<Character, Integer> freqMap = new HashMap<>();
+        int n = s.length();
         int maxDiff = Integer.MIN_VALUE;
-        
-        for (int start = 0, end = 0; end < s.length(); end++) {
-            char cEnd = s.charAt(end);
-            freqMap.put(cEnd, freqMap.getOrDefault(cEnd, 0) + 1);
-            
-            while (end - start + 1 > k) {
-                char cStart = s.charAt(start);
-                freqMap.put(cStart, freqMap.get(cStart) - 1);
-                if (freqMap.get(cStart) == 0) {
-                    freqMap.remove(cStart);
+        // Only 5 digits: '0' to '4'
+        for (int a = 0; a < 5; a++) {
+            for (int b = 0; b < 5; b++) {
+                if (a == b) continue;
+                int[] freq = new int[5];
+                // Initialize first window of size k
+                for (int i = 0; i < k; i++) {
+                    freq[s.charAt(i) - '0']++;
                 }
-                start++;
-            }
-            
-            if (end - start + 1 >= k) { 
-                int maxOddFreq = Integer.MIN_VALUE;
-                int minEvenFreq = Integer.MAX_VALUE;
-                
-                for (char key : freqMap.keySet()) {
-                    int freq = freqMap.get(key);
-                    if (freq % 2 == 1) { 
-                        maxOddFreq = Math.max(maxOddFreq, freq);
-                    } else if (freq > 0 && freq % 2 == 0) { 
-                        minEvenFreq = Math.min(minEvenFreq, freq);
+                // Check initial window
+                if (freq[a] % 2 == 1 && freq[b] > 0 && freq[b] % 2 == 0) {
+                    maxDiff = Math.max(maxDiff, freq[a] - freq[b]);
+                }
+                // Slide the window
+                for (int right = k; right < n; right++) {
+                    freq[s.charAt(right) - '0']++;
+                    freq[s.charAt(right - k) - '0']--;
+                    if (freq[a] % 2 == 1 && freq[b] > 0 && freq[b] % 2 == 0) {
+                        maxDiff = Math.max(maxDiff, freq[a] - freq[b]);
                     }
                 }
-                
-                if (maxOddFreq != Integer.MIN_VALUE && minEvenFreq != Integer.MAX_VALUE) { 
-                    maxDiff = Math.max(maxDiff, maxOddFreq - minEvenFreq);
+                // Now handle substrings longer than k
+                // For each window size from k+1 to n
+                for (int window = k + 1; window <= n; window++) {
+                    // Reset frequencies
+                    freq = new int[5];
+                    for (int i = 0; i < window; i++) {
+                        freq[s.charAt(i) - '0']++;
+                    }
+                    if (freq[a] % 2 == 1 && freq[b] > 0 && freq[b] % 2 == 0) {
+                        maxDiff = Math.max(maxDiff, freq[a] - freq[b]);
+                    }
+                    for (int right = window; right < n; right++) {
+                        freq[s.charAt(right) - '0']++;
+                        freq[s.charAt(right - window) - '0']--;
+                        if (freq[a] % 2 == 1 && freq[b] > 0 && freq[b] % 2 == 0) {
+                            maxDiff = Math.max(maxDiff, freq[a] - freq[b]);
+                        }
+                    }
                 }
             }
         }
-        return maxDiff == Integer.MIN_VALUE ? -1 : maxDiff; 
-    } 
+        return maxDiff == Integer.MIN_VALUE ? -1 : maxDiff;
+    }
 }
 # @lc code=end
