@@ -1,51 +1,30 @@
-# @lc app=leetcode id=3327 lang=java
-# [3327] Check if DFS Strings Are Palindromes
-
-# @lc code=start
-import java.util.*;
-
 class Solution {
-    private List<List<Integer>> tree;
-    private String s;
-    private StringBuilder dfsStr;
-    
     public boolean[] findAnswer(int[] parent, String s) {
         int n = parent.length;
-        this.s = s;
-        this.tree = new ArrayList<>();
-        for (int i = 0; i < n; i++) {
-            tree.add(new ArrayList<>());
-        }
-        for (int i = 1; i < n; i++) {
-            tree.get(parent[i]).add(i);
-        }
-
+        List<Integer>[] tree = new List[n];
+        for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
+        for (int i = 1; i < n; ++i) tree[parent[i]].add(i);
         boolean[] answer = new boolean[n];
-        for (int i = 0; i < n; i++) {
-            dfsStr = new StringBuilder();
-            dfs(i);
-            answer[i] = isPalindrome(dfsStr.toString());
+        for (int i = 0; i < n; ++i) {
+            StringBuilder sb = new StringBuilder();
+            dfs(i, s, tree, sb);
+            answer[i] = isPalindrome(sb);
         }
         return answer;
     }
-    
-    private void dfs(int x) {
-        for (int y : tree.get(x)) {
-            dfs(y);
+    private void dfs(int node, String s, List<Integer>[] tree, StringBuilder sb) {
+        List<Integer> children = tree[node];
+        Collections.sort(children);
+        for (int child : children) {
+            dfs(child, s, tree, sb);
         }
-        dfsStr.append(s.charAt(x));
+        sb.append(s.charAt(node));
     }
-
-    private boolean isPalindrome(String str) {
-        int left = 0, right = str.length() - 1;
-        while (left < right) {
-            if (str.charAt(left) != str.charAt(right)) {
-                return false;
-            }
-            left++;
-            right--;
+    private boolean isPalindrome(StringBuilder sb) {
+        int l = 0, r = sb.length() - 1;
+        while (l < r) {
+            if (sb.charAt(l++) != sb.charAt(r--)) return false;
         }
         return true;
     }
 }
-# @lc code=end
