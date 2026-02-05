@@ -1,54 +1,57 @@
-# @lc app=leetcode id=2074 lang=python3
+#
+# @lc app=leetcode id=2074 lang=java
 #
 # [2074] Reverse Nodes in Even Length Groups
 #
-
 # @lc code=start
-class ListNode:
-    def __init__(self, val=0, next=None):
-        self.val = val
-        self.next = next
-
-class Solution:
-    def reverseEvenLengthGroups(self, head: ListNode) -> ListNode:
-        # Function to reverse a segment of linked list given start and end nodes
-        def reverse_segment(start, end):
-            prev, current = None, start
-            while current != end:
-                nxt = current.next
-                current.next = prev
-                prev = current
-                current = nxt
-            return prev  # New head of this reversed section is returned
-        
-        dummy = ListNode(0)
-        dummy.next = head
-        prev_group_end = dummy  # End of previous processed group initially set before head
-        group_length = 1  # Start with first group length as per problem statement
-        
-        while head:
-            count = 0  # To count actual number of nodes in this group (may differ for last group)
-            tail = head  # Tail will point to last node in this group after counting them out.
-            for _ in range(group_length):
-                if not tail:
-                    break
-                count += 1
-                tail = tail.next
-            
-            if count % 2 == 0:
-                # If count (group length) is even, we need to reverse this segment from head to tail (exclusive)
-                next_group_head = tail  # Next group starts from here after reversal.
-                new_head_of_reversed_segment = reverse_segment(head, tail)
-                prev_group_end.next = new_head_of_reversed_segment
-                head.next = next_group_head 
-                prev_group_end = head 
-            else:
-                # If odd, just link previous group's end to current group's start without reversal.
-                prev_group_end.next = head 
-                prev_group_end = tail if tail else head 
-            
-            # Move `head` pointer to where next group's first node would be (tail currently)
-            head = tail 
-            group_length += 1 
-        return dummy.next  # Return actual new head after all operations are complete.
-# @lc code=end
+/**
+ * Definition for singly-linked list.
+ * public class ListNode {
+ *     int val;
+ *     ListNode next;
+ *     ListNode() {}
+ *     ListNode(int val) { this.val = val; }
+ *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+ * }
+ */
+class Solution {
+    public ListNode reverseEvenLengthGroups(ListNode head) {
+        if (head == null || head.next == null) return head;
+        ListNode dummy = new ListNode(0);
+        dummy.next = head;
+        ListNode prev = dummy;
+        int groupLen = 1;
+        while (prev.next != null) {
+            // Find the size of current group
+            ListNode start = prev.next;
+            int count = 0;
+            ListNode end = prev;
+            while (count < groupLen && end.next != null) {
+                end = end.next;
+                count++;
+            }
+            // Reverse nodes if count is even
+            if (count % 2 == 0) {
+                prev.next = reverse(start, count);
+                start.next = end.next; // Connect last reversed node to rest of list
+                prev = start; // Move prev to last node in reversed section
+            } else {
+                prev = end; // Move prev to last node in current section without reversal
+            }
+            groupLen++;
+        }
+        return dummy.next;
+    }
+    
+    private ListNode reverse(ListNode head, int k) {
+        ListNode prev = null, curr = head, next = null;
+        while (k-- > 0 && curr != null) {
+            next = curr.next;
+            curr.next = prev;
+            prev = curr;
+            curr = next;
+        }
+        return prev; // New head after reversal
+    }
+}
+dummy// @lc code=end
