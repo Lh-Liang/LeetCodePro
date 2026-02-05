@@ -1,44 +1,73 @@
-#
-# @lc app=leetcode id=3501 lang=java
-#
-# [3501] Maximize Active Section with Trade II
-#
-
-# @lc code=start
-import java.util.ArrayList;
-import java.util.List;
-
+import java.util.*;
 class Solution {
     public List<Integer> maxActiveSectionsAfterTrade(String s, int[][] queries) {
-        List<Integer> results = new ArrayList<>();
-        for (int[] query : queries) {
-            int li = query[0];
-            int ri = query[1];
-            String t = "1" + s.substring(li, ri + 1) + "1"; // Augmenting string with '1' on both ends
-            int initialActiveSections = calculateInitialActiveSections(t);
-            int maxActiveSections = maximizeByTrade(t, initialActiveSections);
-            results.add(maxActiveSections);
-        }
-        return results;
-    }
-    
-    private int calculateInitialActiveSections(String t) {
-        int count = 0;
-        boolean isActive = false;
-        for (int i = 0; i < t.length(); i++) {
-            if (t.charAt(i) == '1') {
-                if (!isActive) {
-                    isActive = true;
-                    count++;
-                }
-            } else {
-                isActive = false;
+        List<Integer> ans = new ArrayList<>();
+        for (int[] q : queries) {
+            int l = q[0], r = q[1];
+            String t = "1" + s.substring(l, r + 1) + "1";
+            int len = t.length();
+            List<Block> blocks = new ArrayList<>();
+            int i = 0;
+            while (i < len) {
+                int j = i;
+                char c = t.charAt(i);
+                while (j < len && t.charAt(j) == c) j++;
+                blocks.add(new Block(i, j - 1, c));
+                i = j;
             }
+            int currActive = 0;
+            for (int k = 1; k < blocks.size() - 1; ++k) {
+                if (blocks.get(k).type == '1') currActive++;
+            }
+            int maxActive = currActive;
+            for (int k = 1; k < blocks.size() - 1; ++k) {
+                if (blocks.get(k).type == '1' && blocks.get(k-1).type == '0' && blocks.get(k+1).type == '0') {
+                    List<Block> newBlocks = new ArrayList<>();
+                    for (int m = 0; m < blocks.size(); ++m) {
+                        if (m == k) {
+                            newBlocks.add(new Block(blocks.get(m).start, blocks.get(m).end, '0'));
+                        } else {
+                            newBlocks.add(blocks.get(m).clone());
+                        }
+                    }
+                    List<Block> merged = new ArrayList<>();
+                    for (Block b : newBlocks) {
+                        if (merged.isEmpty() || merged.get(merged.size()-1).type != b.type) {
+                            merged.add(b.clone());
+                        } else {
+                            merged.get(merged.size()-1).end = b.end;
+                        }
+                    }
+                    boolean flip = false;
+                    for (int y = 1; y < merged.size() - 1; ++y) {
+                        if (merged.get(y).type == '0' && merged.get(y-1).type == '1' && merged.get(y+1).type == '1') {
+                            flip = true;
+                            int newActive = 0;
+                            for (int z = 1; z < merged.size() - 1; ++z) {
+                                char ch = merged.get(z).type;
+                                if (z == y) ch = '1';
+                                if (ch == '1') newActive++;
+                            }
+                            maxActive = Math.max(maxActive, newActive);
+                        }
+                    }
+                    if (!flip) {
+                        int newActive = 0;
+                        for (int z = 1; z < merged.size() - 1; ++z) {
+                            if (merged.get(z).type == '1') newActive++;
+                        }
+                        maxActive = Math.max(maxActive, newActive);
+                    }
+                }
+            }
+            ans.add(maxActive);
         }
-        return count; // Return total number of initial active sections.
-    } 
-    
-    private int maximizeByTrade(String t, int initialActiveSections) { 
-        int maxGain = 0; 
-        boolean insideZeros = false; \
-b        for (int i = 1; i < t.length() - 1; i++) { // Start from 1 and end at length - 2 to avoid augmented '1's \b            if (t.charAt(i) == '0') { \b                if (!insideZeros && t.charAt(i - 1) == '1' && t.charAt(i + 1) == '0') { \b                    insideZeros = true; \b                } else if (insideZeros && t.charAt(i + 1) == '0') { \b                    maxGain += 2; // Extend zero block gain potential \b                } else if (insideZeros && t.charAt(i + 1) == '1') { \b                    insideZeros = false; \b                    maxGain += 2; // End of zero block, evaluate gain \b                } \b            } else { \b                insideZeros = false; \b           } \b       } \b       return initialActiveSections + maxGain / 2; \b   } \b} # @lc code=end
+        return ans;
+    }
+    static class Block implements Cloneable {
+        int start, end;
+        char type;
+        Block(int s, int e, char t) { start = s; end = e; type = t; }
+        public Block clone() { return new Block(start, end, type); }
+    }
+}
