@@ -8,41 +8,42 @@
 class Solution {
 public:
     int maxLen(int n, vector<vector<int>>& edges, string label) {
-        auto isPalindrome = [](const string& s) {
-            int l = 0, r = s.size() - 1;
-            while (l < r) {
-                if (s[l++] != s[r--]) return false;
-            }
-            return true;
-        };
-        vector<vector<int>> g(n);
+        // Build adjacency list
+        vector<vector<int>> adj(n);
         for (const auto& e : edges) {
-            g[e[0]].push_back(e[1]);
-            g[e[1]].push_back(e[0]);
+            adj[e[0]].push_back(e[1]);
+            adj[e[1]].push_back(e[0]);
         }
-        int res = 1;
-        vector<bool> visited(n);
-        string path;
-        function<void(int)> dfs = [&](int u) {
-            visited[u] = true;
-            path.push_back(label[u]);
-            if (isPalindrome(path)) {
-                res = max(res, (int)path.size());
-            }
-            for (int v : g[u]) {
-                if (!visited[v]) {
-                    dfs(v);
+        int maxLen = 1; // At least one node is always a palindrome
+        // Helper DFS function
+        function<void(int, vector<int>&, int)> dfs = [&](int u, vector<int>& path, int visited) {
+            // Check palindrome
+            int sz = path.size();
+            bool isPal = true;
+            for (int i = 0; i < sz / 2; ++i) {
+                if (label[path[i]] != label[path[sz - 1 - i]]) {
+                    isPal = false;
+                    break;
                 }
             }
-            path.pop_back();
-            visited[u] = false;
+            if (isPal) {
+                maxLen = max(maxLen, sz);
+            }
+            // Try extending path
+            for (int v : adj[u]) {
+                if (!(visited & (1 << v))) {
+                    path.push_back(v);
+                    dfs(v, path, visited | (1 << v));
+                    path.pop_back();
+                }
+            }
         };
+        // Try starting from every node
         for (int i = 0; i < n; ++i) {
-            fill(visited.begin(), visited.end(), false);
-            path.clear();
-            dfs(i);
+            vector<int> path = {i};
+            dfs(i, path, 1 << i);
         }
-        return res;
+        return maxLen;
     }
 };
 # @lc code=end
