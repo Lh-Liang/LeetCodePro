@@ -1,45 +1,38 @@
+#
 # @lc app=leetcode id=3762 lang=java
+#
 # [3762] Minimum Operations to Equalize Subarrays
+#
+
 # @lc code=start
+import java.util.*;
 class Solution {
     public long[] minOperations(int[] nums, int k, int[][] queries) {
-        int qLen = queries.length;
-        long[] result = new long[qLen];
-        for (int qi = 0; qi < qLen; qi++) {
-            int li = queries[qi][0];
-            int ri = queries[qi][1];
-            List<Integer> subArray = new ArrayList<>();
+        int n = nums.length, q = queries.length;
+        long[] ans = new long[q];
+        int[] mods = new int[n];
+        for (int i = 0; i < n; ++i) mods[i] = nums[i] % k;
+        for (int idx = 0; idx < q; ++idx) {
+            int l = queries[idx][0], r = queries[idx][1];
+            int modClass = mods[l];
             boolean possible = true;
-            for (int i = li; i <= ri; i++) {
-                subArray.add(nums[i]);
+            for (int i = l + 1; i <= r; ++i) {
+                if (mods[i] != modClass) { possible = false; break; }
             }
-            Collections.sort(subArray);
-            // Check feasibility
-            for (int i = 1; i < subArray.size(); i++) {
-                if ((subArray.get(i) - subArray.get(0)) % k != 0) {
-                    possible = false;
-                    break;
-                }
-            }
-            if (!possible) {
-                result[qi] = -1;
-                continue;
-            }
-            // Calculate minimum operations using sorted array and prefix sums
-            int n = subArray.size();
-            long[] prefixSum = new long[n+1];
-            for (int i = 0; i < n; i++) {
-                prefixSum[i+1] = prefixSum[i] + subArray.get(i);
-            }
-            long minOps = Long.MAX_VALUE;
-            for (int i = 0; i < n; i++) {
-                long opsToLeft = (long)i * subArray.get(i) - prefixSum[i];
-                long opsToRight = (prefixSum[n] - prefixSum[i+1]) - (long)(n-i-1) * subArray.get(i);
-                minOps = Math.min(minOps, (opsToLeft + opsToRight) / k);
-            }
-            result[qi] = minOps;
+            if (!possible) { ans[idx] = -1; continue; }
+            int len = r - l + 1;
+            // Edge case: subarray with one element, already equal.
+            if (len == 1) { ans[idx] = 0; continue; }
+            long[] arr = new long[len];
+            for (int i = 0; i < len; ++i) arr[i] = (nums[l + i] - modClass) / (long)k;
+            Arrays.sort(arr);
+            long median = arr[len / 2];
+            long total = 0;
+            for (int i = 0; i < len; ++i) total += Math.abs(arr[i] - median);
+            ans[idx] = total;
+            // Verification: After these operations, all elements become equal to modClass + median * k.
         }
-        return result;
+        return ans;
     }
 }
 # @lc code=end
