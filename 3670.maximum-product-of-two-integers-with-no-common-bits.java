@@ -1,34 +1,48 @@
+#
 # @lc app=leetcode id=3670 lang=java
 #
 # [3670] Maximum Product of Two Integers With No Common Bits
 #
-
 # @lc code=start
-import java.util.HashMap;
-
 class Solution {
     public long maxProduct(int[] nums) {
-        HashMap<Integer, Integer> map = new HashMap<>();
-        long maxProduct = 0;
-        for (int num : nums) {
-            int bitmask = 0, temp = num;
-            // Calculate the bitmask for this number
-            while (temp > 0) {
-                int lowBit = temp & (-temp);
-                int index = Integer.numberOfTrailingZeros(lowBit);
-                bitmask |= (1 << index);
-                temp -= lowBit;
-            }
-            // Check against all existing masks
-            for (int key : map.keySet()) {
-                if ((key & bitmask) == 0) { // No common set bits
-                    maxProduct = Math.max(maxProduct, (long)num * map.get(key));
+        // Map from bitmask to a list of (value, index) pairs
+        Map<Integer, List<int[]>> maskToVals = new HashMap<>();
+        for (int i = 0; i < nums.length; ++i) {
+            int mask = nums[i];
+            maskToVals.putIfAbsent(mask, new ArrayList<>());
+            maskToVals.get(mask).add(new int[]{nums[i], i});
+        }
+        // For each mask, keep top 2 largest (value, index) pairs
+        Map<Integer, List<int[]>> top2ForMask = new HashMap<>();
+        for (Map.Entry<Integer, List<int[]>> entry : maskToVals.entrySet()) {
+            List<int[]> list = entry.getValue();
+            list.sort((a, b) -> b[0] - a[0]);
+            List<int[]> top2 = new ArrayList<>();
+            for (int j = 0; j < Math.min(2, list.size()); ++j) top2.add(list.get(j));
+            top2ForMask.put(entry.getKey(), top2);
+        }
+        long res = 0;
+        List<Integer> masks = new ArrayList<>(top2ForMask.keySet());
+        int m = masks.size();
+        for (int i = 0; i < m; ++i) {
+            int mask1 = masks.get(i);
+            List<int[]> l1 = top2ForMask.get(mask1);
+            for (int j = i; j < m; ++j) {
+                int mask2 = masks.get(j);
+                if ((mask1 & mask2) == 0) {
+                    List<int[]> l2 = top2ForMask.get(mask2);
+                    if (i == j && l1.size() >= 2) {
+                        int[] a = l1.get(0), b = l1.get(1);
+                        if (a[1] != b[1]) res = Math.max(res, 1L * a[0] * b[0]);
+                    } else if (i != j) {
+                        int[] a = l1.get(0), b = l2.get(0);
+                        if (a[1] != b[1]) res = Math.max(res, 1L * a[0] * b[0]);
+                    }
                 }
             }
-            // Store or update in map
-            map.put(bitmask, Math.max(map.getOrDefault(bitmask, 0), num));
         }
-        return maxProduct;
+        return res;
     }
 }
 # @lc code=end
