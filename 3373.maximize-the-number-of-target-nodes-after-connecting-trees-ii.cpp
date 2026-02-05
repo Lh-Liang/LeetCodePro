@@ -10,52 +10,46 @@ public:
     vector<int> maxTargetNodes(vector<vector<int>>& edges1, vector<vector<int>>& edges2) {
         int n = edges1.size() + 1, m = edges2.size() + 1;
         vector<vector<int>> g1(n), g2(m);
-        for (auto &e : edges1) {
+        for (auto& e : edges1) {
             g1[e[0]].push_back(e[1]);
             g1[e[1]].push_back(e[0]);
         }
-        for (auto &e : edges2) {
+        for (auto& e : edges2) {
             g2[e[0]].push_back(e[1]);
             g2[e[1]].push_back(e[0]);
         }
-        auto getParity = [](vector<vector<int>>& g, int sz) {
-            vector<int> parity(sz, -1);
-            queue<int> q;
-            parity[0] = 0;
-            q.push(0);
-            while (!q.empty()) {
-                int u = q.front(); q.pop();
-                for (int v : g[u]) {
-                    if (parity[v] == -1) {
-                        parity[v] = 1 - parity[u];
-                        q.push(v);
-                    }
+        vector<int> parity1(n, -1), parity2(m, -1);
+        // BFS for tree1
+        queue<int> q;
+        q.push(0); parity1[0] = 0;
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int v : g1[u]) {
+                if (parity1[v] == -1) {
+                    parity1[v] = parity1[u] ^ 1;
+                    q.push(v);
                 }
             }
-            return parity;
-        };
-        vector<int> parity1 = getParity(g1, n);
-        vector<int> parity2 = getParity(g2, m);
-        int even1 = 0, odd1 = 0, even2 = 0, odd2 = 0;
-        for (int x : parity1) {
-            if (x == 0) even1++;
-            else odd1++;
         }
-        for (int x : parity2) {
-            if (x == 0) even2++;
-            else odd2++;
+        // BFS for tree2
+        q.push(0); parity2[0] = 0;
+        while (!q.empty()) {
+            int u = q.front(); q.pop();
+            for (int v : g2[u]) {
+                if (parity2[v] == -1) {
+                    parity2[v] = parity2[u] ^ 1;
+                    q.push(v);
+                }
+            }
         }
-        // Sanity check: parity group sizes sum to total node count
-        assert(even1 + odd1 == n);
-        assert(even2 + odd2 == m);
-        int max2 = max(even2, odd2);
+        int cnt1[2] = {0, 0}, cnt2[2] = {0, 0};
+        for (int x : parity1) cnt1[x]++;
+        for (int x : parity2) cnt2[x]++;
         vector<int> ans(n);
         for (int i = 0; i < n; ++i) {
-            ans[i] = (parity1[i] == 0 ? even1 : odd1) + max2;
+            int p = parity1[i];
+            ans[i] = cnt1[p] + max(cnt2[0], cnt2[1]);
         }
-        // Output validation
-        assert(ans.size() == n);
-        for (int x : ans) assert(x <= n + m && x >= 1);
         return ans;
     }
 };
