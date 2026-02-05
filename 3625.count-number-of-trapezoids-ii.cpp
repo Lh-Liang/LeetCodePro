@@ -14,70 +14,63 @@ using namespace std;
 
 class Solution {
 public:
-    typedef pair<int, int> Point;
-    typedef pair<Point, Point> Segment;
-    
-    // Helper to compute reduced slope as a pair
-    pair<int, int> getSlope(const Point& a, const Point& b) {
-        int dx = b.first - a.first, dy = b.second - a.second;
-        if (dx == 0) return {1, 0};  // vertical
-        if (dy == 0) return {0, 1};  // horizontal
-        int g = gcd(dx, dy);
-        dx /= g; dy /= g;
-        // Normalize sign: only dx can be negative
-        if (dx < 0) { dx = -dx; dy = -dy; }
-        return {dy, dx};
-    }
-    
-    // Check if the quadrilateral formed by p0,p1,p2,p3 is convex
-    bool isConvex(const vector<Point>& quad) {
-        vector<long long> cross;
-        for (int i = 0; i < 4; ++i) {
-            int j = (i + 1) % 4, k = (i + 2) % 4;
-            long long dx1 = quad[j].first - quad[i].first;
-            long long dy1 = quad[j].second - quad[i].second;
-            long long dx2 = quad[k].first - quad[j].first;
-            long long dy2 = quad[k].second - quad[j].second;
-            cross.push_back(dx1 * dy2 - dy1 * dx2);
-        }
-        // All cross products must have the same sign
-        bool pos = all_of(cross.begin(), cross.end(), [](long long x) { return x > 0; });
-        bool neg = all_of(cross.begin(), cross.end(), [](long long x) { return x < 0; });
-        return pos || neg;
-    }
-
+    using pii = pair<int, int>;
+    using vi = vector<int>;
     int countTrapezoids(vector<vector<int>>& points) {
         int n = points.size();
-        vector<Point> pts;
-        for (auto& p : points) pts.emplace_back(p[0], p[1]);
-
-        // Group all segments by reduced slope
-        map<pair<int,int>, vector<Segment>> slope2seg;
-        for (int i = 0; i < n; ++i) for (int j = i+1; j < n; ++j) {
-            auto s = getSlope(pts[i], pts[j]);
-            slope2seg[s].push_back({pts[i], pts[j]});
-        }
-
-        set<vector<Point>> uniqueQuads;
-        // For each group of parallel segments, consider all non-overlapping pairs
-        for (auto& [slope, segs] : slope2seg) {
-            int m = segs.size();
-            for (int i = 0; i < m; ++i) for (int j = i+1; j < m; ++j) {
-                // Get the four endpoints
-                vector<Point> quad = {segs[i].first, segs[i].second, segs[j].first, segs[j].second};
-                // All points must be unique
-                sort(quad.begin(), quad.end());
-                if (adjacent_find(quad.begin(), quad.end()) != quad.end()) continue;
-                // All points unique, check all permutations for convex
-                do {
-                    if (isConvex(quad)) {
-                        uniqueQuads.insert(quad);
-                        break;
-                    }
-                } while (next_permutation(quad.begin(), quad.end()));
+        // Map slope to list of segments (each segment is a pair of indices)
+        map<pii, vector<pair<int,int>>> slope_map;
+        // Helper to reduce slope to canonical form
+        auto get_slope = [](const vi& a, const vi& b) {
+            int dx = b[0] - a[0];
+            int dy = b[1] - a[1];
+            if (dx == 0) return pii{1, 0}; // vertical
+            if (dy == 0) return pii{0, 1}; // horizontal
+            int g = gcd(dx, dy);
+            dx /= g; dy /= g;
+            if (dx < 0) { dx = -dx; dy = -dy; }
+            return pii{dy, dx}; // (dy/dx)
+        };
+        // Step 1: For each pair of points, store by slope
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j < n; ++j) {
+                pii slope = get_slope(points[i], points[j]);
+                slope_map[slope].emplace_back(i, j);
             }
         }
-        return uniqueQuads.size();
+        set<vector<int>> quads;
+        // Step 2: For each slope group, choose two non-overlapping segments
+        for (auto& [slope, segs] : slope_map) {
+            int m = segs.size();
+            for (int i = 0; i < m; ++i) {
+                for (int j = i+1; j < m; ++j) {
+                    auto& [a1, a2] = segs[i];
+                    auto& [b1, b2] = segs[j];
+                    set<int> pts = {a1, a2, b1, b2};
+                    if (pts.size() != 4) continue; // skip overlapping
+                    // Step 3: Check if quadrilateral is convex
+                    vector<vi> quad;
+                    for (int idx : pts) quad.push_back(points[idx]);
+                    // To check convexity, compute cross products for all 4 corners
+                    bool convex = true;
+                    for (int k = 0; k < 4 && convex; ++k) {
+                        auto& A = quad[k];
+                        auto& B = quad[(k+1)%4];
+                        auto& C = quad[(k+2)%4];
+                        int dx1 = B[0] - A[0], dy1 = B[1] - A[1];
+                        int dx2 = C[0] - B[0], dy2 = C[1] - B[1];
+                        int cross = dx1*dy2 - dy1*dx2;
+                        if (cross == 0) { convex = false; break; } // degenerate
+                    }
+                    if (!convex) continue;
+                    // Step 4: Canonicalize this quad and add to set to avoid duplicates
+                    vector<int> idxs(pts.begin(), pts.end());
+                    sort(idxs.begin(), idxs.end());
+                    quads.insert(idxs);
+                }
+            }
+        }
+        return quads.size();
     }
 };
 # @lc code=end
