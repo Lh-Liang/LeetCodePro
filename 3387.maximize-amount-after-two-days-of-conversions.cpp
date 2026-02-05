@@ -3,81 +3,66 @@
 #
 # [3387] Maximize Amount After Two Days of Conversions
 #
-
 # @lc code=start
-#include <unordered_map>
-#include <vector>
-#include <string>
-#include <queue>
-using namespace std;
-
 class Solution {
 public:
     double maxAmount(string initialCurrency, vector<vector<string>>& pairs1, vector<double>& rates1, vector<vector<string>>& pairs2, vector<double>& rates2) {
-        // Collect all currencies
-        unordered_map<string, int> currency2idx;
-        vector<string> currencies;
-        auto add_currency = [&](const string& c) {
-            if (!currency2idx.count(c)) {
-                currency2idx[c] = currencies.size();
-                currencies.push_back(c);
-            }
+        // Step 1: Map all currencies to indices
+        unordered_map<string, int> currencyIndex;
+        int idx = 0;
+        auto registerCurrency = [&](const string& s) {
+            if (!currencyIndex.count(s)) currencyIndex[s] = idx++;
         };
-        add_currency(initialCurrency);
-        for (const auto& p : pairs1) { add_currency(p[0]); add_currency(p[1]); }
-        for (const auto& p : pairs2) { add_currency(p[0]); add_currency(p[1]); }
-        int n = currencies.size();
-        
-        // Build day 1 graph with inverses
-        vector<vector<pair<int, double>>> g1(n);
+        registerCurrency(initialCurrency);
+        for (auto& p : pairs1) { registerCurrency(p[0]); registerCurrency(p[1]); }
+        for (auto& p : pairs2) { registerCurrency(p[0]); registerCurrency(p[1]); }
+        int n = idx;
+        // Step 2: Build adjacency lists for both days with direct and reverse rates
+        vector<vector<pair<int, double>>> g1(n), g2(n);
         for (int i = 0; i < pairs1.size(); ++i) {
-            int u = currency2idx[pairs1[i][0]], v = currency2idx[pairs1[i][1]];
-            double r = rates1[i];
-            g1[u].emplace_back(v, r);
-            g1[v].emplace_back(u, 1.0 / r);
+            int u = currencyIndex[pairs1[i][0]], v = currencyIndex[pairs1[i][1]];
+            g1[u].emplace_back(v, rates1[i]);
+            g1[v].emplace_back(u, 1.0 / rates1[i]);
         }
-        // Day 1 DP: maximize each currency
-        vector<double> dp1(n, 0.0);
-        dp1[currency2idx[initialCurrency]] = 1.0;
-        for (int iter = 0; iter < n-1; ++iter) {
+        for (int i = 0; i < pairs2.size(); ++i) {
+            int u = currencyIndex[pairs2[i][0]], v = currencyIndex[pairs2[i][1]];
+            g2[u].emplace_back(v, rates2[i]);
+            g2[v].emplace_back(u, 1.0 / rates2[i]);
+        }
+        // Step 3: Day 1 DP (Bellman-Ford-like for max product)
+        vector<double> day1(n, 0.0);
+        day1[currencyIndex[initialCurrency]] = 1.0;
+        for (int iter = 0; iter < n; ++iter) {
+            vector<double> next = day1;
             for (int u = 0; u < n; ++u) {
-                if (dp1[u] > 0) {
-                    for (auto& [v, r] : g1[u]) {
-                        if (dp1[v] < dp1[u] * r)
-                            dp1[v] = dp1[u] * r;
+                for (auto& [v, rate] : g1[u]) {
+                    if (day1[u] * rate > next[v]) {
+                        next[v] = day1[u] * rate;
                     }
                 }
             }
+            day1 = next;
         }
-        // Build day 2 graph with inverses
-        vector<vector<pair<int, double>>> g2(n);
-        for (int i = 0; i < pairs2.size(); ++i) {
-            int u = currency2idx[pairs2[i][0]], v = currency2idx[pairs2[i][1]];
-            double r = rates2[i];
-            g2[u].emplace_back(v, r);
-            g2[v].emplace_back(u, 1.0 / r);
-        }
-        // For each currency, propagate through day 2
-        double ans = dp1[currency2idx[initialCurrency]]; // handle no conversion on day 2
+        // Step 4: For each possible currency after day 1, run Day 2 DP to maximize initialCurrency
+        double res = day1[currencyIndex[initialCurrency]]; // Option to do nothing
         for (int start = 0; start < n; ++start) {
-            if (dp1[start] == 0) continue;
-            vector<double> dp2(n, 0.0);
-            dp2[start] = dp1[start];
-            for (int iter = 0; iter < n-1; ++iter) {
+            if (day1[start] == 0.0) continue;
+            vector<double> day2(n, 0.0);
+            day2[start] = day1[start];
+            for (int iter = 0; iter < n; ++iter) {
+                vector<double> next = day2;
                 for (int u = 0; u < n; ++u) {
-                    if (dp2[u] > 0) {
-                        for (auto& [v, r] : g2[u]) {
-                            if (dp2[v] < dp2[u] * r)
-                                dp2[v] = dp2[u] * r;
+                    for (auto& [v, rate] : g2[u]) {
+                        if (day2[u] * rate > next[v]) {
+                            next[v] = day2[u] * rate;
                         }
                     }
                 }
+                day2 = next;
             }
-            ans = max(ans, dp2[currency2idx[initialCurrency]]);
+            res = max(res, day2[currencyIndex[initialCurrency]]);
         }
-        // Final verification: compare with no conversion at all
-        ans = max(ans, 1.0);
-        return ans;
+        return res;
     }
 };
 # @lc code=end
