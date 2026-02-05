@@ -8,45 +8,41 @@
 #include <unordered_map>
 #include <algorithm>
 using namespace std;
-
 class Solution {
 public:
     int maxProduct(vector<int>& nums, int k, int limit) {
-        // dp[sum][parity] = max product
-        // use unordered_map for sum: (sum, parity) => max product
-        using Key = pair<int, int>;
-        struct KeyHash { size_t operator()(const Key& p) const { return hash<int>()(p.first) ^ hash<int>()(p.second << 1); } };
-        unordered_map<Key, int, KeyHash> dp, ndp;
+        // Memoization: key=(i, alt_sum, parity), value=max product
         int n = nums.size();
+        // The key is (i, current alternating sum, parity)
+        // To reduce state size, product only tracked if <=limit
+        unordered_map<long long, int> dp[151];
         int ans = -1;
-        for (int i = 0; i < n; ++i) {
-            ndp = dp;
-            // Start new subsequence with nums[i]
-            int sum0 = nums[i];
-            int prod0 = nums[i];
-            if (prod0 <= limit) {
-                Key key0 = {sum0, 1}; // first element is at even index (0), next will be odd (1)
-                ndp[key0] = max(ndp[key0], prod0);
-                if (sum0 == k) ans = max(ans, prod0);
+        function<void(int,int,long long,int)> dfs = [&](int idx, int alt_sum, long long prod, int parity) {
+            if (prod > limit) return;
+            if (idx == n) {
+                // Only non-empty subsequences
+                if (alt_sum == k && prod > ans && prod > 0) ans = prod;
+                return;
             }
-            // Extend all existing subsequences
-            for (const auto& it : dp) {
-                int sum = it.first.first;
-                int parity = it.first.second;
-                int prod = it.second;
-                int nsum, nprod;
-                if (parity == 0) {
-                    nsum = sum + nums[i];
-                } else {
-                    nsum = sum - nums[i];
-                }
-                nprod = prod * nums[i];
-                if (nprod > limit) continue;
-                Key nkey = {nsum, 1 - parity};
-                ndp[nkey] = max(ndp[nkey], nprod);
-                if (nsum == k) ans = max(ans, nprod);
-            }
-            swap(dp, ndp);
+            // State key
+            long long key = ((long long)(alt_sum + 105) << 1) | parity;
+            if (dp[idx].count(key) && dp[idx][key] >= prod) return;
+            dp[idx][key] = prod;
+            // Exclude current
+            dfs(idx+1, alt_sum, prod, parity);
+            // Include current
+            int nalt = parity ? alt_sum - nums[idx] : alt_sum + nums[idx];
+            long long nprod = prod * nums[idx];
+            dfs(idx+1, nalt, nprod, 1-parity);
+        };
+        // Try all possible starting points (subsequences can be any length)
+        for (int i=0;i<n;++i) {
+            if (nums[i] > 0)
+                dfs(i+1, nums[i], nums[i], 1); // Start with nums[i] at even pos
+        }
+        // Handle zeros as well (if nums[i]==0 and k==0)
+        for (int i=0;i<n;++i) {
+            if (nums[i]==0 && k==0 && 0<=limit) ans = max(ans, 0);
         }
         return ans;
     }
