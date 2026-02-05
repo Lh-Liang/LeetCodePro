@@ -3,26 +3,35 @@
 #
 # [3448] Count Substrings Divisible By Last Digit
 #
+
 # @lc code=start
+#include <string>
+#include <vector>
+#include <unordered_map>
+using namespace std;
+
 class Solution {
 public:
     long long countSubstrings(string s) {
         int n = s.size();
-        long long ans = 0;
-        // For each position, consider all substrings ending at i up to length 20
-        for (int i = 0; i < n; ++i) {
-            if (s[i] == '0') continue; // last digit zero is not allowed
-            int d = s[i] - '0';
-            long long num = 0;
-            long long p10 = 1;
-            // Go backwards up to 20 characters to avoid overflow
-            for (int j = i; j >= 0 && i-j < 20; --j) {
-                num = (s[j] - '0') * p10 + num;
-                if (num % d == 0) ++ans;
-                p10 *= 10;
+        long long res = 0;
+        for (int d = 1; d <= 9; ++d) {
+            unordered_map<int, int> cnt;
+            cnt[0] = 1; // empty prefix
+            int mod = 0;
+            int pow10 = 1;
+            for (int i = 0; i < n; ++i) {
+                int x = s[i] - '0';
+                mod = (mod * 10 + x) % d;
+                if (x == d) {
+                    res += cnt[mod];
+                }
+                if (i+1 < n && s[i+1] - '0' == d) {
+                    cnt[mod]++;
+                }
             }
         }
-        return ans;
+        return res;
     }
 };
 # @lc code=end
