@@ -1,42 +1,37 @@
-# @lc app=leetcode id=3743 lang=java
-# [3743] Maximize Cyclic Partition Score
-#
-# @lc code=start
 class Solution {
     public long maximumScore(int[] nums, int k) {
         int n = nums.length;
-        long maxScore = 0;
-        long[][] dp = new long[n][k + 1];
-        
-        // Iterate over all possible starting points to simulate cyclic nature
-        for (int start = 0; start < n; start++) {
-            // Reset DP for each new starting point cycle simulation
-            for (long[] row : dp) Arrays.fill(row, Long.MIN_VALUE);
-            
-            // Initialize base case for single partition subarrays
-            long minVal = nums[start], maxVal = nums[start];
-            for (int len = 1; len <= n; len++) {
-                int currentIndex = (start + len - 1) % n;
-                minVal = Math.min(minVal, nums[currentIndex]);
-                maxVal = Math.max(maxVal, nums[currentIndex]);
-                long rangeScore = maxVal - minVal;
-                
-                // Update DP table where partition count is at least one
-                dp[start][1] = Math.max(dp[start][1], rangeScore);
-                
-                // Update DP table for possible further partitions >1
-                for (int m = 2; m <= k; m++) {
-                    if (len < n) { // Ensure we don't complete a full loopback in one go except final partition
-                        int nextStartIdx = (currentIndex + 1) % n;
-                        if (dp[nextStartIdx][m - 1] != Long.MIN_VALUE) {
-                            dp[start][m] = Math.max(dp[start][m], rangeScore + dp[nextStartIdx][m - 1]);
+        int[] arr = new int[2 * n];
+        for (int i = 0; i < 2 * n; ++i) arr[i] = nums[i % n];
+        long[][] minVal = new long[2 * n][n + 1];
+        long[][] maxVal = new long[2 * n][n + 1];
+        for (int i = 0; i < 2 * n; ++i) {
+            long mi = arr[i], ma = arr[i];
+            minVal[i][1] = mi; maxVal[i][1] = ma;
+            for (int len = 2; len <= n && i + len - 1 < 2 * n; ++len) {
+                mi = Math.min(mi, arr[i + len - 1]);
+                ma = Math.max(ma, arr[i + len - 1]);
+                minVal[i][len] = mi; maxVal[i][len] = ma;
+            }
+        }
+        long ans = 0;
+        for (int start = 0; start < n; ++start) {
+            long[][] dp = new long[n + 1][k + 1];
+            for (int len = 1; len <= n; ++len) {
+                for (int t = 1; t <= Math.min(k, len); ++t) {
+                    if (t == 1) {
+                        dp[len][t] = maxVal[start][len] - minVal[start][len];
+                    } else {
+                        for (int cut = 1; cut < len; ++cut) {
+                            if (t - 1 <= cut) {
+                                dp[len][t] = Math.max(dp[len][t], dp[cut][t - 1] + maxVal[start + cut][len - cut] - minVal[start + cut][len - cut]);
+                            }
                         }
                     }
                 }
             }
-            maxScore = Math.max(maxScore, dp[start][k]);
+            for (int t = 1; t <= k; ++t) ans = Math.max(ans, dp[n][t]);
         }
-        return maxScore;
+        return ans;
     }
 }
-# @lc code=end
