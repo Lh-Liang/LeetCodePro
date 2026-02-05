@@ -11,7 +11,6 @@ public:
         long long step = 1;
         bool left = true;
         while (n > 1) {
-            // Move head if deleting from left, or from right and n is odd
             if (left || n % 2 == 1) {
                 head += step;
             }
