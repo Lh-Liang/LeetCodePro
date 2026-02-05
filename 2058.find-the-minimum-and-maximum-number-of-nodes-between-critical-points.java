@@ -1,8 +1,3 @@
-# @lc app=leetcode id=2058 lang=java
-#
-# [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
-#
-# @lc code=start
 /**
  * Definition for singly-linked list.
  * public class ListNode {
@@ -15,38 +10,30 @@
  */
 class Solution {
     public int[] nodesBetweenCriticalPoints(ListNode head) {
-        int firstCritical = -1;
-        int prevCritical = -1;
-        int minDistance = Integer.MAX_VALUE;
-        int index = 0;
-        List<Integer> criticalPoints = new ArrayList<>();
-
+        List<Integer> criticalIndices = new ArrayList<>();
         ListNode prev = null;
-        ListNode current = head;
-
-        while (current != null && current.next != null) {
-            if (prev != null && (current.val > prev.val && current.val > current.next.val ||
-                                 current.val < prev.val && current.val < current.next.val)) {
-                if (firstCritical == -1) {
-                    firstCritical = index;
-                } else {
-                    minDistance = Math.min(minDistance, index - prevCritical);
+        ListNode curr = head;
+        ListNode next = head != null ? head.next : null;
+        int pos = 1;
+        while (next != null) {
+            pos++;
+            if (prev != null) {
+                if ((curr.val > prev.val && curr.val > next.val) || (curr.val < prev.val && curr.val < next.val)) {
+                    criticalIndices.add(pos - 1);
                 }
-                prevCritical = index;
-                criticalPoints.add(index);
             }
-            prev = current;
-            current = current.next;
-            index++;
+            prev = curr;
+            curr = next;
+            next = next.next;
         }
-
-        if (criticalPoints.size() < 2) {
+        if (criticalIndices.size() < 2) {
             return new int[]{-1, -1};
         }
-
-        int maxDistance = criticalPoints.get(criticalPoints.size() - 1) - firstCritical;
-
-        return new int[]{minDistance, maxDistance};
+        int minDist = Integer.MAX_VALUE;
+        for (int i = 1; i < criticalIndices.size(); i++) {
+            minDist = Math.min(minDist, criticalIndices.get(i) - criticalIndices.get(i - 1));
+        }
+        int maxDist = criticalIndices.get(criticalIndices.size() - 1) - criticalIndices.get(0);
+        return new int[]{minDist, maxDist};
     }
 }
-# @lc code=end
