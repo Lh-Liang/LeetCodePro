@@ -4,50 +4,40 @@
 # [3695] Maximize Alternating Sum Using Swaps
 #
 # @lc code=start
+#include <vector>
+#include <unordered_map>
+#include <algorithm>
+using namespace std;
+
 class Solution {
 public:
+    vector<int> parent;
+    int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+    void unite(int x, int y) {
+        parent[find(x)] = find(y);
+    }
     long long maxAlternatingSum(vector<int>& nums, vector<vector<int>>& swaps) {
         int n = nums.size();
-        vector<int> parent(n);
-        iota(parent.begin(), parent.end(), 0);
-        function<int(int)> find = [&](int x) {
-            if (parent[x] != x) parent[x] = find(parent[x]);
-            return parent[x];
-        };
-        for (auto& s : swaps) {
-            int a = find(s[0]), b = find(s[1]);
-            if (a != b) parent[a] = b;
+        parent.resize(n);
+        for (int i = 0; i < n; ++i) parent[i] = i;
+        for (const auto& s : swaps) {
+            unite(s[0], s[1]);
         }
         unordered_map<int, vector<int>> groups;
         for (int i = 0; i < n; ++i) {
             groups[find(i)].push_back(i);
         }
-        vector<int> res(n);
-        for (auto& [_, idxs] : groups) {
+        vector<int> res(nums);
+        for (const auto& [p, idxs] : groups) {
             vector<int> vals;
-            for (int i : idxs) vals.push_back(nums[i]);
+            for (int idx : idxs) vals.push_back(nums[idx]);
             sort(idxs.begin(), idxs.end());
-            sort(vals.rbegin(), vals.rend()); // descending
-            // Assign largest values to smallest indices (even positions)
-            for (int j = 0; j < idxs.size(); ++j) {
-                res[idxs[j]] = vals[j];
-            }
-            // Verification step: For small components, check both possible assignments (start even or odd)
-            if (idxs.size() <= 10) {
-                vector<int> perm = vals;
-                long long best = LLONG_MIN;
-                sort(perm.begin(), perm.end());
-                do {
-                    long long cur = 0;
-                    for (int j = 0; j < idxs.size(); ++j) {
-                        if (idxs[j] % 2 == 0) cur += perm[j];
-                        else cur -= perm[j];
-                    }
-                    if (cur > best) {
-                        for (int j = 0; j < idxs.size(); ++j) res[idxs[j]] = perm[j];
-                        best = cur;
-                    }
-                } while (next_permutation(perm.begin(), perm.end()));
+            sort(vals.begin(), vals.end(), greater<int>());
+            for (int i = 0; i < idxs.size(); ++i) {
+                res[idxs[i]] = vals[i];
             }
         }
         long long ans = 0;
