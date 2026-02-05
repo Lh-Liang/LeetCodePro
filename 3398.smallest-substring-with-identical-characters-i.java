@@ -1,1 +1,43 @@
-#\n# @lc app=leetcode id=3398 lang=java\n#\n# [3398] Smallest Substring With Identical Characters I\n#\n\n# @lc code=start\nclass Solution {\n    public int minLength(String s, int numOps) {\n        int n = s.length();\n        int minLength = n; // Start with max possible length\n        for (char ch : new char[]{'0', '1'}) { // Check for both '0' and '1' as target\n            int left = 0, flips = 0;\n            for (int right = 0; right < n; right++) {\n                if (s.charAt(right) != ch) flips++; // Count flips needed for this window\n                while (flips > numOps) { // If exceeding allowed operations, adjust window\n                    if (s.charAt(left) != ch) flips--;// Reduce flip count accordingly\n                    left++;\n                }\n                minLength = Math.min(minLength, right - left + 1); // Update minimum length found\n            }\n        }\n        return minLength; // Return minimized longest substring length after operations. \n    }\n}\n# @lc code=end
+#
+# @lc app=leetcode id=3398 lang=java
+#
+# [3398] Smallest Substring With Identical Characters I
+#
+# @lc code=start
+class Solution {
+    public int minLength(String s, int numOps) {
+        int n = s.length();
+        int left = 1, right = n;
+        int res = n;
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+            if (canBreakAllRuns(s, numOps, mid, '0') || canBreakAllRuns(s, numOps, mid, '1')) {
+                res = mid;
+                right = mid - 1;
+            } else {
+                left = mid + 1;
+            }
+        }
+        return res;
+    }
+    // Check if all runs of ch can be broken into pieces of length <= len with <= numOps flips
+    private boolean canBreakAllRuns(String s, int numOps, int len, char ch) {
+        int flipsNeeded = 0;
+        int i = 0, n = s.length();
+        while (i < n) {
+            if (s.charAt(i) != ch) {
+                i++;
+                continue;
+            }
+            int j = i;
+            while (j < n && s.charAt(j) == ch) j++;
+            int runLen = j - i;
+            if (runLen > len) {
+                flipsNeeded += (runLen - 1) / len;
+            }
+            i = j;
+        }
+        return flipsNeeded <= numOps;
+    }
+}
+# @lc code=end
