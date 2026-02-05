@@ -7,17 +7,18 @@
 class Solution {
     public long maxWeight(int[] pizzas) {
         Arrays.sort(pizzas);
-        long totalWeight = 0;
         int n = pizzas.length;
-        for (int i = 0; i < n; i += 4) {
-            // Odd day: take Z (pizzas[i+3])
-            if ((i / 4) % 2 == 0) {
-                totalWeight += pizzas[i + 3];
-            } else { // Even day: take Y (pizzas[i+2])
-                totalWeight += pizzas[i + 2];
+        long total = 0;
+        int days = n / 4;
+        for (int d = 0; d < days; ++d) {
+            int idx = d * 4;
+            if ((d + 1) % 2 == 1) { // odd day (1-indexed)
+                total += pizzas[idx + 3]; // Z
+            } else {
+                total += pizzas[idx + 2]; // Y
             }
         }
-        return totalWeight;
+        return total;
     }
 }
 # @lc code=end
