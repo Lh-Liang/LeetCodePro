@@ -18,7 +18,7 @@ class Solution {
 public:
     ListNode* reverseList(ListNode* head) {
         ListNode* prev = nullptr;
-        while(head) {
+        while (head) {
             ListNode* next = head->next;
             head->next = prev;
             prev = head;
@@ -31,18 +31,17 @@ public:
         ListNode* curr = head;
         int carry = 0;
         ListNode* prev = nullptr;
-        while(curr) {
-            int total = curr->val * 2 + carry;
-            curr->val = total % 10;
-            carry = total / 10;
+        while (curr) {
+            int val = curr->val * 2 + carry;
+            curr->val = val % 10;
+            carry = val / 10;
             prev = curr;
             curr = curr->next;
         }
-        if(carry) {
+        if (carry) {
             prev->next = new ListNode(carry);
         }
-        head = reverseList(head);
-        return head;
+        return reverseList(head);
     }
 };
 # @lc code=end
