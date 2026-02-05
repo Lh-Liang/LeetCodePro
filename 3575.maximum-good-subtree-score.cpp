@@ -10,47 +10,47 @@ public:
     int goodSubtreeSum(vector<int>& vals, vector<int>& par) {
         const int MOD = 1e9 + 7;
         int n = vals.size();
-        // Build tree
-        vector<vector<int>> tree(n);
+        vector<vector<int>> children(n);
         for (int i = 1; i < n; ++i) {
-            tree[par[i]].push_back(i);
+            children[par[i]].push_back(i);
         }
-        // Helper to get digit mask
-        auto get_mask = [](int x) {
+        // Helper to get the digit bitmask of a single value
+        auto get_mask = [](int val) {
             int mask = 0;
-            while (x) { mask |= 1 << (x % 10); x /= 10; }
+            while (val > 0) {
+                mask |= (1 << (val % 10));
+                val /= 10;
+            }
             return mask;
         };
-        vector<int> val_mask(n);
-        for (int i = 0; i < n; ++i) val_mask[i] = get_mask(vals[i]);
-        // DP: dp[u][mask] = max sum for subtree u with used digits mask
-        vector<unordered_map<int, int>> dp(n);
-        vector<int> maxScore(n);
-
+        // DP[u]: map from digit bitmask to max sum in subtree u
+        vector<unordered_map<int, int>> DP(n);
         function<void(int)> dfs = [&](int u) {
-            dp[u][val_mask[u]] = vals[u];
-            for (int v : tree[u]) {
+            int my_mask = get_mask(vals[u]);
+            DP[u][my_mask] = vals[u];
+            for (int v : children[u]) {
                 dfs(v);
-                unordered_map<int, int> ndp(dp[u]);
-                for (auto &[mask1, sum1] : dp[u]) {
-                    for (auto &[mask2, sum2] : dp[v]) {
+                unordered_map<int, int> new_dp = DP[u];
+                for (auto &[mask1, sum1] : DP[u]) {
+                    for (auto &[mask2, sum2] : DP[v]) {
                         if ((mask1 & mask2) == 0) {
-                            int nmask = mask1 | mask2;
-                            ndp[nmask] = max(ndp[nmask], sum1 + sum2);
+                            int comb_mask = mask1 | mask2;
+                            new_dp[comb_mask] = max(new_dp[comb_mask], sum1 + sum2);
                         }
                     }
                 }
-                dp[u] = std::move(ndp);
+                DP[u] = move(new_dp);
             }
-            // Find max for this node
-            int best = 0;
-            for (auto &[_, s] : dp[u]) best = max(best, s);
-            maxScore[u] = best;
         };
         dfs(0);
-        long long ans = 0;
-        for (int s : maxScore) ans = (ans + s) % MOD;
-        return (int)ans;
+        // For each node, collect its maximal DP value and sum
+        int ans = 0;
+        for (int u = 0; u < n; ++u) {
+            int local_max = 0;
+            for (auto &p : DP[u]) local_max = max(local_max, p.second);
+            ans = (ans + local_max) % MOD;
+        }
+        return ans;
     }
 };
 # @lc code=end
