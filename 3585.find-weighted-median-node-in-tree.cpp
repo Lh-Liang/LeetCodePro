@@ -7,86 +7,109 @@
 # @lc code=start
 class Solution {
 public:
-    vector<int> findMedian(int n, vector<vector<int>>& edges, vector<vector<int>>& queries) {
-        vector<vector<pair<int, int>>> tree(n);
-        for (auto& e : edges) {
-            int u = e[0], v = e[1], w = e[2];
-            tree[u].push_back({v, w});
-            tree[v].push_back({u, w});
+    static const int LOG = 20;
+    vector<vector<pair<int, int>>> adj;
+    vector<vector<int>> up; // up[v][k] = 2^k ancestor of v
+    vector<int> depth;
+    vector<long long> preSum; // prefix sum of edge weights from root
+
+    void dfs(int v, int p, int d, long long sum) {
+        up[v][0] = p;
+        depth[v] = d;
+        preSum[v] = sum;
+        for (auto &[to, w] : adj[v]) {
+            if (to != p) dfs(to, v, d + 1, sum + w);
         }
-        int LOG = 20;
-        vector<vector<int>> up(n, vector<int>(LOG));
-        vector<vector<long long>> upw(n, vector<long long>(LOG));
-        vector<int> depth(n);
-        vector<long long> pre_sum(n);
-        function<void(int,int,int,long long)> dfs = [&](int u, int p, int d, long long s) {
-            up[u][0] = p;
-            upw[u][0] = (p==-1) ? 0 : s-pre_sum[p];
-            depth[u] = d;
-            pre_sum[u] = s;
-            for (int k=1;k<LOG;++k) {
-                if (up[u][k-1]==-1) { up[u][k]=-1; upw[u][k]=0; continue; }
-                up[u][k] = up[up[u][k-1]][k-1];
-                upw[u][k] = upw[u][k-1] + upw[up[u][k-1]][k-1];
+    }
+
+    int lca(int u, int v) {
+        if (depth[u] < depth[v]) std::swap(u, v);
+        for (int k = LOG - 1; k >= 0; --k) {
+            if (depth[u] - (1 << k) >= depth[v]) u = up[u][k];
+        }
+        if (u == v) return u;
+        for (int k = LOG - 1; k >= 0; --k) {
+            if (up[u][k] != up[v][k]) {
+                u = up[u][k];
+                v = up[v][k];
             }
-            for (auto& [v, w] : tree[u]) {
-                if (v == p) continue;
-                dfs(v, u, d+1, s+w);
+        }
+        return up[u][0];
+    }
+
+    int go_up(int u, int steps) {
+        for (int k = 0; k < LOG; ++k) {
+            if (steps & (1 << k)) u = up[u][k];
+        }
+        return u;
+    }
+
+    vector<int> findMedian(int n, vector<vector<int>>& edges, vector<vector<int>>& queries) {
+        adj.assign(n, {});
+        for (auto &e : edges) {
+            int u = e[0], v = e[1], w = e[2];
+            adj[u].emplace_back(v, w);
+            adj[v].emplace_back(u, w);
+        }
+        up.assign(n, vector<int>(LOG));
+        depth.assign(n, 0);
+        preSum.assign(n, 0);
+        dfs(0, 0, 0, 0);
+        for (int k = 1; k < LOG; ++k) {
+            for (int v = 0; v < n; ++v) {
+                up[v][k] = up[up[v][k - 1]][k - 1];
             }
-        };
-        dfs(0, -1, 0, 0);
-        auto lca = [&](int u, int v) {
-            if (depth[u] < depth[v]) swap(u,v);
-            for (int k=LOG-1;k>=0;--k) {
-                if (up[u][k]!=-1 && depth[up[u][k]]>=depth[v]) u = up[u][k];
-            }
-            if (u==v) return u;
-            for (int k=LOG-1;k>=0;--k) {
-                if (up[u][k]!=-1 && up[u][k]!=up[v][k]) { u=up[u][k]; v=up[v][k]; }
-            }
-            return up[u][0];
-        };
+        }
         vector<int> ans;
-        for (auto& q : queries) {
+        for (auto &q : queries) {
             int u = q[0], v = q[1];
-            if (u == v) { ans.push_back(u); continue; }
             int anc = lca(u, v);
-            long long pathw = pre_sum[u] + pre_sum[v] - 2*pre_sum[anc];
-            double half = pathw / 2.0;
-            // Try path from u to anc
-            int cur = u; long long acc = 0;
-            for (int k=LOG-1;k>=0;--k) {
-                if (up[cur][k]!=-1 && depth[up[cur][k]]>=depth[anc] && acc+upw[cur][k]<half) {
-                    acc += upw[cur][k];
-                    cur = up[cur][k];
+            long long total = preSum[u] + preSum[v] - 2 * preSum[anc];
+            long long half = (total + 1) / 2; // strictly at least half
+            // Go from u towards v
+            int cur = u;
+            long long sum = 0;
+            if (u == v) {
+                ans.push_back(u);
+                continue;
+            }
+            // First, try to go up from u to anc
+            for (int k = LOG - 1; k >= 0; --k) {
+                if (depth[cur] - (1 << k) >= depth[anc]) {
+                    int nxt = up[cur][k];
+                    long long seg = preSum[cur] - preSum[nxt];
+                    if (sum + seg >= half) {
+                        // need to binary search down this segment
+                        int low = cur, high = nxt, res = cur;
+                        while (low != high) {
+                            int mid = go_up(low, depth[low] - depth[high] - 1);
+                            if (sum + preSum[cur] - preSum[mid] >= half) low = mid;
+                            else { res = mid; high = mid; }
+                        }
+                        ans.push_back(low);
+                        goto next_query;
+                    } else {
+                        sum += seg;
+                        cur = nxt;
+                    }
                 }
             }
-            // Check if next step reaches/exceeds half
-            if (cur != anc && up[cur][0]!=-1) {
-                acc += upw[cur][0];
-                cur = up[cur][0];
-            }
-            long long uj_to_cur = pre_sum[u] - pre_sum[cur];
-            if (uj_to_cur >= half) {
-                ans.push_back(cur); continue;
-            }
-            // Now move from anc towards v
-            int cur2 = v; long long acc2 = pre_sum[v] - pre_sum[anc];
-            vector<int> down_path;
-            while (cur2 != anc) {
-                down_path.push_back(cur2);
-                cur2 = up[cur2][0];
-            }
-            reverse(down_path.begin(), down_path.end());
-            long long uj_to_x = uj_to_cur;
-            bool found = false;
-            for (int node : down_path) {
-                uj_to_x += pre_sum[node] - pre_sum[up[node][0]];
-                if (uj_to_x >= half) {
-                    ans.push_back(node); found = true; break;
+            // Now go down from anc to v
+            vector<int> path;
+            int x = v;
+            while (x != anc) { path.push_back(x); x = up[x][0]; }
+            reverse(path.begin(), path.end());
+            for (int node : path) {
+                long long seg = preSum[node] - preSum[up[node][0]];
+                if (sum + seg >= half) {
+                    ans.push_back(node);
+                    goto next_query;
+                } else {
+                    sum += seg;
                 }
             }
-            if (!found) ans.push_back(v); // fallback in case of rounding
+            ans.push_back(v);
+        next_query:;
         }
         return ans;
     }
