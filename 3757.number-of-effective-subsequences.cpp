@@ -10,43 +10,41 @@ public:
     int countEffective(vector<int>& nums) {
         const int MOD = 1e9 + 7;
         int n = nums.size();
-        int full_or = 0;
-        for (int num : nums) full_or |= num;
-        // Find which bits are set in full_or
-        vector<int> bits;
-        for (int b = 0; b < 21; ++b) if (full_or & (1 << b)) bits.push_back(b);
-        int m = bits.size();
-        // For each bit, collect the elements that set it
-        vector<vector<int>> bit_sets(m);
+        int total_or = 0;
+        for (int x : nums) total_or |= x;
+        // For each bit in total_or, collect indices that provide that bit
+        int maxbit = 0;
+        for (int i = 0; i < 21; ++i) if (total_or & (1 << i)) maxbit = i;
+        // For each element, record its mask relative to total_or
+        vector<int> mask(n, 0);
         for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < m; ++j) {
-                if (nums[i] & (1 << bits[j])) bit_sets[j].push_back(i);
+            mask[i] = nums[i] & total_or;
+        }
+        // For each bit, count how many numbers have that bit
+        vector<int> bit_count(21, 0);
+        for (int i = 0; i < n; ++i)
+            for (int b = 0; b < 21; ++b)
+                if ((total_or & (1 << b)) && (nums[i] & (1 << b)))
+                    bit_count[b]++;
+        // Find indices that are the only contributor to some bit
+        set<int> critical;
+        for (int b = 0; b < 21; ++b) {
+            if ((total_or & (1 << b)) && bit_count[b] == 1) {
+                // Find which index
+                for (int i = 0; i < n; ++i)
+                    if (nums[i] & (1 << b))
+                        critical.insert(i);
             }
         }
-        // Inclusion-exclusion over non-empty subsets of set bits
-        long long ans = 0;
-        for (int mask = 1; mask < (1 << m); ++mask) {
-            vector<bool> covered(n, false);
-            int cnt = 0;
-            for (int j = 0; j < m; ++j) {
-                if (mask & (1 << j)) {
-                    for (int idx : bit_sets[j]) {
-                        if (!covered[idx]) {
-                            covered[idx] = true;
-                            ++cnt;
-                        }
-                    }
-                }
-            }
-            // For this subset of bits, count all non-empty subsets of contributors
-            long long way = (1LL << cnt) - 1; // 2^cnt - 1
-            // Inclusion-exclusion: add if odd, subtract if even number of bits in mask
-            if (__builtin_popcount(mask) % 2 == 1)
-                ans = (ans + way) % MOD;
-            else
-                ans = (ans - way + MOD) % MOD;
-        }
-        return (int)ans;
+        // The minimum set to remove to strictly decrease OR is all critical indices
+        int critical_cnt = critical.size();
+        if (critical_cnt == 0) return 0;
+        // All supersets of critical indices are effective
+        // For the rest (n - critical_cnt), each can be included or not
+        long long ans = 1;
+        for (int i = 0; i < n - critical_cnt; ++i) ans = ans * 2 % MOD;
+        // Exclude the empty set (must remove at least the criticals)
+        return ans % MOD;
     }
 };
 # @lc code=end
