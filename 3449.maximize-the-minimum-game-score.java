@@ -3,33 +3,31 @@
 #
 # [3449] Maximize the Minimum Game Score
 #
-
 # @lc code=start
 class Solution {
     public long maxScore(int[] points, int m) {
         int n = points.length;
-        long low = 0, high = (long)1e12; // Set initial bounds for binary search
-        while (low < high) {
-            long mid = (low + high + 1) / 2; // Calculate midpoint, favoring upper bound
-            if (canAchieveMin(points, mid, m)) {
-                low = mid; // If achievable, try for a higher minimum
+        long left = 0, right = (long)1e15;
+        while (left < right) {
+            long mid = right - (right - left) / 2;
+            if (canAchieve(points, m, mid)) {
+                left = mid;
             } else {
-                high = mid - 1; // If not achievable, reduce upper bound
+                right = mid - 1;
             }
         }
-        return low; // The highest achievable minimum score
+        return left;
     }
-    
-    private boolean canAchieveMin(int[] points, long minScore, int m) {
+    private boolean canAchieve(int[] points, int m, long target) {
         int n = points.length;
-        long extraMoves = 0; // Track extra moves needed to achieve minScore at each index
-        for (int i = 0; i < n; i++) {
-            if (points[i] < minScore) { // If current point is less than minScore
-                extraMoves += minScore - points[i]; // Calculate needed moves to reach minScore
-                if (extraMoves > m) return false; // If needed moves exceed given moves m, return false
-            }
+        long moves = 0;
+        for (int i = 0; i < n; ++i) {
+            long need = (target + points[i] - 1) / points[i];
+            moves += need;
         }
-        return true; // If able to achieve at all indices with available moves, return true
+        // To traverse all indices, need at least n-1 moves (from -1 to 0 to 1 ... n-1)
+        moves += n - 1;
+        return moves <= m;
     }
 }
 # @lc code=end
