@@ -3,70 +3,48 @@
 #
 # [3419] Minimize the Maximum Edge Weight of Graph
 #
-
 # @lc code=start
 class Solution {
 public:
     int minMaxWeight(int n, vector<vector<int>>& edges, int threshold) {
-        int left = 1, right = 1e6, ans = -1;
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
-            // Step 1: Filter edges by candidate weight
-            vector<vector<int>> g(n);
-            vector<int> out_deg(n, 0);
-            for (const auto& e : edges) {
-                if (e[2] <= mid) {
-                    g[e[0]].push_back(e[1]);
-                    out_deg[e[0]]++;
-                }
+        // Collect unique weights for binary search
+        set<int> unique_weights;
+        for (auto& e : edges) unique_weights.insert(e[2]);
+        vector<int> weights(unique_weights.begin(), unique_weights.end());
+        sort(weights.begin(), weights.end());
+        // Build original adjacency list
+        vector<vector<pair<int,int>>> adj(n);
+        for (auto& e : edges)
+            adj[e[0]].emplace_back(e[1], e[2]);
+        // Feasibility function
+        auto feasible = [&](int maxw) -> bool {
+            // For each node, keep only outgoing edges with weight <= maxw and pick the lowest threshold
+            vector<vector<int>> out(n);
+            for (int u=0; u<n; ++u) {
+                vector<pair<int,int>> filtered;
+                for (auto& p : adj[u]) if (p.second <= maxw) filtered.push_back(p);
+                sort(filtered.begin(), filtered.end(), [](auto& a, auto& b){ return a.second < b.second; });
+                for (int i=0; i<filtered.size() && i<threshold; ++i) out[u].push_back(filtered[i].first);
             }
-            // Step 2: Check outgoing edge count constraint independently
-            bool valid = true;
-            for (int i = 0; i < n; ++i) {
-                if (out_deg[i] > threshold) {
-                    valid = false;
-                    break;
-                }
-            }
-            if (!valid) {
-                left = mid + 1;
-                continue;
-            }
-            // Step 3: Check reachability independently in reversed graph
-            vector<vector<int>> rev_g(n);
-            for (int u = 0; u < n; ++u) {
-                for (int v : g[u]) {
-                    rev_g[v].push_back(u);
-                }
-            }
-            vector<bool> vis(n, false);
-            std::queue<int> q;
-            q.push(0);
-            vis[0] = true;
+            // Build reverse graph
+            vector<vector<int>> rev(n);
+            for (int u=0; u<n; ++u) for (int v : out[u]) rev[v].push_back(u);
+            // BFS from node 0 in the reverse graph
+            vector<bool> seen(n, false);
+            queue<int> q; q.push(0); seen[0]=true;
             while (!q.empty()) {
                 int u = q.front(); q.pop();
-                for (int v : rev_g[u]) {
-                    if (!vis[v]) {
-                        vis[v] = true;
-                        q.push(v);
-                    }
-                }
+                for (int v : rev[u]) if (!seen[v]) { seen[v]=true; q.push(v); }
             }
-            // Step 4: Verify all nodes reach node 0
-            bool all_reach = true;
-            for (int i = 0; i < n; ++i) {
-                if (!vis[i]) {
-                    all_reach = false;
-                    break;
-                }
-            }
-            // Step 5: Update answer or adjust binary search
-            if (all_reach) {
-                ans = mid;
-                right = mid - 1;
-            } else {
-                left = mid + 1;
-            }
+            // All nodes except 0 must be able to reach 0
+            for (int u=0; u<n; ++u) if (!seen[u]) return false;
+            return true;
+        };
+        int l=0, r=weights.size()-1, ans=-1;
+        while (l<=r) {
+            int m = (l+r)/2;
+            if (feasible(weights[m])) { ans=weights[m]; r=m-1; }
+            else l=m+1;
         }
         return ans;
     }
