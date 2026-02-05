@@ -3,49 +3,47 @@
 #
 # [3598] Longest Common Prefix Between Adjacent Strings After Removals
 #
-
 # @lc code=start
 class Solution {
 public:
-    // Helper to compute the common prefix length
-    int commonPrefix(const string& a, const string& b) {
-        int len = min(a.size(), b.size());
+    // Helper to compute length of longest common prefix of a and b
+    int lcp(const string& a, const string& b) {
+        int n = min(a.size(), b.size());
         int i = 0;
-        while (i < len && a[i] == b[i]) ++i;
+        while (i < n && a[i] == b[i]) ++i;
         return i;
     }
     vector<int> longestCommonPrefix(vector<string>& words) {
         int n = words.size();
         if (n <= 1) return vector<int>(n, 0);
-        vector<int> prefixLens(n-1);
+        vector<int> pre(n-1);
+        // Step 1: Precompute prefix lengths for all adjacent pairs
         for (int i = 0; i < n-1; ++i) {
-            prefixLens[i] = commonPrefix(words[i], words[i+1]);
+            pre[i] = lcp(words[i], words[i+1]);
         }
-        // Precompute prefix maximums and suffix maximums for fast range max
-        vector<int> prefixMax(n-1), suffixMax(n-1);
-        prefixMax[0] = prefixLens[0];
-        for (int i = 1; i < n-1; ++i) prefixMax[i] = max(prefixMax[i-1], prefixLens[i]);
-        suffixMax[n-2] = prefixLens[n-2];
-        for (int i = n-3; i >= 0; --i) suffixMax[i] = max(suffixMax[i+1], prefixLens[i]);
-        vector<int> res(n);
+        // Step 2: For each removal, calculate the result
+        vector<int> ans(n, 0);
         for (int i = 0; i < n; ++i) {
-            int maxPrefix = 0;
+            int max_lcp = 0;
+            // For removal at i, affected pairs: (i-1,i) and (i,i+1), new pair: (i-1,i+1)
             if (n == 2) {
-                res[i] = 0;
+                // Only one pair exists, after removal no pair remains
+                ans[i] = 0;
                 continue;
             }
-            // Max among pairs before the removed index
-            if (i > 1) maxPrefix = prefixMax[i-2];
-            // Max among pairs after the removed index
-            if (i < n-2) maxPrefix = max(maxPrefix, suffixMax[i+1]);
-            // Max from the new adjacent pair formed by removal
+            // Compute max among unaffected pairs
+            // Pairs before (i-1,i): pre[0..i-2]
+            for (int j = 0; j < i-1; ++j) max_lcp = max(max_lcp, pre[j]);
+            // Pairs after (i,i+1): pre[i+1..n-2]
+            for (int j = i+1; j < n-1; ++j) max_lcp = max(max_lcp, pre[j]);
+            // Now, handle the new pair (i-1,i+1) if both are in bounds
             if (i > 0 && i < n-1) {
-                int merged = commonPrefix(words[i-1], words[i+1]);
-                maxPrefix = max(maxPrefix, merged);
+                int new_lcp = lcp(words[i-1], words[i+1]);
+                max_lcp = max(max_lcp, new_lcp);
             }
-            res[i] = maxPrefix;
+            ans[i] = max_lcp;
         }
-        return res;
+        return ans;
     }
 };
 # @lc code=end
