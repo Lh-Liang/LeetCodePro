@@ -3,46 +3,56 @@
 #
 # [3464] Maximize the Distance Between Points on a Square
 #
-
 # @lc code=start
 class Solution {
     public int maxDistance(int side, int[][] points, int k) {
-        int low = 0;
-        // Determine a realistic high bound based on possible configurations of boundary points
-        int high = calculateMaxManhattanDistance(side);
-        while (low < high) {
-            int mid = (high + low + 1) / 2;
-            if (isFeasible(mid, points, k)) {
-                low = mid;
-            } else {
-                high = mid - 1;
+        int n = points.length;
+        int[][] dist = new int[n][n];
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < n; ++j) {
+                dist[i][j] = Math.abs(points[i][0] - points[j][0]) + Math.abs(points[i][1] - points[j][1]);
             }
         }
-        return low;
+        int left = 0, right = 2 * side, ans = 0;
+        while (left <= right) {
+            int mid = (left + right) / 2;
+            if (canPick(points, dist, k, mid)) {
+                ans = mid;
+                left = mid + 1;
+            } else {
+                right = mid - 1;
+            }
+        }
+        return ans;
     }
-    
-    // Calculate maximum possible Manhattan distance for given side length
-    private int calculateMaxManhattanDistance(int side) {
-        // Example logic: Consider maximal distances between corners or specific configurations on boundary
-        return side * 2; // Placeholder logic; needs refining based on actual problem constraints
+    private boolean canPick(int[][] points, int[][] dist, int k, int d) {
+        int n = points.length;
+        return dfs(points, dist, k, d, new boolean[n], 0, 0);
     }
-    
-    private boolean isFeasible(int dist, int[][] points, int k) {
-        // Sort all points based on x-coordinate first and then y-coordinate
-        Arrays.sort(points, (a, b) -> a[0] == b[0] ? Integer.compare(a[1], b[1]) : Integer.compare(a[0], b[0]));
-        List<int[]> selectedPoints = new ArrayList<>();
-        for (int[] point : points) {
-            boolean valid = true;
-            for (int[] selPoint : selectedPoints) {
-                if (Math.abs(point[0] - selPoint[0]) + Math.abs(point[1] - selPoint[1]) < dist) {
-                    valid = false;
-                    break;
+    private boolean dfs(int[][] points, int[][] dist, int k, int d, boolean[] used, int start, int cnt) {
+        if (cnt == k) {
+            int n = points.length;
+            for (int i = 0; i < n; ++i) {
+                if (!used[i]) continue;
+                for (int j = i + 1; j < n; ++j) {
+                    if (used[j] && dist[i][j] < d) return false;
                 }
             }
-            if (valid) selectedPoints.add(point);
-            if (selectedPoints.size() == k) return true;
+            return true;
         }
-        return false; // Not enough points could be selected with minimum `dist` apart
+        int n = points.length;
+        for (int i = start; i < n; ++i) {
+            boolean valid = true;
+            for (int j = 0; j < n; ++j) {
+                if (used[j] && dist[i][j] < d) { valid = false; break; }
+            }
+            if (valid) {
+                used[i] = true;
+                if (dfs(points, dist, k, d, used, i + 1, cnt + 1)) return true;
+                used[i] = false;
+            }
+        }
+        return false;
     }
 }
 # @lc code=end
