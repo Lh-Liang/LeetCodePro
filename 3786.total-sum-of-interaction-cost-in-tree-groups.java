@@ -3,51 +3,52 @@
 #
 # [3786] Total Sum of Interaction Cost in Tree Groups
 #
-
 # @lc code=start
 import java.util.*;
-
 class Solution {
     public long interactionCosts(int n, int[][] edges, int[] group) {
-        // Step 1: Build adjacency list for the tree
-        Map<Integer, List<Integer>> adjacencyList = new HashMap<>();
-        for (int[] edge : edges) {
-            adjacencyList.computeIfAbsent(edge[0], k -> new ArrayList<>()).add(edge[1]);
-            adjacencyList.computeIfAbsent(edge[1], k -> new ArrayList<>()).add(edge[0]);
+        // Step 1: Build adjacency list
+        List<Integer>[] tree = new ArrayList[n];
+        for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
+        for (int[] e : edges) {
+            tree[e[0]].add(e[1]);
+            tree[e[1]].add(e[0]);
         }
-        
-        // Step 2: Group nodes by their group labels
-        Map<Integer, List<Integer>> groupNodes = new HashMap<>();
-        for (int i = 0; i < n; i++) {
-            groupNodes.computeIfAbsent(group[i], k -> new ArrayList<>()).add(i);
+        // Step 2: Group nodes by label
+        Map<Integer, List<Integer>> groupMap = new HashMap<>();
+        for (int i = 0; i < n; ++i) {
+            groupMap.computeIfAbsent(group[i], k -> new ArrayList<>()).add(i);
         }
-        
-        // Step 3: Calculate total interaction cost within each group
-        long totalInteractionCost = 0;
-        for (List<Integer> nodes : groupNodes.values()) {
-            totalInteractionCost += calculateGroupInteractionCost(nodes, adjacencyList);
-        }
-        
-        return totalInteractionCost;
-    }
-    
-    private long calculateGroupInteractionCost(List<Integer> nodes, Map<Integer, List<Integer>> adjacencyList) {
-        long groupCost = 0;
-        int size = nodes.size();
-        if (size < 2) return 0;
-        
-        // Use BFS/DFS to calculate pairwise distances within this group
-        for (int node : nodes) {
-            Map<Integer, Integer> distanceMap = bfs(node, adjacencyList);
-            for (int target : nodes) {
-                if (node != target) {
-                    groupCost += distanceMap.getOrDefault(target, 0);
+        long total = 0;
+        // Step 3: For each group, compute interaction cost
+        for (Map.Entry<Integer, List<Integer>> entry : groupMap.entrySet()) {
+            Set<Integer> members = new HashSet<>(entry.getValue());
+            if (members.size() <= 1) continue; // only pairs
+            int[] count = new int[n];
+            // DFS to count group members in subtree
+            dfsCount(0, -1, tree, members, count);
+            // For each edge, sum contributions, only once per edge (u < v)
+            for (int u = 0; u < n; ++u) {
+                for (int v : tree[u]) {
+                    if (u < v) {
+                        int cu = count[u] < count[v] ? count[u] : count[v];
+                        int cv = members.size() - cu;
+                        total += (long)cu * cv;
+                    }
                 }
             }
         }
-        
-       // Each pair was counted twice in an undirected graph scenario
-       return groupCost / 2;
+        // Step 5: (Verification) Optionally, verify that each pair is counted exactly once
+        return total;
     }
-    
-    private Map<Integer, Integer> bfs(int startNode, Map<Integer, List<Integer>> adjacencyList) {				     				     				     				     	   	   	   	   	   	   	   	   	      Map<Integer,Integer> distanceMap = new HashMap<>();	      Queue<int[]> queue = new LinkedList<>(); queue.add(new int[]{startNode ,0}); distanceMap.put(startNode ,0); while(!queue.isEmpty()){	      int[] currentNode = queue.poll(); int currentDistance = currentNode[1]; int currentVertex = currentNode[0]; for(int neighbor : adjacencyList.get(currentVertex)){	      if(!distanceMap.containsKey(neighbor)){	      queue.add(new int[]{neighbor ,currentDistance+1}); distanceMap.put(neighbor ,currentDistance+1); } } } return distanceMap ; } } # @lc code=end
+    // Helper DFS: returns count of group members in subtree rooted at node
+    private int dfsCount(int node, int parent, List<Integer>[] tree, Set<Integer> members, int[] count) {
+        count[node] = members.contains(node) ? 1 : 0;
+        for (int nei : tree[node]) {
+            if (nei == parent) continue;
+            count[node] += dfsCount(nei, node, tree, members, count);
+        }
+        return count[node];
+    }
+}
+# @lc code=end
