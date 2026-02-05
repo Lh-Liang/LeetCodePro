@@ -21,41 +21,41 @@ public:
         ListNode dummy(0, head);
         ListNode* prev = &dummy;
         ListNode* curr = head;
-        int groupSize = 1;
+        int group_size = 1;
         while (curr) {
-            // Identify group boundaries
-            ListNode* groupStart = curr;
             int cnt = 0;
+            ListNode* group_head = curr;
             ListNode* temp = curr;
-            for (int i = 0; i < groupSize && temp; ++i) {
+            // Count the actual group size
+            while (cnt < group_size && temp) {
+                cnt++;
                 temp = temp->next;
-                ++cnt;
             }
-            ListNode* groupEndNext = temp;
-            // Reverse if even
+            ListNode* next_group = temp;
+            // If even, reverse the group
             if (cnt % 2 == 0) {
-                ListNode* prevRev = groupEndNext;
-                ListNode* node = curr;
+                // Reverse cnt nodes
+                ListNode* prev_rev = next_group;
+                ListNode* node = group_head;
                 for (int i = 0; i < cnt; ++i) {
-                    ListNode* nextNode = node->next;
-                    node->next = prevRev;
-                    prevRev = node;
-                    node = nextNode;
+                    ListNode* next = node->next;
+                    node->next = prev_rev;
+                    prev_rev = node;
+                    node = next;
                 }
-                prev->next = prevRev;
-                prev = groupStart;
-                curr = groupEndNext;
+                prev->next = prev_rev;
+                prev = group_head;
             } else {
+                // No reversal
                 for (int i = 0; i < cnt; ++i) {
                     prev = curr;
                     curr = curr->next;
                 }
+                continue;
             }
-            // Verify pointer correctness after each group
-            // (Implicit in code: prev is at group tail, curr is at next group head)
-            ++groupSize;
+            curr = next_group;
+            group_size++;
         }
-        // Final validation: dummy.next is the new head
         return dummy.next;
     }
 };
