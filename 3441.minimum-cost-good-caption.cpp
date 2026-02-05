@@ -9,38 +9,32 @@ class Solution {
 public:
     string minCostGoodCaption(string caption) {
         int n = caption.size();
-        if(n < 3) return "";
-        // dp[i] = {min_cost, lex smallest good caption for prefix of length i}
-        vector<pair<int, string>> dp(n+1, {INT_MAX, ""});
-        dp[0] = {0, ""};
-        for(int i=3; i<=n; ++i) {
-            for(int len=3; len<=i; ++len) {
-                int start = i - len;
-                for(char c='a'; c<='z'; ++c) {
+        const int INF = 1e9;
+        // dp[i] = {min_ops, answer string}
+        vector<pair<int, string>> dp(n+1, {INF, ""});
+        dp[0] = {0, ""}; // empty prefix
+        for (int i = 0; i < n; ++i) {
+            for (int len = 3; len <= i+1; ++len) {
+                int j = i - len + 1;
+                if (j < 0) break;
+                for (char ch = 'a'; ch <= 'z'; ++ch) {
                     int cost = 0;
-                    for(int k=start; k<i; ++k) {
-                        if(caption[k]!=c) cost++;
+                    for (int k = j; k <= i; ++k) {
+                        if (caption[k] != ch) cost++;
                     }
-                    if(dp[start].first==INT_MAX) continue;
-                    int total_cost = dp[start].first + cost;
-                    string candidate = dp[start].second + string(len, c);
-                    if(total_cost < dp[i].first || (total_cost==dp[i].first && candidate < dp[i].second)) {
-                        dp[i] = {total_cost, candidate};
+                    auto prev = dp[j];
+                    if (prev.first != INF) {
+                        string cand = prev.second + string(len, ch);
+                        if (cost + prev.first < dp[i+1].first) {
+                            dp[i+1] = {cost + prev.first, cand};
+                        } else if (cost + prev.first == dp[i+1].first && cand < dp[i+1].second) {
+                            dp[i+1].second = cand;
+                        }
                     }
                 }
             }
         }
-        // Verification step: Ensure that the final result is a valid good caption
-        if(dp[n].first==INT_MAX) return "";
-        const string& res = dp[n].second;
-        int i = 0;
-        while(i < n) {
-            int j = i;
-            while(j < n && res[j] == res[i]) ++j;
-            if(j - i < 3) return "";
-            i = j;
-        }
-        return res;
+        return dp[n].first == INF ? "" : dp[n].second;
     }
 };
 # @lc code=end
