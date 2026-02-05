@@ -3,35 +3,34 @@
 #
 # [3341] Find Minimum Time to Reach Last Room I
 #
-
 # @lc code=start
-import java.util.PriorityQueue;
-import java.util.Comparator;
-
+import java.util.*;
 class Solution {
     public int minTimeToReach(int[][] moveTime) {
-        int n = moveTime.length;
-        int m = moveTime[0].length;
-        boolean[][] visited = new boolean[n][m];
-        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[2])); // [row, col, time]
-        pq.offer(new int[]{0, 0, 0}); // start at (0, 0) at t = 0
-
-        int[][] directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}; // down, up, right, left
+        int n = moveTime.length, m = moveTime[0].length;
+        int[][] minTime = new int[n][m];
+        for (int[] row : minTime) Arrays.fill(row, Integer.MAX_VALUE);
+        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
+        pq.offer(new int[]{0, 0, 0}); // {currentTime, x, y}
+        minTime[0][0] = 0;
+        int[] dx = {1, -1, 0, 0};
+        int[] dy = {0, 0, 1, -1};
         while (!pq.isEmpty()) {
-            int[] current = pq.poll();
-            int row = current[0], col = current[1], time = current[2];
-            if (row == n - 1 && col == m - 1) return time; // reached target
-            if (visited[row][col]) continue; // already visited this cell
-            visited[row][col] = true;
-            for (int[] dir : directions) {
-                int newRow = row + dir[0], newCol = col + dir[1];
-                if (newRow >= 0 && newRow < n && newCol >= 0 && newCol < m && !visited[newRow][newCol]) {
-                    int nextTime = Math.max(time + 1, moveTime[newRow][newCol]); // wait if needed until room opens
-                    pq.offer(new int[]{newRow, newCol, nextTime});
+            int[] cur = pq.poll();
+            int t = cur[0], x = cur[1], y = cur[2];
+            if (x == n - 1 && y == m - 1) return t;
+            for (int d = 0; d < 4; d++) {
+                int nx = x + dx[d], ny = y + dy[d];
+                if (nx >= 0 && nx < n && ny >= 0 && ny < m) {
+                    int arrive = Math.max(t + 1, moveTime[nx][ny]);
+                    if (arrive < minTime[nx][ny]) { // Only proceed if strictly better
+                        minTime[nx][ny] = arrive;
+                        pq.offer(new int[]{arrive, nx, ny});
+                    }
                 }
             }
         }
-        return -1; // should never reach here since we know it's always possible to reach (n-1,m-1) based on constraints. 
-    } 
+        return -1; // Should not reach here given constraints
+    }
 }
 # @lc code=end
