@@ -5,47 +5,56 @@
 #
 
 # @lc code=start
+#include <vector>
+#include <algorithm>
+#include <unordered_map>
+using namespace std;
+
 class BIT {
 public:
     vector<int> tree;
     int n;
-    BIT(int sz) : n(sz), tree(sz+2, 0) {}
-    void add(int i, int x) {
-        for (++i; i <= n+1; i += i & -i) tree[i] += x;
+    BIT(int n) : n(n), tree(n + 2, 0) {}
+    void add(int x, int delta) {
+        for (++x; x <= n + 1; x += x & -x) tree[x] += delta;
     }
-    int sum(int i) {
-        int s = 0;
-        for (++i; i > 0; i -= i & -i) s += tree[i];
-        return s;
+    int sum(int x) {
+        int res = 0;
+        for (++x; x > 0; x -= x & -x) res += tree[x];
+        return res;
     }
-    int range(int l, int r) {
-        return sum(r) - sum(l-1);
+    int range_sum(int l, int r) {
+        return sum(r) - sum(l - 1);
     }
 };
+
 class Solution {
 public:
     long long minInversionCount(vector<int>& nums, int k) {
         int n = nums.size();
-        vector<int> arr = nums;
-        sort(arr.begin(), arr.end());
-        arr.erase(unique(arr.begin(), arr.end()), arr.end());
-        vector<int> compressed(n);
-        for (int i = 0; i < n; ++i) {
-            compressed[i] = lower_bound(arr.begin(), arr.end(), nums[i]) - arr.begin();
-        }
-        int m = arr.size();
+        vector<int> sorted(nums);
+        sort(sorted.begin(), sorted.end());
+        sorted.erase(unique(sorted.begin(), sorted.end()), sorted.end());
+        unordered_map<int, int> mp;
+        for (int i = 0; i < sorted.size(); ++i) mp[sorted[i]] = i;
+        vector<int> arr(n);
+        for (int i = 0; i < n; ++i) arr[i] = mp[nums[i]];
+        int m = sorted.size();
         BIT bit(m);
         long long inv = 0;
+        // Initial window
         for (int i = 0; i < k; ++i) {
-            inv += bit.range(compressed[i]+1, m-1);
-            bit.add(compressed[i], 1);
+            inv += bit.range_sum(arr[i] + 1, m - 1);
+            bit.add(arr[i], 1);
         }
         long long res = inv;
         for (int i = k; i < n; ++i) {
-            bit.add(compressed[i-k], -1);
-            inv -= bit.range(0, compressed[i-k]-1);
-            inv += bit.range(compressed[i]+1, m-1);
-            bit.add(compressed[i], 1);
+            // Remove arr[i - k]
+            bit.add(arr[i - k], -1);
+            inv -= bit.range_sum(0, arr[i - k] - 1);
+            // Add arr[i]
+            inv += bit.range_sum(arr[i] + 1, m - 1);
+            bit.add(arr[i], 1);
             res = min(res, inv);
         }
         return res;
