@@ -14,38 +14,41 @@ class Solution {
 public:
     vector<int> solveQueries(vector<int>& nums, vector<int>& queries) {
         int n = nums.size();
-        unordered_map<int, vector<int>> value_indices;
-        // Step 1: Map values to sorted list of indices
+        unordered_map<int, vector<int>> pos;
         for (int i = 0; i < n; ++i) {
-            value_indices[nums[i]].push_back(i);
+            pos[nums[i]].push_back(i);
         }
-        vector<int> answer;
-        // Step 2: Process each query
+        vector<int> res;
         for (int q : queries) {
             int val = nums[q];
-            const vector<int>& idxs = value_indices[val];
-            if (idxs.size() == 1) {
-                answer.push_back(-1);
+            const vector<int>& indices = pos[val];
+            if (indices.size() == 1) {
+                res.push_back(-1);
                 continue;
             }
-            // Step 3: Locate position of q in idxs, check neighbors
-            auto it = lower_bound(idxs.begin(), idxs.end(), q);
+            // Find the position of q in indices
+            auto it = lower_bound(indices.begin(), indices.end(), q);
             int min_dist = n;
-            // Previous occurrence (wrap-around if needed)
-            int prev_idx = (it == idxs.begin()) ? idxs.back() : *(it - 1);
-            if (prev_idx != q) {
-                int dist = (q - prev_idx + n) % n;
-                if (dist > 0) min_dist = min(min_dist, dist);
+            // Check previous index (wrap around if needed)
+            if (it != indices.begin()) {
+                int prev = *(it - 1);
+                min_dist = min(min_dist, min(abs(q - prev), n - abs(q - prev)));
+            } else {
+                int prev = indices.back();
+                min_dist = min(min_dist, min(abs(q - prev), n - abs(q - prev)));
             }
-            // Next occurrence (wrap-around if needed)
-            int next_idx = (it == idxs.end() || *it != q) ? *it : (it + 1 == idxs.end() ? idxs.front() : *(it + 1));
-            if (next_idx != q) {
-                int dist = (next_idx - q + n) % n;
-                if (dist > 0) min_dist = min(min_dist, dist);
+            // Check next index (wrap around if needed)
+            if (it != indices.end() && *it != q) {
+                int next = *it;
+                min_dist = min(min_dist, min(abs(q - next), n - abs(q - next)));
+            } else {
+                int next = indices[0];
+                if (next != q)
+                    min_dist = min(min_dist, min(abs(q - next), n - abs(q - next)));
             }
-            answer.push_back(min_dist);
+            res.push_back(min_dist);
         }
-        return answer;
+        return res;
     }
 };
 # @lc code=end
