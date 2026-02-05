@@ -5,53 +5,59 @@
 #
 # @lc code=start
 /**
- * Definition for singly-linked list.
- * public class ListNode {
- *     int val;
- *     ListNode next;
- *     ListNode() {}
- *     ListNode(int val) { this.val = val; }
- *     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
- * }
- */
+* Definition for singly-linked list.
+* public class ListNode {
+*     int val;
+*     ListNode next;
+*     ListNode() {}
+*     ListNode(int val) { this.val = val; }
+*     ListNode(int val, ListNode next) { this.val = val; this.next = next; }
+* }
+*/
 class Solution {
     public ListNode reverseEvenLengthGroups(ListNode head) {
-        if (head == null || head.next == null) return head;
-        ListNode dummy = new ListNode(0);
-        dummy.next = head;
+        ListNode dummy = new ListNode(0, head);
         ListNode prev = dummy;
-        int groupLen = 1;
-        while (prev.next != null) {
-            // Find the size of current group
-            ListNode start = prev.next;
-            int count = 0;
-            ListNode end = prev;
-            while (count < groupLen && end.next != null) {
-                end = end.next;
-                count++;
+        ListNode curr = head;
+        int groupSize = 1;
+        while (curr != null) {
+            // Step 2: Identify group boundaries
+            int cnt = 0;
+            ListNode groupStart = curr;
+            ListNode temp = curr;
+            while (cnt < groupSize && temp != null) {
+                temp = temp.next;
+                cnt++;
             }
-            // Reverse nodes if count is even
-            if (count % 2 == 0) {
-                prev.next = reverse(start, count);
-                start.next = end.next; // Connect last reversed node to rest of list
-                prev = start; // Move prev to last node in reversed section
+            // Step 3: Handle last group (less than expected size)
+            // Step 4: Reverse if even size
+            if (cnt % 2 == 0) {
+                // (a) Store node after group for reconnection
+                ListNode nextGroup = temp;
+                // (b) Reverse current group
+                ListNode prevNode = nextGroup;
+                ListNode node = curr;
+                for (int i = 0; i < cnt; i++) {
+                    ListNode nextNode = node.next;
+                    node.next = prevNode;
+                    prevNode = node;
+                    node = nextNode;
+                }
+                // (c) Reconnect reversed group
+                prev.next = prevNode;
+                prev = curr;
+                curr = temp;
             } else {
-                prev = end; // Move prev to last node in current section without reversal
+                // If odd, advance pointers
+                for (int i = 0; i < cnt; i++) {
+                    prev = curr;
+                    curr = curr.next;
+                }
             }
-            groupLen++;
+            // Step 5: Verification (implicit in pointer updates)
+            groupSize++;
         }
         return dummy.next;
     }
-    
-    private ListNode reverse(ListNode head, int k) {
-        ListNode prev = null, curr = head, next = null;
-        while (k-- > 0 && curr != null) {
-            next = curr.next;
-            curr.next = prev;
-            prev = curr;
-            curr = next;
-        }
-        return prev; // New head after reversal
-    }
 }
-dummy// @lc code=end
+# @lc code=end
