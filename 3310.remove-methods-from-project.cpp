@@ -5,41 +5,56 @@
 #
 
 # @lc code=start
+#include <vector>
+#include <queue>
+
+using namespace std;
+
 class Solution {
 public:
     vector<int> remainingMethods(int n, int k, vector<vector<int>>& invocations) {
-        vector<vector<int>> graph(n);
-        for (auto& inv : invocations) {
-            graph[inv[0]].push_back(inv[1]);
+        // Build adjacency list for reachability
+        vector<vector<int>> adj(n);
+        for (const auto& inv : invocations) {
+            adj[inv[0]].push_back(inv[1]);
         }
-        // Step 1: Find all suspicious methods using BFS
-        vector<bool> suspicious(n, false);
+
+        // Find all suspicious methods using BFS
+        vector<bool> is_suspicious(n, false);
         queue<int> q;
         q.push(k);
-        suspicious[k] = true;
+        is_suspicious[k] = true;
+
         while (!q.empty()) {
-            int curr = q.front(); q.pop();
-            for (int nei : graph[curr]) {
-                if (!suspicious[nei]) {
-                    suspicious[nei] = true;
-                    q.push(nei);
+            int curr = q.front();
+            q.pop();
+            for (int neighbor : adj[curr]) {
+                if (!is_suspicious[neighbor]) {
+                    is_suspicious[neighbor] = true;
+                    q.push(neighbor);
                 }
             }
         }
-        // Step 2: Check for outside invocations
-        for (auto& inv : invocations) {
-            int from = inv[0], to = inv[1];
-            if (!suspicious[from] && suspicious[to]) {
-                // Can't remove suspicious group
-                vector<int> all(n);
-                iota(all.begin(), all.end(), 0);
-                return all;
+
+        // Check if any non-suspicious method invokes a suspicious method
+        bool can_remove = true;
+        for (const auto& inv : invocations) {
+            if (!is_suspicious[inv[0]] && is_suspicious[inv[1]]) {
+                can_remove = false;
+                break;
             }
         }
-        // Step 3: Return non-suspicious methods
+
+        // Prepare the result list
         vector<int> res;
-        for (int i = 0; i < n; ++i) {
-            if (!suspicious[i]) res.push_back(i);
+        if (can_remove) {
+            for (int i = 0; i < n; ++i) {
+                if (!is_suspicious[i]) res.push_back(i);
+            }
+        } else {
+            for (int i = 0; i < n; ++i) {
+                res.push_back(i);
+            }
         }
         return res;
     }
