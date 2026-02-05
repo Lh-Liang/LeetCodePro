@@ -3,35 +3,27 @@
 #
 # [3420] Count Non-Decreasing Subarrays After K Operations
 #
-
 # @lc code=start
 class Solution {
     public long countNonDecreasingSubarrays(int[] nums, int k) {
         int n = nums.length;
-        long count = 0;
-        
-        // Sliding window variables
-        int start = 0;
-        int currentOperations = 0;
-        // Auxiliary structure like a priority queue could be used here for efficiency
-        
-        // Iterate over each ending point of the window
-        for (int end = 0; end < n; end++) {
-            if (end > 0 && nums[end] < nums[end - 1]) {
-                currentOperations += nums[end - 1] - nums[end];
-            }
-            
-            while (currentOperations > k && start <= end) {
-                if (start > 0 && nums[start] < nums[start - 1]) {
-                    currentOperations -= nums[start - 1] - nums[start];
+        long result = 0;
+        for (int i = 0; i < n; i++) {
+            int ops = 0;
+            int prev = nums[i];
+            result++; // single element subarray is always valid
+            for (int j = i + 1; j < n; j++) {
+                if (nums[j] < prev) {
+                    ops += prev - nums[j];
+                    prev = prev; // need to increment nums[j] to prev
+                } else {
+                    prev = nums[j];
                 }
-                start++;
+                if (ops > k) break;
+                result++;
             }
-            
-            // Count all valid subarrays ending at 'end'
-            count += (end - start + 1);
         }
-        return count;
+        return result;
     }
 }
 # @lc code=end
