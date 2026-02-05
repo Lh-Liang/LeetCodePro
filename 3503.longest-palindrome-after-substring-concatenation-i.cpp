@@ -3,41 +3,58 @@
 #
 # [3503] Longest Palindrome After Substring Concatenation I
 #
+
 # @lc code=start
 class Solution {
 public:
     int longestPalindrome(string s, string t) {
-        int n = s.size(), m = t.size();
-        int max_len = 0;
-        // Helper: check if a string is palindrome
-        auto is_palindrome = [](const string &str) {
-            int l = 0, r = str.size() - 1;
+        int ans = 0;
+        auto is_palindrome = [](const string& x) {
+            int l = 0, r = x.size() - 1;
             while (l < r) {
-                if (str[l] != str[r]) return false;
+                if (x[l] != x[r]) return false;
                 ++l; --r;
             }
             return true;
         };
-        // Consider all possible substrings of s
+        int n = s.size(), m = t.size();
+        // Check all substrings of s and t concatenated
         for (int i = 0; i <= n; ++i) {
             for (int j = i; j <= n; ++j) {
-                string sub_s = s.substr(i, j - i);
-                // Consider all possible substrings of t
-                for (int k = 0; k <= m; ++k) {
-                    for (int l = k; l <= m; ++l) {
-                        string sub_t = t.substr(k, l - k);
-                        // Exclude the case where both substrings are empty
-                        if (sub_s.empty() && sub_t.empty()) continue;
-                        string candidate = sub_s + sub_t;
-                        if (is_palindrome(candidate)) {
+                string subs = s.substr(i, j - i);
+                for (int p = 0; p <= m; ++p) {
+                    for (int q = p; q <= m; ++q) {
+                        string subt = t.substr(p, q - p);
+                        string candidate = subs + subt;
+                        if (!candidate.empty() && is_palindrome(candidate)) {
                             int len = candidate.size();
-                            if (len > max_len) max_len = len;
+                            if (len > ans) ans = len;
                         }
                     }
                 }
             }
         }
-        return max_len;
+        // Check all substrings of s
+        for (int i = 0; i < n; ++i) {
+            for (int j = i + 1; j <= n; ++j) {
+                string subs = s.substr(i, j - i);
+                if (is_palindrome(subs)) {
+                    int len = subs.size();
+                    if (len > ans) ans = len;
+                }
+            }
+        }
+        // Check all substrings of t
+        for (int i = 0; i < m; ++i) {
+            for (int j = i + 1; j <= m; ++j) {
+                string subt = t.substr(i, j - i);
+                if (is_palindrome(subt)) {
+                    int len = subt.size();
+                    if (len > ans) ans = len;
+                }
+            }
+        }
+        return ans;
     }
 };
 # @lc code=end
