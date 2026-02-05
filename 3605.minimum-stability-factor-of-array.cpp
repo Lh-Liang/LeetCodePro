@@ -14,49 +14,40 @@ class Solution {
 public:
     int minStable(vector<int>& nums, int maxC) {
         int n = nums.size();
-        // Helper function: check if all stable subarrays of length > k can be destroyed with <= maxC modifications
-        auto canBreak = [&](int k) {
-            vector<int> mods;
-            int l = 0, r = 0;
-            int cur_gcd = 0;
-            // Use a sliding window
-            while (l < n) {
-                r = l;
-                cur_gcd = nums[l];
-                while (r + 1 < n && r - l + 1 < k + 1) {
-                    ++r;
-                    cur_gcd = gcd(cur_gcd, nums[r]);
+        // Helper: Check if all stable subarrays of length k can be broken with at most maxC changes
+        auto can_break = [&](int k) {
+            // prefix/suffix GCDs for O(1) range-gcd queries
+            vector<int> prefix(n+1, 0), suffix(n+1, 0);
+            for (int i = 0; i < n; ++i)
+                prefix[i+1] = gcd(prefix[i], nums[i]);
+            for (int i = n-1; i >= 0; --i)
+                suffix[i] = gcd(suffix[i+1], nums[i]);
+            for (int i = 0; i + k <= n; ++i) {
+                int window_gcd = prefix[i+k] == prefix[i] ? nums[i] : gcd(prefix[i], suffix[i+k]);
+                // Actually, recompute GCD of window directly
+                int g = nums[i];
+                for (int j = i+1; j < i+k; ++j) g = gcd(g, nums[j]);
+                if (g >= 2) {
+                    // Can we break this window with <= maxC changes?
+                    // Try all possible positions to change.
+                    int cnt = 0;
+                    for (int j = i; j < i+k; ++j) if (nums[j] % g == 0) ++cnt;
+                    if (cnt > maxC) return false;
                 }
-                // Now window is [l, r] with length k+1
-                // Check all windows starting from l
-                int window_gcd = cur_gcd;
-                int end = r;
-                while (end < n) {
-                    window_gcd = gcd(window_gcd, nums[end]);
-                    if (window_gcd >= 2) {
-                        mods.push_back(end); // Greedy: pick rightmost to break
-                        // Jump over this window
-                        l = end + 1;
-                        break;
-                    }
-                    ++end;
-                }
-                if (end == n) ++l;
             }
-            return (int)mods.size() <= maxC;
+            return true;
         };
-        // Binary search for minimal k
-        int left = 0, right = n, res = n;
-        while (left <= right) {
-            int mid = (left + right) / 2;
-            if (canBreak(mid)) {
-                res = mid;
-                right = mid - 1;
+        int lo = 1, hi = n, ans = n;
+        while (lo <= hi) {
+            int mid = (lo + hi) / 2;
+            if (can_break(mid)) {
+                ans = mid;
+                hi = mid - 1;
             } else {
-                left = mid + 1;
+                lo = mid + 1;
             }
         }
-        return res;
+        return ans == n && !can_break(n) ? 0 : ans;
     }
 };
 # @lc code=end
