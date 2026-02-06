@@ -6,32 +6,40 @@
 # @lc code=start
 class Solution {
     public int maxProfit(int n, int[][] edges, int[] score) {
+        // Build graph: adjacency list and indegree
+        List<Integer>[] adj = new ArrayList[n];
         int[] indegree = new int[n];
-        List<Integer>[] adj = new List[n];
         for (int i = 0; i < n; ++i) adj[i] = new ArrayList<>();
         for (int[] e : edges) {
             adj[e[0]].add(e[1]);
             indegree[e[1]]++;
         }
-        // Prerequisite mask for each node
-        int[] pre = new int[n];
-        for (int u = 0; u < n; ++u) {
-            for (int v : adj[u]) pre[v] |= (1 << u);
-        }
-        int size = 1 << n;
-        int[] dp = new int[size];
+        int N = 1 << n;
+        int[] dp = new int[N];
         Arrays.fill(dp, Integer.MIN_VALUE);
         dp[0] = 0;
-        for (int mask = 0; mask < size; ++mask) {
-            int pos = Integer.bitCount(mask);
+        // For each mask, try all available nodes
+        for (int mask = 0; mask < N; ++mask) {
+            if (dp[mask] == Integer.MIN_VALUE) continue;
+            // Compute current indegrees for nodes not in mask
+            int[] currIndeg = new int[n];
+            for (int i = 0; i < n; ++i) currIndeg[i] = indegree[i];
             for (int i = 0; i < n; ++i) {
-                if ((mask & (1 << i)) == 0 && (mask & pre[i]) == pre[i]) {
-                    int next = mask | (1 << i);
-                    dp[next] = Math.max(dp[next], dp[mask] + score[i] * (pos + 1));
+                if ((mask & (1<<i)) != 0) {
+                    // Remove i from graph
+                    for (int v : adj[i]) currIndeg[v]--;
+                }
+            }
+            // For each node not in mask, if currIndeg==0, can pick
+            for (int i = 0; i < n; ++i) {
+                if ((mask & (1<<i)) == 0 && currIndeg[i] == 0) {
+                    int newMask = mask | (1<<i);
+                    int pos = Integer.bitCount(mask) + 1;
+                    dp[newMask] = Math.max(dp[newMask], dp[mask] + score[i] * pos);
                 }
             }
         }
-        return dp[size - 1];
+        return dp[N-1];
     }
 }
 # @lc code=end
