@@ -3,34 +3,34 @@
 #
 # [3765] Complete Prime Number
 #
+
 # @lc code=start
 class Solution:
-    def is_prime(self, num: int) -> bool:
-        if num <= 1:
-            return False
-        if num <= 3:
-            return True
-        if num % 2 == 0 or num % 3 == 0:
-            return False
-        i = 5
-        while i * i <= num:
-            if num % i == 0 or num % (i + 2) == 0:
-                return False
-            i += 6
-        return True
-    
     def completePrime(self, num: int) -> bool:
-        str_num = str(num)
-        length = len(str_num)
+        def is_prime(n: int) -> bool:
+            if n <= 1:
+                return False
+            if n <= 3:
+                return True
+            if n % 2 == 0 or n % 3 == 0:
+                return False
+            i = 5
+            while i * i <= n:
+                if n % i == 0 or n % (i + 2) == 0:
+                    return False
+                i += 6
+            return True
+        num_str = str(num)
+        length = len(num_str)
         # Check all prefixes
         for i in range(1, length + 1):
-            prefix = int(str_num[:i])
-            if not self.is_prime(prefix):
+            prefix = int(num_str[:i])
+            if not is_prime(prefix):
                 return False
         # Check all suffixes
         for i in range(length):
-            suffix = int(str_num[i:])
-            if not self.is_prime(suffix):
+            suffix = int(num_str[i:])
+            if not is_prime(suffix):
                 return False
-        return True
+        return True # All checks passed. It is a Complete Prime Number.
 # @lc code=end
