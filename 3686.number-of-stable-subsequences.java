@@ -3,35 +3,24 @@
 #
 # [3686] Number of Stable Subsequences
 #
+
 # @lc code=start
 class Solution {
     public int countStableSubsequences(int[] nums) {
-        final int MOD = 1000000007;
-        // dp[parity][count]: #subseq ending with 'parity' and run-length 'count' (count=1 or 2)
-        long[][] dp = new long[2][3];
+        final int MOD = 1_000_000_007;
+        int n = nums.length;
+        long oddEnd = 0, evenEnd = 0; // counts of subsequences ending in odd/even parity numbers
+        long totalStable = 0; // total stable subsequences
+        
         for (int num : nums) {
-            int p = num % 2;
-            int op = 1 - p;
-            // new DP for this number
-            long[][] ndp = new long[2][3];
-            // start new subseq with this num
-            ndp[p][1] = (ndp[p][1] + 1) % MOD;
-            // extend existing subsequences
-            for (int c = 1; c <= 2; ++c) {
-                // extend subseq ending with opposite parity: reset count
-                ndp[p][1] = (ndp[p][1] + dp[op][c]) % MOD;
-                // extend subseq ending with same parity, if consecutive <2
-                if (c < 2) {
-                    ndp[p][c+1] = (ndp[p][c+1] + dp[p][c]) % MOD;
-                }
+            if (num % 2 == 0) { // if current num is even
+                evenEnd = (evenEnd + totalStable + 1) % MOD; // extend all plus itself as new start
+            } else { // if current num is odd
+                oddEnd = (oddEnd + totalStable + 1) % MOD; // extend all plus itself as new start
             }
-            dp = ndp;
+            totalStable = (evenEnd + oddEnd) % MOD; // update total stable count combining both ends
         }
-        long res = 0;
-        for (int p = 0; p < 2; ++p)
-            for (int c = 1; c <= 2; ++c)
-                res = (res + dp[p][c]) % MOD;
-        return (int)res;
+        return (int)totalStable; // return final count modded by MOD value to ensure size constraints met.
     }
 }
 # @lc code=end
