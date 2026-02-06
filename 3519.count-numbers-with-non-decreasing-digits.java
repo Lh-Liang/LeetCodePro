@@ -4,79 +4,63 @@
 # [3519] Count Numbers with Non-Decreasing Digits
 #
 # @lc code=start
+import java.math.BigInteger;
+import java.util.Arrays;
+import java.util.HashMap;
+
 class Solution {
     static final int MOD = 1000000007;
+
     public int countNumbers(String l, String r, int b) {
-        // Helper: Convert decimal string to base-b digit array
-        int[] lDigits = toBaseB(l, b);
-        int[] rDigits = toBaseB(r, b);
-        int ansR = count(rDigits, b);
-        int ansL = count(decOne(lDigits, b), b);
-        int result = (ansR - ansL + MOD) % MOD;
-        if (isNonDecreasing(lDigits)) result = (result + 1) % MOD;
-        return result;
+        int[] digitsR = toBaseB(r, b);
+        int[] digitsL = toBaseB(new BigInteger(l).subtract(BigInteger.ONE).toString(), b);
+        return (int) ((count(digitsR, b) - count(digitsL, b) + MOD) % MOD);
     }
-    // Convert decimal string to base-b digits
+
     private int[] toBaseB(String num, int b) {
-        java.math.BigInteger n = new java.math.BigInteger(num);
-        java.util.ArrayList<Integer> digits = new java.util.ArrayList<>();
-        if (n.equals(java.math.BigInteger.ZERO)) digits.add(0);
-        while (n.compareTo(java.math.BigInteger.ZERO) > 0) {
-            digits.add(n.mod(java.math.BigInteger.valueOf(b)).intValue());
-            n = n.divide(java.math.BigInteger.valueOf(b));
+        BigInteger n = new BigInteger(num);
+        if (n.equals(BigInteger.ZERO)) return new int[]{0};
+        int[] tmp = new int[105];
+        int idx = tmp.length - 1;
+        while (n.compareTo(BigInteger.ZERO) > 0) {
+            BigInteger[] dr = n.divideAndRemainder(BigInteger.valueOf(b));
+            tmp[idx--] = dr[1].intValue();
+            n = dr[0];
         }
-        int[] arr = new int[digits.size()];
-        for (int i = 0; i < digits.size(); ++i) arr[arr.length - 1 - i] = digits.get(i);
-        return arr;
-    }
-    // Decrease a base-b digit array by 1
-    private int[] decOne(int[] digits, int b) {
-        int n = digits.length;
-        int[] res = digits.clone();
-        int i = n - 1;
-        while (i >= 0 && res[i] == 0) {
-            res[i] = b - 1;
-            i--;
-        }
-        if (i >= 0) res[i]--;
-        // Remove leading zeros
-        int start = 0;
-        while (start < res.length - 1 && res[start] == 0) start++;
-        int[] ans = new int[res.length - start];
-        System.arraycopy(res, start, ans, 0, ans.length);
-        return ans;
-    }
-    // DP: Count numbers <= bound (represented by digits) with non-decreasing digits
-    private int count(int[] digits, int b) {
-        int n = digits.length;
-        Integer[][][] dp = new Integer[n + 1][b][2];
-        return dfs(0, 0, true, digits, b, dp, false);
-    }
-    // pos: current position, prev: previous digit, tight: is current prefix tight, leadingZero: is current prefix still leading zeros
-    private int dfs(int pos, int prev, boolean tight, int[] digits, int b, Integer[][][] dp, boolean leadingZero) {
-        if (pos == digits.length) return leadingZero ? 0 : 1;
-        int keyTight = tight ? 1 : 0;
-        if (dp[pos][prev][keyTight] != null) return dp[pos][prev][keyTight];
-        int res = 0;
-        int limit = tight ? digits[pos] : b - 1;
-        for (int d = 0; d <= limit; ++d) {
-            boolean nextTight = tight && (d == limit);
-            if (leadingZero && d == 0 && pos < digits.length - 1) {
-                // Still leading zeros, skip counting
-                res = (res + dfs(pos + 1, 0, nextTight, digits, b, dp, true)) % MOD;
-            } else if (d >= prev) {
-                res = (res + dfs(pos + 1, d, nextTight, digits, b, dp, false)) % MOD;
-            }
-        }
-        dp[pos][prev][keyTight] = res;
+        int[] res = Arrays.copyOfRange(tmp, idx+1, tmp.length);
         return res;
     }
-    // Check if digits are non-decreasing
-    private boolean isNonDecreasing(int[] digits) {
-        for (int i = 1; i < digits.length; ++i) {
-            if (digits[i] < digits[i - 1]) return false;
+
+    private long count(int[] digits, int b) {
+        int n = digits.length;
+        Long[][][][] memo = new Long[n+1][b+1][2][2];
+        return dp(0, 0, true, false, digits, b, memo);
+    }
+
+    // pos: current digit
+    // prev: previous digit (0~b-1), or 0 when not started
+    // tight: whether we are still tight to the bound
+    // started: whether we've placed any nonzero digit yet
+    private long dp(int pos, int prev, boolean tight, boolean started, int[] digits, int b, Long[][][][] memo) {
+        if (pos == digits.length) return started ? 1 : 0;
+        int tightLim = tight ? digits[pos] : b-1;
+        int minDigit = started ? prev : 0;
+        if (memo[pos][prev][tight?1:0][started?1:0] != null)
+            return memo[pos][prev][tight?1:0][started?1:0];
+        long res = 0;
+        for (int d = minDigit; d <= tightLim; d++) {
+            boolean nextTight = tight && (d == tightLim);
+            boolean nextStarted = started || (d != 0);
+            res = (res + dp(pos+1, nextStarted ? d : 0, nextTight, nextStarted, digits, b, memo)) % MOD;
         }
-        return true;
+        // If not started, we can skip leading zeros
+        if (!started) {
+            // Only skip if not at last digit
+            if (pos < digits.length - 1)
+                res = (res + dp(pos+1, 0, tight && (0 == tightLim), false, digits, b, memo)) % MOD;
+        }
+        memo[pos][prev][tight?1:0][started?1:0] = res;
+        return res;
     }
 }
 # @lc code=end
