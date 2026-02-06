@@ -17,22 +17,24 @@
 import java.util.HashSet;
 class Solution {
     public ListNode modifiedList(int[] nums, ListNode head) {
-        HashSet<Integer> set = new HashSet<>();
-        for (int num : nums) {
-            set.add(num);
-        }
-        ListNode dummy = new ListNode(-1);
-        dummy.next = head;
-        ListNode prev = dummy, curr = head;
-        while (curr != null) {
-            if (set.contains(curr.val)) {
-                prev.next = curr.next;
-            } else {
-                prev = curr;
-            }
-            curr = curr.next;
-        }
-        return dummy.next;
-    }
+        HashSet<Integer> numSet = new HashSet<>();
+        for (int num : nums) { 
+            numSet.add(num); 
+        } 
+        
+        ListNode dummy = new ListNode(0); 
+        dummy.next = head; 
+        ListNode prev = dummy; 
+        
+        while (head != null) { 
+            if (numSet.contains(head.val)) { 
+                prev.next = head.next; 
+            } else { 
+                prev = head; 
+            } 
+            head = head.next; 
+        } 
+        return dummy.next; 
+    } 
 }
-# @lc code=end
+n# @lc code=end
