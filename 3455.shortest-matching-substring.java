@@ -1,53 +1,50 @@
-/*
- * @lc app=leetcode id=3455 lang=java
- *
- * [3455] Shortest Matching Substring
- */
-// @lc code=start
+#
+# @lc app=leetcode id=3455 lang=java
+#
+# [3455] Shortest Matching Substring
+#
+# @lc code=start
 class Solution {
     public int shortestMatchingSubstring(String s, String p) {
         int n = s.length();
+        int m = p.length();
         int firstStar = p.indexOf('*');
         int secondStar = p.indexOf('*', firstStar + 1);
         String prefix = p.substring(0, firstStar);
         String middle = p.substring(firstStar + 1, secondStar);
         String suffix = p.substring(secondStar + 1);
-        // Special case: pattern is just '**'
-        if (prefix.isEmpty() && middle.isEmpty() && suffix.isEmpty()) {
-            return 0;
+        // Special case: pattern is '**'
+        if (prefix.isEmpty() && middle.isEmpty() && suffix.isEmpty()) return 0;
+        // Precompute prefix matches
+        java.util.List<Integer> prefixMatches = new java.util.ArrayList<>();
+        for (int i = 0; i + prefix.length() <= n; ++i) {
+            if (s.startsWith(prefix, i)) prefixMatches.add(i);
+        }
+        // Precompute suffix matches
+        java.util.List<Integer> suffixMatches = new java.util.ArrayList<>();
+        for (int i = 0; i + suffix.length() <= n; ++i) {
+            if (s.startsWith(suffix, i)) suffixMatches.add(i);
         }
         int minLen = Integer.MAX_VALUE;
-        for (int i = 0; i <= n - prefix.length(); ++i) {
-            if (!prefix.isEmpty() && !s.startsWith(prefix, i)) continue;
-            int prefixEnd = i + prefix.length();
-            // Suffix must be after prefix
-            for (int j = prefixEnd; j <= n - suffix.length(); ++j) {
-                if (!suffix.isEmpty() && !s.startsWith(suffix, j)) continue;
-                int candidateStart = i;
-                int candidateEnd = j + suffix.length();
-                if (candidateEnd > n) continue;
-                // Check middle
-                boolean middleMatch = false;
-                if (middle.isEmpty()) {
-                    middleMatch = true;
-                } else {
-                    // Search for middle in [prefixEnd, j] (inclusive)
-                    int midSearchStart = Math.max(prefixEnd, candidateStart);
-                    int midSearchEnd = Math.min(j, n - middle.length());
-                    for (int midPos = midSearchStart; midPos <= midSearchEnd; ++midPos) {
-                        if (s.startsWith(middle, midPos)) {
-                            middleMatch = true;
-                            break;
-                        }
+        // For each prefix match, try to find the smallest matching window with a suffix after it
+        for (int start : prefixMatches) {
+            int prefixEnd = start + prefix.length();
+            // The earliest the suffix can start is prefixEnd + middle.length()
+            for (int end : suffixMatches) {
+                if (end < prefixEnd) continue;
+                int windowEnd = end + suffix.length();
+                if (windowEnd > n) continue;
+                // The substring between prefixEnd and end must contain middle
+                if (prefixEnd <= end) {
+                    String between = s.substring(prefixEnd, end);
+                    if (between.contains(middle)) {
+                        minLen = Math.min(minLen, windowEnd - start);
+                        break; // Can't get shorter by trying later suffixes for this prefix
                     }
-                }
-                if (middleMatch) {
-                    int len = candidateEnd - candidateStart;
-                    if (len < minLen) minLen = len;
                 }
             }
         }
         return minLen == Integer.MAX_VALUE ? -1 : minLen;
     }
 }
-// @lc code=end
+# @lc code=end
