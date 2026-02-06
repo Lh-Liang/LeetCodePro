@@ -3,44 +3,41 @@
 #
 # [3493] Properties Graph
 #
-
 # @lc code=start
-import java.util.*;
 class Solution {
     public int numberOfComponents(int[][] properties, int k) {
         int n = properties.length;
-        List<Integer>[] adj = new ArrayList[n];
-        for (int i = 0; i < n; ++i) adj[i] = new ArrayList<>();
-        for (int i = 0; i < n; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                if (intersect(properties[i], properties[j]) >= k) {
+        List<Integer>[] adj = new List[n];
+        for (int i = 0; i < n; i++) adj[i] = new ArrayList<>();
+        // Build adjacency list
+        for (int i = 0; i < n; i++) {
+            Set<Integer> setI = new HashSet<>();
+            for (int val : properties[i]) setI.add(val);
+            for (int j = i + 1; j < n; j++) {
+                Set<Integer> setJ = new HashSet<>();
+                for (int val : properties[j]) setJ.add(val);
+                Set<Integer> intersection = new HashSet<>(setI);
+                intersection.retainAll(setJ);
+                if (intersection.size() >= k) {
                     adj[i].add(j);
                     adj[j].add(i);
                 }
             }
         }
         boolean[] visited = new boolean[n];
-        int count = 0;
-        for (int i = 0; i < n; ++i) {
+        int components = 0;
+        for (int i = 0; i < n; i++) {
             if (!visited[i]) {
+                components++;
                 dfs(i, adj, visited);
-                count++;
             }
         }
-        return count;
+        return components;
     }
-    private int intersect(int[] a, int[] b) {
-        Set<Integer> setA = new HashSet<>();
-        for (int num : a) setA.add(num);
-        Set<Integer> setB = new HashSet<>();
-        for (int num : b) setB.add(num);
-        setA.retainAll(setB);
-        return setA.size();
-    }
-    private void dfs(int u, List<Integer>[] adj, boolean[] visited) {
-        visited[u] = true;
-        for (int v : adj[u]) {
-            if (!visited[v]) dfs(v, adj, visited);
+    private void dfs(int node, List<Integer>[] adj, boolean[] visited) {
+        visited[node] = true;
+        for (int nei : adj[node]) {
+            if (!visited[nei]) dfs(nei, adj, visited);
         }
     }
 }
