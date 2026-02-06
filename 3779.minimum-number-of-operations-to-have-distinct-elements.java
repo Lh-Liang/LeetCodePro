@@ -10,20 +10,17 @@ class Solution {
         int start = 0;
         int n = nums.length;
         while (start < n) {
-            // Check if all remaining elements are distinct
-            Set<Integer> set = new HashSet<>();
-            boolean allDistinct = true;
-            for (int i = start; i < n; i++) {
+            // Check if current subarray is all distinct
+            java.util.HashSet<Integer> set = new java.util.HashSet<>();
+            boolean hasDuplicate = false;
+            for (int i = start; i < n; ++i) {
                 if (!set.add(nums[i])) {
-                    allDistinct = false;
+                    hasDuplicate = true;
                     break;
                 }
             }
-            if (allDistinct) {
-                break;
-            }
-            // Remove up to three elements by moving start pointer
-            start += Math.min(3, n - start);
+            if (!hasDuplicate) return ops;
+            start += 3;
             ops++;
         }
         return ops;
