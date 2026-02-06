@@ -3,65 +3,40 @@
 #
 # [3575] Maximum Good Subtree Score
 #
-
 # @lc code=start
-import java.util.*;
-
 class Solution {
-    static final int MOD = 1000000007;
+    private static final int MOD = 1000000007;
     public int goodSubtreeSum(int[] vals, int[] par) {
         int n = vals.length;
         List<Integer>[] tree = new ArrayList[n];
-        for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
-        for (int i = 1; i < n; ++i) {
+        for (int i = 0; i < n; i++) {
+            tree[i] = new ArrayList<>();
+        }
+        for (int i = 1; i < n; i++) {
             tree[par[i]].add(i);
         }
         int[] maxScore = new int[n];
         dfs(0, vals, tree, maxScore);
-        long sum = 0;
-        for (int score : maxScore) sum = (sum + score) % MOD;
-        return (int)sum;
-    }
-
-    // Returns: Map<bitmask, sum> for subtree rooted at u
-    private Map<Integer, Integer> dfs(int u, int[] vals, List<Integer>[] tree, int[] maxScore) {
-        Map<Integer, Integer> dp = new HashMap<>();
-        int mask = digitMask(vals[u]);
-        dp.put(mask, vals[u]);
-        for (int v : tree[u]) {
-            Map<Integer, Integer> childDP = dfs(v, vals, tree, maxScore);
-            Map<Integer, Integer> newDP = new HashMap<>(dp);
-            for (Map.Entry<Integer, Integer> e1 : dp.entrySet()) {
-                int m1 = e1.getKey(), s1 = e1.getValue();
-                for (Map.Entry<Integer, Integer> e2 : childDP.entrySet()) {
-                    int m2 = e2.getKey(), s2 = e2.getValue();
-                    if ((m1 & m2) == 0) {
-                        int nm = m1 | m2;
-                        int ns = s1 + s2;
-                        newDP.put(nm, Math.max(newDP.getOrDefault(nm, 0), ns));
-                    }
-                }
-            }
-            // Add all child-only masks (for cases where we don't select current node)
-            for (Map.Entry<Integer, Integer> e : childDP.entrySet()) {
-                newDP.putIfAbsent(e.getKey(), e.getValue());
-            }
-            dp = newDP;
+        long totalScore = 0;
+        for (int score : maxScore) {
+            totalScore = (totalScore + score) % MOD;
         }
-        int max = 0;
-        for (int v : dp.values()) max = Math.max(max, v);
-        maxScore[u] = max;
-        return dp;
+        return (int) totalScore;
     }
-
-    // Returns bitmask of digits present in x
-    private int digitMask(int x) {
-        int mask = 0;
-        while (x > 0) {
-            mask |= 1 << (x % 10);
-            x /= 10;
-        }
-        return mask;
-    }
-}
-# @lc code=end
+    private int dfs(int node, int[] vals, List<Integer>[] tree, int[] maxScore) {
+        int currentNodeValue = vals[node];
+        int currentBitMask = getBitmask(currentNodeValue); // Convert value to bitmask representation of digits. 
+        long currentSum = currentNodeValue; 
+        for (int child : tree[node]) { 
+            int childBitmaskSum = dfs(child, vals, tree, maxScore); 
+            if ((currentBitMask & childBitmaskSum) == 0) { 
+                // Combine if there are no common digits. 
+                currentBitMask |= childBitmaskSum >> 10; 
+                currentSum += childBitmaskSum & ((1L << 10) - 1); 
+            } 
+        } 
+        maxScore[node] = (int)(currentSum % MOD); 
+        return ((currentBitMask << 10) | (int)(currentSum % MOD)); // Return combined bitmask with sum encoded. 
+    } 
+    private int getBitmask(int value) { 
+        boolean[] seenDigits = new boolean[10]; ​// Track seen digits. ​while (value > 0) { ​int digit = value % 10; if (seenDigits[digit]) return -1; // Invalid if digit repeats. seenDigits[digit] = true; value /= 10; } int bitmask = 0;for (int d = 0; d < 10; d++) {if (seenDigits[d]) bitmask |= (1 << d);}return bitmask;} }// @lc code=end
