@@ -6,37 +6,31 @@
 
 # @lc code=start
 class TextEditor:
-
     def __init__(self):
-        self.left = []
-        self.right = []
-
+        self.left = []  # Characters to the left of the cursor
+        self.right = []  # Characters to the right of the cursor
+    
     def addText(self, text: str) -> None:
         for char in text:
             self.left.append(char)
-
+    
     def deleteText(self, k: int) -> int:
-        num_to_delete = min(k, len(self.left))
-        for _ in range(num_to_delete):
+        delete_count = min(k, len(self.left))
+        while delete_count > 0:
             self.left.pop()
-        return num_to_delete
-
+            delete_count -= 1
+        return k - delete_count
+    
     def cursorLeft(self, k: int) -> str:
-        num_to_move = min(k, len(self.left))
-        for _ in range(num_to_move):
+        move_count = min(k, len(self.left))
+        while move_count > 0:
             self.right.append(self.left.pop())
-        return ''.join(self.left[-10:])
-
+            move_count -= 1
+        return ''.join(self.left[-10:]) if len(self.left) > 10 else ''.join(self.left)
+    
     def cursorRight(self, k: int) -> str:
-        num_to_move = min(k, len(self.right))
-        for _ in range(num_to_move):
+        move_count = min(k, len(self.right))
+        while move_count > 0:
             self.left.append(self.right.pop())
-        return ''.join(self.left[-10:])
-
-# Your TextEditor object will be instantiated and called as such:
-# obj = TextEditor()
-# obj.addText(text)
-# param_2 = obj.deleteText(k)
-# param_3 = obj.cursorLeft(k)
-# param_4 = obj.cursorRight(k)
-# @lc code=end
+            move_count -= 1
+        return ''.join(self.left[-10:]) if len(self.left) > 10 else ''.join(self.left)
