@@ -4,23 +4,18 @@
 # [3513] Number of Unique XOR Triplets I
 #
 # @lc code=start
-import java.util.*;
 class Solution {
     public int uniqueXorTriplets(int[] nums) {
+        Set<Integer> xorSet = new HashSet<>();
         int n = nums.length;
-        Set<Integer> unique = new HashSet<>();
-        int[] prefixXor = new int[n + 1];
-        prefixXor[0] = 0;
         for (int i = 0; i < n; i++) {
-            prefixXor[i + 1] = prefixXor[i] ^ nums[i];
-        }
-        for (int i = 0; i < n; i++) {
-            for (int k = i; k < n; k++) {
-                int xorVal = prefixXor[k + 1] ^ prefixXor[i];
-                unique.add(xorVal);
+            for (int j = i; j < n; j++) {
+                for (int k = j; k < n; k++) {
+                    xorSet.add(nums[i] ^ nums[j] ^ nums[k]);
+                }
             }
         }
-        return unique.size();
+        return xorSet.size();
     }
 }
 # @lc code=end
