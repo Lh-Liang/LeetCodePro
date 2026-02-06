@@ -11,18 +11,14 @@
 #         self.next = next
 class Solution:
     def modifiedList(self, nums: List[int], head: Optional[ListNode]) -> Optional[ListNode]:
-        nums_set = set(nums)  # Convert array to set for O(1) lookups
-        dummy = ListNode(0)  # Dummy node to handle edge cases easily
-        dummy.next = head  # Point dummy node to head of the list
-        current = dummy  # Start with the dummy node
-        
-        while current.next is not None:
-            if current.next.val in nums_set:
-                # Skip over nodes with values in nums_set
-                current.next = current.next.next
+        nums_set = set(nums)  # Step 1: Convert nums array to set for O(1) lookups.
+        dummy = ListNode(0)  # Step 2: Initialize a dummy node to simplify edge case handling.
+        dummy.next = head
+        prev, current = dummy, head # Step 3: Traverse with two pointers (prev and current). 
+        while current:
+            if current.val in nums_set:
+                prev.next = current.next # Bypass nodes with values in nums_set. 
             else:
-                # Move to next node if it's not being removed
-                current = current.next
-        
-        return dummy.next  # Return head of modified list which is dummy's next pointer
-# @lc code=end
+                prev = current 
+            current = current.next 
+        return dummy.next # Step 4: Return modified list starting from next of dummy node.
