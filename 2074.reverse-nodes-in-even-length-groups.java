@@ -3,6 +3,7 @@
 #
 # [2074] Reverse Nodes in Even Length Groups
 #
+
 # @lc code=start
 /**
 * Definition for singly-linked list.
@@ -21,40 +22,35 @@ class Solution {
         ListNode curr = head;
         int groupSize = 1;
         while (curr != null) {
-            // Step 2: Identify group boundaries
-            int cnt = 0;
+            int count = 0;
             ListNode groupStart = curr;
             ListNode temp = curr;
-            while (cnt < groupSize && temp != null) {
+            // Find the actual size of the current group
+            while (temp != null && count < groupSize) {
                 temp = temp.next;
-                cnt++;
+                count++;
             }
-            // Step 3: Handle last group (less than expected size)
-            // Step 4: Reverse if even size
-            if (cnt % 2 == 0) {
-                // (a) Store node after group for reconnection
-                ListNode nextGroup = temp;
-                // (b) Reverse current group
-                ListNode prevNode = nextGroup;
-                ListNode node = curr;
-                for (int i = 0; i < cnt; i++) {
+            ListNode groupEndNext = temp;
+            // If the group has even length, reverse it
+            if (count % 2 == 0) {
+                ListNode prevNode = groupEndNext;
+                ListNode node = groupStart;
+                for (int i = 0; i < count; i++) {
                     ListNode nextNode = node.next;
                     node.next = prevNode;
                     prevNode = node;
                     node = nextNode;
                 }
-                // (c) Reconnect reversed group
                 prev.next = prevNode;
-                prev = curr;
-                curr = temp;
+                prev = groupStart;
+                curr = groupEndNext;
             } else {
-                // If odd, advance pointers
-                for (int i = 0; i < cnt; i++) {
+                // No reversal, move prev and curr to the end of the group
+                for (int i = 0; i < count; i++) {
                     prev = curr;
                     curr = curr.next;
                 }
             }
-            // Step 5: Verification (implicit in pointer updates)
             groupSize++;
         }
         return dummy.next;
