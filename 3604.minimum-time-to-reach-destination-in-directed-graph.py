@@ -5,26 +5,32 @@
 #
 
 # @lc code=start
-import heapq
-from typing import List
 class Solution:
     def minTime(self, n: int, edges: List[List[int]]) -> int:
-        graph = [[] for _ in range(n)]
+        import heapq
+        from collections import defaultdict
+        # Create adjacency list for graph
+        graph = defaultdict(list)
         for u, v, start, end in edges:
             graph[u].append((v, start, end))
-        min_time = [float('inf')] * n
+
+        # Priority queue for Dijkstra's algorithm (time, node)
+        pq = [(0, 0)] # Start at node 0 at time 0
+        # Dictionary to store minimum time to reach each node
+        min_time = {i: float('inf') for i in range(n)}
         min_time[0] = 0
-        pq = [(0, 0)]  # (time, node)
+        
         while pq:
-            curr_time, u = heapq.heappop(pq)
-            if u == n - 1:
-                return curr_time
-            if curr_time > min_time[u]:
-                continue
-            for v, start, end in graph[u]:
-                wait_time = max(0, start - curr_time) if curr_time <= end else float('inf')
-                new_time = curr_time + wait_time + 1  # travel takes one unit time
-                if new_time < min_time[v]:
-                    min_time[v] = new_time
-                    heapq.heappush(pq, (new_time, v))
-        return -1  # unreachable case if while loop ends without return statement. # @lc code=end
+            current_time, node = heapq.heappop(pq)
+            if node == n - 1:
+                return current_time # Reached destination node n-1
+            if current_time > min_time[node]:
+                continue # Skip if we have already found a better time
+            for neighbor, start, end in graph[node]:
+                wait_time = max(0, start - current_time) # Wait if needed until edge is available
+                arrival_time = current_time + wait_time + 1 # One unit of time to travel the edge
+                if start <= arrival_time <= end and arrival_time < min_time[neighbor]:
+                    min_time[neighbor] = arrival_time
+                    heapq.heappush(pq, (arrival_time, neighbor)) # Push new state into priority queue 
+        return -1 # If no path found to node n-1
+# @lc code=end
