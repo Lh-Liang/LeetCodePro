@@ -6,24 +6,20 @@
 # @lc code=start
 class Solution {
     public int minOperations(int[] nums) {
-        int ops = 0;
-        int start = 0;
-        int n = nums.length;
-        while (start < n) {
-            // Check if current subarray is all distinct
-            java.util.HashSet<Integer> set = new java.util.HashSet<>();
-            boolean hasDuplicate = false;
-            for (int i = start; i < n; ++i) {
-                if (!set.add(nums[i])) {
-                    hasDuplicate = true;
-                    break;
-                }
+        if (nums.length <= 1) return 0;
+        int operations = 0;
+        Set<Integer> uniqueElements = new HashSet<>();
+        while (true) {
+            for (int i = 0; i < nums.length; i++) {
+                uniqueElements.add(nums[i]);
             }
-            if (!hasDuplicate) return ops;
-            start += 3;
-            ops++;
+            if (uniqueElements.size() == nums.length) break; // All elements are distinct.
+            operations++; // Count this operation.
+            if (nums.length <= 3) break; // If fewer than three elements remain, operation ends array.
+            nums = Arrays.copyOfRange(nums, 3, nums.length); // Remove first three elements.
+            uniqueElements.clear(); // Reset unique tracking for new subarray.
         }
-        return ops;
+        return operations;
     }
 }
 # @lc code=end
