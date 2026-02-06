@@ -6,24 +6,19 @@
 # @lc code=start
 class Solution {
     public long countSubstrings(String s) {
-        int n = s.length();
-        long ans = 0;
-        for (int i = 0; i < n; ++i) {
-            char ch = s.charAt(i);
-            if (ch == '0') continue; // last digit must be non-zero
-            int d = ch - '0';
-            // Single digit substrings
-            ans++;
-            int rem = 0;
-            int pow = 1;
-            // Go backwards and check all substrings ending at i
-            for (int j = i - 1; j >= 0; --j) {
-                rem = ( (s.charAt(j) - '0') * pow + rem ) % d;
-                pow = (pow * 10) % d;
-                if (rem == 0) ans++;
+        long count = 0;
+        for (int i = 0; i < s.length(); i++) {
+            int lastDigit = s.charAt(i) - '0';
+            if (lastDigit == 0) continue; // Skip if last digit is zero.
+            long number = 0;
+            for (int j = i; j >= 0; j--) {
+                number = number + (s.charAt(j) - '0') * Math.pow(10, i-j); // Forming number from substring.
+                if (number % lastDigit == 0) {
+                    count++; // Check divisibility.
+                }
             }
         }
-        return ans;
+        return count;
     }
 }
 # @lc code=end
