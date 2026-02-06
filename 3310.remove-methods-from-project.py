@@ -8,27 +8,30 @@
 class Solution:
     def remainingMethods(self, n: int, k: int, invocations: List[List[int]]) -> List[int]:
         from collections import defaultdict, deque
-        # Build graph and reverse graph (for checking incoming edges)
-        graph = defaultdict(list)
-        reverse_graph = defaultdict(list)
-        for a, b in invocations:
-            graph[a].append(b)
-            reverse_graph[b].append(a)
+        # Build adjacency list for graph representation of method invocations
+        adj_list = defaultdict(list)
+        reverse_adj_list = defaultdict(list)
+        for ai, bi in invocations:
+            adj_list[ai].append(bi)
+            reverse_adj_list[bi].append(ai)
         
-        # Find all suspicious methods reachable from k using BFS/DFS
-        suspicious_set = set()
-        queue = deque([k])
-        while queue:
-            method = queue.popleft()
-            if method not in suspicious_set:
-                suspicious_set.add(method)
-                for next_method in graph[method]:
-                    queue.append(next_method)
+        # Collect all reachable nodes from k (suspicious nodes) using DFS
+        def collect_suspicious(start):
+            stack = [start]
+            visited = set()
+            while stack:
+                node = stack.pop()
+                if node not in visited:
+                    visited.add(node)
+                    stack.extend(adj_list[node])
+            return visited
         
-        # Check if we can remove all suspicious methods by ensuring no non-suspicious methods invoke them.
-        for method in suspicious_set:
-            for invoker in reverse_graph[method]:
-                if invoker not in suspicious_set:
-                    return list(range(n)) # Not possible to remove; return all methods. 
-                    
-        # Return remaining non-suspicious methods.                                       return [i for i in range(n) if i not in suspicious_set]"
+        suspicious_methods = collect_suspicious(k)
+        # Check for external invocation to suspicious nodes
+        for sm in suspicious_methods:
+            if any(invoker not in suspicious_methods for invoker in reverse_adj_list[sm]):
+                return list(range(n))  # Return all methods because we can't remove them cleanly.
+        
+        # Return non-suspicious methods only if possible to remove all suspicious ones.
+        return [i for i in range(n) if i not in suspicious_methods]
+# @lc code=end
