@@ -5,25 +5,42 @@
 #
 # @lc code=start
 import java.util.HashSet;
+
 class Solution {
     public int longestBalanced(int[] nums) {
         int n = nums.length;
-        int maxLen = 0;
-        for (int i = 0; i < n; i++) {
-            HashSet<Integer> evenSet = new HashSet<>();
-            HashSet<Integer> oddSet = new HashSet<>();
-            for (int j = i; j < n; j++) {
-                if (nums[j] % 2 == 0) {
-                    evenSet.add(nums[j]);
-                } else {
-                    oddSet.add(nums[j]);
+        int left = 0, right = 0, maxLen = 0;
+        HashSet<Integer> evenSet = new HashSet<>();
+        HashSet<Integer> oddSet = new HashSet<>();
+        int[] count = new int[100001];
+        while (right < n) {
+            int num = nums[right];
+            count[num]++;
+            if (num % 2 == 0) evenSet.add(num);
+            else oddSet.add(num);
+            while (left <= right && evenSet.size() > oddSet.size()) {
+                int lnum = nums[left];
+                count[lnum]--;
+                if (count[lnum] == 0) {
+                    if (lnum % 2 == 0) evenSet.remove(lnum);
+                    else oddSet.remove(lnum);
                 }
-                if (evenSet.size() == oddSet.size()) {
-                    maxLen = Math.max(maxLen, j - i + 1);
-                }
+                left++;
             }
+            while (left <= right && oddSet.size() > evenSet.size()) {
+                int lnum = nums[left];
+                count[lnum]--;
+                if (count[lnum] == 0) {
+                    if (lnum % 2 == 0) evenSet.remove(lnum);
+                    else oddSet.remove(lnum);
+                }
+                left++;
+            }
+            if (evenSet.size() == oddSet.size()) {
+                maxLen = Math.max(maxLen, right - left + 1);
+            }
+            right++;
         }
-        // Verification: All reasoning steps (property analysis, non-monotonicity, mapping to code, feedback loop) are represented. Code is not a placeholder and handles all edge cases.
         return maxLen;
     }
 }
