@@ -3,6 +3,7 @@
 #
 # [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
 #
+
 # @lc code=start
 # Definition for singly-linked list.
 # class ListNode:
@@ -16,21 +17,22 @@ class Solution:
         prev = head
         curr = head.next
         index = 1
-        first_cp = last_cp = -1
-        min_dist = float('inf')
+        first_critical = last_critical = -1
+        min_distance = float('inf')
         critical_points = []
         while curr.next:
             if (curr.val > prev.val and curr.val > curr.next.val) or (curr.val < prev.val and curr.val < curr.next.val):
-                if first_cp == -1:
-                    first_cp = index  # First critical point found.
+                if first_critical == -1:
+                    first_critical = index
                 else:
-                    min_dist = min(min_dist, index - last_cp)  # Update min distance.
-                last_cp = index  # Update last critical point location.
-                critical_points.append(index)  # Store this critical point's index.
-            prev, curr = curr, curr.next  # Move to next set of nodes.
+                    min_distance = min(min_distance, index - last_critical)
+                last_critical = index
+                critical_points.append(index)
+            prev = curr
+            curr = curr.next
             index += 1
         if len(critical_points) < 2:
             return [-1, -1]
-        max_dist = critical_points[-1] - critical_points[0]
-        return [min_dist, max_dist]
-bf@lc code=end
+        max_distance = critical_points[-1] - critical_points[0]
+        return [min_distance, max_distance]
+# @lc code=end
