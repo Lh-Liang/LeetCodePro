@@ -1,66 +1,49 @@
-//
-// @lc app=leetcode id=3413 lang=java
-//
-// [3413] Maximum Coins From K Consecutive Bags
-//
-// @lc code=start
-import java.util.*;
+#
+# @lc app=leetcode id=3413 lang=java
+#
+# [3413] Maximum Coins From K Consecutive Bags
+#
+# @lc code=start
 class Solution {
     public long maximumCoins(int[][] coins, int k) {
         Arrays.sort(coins, (a, b) -> Integer.compare(a[0], b[0]));
-        List<int[]> segs = new ArrayList<>();
         int n = coins.length;
-        int prev = 0;
-        for (int i = 0; i < n; ++i) {
-            int l = coins[i][0], r = coins[i][1], c = coins[i][2];
-            if (prev + 1 < l) {
-                segs.add(new int[]{prev + 1, l - 1, 0});
+        int left = 0, right = 0;
+        long sum = 0, max = 0;
+        long windowStart = coins[0][0];
+        long windowEnd = windowStart + k - 1;
+
+        // precompute the total number of bags
+        while (right < n && coins[right][1] < windowStart) right++;
+
+        long l = windowStart;
+        while (true) {
+            // Reset sum for each window
+            sum = 0;
+            long curL = l, curR = l + k - 1;
+            int idx = 0;
+            while (idx < n && coins[idx][1] < curL) idx++;
+            int j = idx;
+            while (j < n && coins[j][0] <= curR) {
+                long segL = Math.max(coins[j][0], curL);
+                long segR = Math.min(coins[j][1], curR);
+                if (segL <= segR) {
+                    sum += (segR - segL + 1) * coins[j][2];
+                }
+                j++;
             }
-            segs.add(new int[]{l, r, c});
-            prev = r;
-        }
-        long totalBags = 0;
-        for (int[] seg : segs) {
-            totalBags += (long)seg[1] - seg[0] + 1;
-        }
-        if (k > totalBags) return 0;
-        int leftSeg = 0, rightSeg = 0;
-        int leftPos = segs.get(0)[0], rightPos = segs.get(0)[0] - 1;
-        long currSum = 0, maxSum = 0;
-        int needed = k;
-        while (needed > 0 && rightSeg < segs.size()) {
-            int[] seg = segs.get(rightSeg);
-            int segStart = Math.max(seg[0], rightPos + 1);
-            int segLen = seg[1] - segStart + 1;
-            int take = (int)Math.min(needed, segLen);
-            currSum += (long)take * seg[2];
-            rightPos += take;
-            needed -= take;
-            if (segStart + take - 1 == seg[1]) rightSeg++;
-        }
-        if (rightPos - leftPos + 1 == k) {
-            maxSum = currSum;
-        }
-        while (rightPos < segs.get(segs.size() - 1)[1]) {
-            int[] lseg = segs.get(leftSeg);
-            currSum -= lseg[2];
-            leftPos++;
-            if (leftPos > lseg[1]) {
-                leftSeg++;
-                if (leftSeg < segs.size()) leftPos = segs.get(leftSeg)[0];
+            max = Math.max(max, sum);
+            // Move window forward
+            // Find next possible l: the next start of any interval or current l + 1, whichever is minimal, but not beyond possible window range
+            long nextL = l + 1;
+            if (idx < n) {
+                nextL = Math.max(nextL, Math.min(coins[idx][1] + 1, l + 1));
             }
-            if (rightSeg < segs.size() && rightPos + 1 > segs.get(rightSeg)[1]) {
-                rightSeg++;
-            }
-            if (rightSeg < segs.size()) {
-                currSum += segs.get(rightSeg)[2];
-            }
-            rightPos++;
-            if (rightPos - leftPos + 1 == k) {
-                maxSum = Math.max(maxSum, currSum);
-            }
+            // Stop if window exceeds range
+            if (j >= n && (idx >= n || coins[n - 1][1] < nextL)) break;
+            l = nextL;
         }
-        return maxSum;
+        return max;
     }
 }
-// @lc code=end
+# @lc code=end
