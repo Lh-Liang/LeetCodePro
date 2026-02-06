@@ -3,67 +3,76 @@
 #
 # [3459] Length of Longest V-Shaped Diagonal Segment
 #
+
 # @lc code=start
 class Solution {
-    private static final int[][] DIRS = {
-        {1, 1},   // ↘
-        {1, -1},  // ↙
-        {-1, -1}, // ↖
-        {-1, 1}   // ↗
-    };
-    // Clockwise turn mapping: 0→1, 1→2, 2→3, 3→0
-    private static final int[] TURN = {1, 2, 3, 0};
-    private int n, m;
-    private int[][] grid;
-    private int maxLen;
-    private Integer[][][][][] memo;
-    // Alternation: expectedVals[0] = 2, expectedVals[1] = 0
-    private static final int[] expectedVals = {2, 0};
-
     public int lenOfVDiagonal(int[][] grid) {
-        this.n = grid.length;
-        this.m = grid[0].length;
-        this.grid = grid;
-        this.maxLen = 0;
-        this.memo = new Integer[n][m][4][2][2]; // x, y, dir, parity, turned
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < m; ++j) {
-                if (grid[i][j] == 1) {
-                    for (int dir = 0; dir < 4; ++dir) {
-                        maxLen = Math.max(maxLen, dfs(i, j, dir, 1, 0, 0));
+        int n = grid.length, m = grid[0].length;
+        // Directions: [down-right, up-left, down-left, up-right]
+        int[][] dirs = { {1,1}, {-1,-1}, {1,-1}, {-1,1} };
+        // Clockwise turn: 0->2, 2->1, 1->3, 3->0
+        int[] turn = {2,3,1,0};
+        int[][][] dp = new int[n][m][4];
+        // Precompute DP for each direction
+        for (int d = 0; d < 4; ++d) {
+            int dx = dirs[d][0], dy = dirs[d][1];
+            int sx = dx > 0 ? 0 : n - 1;
+            int sy = dy > 0 ? 0 : m - 1;
+            int ex = dx > 0 ? n : -1;
+            int ey = dy > 0 ? m : -1;
+            for (int i = sx; i != ex; i += dx > 0 ? 1 : -1) {
+                for (int j = sy; j != ey; j += dy > 0 ? 1 : -1) {
+                    if (grid[i][j] == 1) {
+                        dp[i][j][d] = 1;
+                    } else if ((dx > 0 ? i - dx >= 0 : i - dx < n) && (dy > 0 ? j - dy >= 0 : j - dy < m)) {
+                        int prevX = i - dx, prevY = j - dy;
+                        int prev = dp[prevX][prevY][d];
+                        int expected = (prev % 2 == 1) ? 2 : 0;
+                        if (grid[i][j] == expected) {
+                            dp[i][j][d] = prev + 1;
+                        }
                     }
                 }
             }
         }
-        return maxLen;
-    }
-
-    private int dfs(int x, int y, int dir, int len, int parity, int turned) {
-        if (memo[x][y][dir][parity][turned] != null) {
-            return memo[x][y][dir][parity][turned] + len - 1;
-        }
-        int res = len;
-        int nx = x + DIRS[dir][0];
-        int ny = y + DIRS[dir][1];
-        int nextExpected = expectedVals[parity];
-        if (inGrid(nx, ny) && grid[nx][ny] == nextExpected) {
-            res = Math.max(res, dfs(nx, ny, dir, len + 1, parity ^ 1, turned));
-        }
-        // Try to turn if not turned yet
-        if (turned == 0) {
-            int ndir = TURN[dir];
-            int tx = x + DIRS[ndir][0];
-            int ty = y + DIRS[ndir][1];
-            if (inGrid(tx, ty) && grid[tx][ty] == nextExpected) {
-                res = Math.max(res, dfs(tx, ty, ndir, len + 1, parity ^ 1, 1));
+        int maxLen = 0;
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                if (grid[i][j] != 1) continue;
+                for (int d = 0; d < 4; ++d) {
+                    int len1 = dp[i][j][d];
+                    int x = i, y = j;
+                    int dx = dirs[d][0], dy = dirs[d][1];
+                    // Move as far as possible in this direction
+                    for (int k = 1; k < len1; ++k) {
+                        x += dx;
+                        y += dy;
+                    }
+                    // Try to turn at this point (if inside grid)
+                    if (x >= 0 && x < n && y >= 0 && y < m) {
+                        int td = turn[d];
+                        int len2 = 0;
+                        int tx = x, ty = y;
+                        int tdx = dirs[td][0], tdy = dirs[td][1];
+                        // Avoid overlapping the turn cell
+                        while (true) {
+                            tx += tdx;
+                            ty += tdy;
+                            if (tx < 0 || tx >= n || ty < 0 || ty >= m) break;
+                            int step = tx - x + ty - y;
+                            // The sequence should continue alternating
+                            int expected = ((len1 + step) % 2 == 1) ? 2 : 0;
+                            if (grid[tx][ty] != expected) break;
+                            len2++;
+                        }
+                        maxLen = Math.max(maxLen, len1 + len2);
+                    }
+                    // Or no turn: just take len1
+                    maxLen = Math.max(maxLen, len1);
+                }
             }
         }
-        memo[x][y][dir][parity][turned] = res - len + 1;
-        return res;
-    }
-
-    private boolean inGrid(int x, int y) {
-        return x >= 0 && x < n && y >= 0 && y < m;
+        return maxLen;
     }
 }
 # @lc code=end
