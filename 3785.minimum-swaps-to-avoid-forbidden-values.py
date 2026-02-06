@@ -11,12 +11,19 @@ class Solution:
         swaps = 0
         for i in range(n):
             if nums[i] == forbidden[i]:
+                found = False
                 for j in range(i + 1, n):
-                    if nums[j] != forbidden[j] and nums[j] != forbidden[i]:
+                    if nums[j] != forbidden[i] and nums[j] != forbidden[j]:
+                        # Swap elements at i and j
                         nums[i], nums[j] = nums[j], nums[i]
                         swaps += 1
+                        found = True
                         break
-                else:
-                    return -1 # No valid swap found for position i
-        return swaps # Return total number of swaps made.
-# @lc code=end
+                # If no valid swap was found, it's impossible to solve
+                if not found:
+                    return -1
+        # Verify final configuration (though this is implied by construction)
+        for k in range(n):
+            if nums[k] == forbidden[k]:
+                return -1
+        return swaps # @lc code=end
