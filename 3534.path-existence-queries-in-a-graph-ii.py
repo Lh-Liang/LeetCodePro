@@ -1,3 +1,45 @@
-{
-"reasoning": "The problem requires building an undirected graph where edges exist based on node value differences. Using BFS/DFS with Union-Find, we can efficiently answer path existence queries by grouping connected components and checking connectivity. This approach minimizes redundant checks and ensures efficient query processing.",
-"result": "#\n# @lc app=leetcode id=3534 lang=python3\n#\n# [3534] Path Existence Queries in a Graph II\n#\n\n# @lc code=start\nclass Solution: \n    def pathExistenceQueries(self, n: int, nums: List[int], maxDiff: int, queries: List[List[int]]) -> List[int]:\n        parent = list(range(n))\n        rank = [0] * n\n\n        def find(x): \n            if parent[x] != x: \n                parent[x] = find(parent[x]) \n            return parent[x]\n\n        def union(x, y): \n            rootX = find(x) \n            rootY = find(y) \n            if rootX != rootY: \n                if rank[rootX] > rank[rootY]: \n                    parent[rootY] = rootX \n                elif rank[rootX] < rank[rootY]: \n                    parent[rootX] = rootY \n                else: \n                    parent[rootY] = rootX \n                    rank[rootX] += 1\n\n        # Connect nodes whose values differ by at most maxDiff\n        for i in range(n): \n            for j in range(i + 1, n): \n                if abs(nums[i] - nums[j]) <= maxDiff: \n                    union(i, j)\n\n        answer = []\u200b\u200b\u200bfor ui, vi in queries: \u200bif find(ui) == find(vi): 	answer.append(1) # Same component means they are connected	else:	answer.append(-1)	return answer	# @lc code=end
+#
+# @lc app=leetcode id=3534 lang=python3
+#
+# [3534] Path Existence Queries in a Graph II
+#
+
+# @lc code=start
+class Solution:
+    def pathExistenceQueries(self, n: int, nums: List[int], maxDiff: int, queries: List[List[int]]) -> List[int]:
+        # Initialize Union-Find structure
+        parent = list(range(n))
+        rank = [0] * n
+        
+        def find(x):
+            if parent[x] != x:
+                parent[x] = find(parent[x])  # Path compression
+            return parent[x]
+        
+        def union(x, y):
+            rootX = find(x)
+            rootY = find(y)
+            if rootX != rootY:
+                if rank[rootX] > rank[rootY]:
+                    parent[rootY] = rootX
+                elif rank[rootX] < rank[rootY]:
+                    parent[rootX] = rootY
+                else:
+                    parent[rootY] = rootX
+                    rank[rootX] += 1
+        
+        # Connect nodes within maxDiff constraint
+        sorted_nodes = sorted(range(n), key=lambda i: nums[i])
+        for i in range(n):
+            for j in range(i + 1, n):
+                if nums[sorted_nodes[j]] - nums[sorted_nodes[i]] <= maxDiff:
+                    union(sorted_nodes[i], sorted_nodes[j])
+                else:
+                    break  # No need to check further as list is sorted by value difference exceeds maxDiff.
+        
+        answer = []
+        for u, v in queries:
+            if find(u) == find(v):
+                answer.append(1)  # Path exists between u and v. (connected)
+            else:
+                answer.append(-1)  # No path exists between u and v. (disconnected) "return answer\\# @lc code=end
