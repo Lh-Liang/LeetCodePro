@@ -3,33 +3,38 @@
 #
 # [3488] Closest Equal Element Queries
 #
+
 # @lc code=start
-import java.util.*;
 class Solution {
     public List<Integer> solveQueries(int[] nums, int[] queries) {
+        Map<Integer, List<Integer>> indexMap = new HashMap<>();
         int n = nums.length;
-        Map<Integer, List<Integer>> valToIndices = new HashMap<>();
+        
+        // Preprocess: map each number to its list of indices
         for (int i = 0; i < n; i++) {
-            valToIndices.computeIfAbsent(nums[i], k -> new ArrayList<>()).add(i);
+            indexMap.computeIfAbsent(nums[i], k -> new ArrayList<>()).add(i);
         }
-        List<Integer> res = new ArrayList<>();
-        for (int q : queries) {
-            int val = nums[q];
-            List<Integer> indices = valToIndices.get(val);
-            if (indices.size() == 1) {
-                res.add(-1);
-                continue;
-            }
-            int pos = Collections.binarySearch(indices, q);
-            // pos should always be found as q is in indices
-            int before = (pos - 1 + indices.size()) % indices.size();
-            int after = (pos + 1) % indices.size();
-            int dist1 = Math.min(Math.abs(indices.get(before) - q), n - Math.abs(indices.get(before) - q));
-            int dist2 = Math.min(Math.abs(indices.get(after) - q), n - Math.abs(indices.get(after) - q));
-            int minDist = Math.min(dist1, dist2);
-            res.add(minDist);
-        }
-        return res;
-    }
+        
+        List<Integer> result = new ArrayList<>();
+        // Process each query
+        for (int query : queries) {
+            int target = nums[query];
+            List<Integer> indices = indexMap.get(target);
+            if (indices == null || indices.size() == 1) { // No other occurrence or only one occurrence at query itself
+                result.add(-1);
+            } else {
+                int minDist = Integer.MAX_VALUE;
+                // Find minimum distance considering circularity
+                for (int idx : indices) {
+                    if (idx != query) {
+                        int dist = Math.min(Math.abs(idx - query), n - Math.abs(idx - query)); // Circular distance calculation 
+                        minDist = Math.min(minDist, dist); 
+                    }
+                }   
+                result.add(minDist); 
+            }    
+        }   
+        return result;  
+    }   
 }
 # @lc code=end
