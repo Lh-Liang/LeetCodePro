@@ -6,63 +6,31 @@
 # @lc code=start
 class Solution {
     public String generateString(String str1, String str2) {
+        // Initialize variables
         int n = str1.length();
         int m = str2.length();
-        int len = n + m - 1;
-        char[] word = new char[len];
-        boolean[] fixed = new boolean[len];
-        // Step 1: For 'T' positions, set forced characters
-        for (int i = 0; i < n; ++i) {
+        StringBuilder result = new StringBuilder();
+        // Iterate over each position in str1
+        for (int i = 0; i <= n - m; i++) {
             if (str1.charAt(i) == 'T') {
-                for (int j = 0; j < m; ++j) {
-                    int idx = i + j;
-                    if (fixed[idx]) {
-                        if (word[idx] != str2.charAt(j)) {
-                            return "";
-                        }
-                    } else {
-                        word[idx] = str2.charAt(j);
-                        fixed[idx] = true;
-                    }
-                }
-            }
-        }
-        // Step 2: For 'F' positions, ensure substring is not str2
-        for (int i = 0; i < n; ++i) {
-            if (str1.charAt(i) == 'F') {
-                boolean match = true;
-                for (int j = 0; j < m; ++j) {
-                    int idx = i + j;
-                    char c = fixed[idx] ? word[idx] : 'a';
-                    if (c != str2.charAt(j)) {
-                        match = false;
-                        break;
-                    }
-                }
-                if (match) {
-                    // Try to change the last character lexicographically
-                    int idx = i + m - 1;
-                    char orig = fixed[idx] ? word[idx] : 'a';
-                    char rep = (orig == 'z') ? 'a' : (char)(orig + 1);
-                    if (rep == str2.charAt(m - 1)) {
-                        if (rep == 'z') {
-                            return "";
-                        }
-                        rep = (char)(rep + 1);
-                        if (rep > 'z') return "";
-                    }
-                    word[idx] = rep;
-                    fixed[idx] = true;
-                }
-            }
-        }
-        // Step 3: Fill unset positions with 'a'
-        for (int i = 0; i < len; ++i) {
-            if (!fixed[i]) {
-                word[i] = 'a';
-            }
-        }
-        return new String(word);
-    }
+                // Place str2 at this position if 'T' is found
+                result.append(str2);
+            } else { // 'F' condition requires ensuring this substring not match str2
+                // Add the lexicographically smallest valid character sequence that is not equal to str2 at this position.
+                for (int j = 0; j < m; j++) {
+                    if (j + i < result.length()) {
+                        continue; // Skip already filled parts from previous "T" placements.
+                    } else { 
+                        char c = 'a'; 
+                        while ((c == str2.charAt(j)) && c <= 'z') { 
+                            c++; // Ensure different character from corresponding position in str2. 
+                        } 
+                        result.append(c); 
+                    } 
+                } 
+            } 
+        } 
+        return result.toString(); 
+    } 
 }
 # @lc code=end
