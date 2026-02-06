@@ -3,32 +3,32 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
-
 # @lc code=start
 class Solution {
-    public long countBinaryPalindromes(long n) {
-        long count = 0;
-        int maxLen = Long.toBinaryString(n).length();
-        // Include 0 in the loop by handling length 1
-        for (int len = 1; len <= maxLen; ++len) {
-            int halfLen = (len + 1) / 2;
-            long start = (len == 1) ? 0 : (1L << (halfLen - 1)); // allow zero for length 1 only
-            long end = 1L << halfLen;
-            for (long half = start; half < end; ++half) {
-                long candidate = buildPalindrome(half, len % 2 == 1);
-                if (candidate > n) break;
-                count++;
+    public int countBinaryPalindromes(long n) {
+        int count = 0;
+        // Special case: 0 is a palindrome
+        if (n == 0) return 1;
+        int maxBits = Long.toBinaryString(n).length();
+        // For each bit length
+        for (int l = 1; l <= maxBits; l++) {
+            int half = (l + 1) / 2;
+            long start = 1L << (half - 1);
+            long end = 1L << half;
+            for (long firstHalf = start; firstHalf < end; firstHalf++) {
+                long palindrome = buildPalindrome(firstHalf, l % 2 == 1);
+                if (palindrome <= n) count++;
             }
         }
         return count;
     }
-    // Helper to build palindrome from half
-    private long buildPalindrome(long half, boolean odd) {
-        long res = half;
-        if (odd) half >>= 1;
-        while (half > 0) {
-            res = (res << 1) | (half & 1);
-            half >>= 1;
+    // Helper to build palindrome from firstHalf. If odd, exclude the middle bit when mirroring
+    private long buildPalindrome(long firstHalf, boolean oddLength) {
+        long res = firstHalf;
+        if (oddLength) firstHalf >>= 1;
+        while (firstHalf > 0) {
+            res = (res << 1) | (firstHalf & 1);
+            firstHalf >>= 1;
         }
         return res;
     }
