@@ -5,17 +5,27 @@
 #
 
 # @lc code=start
+from typing import List
+from collections import defaultdict
+
 class Solution:
     def numGoodSubarrays(self, nums: List[int], k: int) -> int:
-        from collections import defaultdict
-        prefix_sum = 0
-        mod_count = defaultdict(int)
-        mod_count[0] = 1 # To account for any subarray starting from index 0 being divisible by k
-        total_good_subarrays = 0
-        for num in nums:
-            prefix_sum += num
-            mod_key = prefix_sum % k
-            total_good_subarrays += mod_count[mod_key]
-            mod_count[mod_key] += 1
-        return total_good_subarrays # Counts distinct subarrays with sum divisible by k
+        prefix_sum_modulus = 0
+        mod_indices = defaultdict(list)
+        mod_indices[0].append(-1) # To handle subarrays starting from index 0
+        current_prefix_sum = 0
+        distinct_subarrays = set()
+        
+        for i, num in enumerate(nums):
+            current_prefix_sum += num
+            prefix_sum_modulus = current_prefix_sum % k
+            
+            if prefix_sum_modulus in mod_indices:
+                for start_index in mod_indices[prefix_sum_modulus]:
+                    # Add tuple of subarray values as they represent distinct sequences of values.
+                    distinct_subarrays.add(tuple(nums[start_index + 1:i + 1]))
+            
+            mod_indices[prefix_sum_modulus].append(i)
+        
+        return len(distinct_subarrays)
 # @lc code=end
