@@ -3,34 +3,36 @@
 #
 # [3435] Frequencies of Shortest Supersequences
 #
+
 # @lc code=start
 class Solution:
     def supersequences(self, words: List[str]) -> List[List[int]]:
-        from collections import Counter
-        from itertools import permutations
-        # Generate all possible SCS
-        scs_set = set()
-        for perm in permutations(words):
-            scs = self.shortest_common_supersequence(perm)
-            scs_set.add(scs)
-        # Compute frequency arrays and filter duplicates
-        freq_list = []
-        seen_freqs = set()
-        for scs in scs_set:
-            freq = [0] * 26 # Frequency array for each letter a-z
+        # Initial logic for generating shortest common supersequences
+        def generate_scs(w1, w2):
+            # Generate SCS by interleaving the words as needed
+            scs = set()
+            if w1[0] == w2[0]:
+                scs.add(w1 + w2[1])  # Example interleaving logic
+                scs.add(w2 + w1[1])  # Example interleaving logic
+            else:
+                scs.add(w1 + w2)  # Example interleaving logic
+                scs.add(w2 + w1)  # Example interleaving logic
+            return list(scs)
+        
+        # Placeholder for generated SCS lists
+        scs_list = []
+        for i in range(len(words)):
+            for j in range(i+1, len(words)):
+                scs_list.extend(generate_scs(words[i], words[j]))
+        
+        # Calculate frequencies while filtering permutations
+        freq_set = set()
+        for scs in scs_list:
+            freq = [0] * 26  # Frequency array for English lowercase letters
             for char in scs:
                 freq[ord(char) - ord('a')] += 1
-            if tuple(freq) not in seen_freqs:
-                seen_freqs.add(tuple(freq))
-                freq_list.append(freq)
-        return freq_list
-    
-    def shortest_common_supersequence(self, perm): # Helper function to find SCS of permuted words.
-        # This function assumes 'perm' is a permutation of 'words' and returns the shortest common supersequence. 
-        result = perm[0]
-        for word in perm[1:]:
-            i, j = 0, 0
-            # Merge two words into an SCS by including all characters from both in order. 
-            while i < len(result) and j < len(word): 
-                if result[i] == word[j]: 
-                    j += 1 	# Move along both strings if characters match. 	n                i += 1 	# Always move along the result string. 	n            result += word[j:] # Append remaining characters of 'word'. 	n         return result # Return the constructed SCS string. 	n# @lc code=end
+            freq_tuple = tuple(freq)  # Convert list to tuple for set operations
+            freq_set.add(freq_tuple)  # Add only unique frequencies (filters permutations)
+        
+        return [list(freq) for freq in freq_set]  # Convert back tuples to list for result output
+# @lc code=end
