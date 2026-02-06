@@ -3,84 +3,66 @@
 #
 # [3474] Lexicographically Smallest Generated String
 #
-
 # @lc code=start
 class Solution {
     public String generateString(String str1, String str2) {
         int n = str1.length();
         int m = str2.length();
         int len = n + m - 1;
-        char[] res = new char[len];
-        // Fill with placeholder
-        for (int i = 0; i < len; ++i) res[i] = '?';
-        // 1. Enforce all 'T' constraints
+        char[] word = new char[len];
+        boolean[] fixed = new boolean[len];
+        // Step 1: For 'T' positions, set forced characters
         for (int i = 0; i < n; ++i) {
             if (str1.charAt(i) == 'T') {
                 for (int j = 0; j < m; ++j) {
                     int idx = i + j;
-                    if (res[idx] == '?') {
-                        res[idx] = str2.charAt(j);
-                    } else if (res[idx] != str2.charAt(j)) {
-                        return ""; // Conflict
+                    if (fixed[idx]) {
+                        if (word[idx] != str2.charAt(j)) {
+                            return "";
+                        }
+                    } else {
+                        word[idx] = str2.charAt(j);
+                        fixed[idx] = true;
                     }
                 }
             }
         }
-        // 2. Enforce all 'F' constraints
+        // Step 2: For 'F' positions, ensure substring is not str2
         for (int i = 0; i < n; ++i) {
             if (str1.charAt(i) == 'F') {
-                boolean same = true;
+                boolean match = true;
                 for (int j = 0; j < m; ++j) {
                     int idx = i + j;
-                    if (res[idx] != '?' && res[idx] != str2.charAt(j)) {
-                        same = false;
+                    char c = fixed[idx] ? word[idx] : 'a';
+                    if (c != str2.charAt(j)) {
+                        match = false;
                         break;
                     }
                 }
-                if (same) {
-                    boolean changed = false;
-                    for (int j = m - 1; j >= 0; --j) {
-                        int idx = i + j;
-                        for (char c = 'a'; c <= 'z'; ++c) {
-                            if (c != str2.charAt(j) && (res[idx] == '?' || res[idx] == str2.charAt(j))) {
-                                // Check this change does not violate any 'T' constraint
-                                boolean conflict = false;
-                                for (int k = Math.max(0, idx - m + 1); k <= Math.min(n - 1, idx); ++k) {
-                                    if (str1.charAt(k) == 'T') {
-                                        int off = idx - k;
-                                        if (off >= 0 && off < m && str2.charAt(off) != c) {
-                                            conflict = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                                if (!conflict) {
-                                    res[idx] = c;
-                                    changed = true;
-                                    break;
-                                }
-                            }
+                if (match) {
+                    // Try to change the last character lexicographically
+                    int idx = i + m - 1;
+                    char orig = fixed[idx] ? word[idx] : 'a';
+                    char rep = (orig == 'z') ? 'a' : (char)(orig + 1);
+                    if (rep == str2.charAt(m - 1)) {
+                        if (rep == 'z') {
+                            return "";
                         }
-                        if (changed) break;
+                        rep = (char)(rep + 1);
+                        if (rep > 'z') return "";
                     }
-                    if (!changed) return "";
+                    word[idx] = rep;
+                    fixed[idx] = true;
                 }
             }
         }
-        // 3. Fill remaining positions with 'a' (or minimal valid char)
+        // Step 3: Fill unset positions with 'a'
         for (int i = 0; i < len; ++i) {
-            if (res[i] == '?') res[i] = 'a';
-        }
-        // 4. Final verification of all constraints
-        for (int i = 0; i < n; ++i) {
-            String sub = new String(res, i, m);
-            if (str1.charAt(i) == 'T') {
-                if (!sub.equals(str2)) return "";
-            } else {
-                if (sub.equals(str2)) return "";
+            if (!fixed[i]) {
+                word[i] = 'a';
             }
         }
-        return new String(res);
+        return new String(word);
     }
 }
 # @lc code=end
