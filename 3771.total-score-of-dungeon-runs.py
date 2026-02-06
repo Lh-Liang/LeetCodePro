@@ -9,15 +9,19 @@ class Solution:
     def totalScore(self, hp: int, damage: List[int], requirement: List[int]) -> int:
         n = len(damage)
         total_score = 0
-        # Iterate over all starting rooms
+        
+        # Iterate over each possible starting room index
         for start in range(n):
             current_hp = hp
             score = 0
-            # Traverse from start to end rooms
+            
+            # Simulate moving through rooms from 'start' to 'end'
             for i in range(start, n):
                 current_hp -= damage[i]
                 if current_hp >= requirement[i]:
                     score += 1
+            
             total_score += score
+        
         return total_score
 # @lc code=end
