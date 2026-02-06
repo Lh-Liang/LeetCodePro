@@ -8,13 +8,19 @@
 class Solution:
     def minMoves(self, sx: int, sy: int, tx: int, ty: int) -> int:
         moves = 0
-        while tx > sx and ty > sy:
+        while tx >= sx and ty >= sy:
+            if tx == sx and ty == sy:
+                return moves
             if tx > ty:
+                if ty == sy:
+                    # Reduce directly by subtracting multiples of y
+                    return moves + (tx - sx) // ty if (tx - sx) % ty == 0 else -1
                 tx %= ty
             else:
+                if tx == sx:
+                    # Reduce directly by subtracting multiples of x
+                    return moves + (ty - sy) // tx if (ty - sy) % tx == 0 else -1
                 ty %= tx
             moves += 1
-        if (tx == sx and (ty - sy) % tx == 0) or (ty == sy and (tx - sx) % ty == 0):
-            return moves + max((ty - sy) // tx, (tx - sx) // ty)
-        return -1
+        return -1 # If we exit loop without matching starting coordinates exactly
 # @lc code=end
