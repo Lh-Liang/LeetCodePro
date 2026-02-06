@@ -4,51 +4,57 @@
 # [3786] Total Sum of Interaction Cost in Tree Groups
 #
 # @lc code=start
-import java.util.*;
 class Solution {
     public long interactionCosts(int n, int[][] edges, int[] group) {
-        // Step 1: Build adjacency list
+        // Build the tree
         List<Integer>[] tree = new ArrayList[n];
         for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
         for (int[] e : edges) {
             tree[e[0]].add(e[1]);
             tree[e[1]].add(e[0]);
         }
-        // Step 2: Group nodes by label
+
+        // Map group id to nodes
         Map<Integer, List<Integer>> groupMap = new HashMap<>();
         for (int i = 0; i < n; ++i) {
             groupMap.computeIfAbsent(group[i], k -> new ArrayList<>()).add(i);
         }
+
         long total = 0;
-        // Step 3: For each group, compute interaction cost
-        for (Map.Entry<Integer, List<Integer>> entry : groupMap.entrySet()) {
-            Set<Integer> members = new HashSet<>(entry.getValue());
-            if (members.size() <= 1) continue; // only pairs
-            int[] count = new int[n];
-            // DFS to count group members in subtree
-            dfsCount(0, -1, tree, members, count);
-            // For each edge, sum contributions, only once per edge (u < v)
-            for (int u = 0; u < n; ++u) {
-                for (int v : tree[u]) {
-                    if (u < v) {
-                        int cu = count[u] < count[v] ? count[u] : count[v];
-                        int cv = members.size() - cu;
-                        total += (long)cu * cv;
-                    }
-                }
+        for (int gid : groupMap.keySet()) {
+            List<Integer> nodes = groupMap.get(gid);
+            if (nodes.size() < 2) continue;
+            boolean[] inGroup = new boolean[n];
+            for (int x : nodes) inGroup[x] = true;
+            int totalInGroup = nodes.size();
+
+            // DFS to compute subtree sizes for current group
+            int[] subtree = new int[n];
+            dfs(0, -1, tree, inGroup, subtree);
+
+            // For each edge, calculate contribution
+            for (int[] e : edges) {
+                int u = e[0], v = e[1];
+                // Find parent-child (need to determine direction)
+                // We'll use subtree sizes to infer direction
+                // If subtree[v] < subtree[u], swap
+                if (subtree[v] > subtree[u]) { int tmp = u; u = v; v = tmp; }
+                // Now u is parent of v
+                int count = subtree[v];
+                total += (long) count * (totalInGroup - count);
             }
         }
-        // Step 5: (Verification) Optionally, verify that each pair is counted exactly once
         return total;
     }
-    // Helper DFS: returns count of group members in subtree rooted at node
-    private int dfsCount(int node, int parent, List<Integer>[] tree, Set<Integer> members, int[] count) {
-        count[node] = members.contains(node) ? 1 : 0;
+
+    // Returns how many nodes in this subtree belong to group
+    private int dfs(int node, int parent, List<Integer>[] tree, boolean[] inGroup, int[] subtree) {
+        int cnt = inGroup[node] ? 1 : 0;
         for (int nei : tree[node]) {
             if (nei == parent) continue;
-            count[node] += dfsCount(nei, node, tree, members, count);
+            cnt += dfs(nei, node, tree, inGroup, subtree);
         }
-        return count[node];
+        return subtree[node] = cnt;
     }
 }
 # @lc code=end
