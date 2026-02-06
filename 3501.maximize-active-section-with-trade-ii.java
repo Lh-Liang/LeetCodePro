@@ -1,73 +1,90 @@
+#
+# @lc app=leetcode id=3501 lang=java
+#
+# [3501] Maximize Active Section with Trade II
+#
+# @lc code=start
 import java.util.*;
 class Solution {
     public List<Integer> maxActiveSectionsAfterTrade(String s, int[][] queries) {
         List<Integer> ans = new ArrayList<>();
         for (int[] q : queries) {
             int l = q[0], r = q[1];
-            String t = "1" + s.substring(l, r + 1) + "1";
-            int len = t.length();
-            List<Block> blocks = new ArrayList<>();
+            String sub = s.substring(l, r + 1);
+            StringBuilder t = new StringBuilder();
+            t.append('1'); t.append(sub); t.append('1');
+            int n = t.length();
+            char[] arr = t.toString().toCharArray();
+            // Find all '1' blocks
+            List<int[]> oneBlocks = new ArrayList<>();
             int i = 0;
-            while (i < len) {
-                int j = i;
-                char c = t.charAt(i);
-                while (j < len && t.charAt(j) == c) j++;
-                blocks.add(new Block(i, j - 1, c));
-                i = j;
+            while (i < n) {
+                if (arr[i] == '1') {
+                    int j = i;
+                    while (j < n && arr[j] == '1') j++;
+                    oneBlocks.add(new int[]{i, j - 1});
+                    i = j;
+                } else {
+                    i++;
+                }
             }
-            int currActive = 0;
-            for (int k = 1; k < blocks.size() - 1; ++k) {
-                if (blocks.get(k).type == '1') currActive++;
+            // Initial number of '1' sections in substring (excluding the augmentation)
+            int count = 0;
+            for (int[] block : oneBlocks) {
+                int left = block[0], right = block[1];
+                if (left != 0 && right != n - 1) {
+                    count++;
+                }
             }
-            int maxActive = currActive;
-            for (int k = 1; k < blocks.size() - 1; ++k) {
-                if (blocks.get(k).type == '1' && blocks.get(k-1).type == '0' && blocks.get(k+1).type == '0') {
-                    List<Block> newBlocks = new ArrayList<>();
-                    for (int m = 0; m < blocks.size(); ++m) {
-                        if (m == k) {
-                            newBlocks.add(new Block(blocks.get(m).start, blocks.get(m).end, '0'));
-                        } else {
-                            newBlocks.add(blocks.get(m).clone());
-                        }
-                    }
-                    List<Block> merged = new ArrayList<>();
-                    for (Block b : newBlocks) {
-                        if (merged.isEmpty() || merged.get(merged.size()-1).type != b.type) {
-                            merged.add(b.clone());
-                        } else {
-                            merged.get(merged.size()-1).end = b.end;
-                        }
-                    }
-                    boolean flip = false;
-                    for (int y = 1; y < merged.size() - 1; ++y) {
-                        if (merged.get(y).type == '0' && merged.get(y-1).type == '1' && merged.get(y+1).type == '1') {
-                            flip = true;
-                            int newActive = 0;
-                            for (int z = 1; z < merged.size() - 1; ++z) {
-                                char ch = merged.get(z).type;
-                                if (z == y) ch = '1';
-                                if (ch == '1') newActive++;
+            int maxCount = count;
+            // For each possible '1' block surrounded by '0's, try trading
+            for (int idx = 1; idx < oneBlocks.size() - 1; idx++) {
+                int[] block = oneBlocks.get(idx);
+                int left = block[0], right = block[1];
+                // Check if this block is surrounded by '0's
+                if (arr[left - 1] == '0' && arr[right + 1] == '0') {
+                    // Simulate removal
+                    // Create a copy for simulation
+                    char[] temp = Arrays.copyOf(arr, n);
+                    for (int k = left; k <= right; k++) temp[k] = '0';
+                    // Now find all '0' blocks surrounded by '1's
+                    i = 0;
+                    List<int[]> zeroBlocks = new ArrayList<>();
+                    while (i < n) {
+                        if (temp[i] == '0') {
+                            int j = i;
+                            while (j < n && temp[j] == '0') j++;
+                            if (i > 0 && j < n && temp[i - 1] == '1' && temp[j] == '1') {
+                                zeroBlocks.add(new int[]{i, j - 1});
                             }
-                            maxActive = Math.max(maxActive, newActive);
+                            i = j;
+                        } else {
+                            i++;
                         }
                     }
-                    if (!flip) {
-                        int newActive = 0;
-                        for (int z = 1; z < merged.size() - 1; ++z) {
-                            if (merged.get(z).type == '1') newActive++;
+                    // Try converting each zero block and count
+                    for (int[] zblock : zeroBlocks) {
+                        char[] trial = Arrays.copyOf(temp, n);
+                        for (int k = zblock[0]; k <= zblock[1]; k++) trial[k] = '1';
+                        // Count new '1' sections
+                        int c = 0;
+                        for (int m = 1; m < n - 1; ) {
+                            if (trial[m] == '1') {
+                                int end = m;
+                                while (end < n - 1 && trial[end] == '1') end++;
+                                c++;
+                                m = end;
+                            } else {
+                                m++;
+                            }
                         }
-                        maxActive = Math.max(maxActive, newActive);
+                        maxCount = Math.max(maxCount, c);
                     }
                 }
             }
-            ans.add(maxActive);
+            ans.add(maxCount);
         }
         return ans;
     }
-    static class Block implements Cloneable {
-        int start, end;
-        char type;
-        Block(int s, int e, char t) { start = s; end = e; type = t; }
-        public Block clone() { return new Block(start, end, type); }
-    }
 }
+# @lc code=end
