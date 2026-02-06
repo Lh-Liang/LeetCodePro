@@ -3,65 +3,34 @@
 #
 # [3419] Minimize the Maximum Edge Weight of Graph
 #
+
 # @lc code=start
-import java.util.*;
 class Solution {
     public int minMaxWeight(int n, int[][] edges, int threshold) {
-        int left = 1, right = 1000000, answer = -1;
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
-            if (isFeasible(n, edges, threshold, mid)) {
-                answer = mid;
-                right = mid - 1;
+        // Sort edges by weight (ascending)
+        Arrays.sort(edges, Comparator.comparingInt(a -> a[2]));
+        
+        // Union-Find setup to ensure node 0 is reachable from all nodes
+        UnionFind uf = new UnionFind(n);
+        
+        // Priority Queue to manage outgoing edge constraints per node
+        Map<Integer, PriorityQueue<int[]>> outEdges = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            outEdges.put(i, new PriorityQueue<>(Comparator.comparingInt(a -> -a[2]))); // Max-heap by weight
+        }
+        
+        int maxWeight = -1; // Track maximum edge weight in result graph
+        
+        for (int[] edge : edges) {
+            int from = edge[0], to = edge[1], weight = edge[2];
+            
+            if (uf.connected(to, 0)) continue; // If 'to' is already connected to 0 skip this edge as unnecessary.
+            
+            // Add current edge to node's outgoing list and check constraint.
+            outEdges.get(from).offer(edge);
+            if (outEdges.get(from).size() > threshold) {
+                outEdges.get(from).poll(); // Remove heaviest if exceeding threshold.
             } else {
-                left = mid + 1;
-            }
-        }
-        return answer;
-    }
-    private boolean isFeasible(int n, int[][] edges, int threshold, int maxWeight) {
-        // Map from node to list of outgoing edges (to, weight)
-        List<int[]>[] graph = new List[n];
-        for (int i = 0; i < n; ++i) graph[i] = new ArrayList<>();
-        for (int[] e : edges) {
-            if (e[2] <= maxWeight) {
-                graph[e[0]].add(new int[]{e[1], e[2]});
-            }
-        }
-        // For each node, keep only threshold outgoing edges with smallest weights
-        for (int i = 0; i < n; ++i) {
-            List<int[]> list = graph[i];
-            if (list.size() > threshold) {
-                list.sort(Comparator.comparingInt(a -> a[1]));
-                while (list.size() > threshold) list.remove(list.size() - 1);
-            }
-        }
-        // Build reverse graph for BFS from 0
-        List<Integer>[] reverse = new List[n];
-        for (int i = 0; i < n; ++i) reverse[i] = new ArrayList<>();
-        for (int u = 0; u < n; ++u) {
-            for (int[] v : graph[u]) {
-                reverse[v[0]].add(u);
-            }
-        }
-        // BFS from node 0 over reverse graph
-        boolean[] visited = new boolean[n];
-        Queue<Integer> queue = new LinkedList<>();
-        queue.add(0); visited[0] = true;
-        while (!queue.isEmpty()) {
-            int curr = queue.poll();
-            for (int prev : reverse[curr]) {
-                if (!visited[prev]) {
-                    visited[prev] = true;
-                    queue.add(prev);
-                }
-            }
-        }
-        // Check if all nodes can reach 0
-        for (int i = 0; i < n; ++i) {
-            if (!visited[i]) return false;
-        }
-        return true;
-    }
-}
-# @lc code=end
+                uf.union(from, to); // Union nodes as they are added under threshold.
+                maxWeight = Math.max(maxWeight, weight); // Update maximum weight needed so far.
+            }          	         	      	   	         	       	      	   	          	         	     	       	     }    }    return uf.connected(0) ? maxWeight : -1;    }    class UnionFind {    private int[] parent;    private int[] rank;    public UnionFind(int size) {    parent = new int[size];    rank = new int[size];    for (int i = 0; i < size; i++) {    parent[i] = i;    rank[i] = 1;    }}public boolean connected(int x, int y) {return find(x) == find(y);}public void union(int x, int y) {int rootX = find(x), rootY = find(y);if (rootX != rootY) {if (rank[rootX] > rank[rootY]) parent[rootY] = rootX;else if (rank[rootX] < rank[rootY]) parent[rootX] = rootY;else {parent[rootY] = rootX;rank[rootX]++;}}}private int find(int x) {if (x != parent[x])parent[x] = find(parent[x]);return parent[x];}}} # @lc code=end
