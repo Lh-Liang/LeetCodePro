@@ -7,21 +7,20 @@
 # @lc code=start
 class Solution:
     def lenOfVDiagonal(self, grid: List[List[int]]) -> int:
-        n, m = len(grid), len(grid[0])
+        n = len(grid)
+        m = len(grid[0]) if n > 0 else 0
+        if n == 0 or m == 0: return 0
+        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)] # Directions – diagonals
+        dp = [[[0]*4 for _ in range(m)] for _ in range(n)] # DP table for each direction
         max_length = 0
-        directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]
-        def dfs(x, y, dx, dy, length):
-            if x < 0 or x >= n or y < 0 or y >= m:
-                return length
-            if length % 2 == 0 and grid[x][y] != 2:
-                return length
-            if length % 2 == 1 and grid[x][y] != 0:
-                return length
-            return dfs(x + dx, y + dy, dx, dy, length + 1)
+        # Fill dp table with initial values based on direct propagation of diagonals
         for i in range(n):
             for j in range(m):
                 if grid[i][j] == 1:
-                    for d in directions:
-                        max_length = max(max_length, dfs(i + d[0], j + d[1], d[0], d[1], 2))
-        return max_length
+                    for d in range(4): # For each direction
+                        x, y = i + directions[d][0], j + directions[d][1]
+                        if 0 <= x < n and 0 <= y < m and grid[x][y] == 2:
+                            dp[i][j][d] = dp[x][y][d] + 2 # Alternating sequence continues as '2' then ‘0' etc.
+                        max_length = max(max_length, dp[i][j][d]) # Update maximum length found so far
+        return max_length # Return maximum length found in any direction
 # @lc code=end
