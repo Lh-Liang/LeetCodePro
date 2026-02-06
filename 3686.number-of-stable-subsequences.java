@@ -6,48 +6,32 @@
 # @lc code=start
 class Solution {
     public int countStableSubsequences(int[] nums) {
-        int n = nums.length;
-        int MOD = 1000000007;
-        // dp[i][c][p]: number of stable subsequences using first i elements,
-        // ending with c consecutive p parity elements (c=0: no last elem, 1 or 2), p=0: even, 1: odd
-        // To optimize, we only need 2 dp arrays (prev, curr), since state at i only depends on i-1
-        int[][][] dp = new int[2][3][2];
-        dp[0][0][0] = 1; // empty subsequence, parity doesn't matter
-        dp[0][0][1] = 1;
-        for(int i = 0; i < n; ++i) {
-            int curr = (i+1)%2, prev = i%2;
-            // reset curr layer
-            for(int c=0; c<=2; ++c) for(int p=0; p<=1; ++p) dp[curr][c][p]=0;
-            int parity = nums[i]%2;
-            // For all previous states
-            for(int c=0; c<=2; ++c) {
-                for(int p=0; p<=1; ++p) {
-                    int val = dp[prev][c][p];
-                    if(val==0) continue;
-                    // Option 1: skip nums[i] (don't take)
-                    dp[curr][c][p] = (dp[curr][c][p] + val)%MOD;
-                    // Option 2: take nums[i]
-                    if(c==0) {
-                        // Start a new subsequence
-                        dp[curr][1][parity] = (dp[curr][1][parity] + val)%MOD;
-                    } else {
-                        if(parity==p) {
-                            if(c<2) {
-                                dp[curr][c+1][p] = (dp[curr][c+1][p] + val)%MOD;
-                            } // else: would make three consecutive, skip
-                        } else {
-                            // reset count
-                            dp[curr][1][parity] = (dp[curr][1][parity] + val)%MOD;
-                        }
-                    }
+        final int MOD = 1000000007;
+        // dp[parity][count]: #subseq ending with 'parity' and run-length 'count' (count=1 or 2)
+        long[][] dp = new long[2][3];
+        for (int num : nums) {
+            int p = num % 2;
+            int op = 1 - p;
+            // new DP for this number
+            long[][] ndp = new long[2][3];
+            // start new subseq with this num
+            ndp[p][1] = (ndp[p][1] + 1) % MOD;
+            // extend existing subsequences
+            for (int c = 1; c <= 2; ++c) {
+                // extend subseq ending with opposite parity: reset count
+                ndp[p][1] = (ndp[p][1] + dp[op][c]) % MOD;
+                // extend subseq ending with same parity, if consecutive <2
+                if (c < 2) {
+                    ndp[p][c+1] = (ndp[p][c+1] + dp[p][c]) % MOD;
                 }
             }
+            dp = ndp;
         }
-        int ans = 0;
-        int last = n%2;
-        // Sum all non-empty subsequences
-        for(int c=1; c<=2; ++c) for(int p=0; p<=1; ++p) ans = (ans + dp[last][c][p])%MOD;
-        return ans;
+        long res = 0;
+        for (int p = 0; p < 2; ++p)
+            for (int c = 1; c <= 2; ++c)
+                res = (res + dp[p][c]) % MOD;
+        return (int)res;
     }
 }
 # @lc code=end
