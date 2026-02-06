@@ -6,33 +6,37 @@
 
 # @lc code=start
 class Solution:
-    MOD = 10**9 + 7
-    
     def countNumbers(self, l: str, r: str, b: int) -> int:
-        # Convert l and r to integers from strings for easier comparison
-        l_int = int(l)
-        r_int = int(r)
-        
-        def convert_to_base(num, base):
-            # Convert number to given base and return as string
-            if num == 0:
-                return '0'
+        MOD = 10**9 + 7
+
+        def to_base(n, base):
+            if n == 0: return '0'
             digits = []
-            while num:
-                digits.append(int(num % base))
-                num //= base
-            return ''.join(str(d) for d in reversed(digits))
+            while n:
+                digits.append(int(n % base))
+                n //= base
+            return ''.join(map(str, digits[::-1]))
         
-        def count_valid_numbers(max_length, max_digit):
-            # Use dynamic programming or similar method to count valid numbers up to max_length with max_digit constraint.
-            dp = [[0] * (max_digit + 1) for _ in range(max_length + 1)]
+        def count_non_decreasing(n_str):
+            dp = [[-1] * (len(n_str) + 1) for _ in range(len(n_str))]
             
-            # Base case: Zero length has one valid sequence (the empty sequence)
-            for j in range(max_digit + 1):
-                dp[0][j] = 1
+            def dfs(pos, prev_digit, tight):
+                if pos == len(n_str): return 1
+                if not tight and dp[pos][prev_digit] != -1:
+                    return dp[pos][prev_digit]
+                limit = int(n_str[pos]) if tight else b-1
+                count = 0
+                for d in range(prev_digit, limit + 1):
+                    count += dfs(pos+1, d, tight and (d == limit))%MOD
+                if not tight: dp[pos][prev_digit] = count%MOD
+                return count%MOD
             
-            for i in range(1, max_length + 1):
-                for j in range(max_digit + 1): # last digit can be anything from 0 to j if we are at position i-1 
-                    dp[i][j] = sum(dp[i-1][k] for k in range(j+1)) % self.MOD 
-                    
-dp[len(r_in_base)][int(r_in_base[-1])] - dp[len(l_in_base)][int(l_in_base[-1])]})
+            return dfs(0, 0, True) - 1 # subtract empty string case which is counted by default 
+        
+def helper(l_int: int, r_int: int): 
+l_base_b = to_base(l_int-1,b) 
+r_base_b = to_base(r_int,b) 
+cnt_r = count_non_decreasing(r_base_b) 
+cnt_l_minus_1 = count_non_decreasing(l_base_b) eturn (cnt_r - cnt_l_minus_1 + MOD)%MOD 
+l_int = int(l,b) 
+r_int = int(r,b) eturn helper(l_int,r_int) # @lc code=end
