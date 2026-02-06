@@ -5,30 +5,38 @@
 #
 
 # @lc code=start
+from typing import List
+import collections
+
 class Solution:
     def minOperations(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
-        def can_make_equal(subarray):
-            # Check if all elements can be made equal mod k
-            first_mod = subarray[0] % k
-            for num in subarray:
-                if num % k != first_mod:
-                    return False
-            return True
+        def min_operations_in_subarray(subarray):
+            # Sort the subarray to find a potential target value easier.
+            subarray.sort()
+            n = len(subarray)
+            
+            # Calculate prefix sums for efficient calculation of operations needed.
+            prefix_sum = [0] * (n + 1)
+            for i in range(n):
+                prefix_sum[i + 1] = prefix_sum[i] + subarray[i]
+            
+            # Try making all elements equal to each element in the sorted array and calculate cost.
+            min_operations = float('inf')
+            for i in range(n):
+                # Target value is subarray[i], calculate cost to make all elements equal to this.
+                left_operations = i * subarray[i] - prefix_sum[i]
+                right_operations = (prefix_sum[n] - prefix_sum[i + 1]) - (n - i - 1) * subarray[i]
+                total_operations = left_operations + right_operations
+                min_operations = min(min_operations, total_operations)
+            
+            return min_operations // k if min_operations % k == 0 else -1
         
-        def min_operations(subarray):
-            # Calculate minimum operations assuming can_make_equal is True
-            target = min(subarray)  # Use any element as target post adjustment by k multiples
-            total_ops = 0
-            for num in subarray:
-                total_ops += abs(num - target) // k  # Each operation is equivalent to one move by k
-            return total_ops
-        
-        ans = []
+        results = []
         for li, ri in queries:
             subarray = nums[li:ri+1]
-            if not can_make_equal(subarray):
-                ans.append(-1)  # If impossible to make equal mod k return -1
+            if len(set((x % k) for x in subarray)) > 1:
+                results.append(-1)  # Not possible if remainders modulo k are not all same.
             else:
-                ans.append(min_operations(subarray))  # Calculate required operations if feasible
-        return ans
+                results.append(min_operations_in_subarray(subarray))
+        return results
 # @lc code=end
