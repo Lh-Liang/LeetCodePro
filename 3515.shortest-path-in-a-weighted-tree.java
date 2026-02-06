@@ -4,94 +4,75 @@
 # [3515] Shortest Path in a Weighted Tree
 #
 # @lc code=start
+import java.util.*;
 class Solution {
     public int[] treeQueries(int n, int[][] edges, int[][] queries) {
-        // Step 1: Build the tree and map each edge for efficient updates
-        List<int[]>[] tree = new ArrayList[n + 1];
-        for (int i = 1; i <= n; ++i) tree[i] = new ArrayList<>();
-        Map<Long, Integer> edgeWeight = new HashMap<>();
+        // Build adjacency list and map edge (min(u,v), max(u,v)) to edge index
+        List<int[]>[] tree = new ArrayList[n+1];
+        for (int i = 1; i <= n; i++) tree[i] = new ArrayList<>();
+        Map<Long, Integer> edgeIndex = new HashMap<>();
+        int edgeId = 0;
         for (int[] e : edges) {
-            int u = e[0], v = e[1], w = e[2];
-            tree[u].add(new int[]{v, w});
-            tree[v].add(new int[]{u, w});
-            long key = key(u, v);
-            edgeWeight.put(key, w);
+            tree[e[0]].add(new int[]{e[1], e[2], edgeId});
+            tree[e[1]].add(new int[]{e[0], e[2], edgeId});
+            long key = ((long)Math.min(e[0],e[1]) << 32) | Math.max(e[0],e[1]);
+            edgeIndex.put(key, edgeId++);
         }
-        // Step 2: DFS to assign parent, depth, and root distance
-        int[] parent = new int[n + 1];
-        int[] depth = new int[n + 1];
-        long[] dist = new long[n + 1];
-        dfs(1, 0, 0, 0, tree, parent, depth, dist);
-        // Step 3: Flatten the tree (Euler Tour)
-        int[] tin = new int[n + 1], tout = new int[n + 1];
-        int[] nodeAt = new int[n + 1];
-        int[] time = new int[]{1};
-        flatten(1, 0, tree, tin, tout, nodeAt, time);
-        long[] bit = new long[n + 2]; // Binary Indexed Tree for subtree updates
-        List<Integer> answer = new ArrayList<>();
+        // Euler tour, parent, depth, dfs order
+        int[] in = new int[n+1], out = new int[n+1];
+        int[] parent = new int[n+1], edgeToParent = new int[n+1];
+        long[] dist = new long[n+1];
+        int time = 0;
+        int[] order = new int[n+1];
+        int[] edgeWeights = new int[n];
+        Arrays.fill(edgeToParent, -1);
+        dfs(1, 0, 0, tree, in, out, parent, edgeToParent, dist, order, edgeWeights, time);
+        // Build Fenwick tree / BIT
+        FenwickTree bit = new FenwickTree(n+2);
+        for (int i = 1; i <= n; i++) {
+            bit.add(in[i], dist[i]);
+            bit.add(out[i], -dist[i]);
+        }
+        int[] res = new int[(int)Arrays.stream(queries).filter(q->q[0]==2).count()];
+        int idx = 0;
+        int[] eidToNode = new int[n]; // eid->child node
+        for (int i = 2; i <= n; i++) eidToNode[edgeToParent[i]] = i;
         for (int[] q : queries) {
             if (q[0] == 1) {
-                int u = q[1], v = q[2], nw = q[3];
-                long k = key(u, v);
-                int oldw = edgeWeight.get(k);
-                edgeWeight.put(k, nw);
-                // Step 4: Determine child for the edge update (verify for correctness)
-                int child;
-                if (parent[u] == v) child = u;
-                else if (parent[v] == u) child = v;
-                else throw new IllegalStateException("Edge does not connect parent and child correctly");
-                int delta = nw - oldw;
-                update(bit, tin[child], tout[child], delta);
-                // Optional: verification step (for debugging, can be omitted in production)
-                // assert edgeWeight.get(k) == nw;
+                int u = q[1], v = q[2], w = q[3];
+                long key = ((long)Math.min(u,v)<<32)|Math.max(u,v);
+                int eid = edgeIndex.get(key);
+                int node = eidToNode[eid];
+                int oldw = edgeWeights[eid];
+                int delta = w - oldw;
+                edgeWeights[eid] = w;
+                bit.add(in[node], delta);
+                bit.add(out[node], -delta);
             } else {
                 int x = q[1];
-                // Step 5: Query the updated distance
-                long d = dist[x] + query(bit, tin[x]);
-                answer.add((int)d);
+                res[idx++] = (int)bit.query(in[x]);
             }
         }
-        // Step 6: Ensure answer array is aligned to queries
-        int[] ans = new int[answer.size()];
-        for (int i = 0; i < ans.length; ++i) ans[i] = answer.get(i);
-        return ans;
-    }
-    private void dfs(int u, int p, int d, long acc, List<int[]>[] tree, int[] parent, int[] depth, long[] dist) {
-        parent[u] = p;
-        depth[u] = d;
-        dist[u] = acc;
-        for (int[] nei : tree[u]) {
-            int v = nei[0], w = nei[1];
-            if (v != p) {
-                dfs(v, u, d + 1, acc + w, tree, parent, depth, dist);
-            }
-        }
-    }
-    private void flatten(int u, int p, List<int[]>[] tree, int[] tin, int[] tout, int[] nodeAt, int[] time) {
-        tin[u] = time[0];
-        nodeAt[time[0]] = u;
-        time[0]++;
-        for (int[] nei : tree[u]) {
-            int v = nei[0];
-            if (v != p) flatten(v, u, tree, tin, tout, nodeAt, time);
-        }
-        tout[u] = time[0] - 1;
-    }
-    private void update(long[] bit, int l, int r, int delta) {
-        add(bit, l, delta);
-        add(bit, r + 1, -delta);
-    }
-    private void add(long[] bit, int i, int delta) {
-        int n = bit.length;
-        while (i < n) { bit[i] += delta; i += i & -i; }
-    }
-    private long query(long[] bit, int i) {
-        long res = 0;
-        while (i > 0) { res += bit[i]; i -= i & -i; }
         return res;
     }
-    private long key(int u, int v) {
-        return ((long)Math.min(u, v) << 32) | Math.max(u, v);
+    void dfs(int u, int p, long d, List<int[]>[] tree, int[] in, int[] out, int[] parent, int[] edgeToParent, long[] dist, int[] order, int[] edgeWeights, int time) {
+        in[u] = ++time;
+        dist[u] = d;
+        parent[u] = p;
+        for (int[] nei : tree[u]) {
+            int v = nei[0], w = nei[1], eid = nei[2];
+            if (v == p) continue;
+            edgeToParent[v] = eid;
+            edgeWeights[eid] = w;
+            dfs(v, u, d + w, tree, in, out, parent, edgeToParent, dist, order, edgeWeights, time);
+        }
+        out[u] = ++time;
+    }
+    static class FenwickTree {
+        long[] tree; int n;
+        FenwickTree(int n) { this.n = n; tree = new long[n+2]; }
+        void add(int i, long v) { for (; i < tree.length; i += i&-i) tree[i] += v; }
+        long query(int i) { long s = 0; for (; i > 0; i -= i&-i) s += tree[i]; return s; }
     }
 }
 # @lc code=end
