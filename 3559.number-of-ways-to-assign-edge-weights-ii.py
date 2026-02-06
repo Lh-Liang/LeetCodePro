@@ -5,50 +5,46 @@
 #
 
 # @lc code=start
+from typing import List, Dict
+from collections import defaultdict
+
 class Solution:
     def assignEdgeWeights(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        import collections
         MOD = 10**9 + 7
         n = len(edges) + 1
-        graph = collections.defaultdict(list)
+        # Step 1: Create an adjacency list for the graph representation of the tree.
+        graph = defaultdict(list)
         for u, v in edges:
             graph[u].append(v)
             graph[v].append(u)
         
-        # Precompute depths and parents for LCA computation
-        depth = [-1] * (n + 1)
-        parent = [-1] * (n + 1)
+        # Helper function to perform DFS and find path from start to end node.
+        def find_path(start: int, end: int) -> List[int]:
+            stack = [(start, [start])]
+            visited = set()
+            while stack:
+                node, path = stack.pop()
+                if node == end:
+                    return path
+                if node not in visited:
+                    visited.add(node)
+                    for neighbor in graph[node]:
+                        if neighbor not in visited:
+                            stack.append((neighbor, path + [neighbor]))
+            return []  # Should never reach here if input is valid as per constraints.
         
-        def dfs(node, par, dep):
-            depth[node] = dep
-            parent[node] = par
-            for neighbor in graph[node]:
-                if neighbor == par:
-                    continue
-                dfs(neighbor, node, dep + 1)
+        def calculate_odd_cost_ways(path_length: int) -> int:
+            # Calculate number of ways such that sum of weights is odd.
+            if path_length == 0:
+                return 0
+            # If there are k edges in the path, odd weight sum occurs when there are an odd number of '1's.
+            total_ways = pow(2, path_length - 1, MOD) # Any one edge out of k can be '1' while others '2'
+            return total_ways % MOD
         
-        dfs(1, -1, 0) # Root at node 1 with depth 0
-        
-        def lca(u, v):
-            if depth[u] < depth[v]: # Ensure u is deeper than v or same level.
-                u, v = v, u 
-            # Bring u to the same depth as v. 
-            while depth[u] > depth[v]: 
-                u = parent[u]
-            # Now bring both to their common ancestor. 
-            while u != v:
-                u = parent[u]
-                v = parent[v]
-            return u 
-         
-         def path_length(u, v): 
-             lca_node = lca(u, v) 
-             return depth[u] + depth[v] - 2 * depth[lca_node] 
-         result = [] 
-         for ui, vi in queries: 
-             length = path_length(ui, vi) 
-             if length == 0: 
-                 result.append(0) # No edges in path from node to itself. 
-             else: # There are length ways to assign weights such that cost is odd. 
-                 result.append(pow(2, length - 1, MOD)) # Either choose an odd number of '1' or '2'. 
-         return result # @lc code=end
+        answers = []
+        for u, v in queries:
+            path = find_path(u, v)											# Step 2: Find path using DFS
+            num_edges_in_path = len(path) - 1                 # Step 3: Calculate number of edges on this path
+            answers.append(calculate_odd_cost_ways(num_edges_in_path))	# Step 4 & Step 5
+        return answers
+# @lc code=end
