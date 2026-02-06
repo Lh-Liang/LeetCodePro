@@ -10,9 +10,10 @@ class Solution:
         unique_xor_values = set()
         n = len(nums)
         for i in range(n):
+            xor_sum = 0
             for j in range(i, n):
-                for k in range(j, n):
-                    xor_value = nums[i] ^ nums[j] ^ nums[k]
-                    unique_xor_values.add(xor_value)
+                xor_sum ^= nums[j]
+                # Every (i, j, k) where i <= j <= k gives the same result as (i, j)
+                unique_xor_values.add(xor_sum)
         return len(unique_xor_values)
 # @lc code=end
