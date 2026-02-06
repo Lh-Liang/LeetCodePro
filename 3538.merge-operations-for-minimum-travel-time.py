@@ -7,24 +7,27 @@
 # @lc code=start
 class Solution:
     def minTravelTime(self, l: int, n: int, k: int, position: List[int], time: List[int]) -> int:
-        # Initialize a 2D dp array with inf values
-        dp = [[float('inf')] * (k + 1) for _ in range(n)]
+        # Initialize DP table with infinity values
+        dp = [[float('inf')] * n for _ in range(k + 1)]
         
-        # Base case: no merge, direct calculation of travel time
+        # Base case initialization for 0 merges
         for i in range(n - 1):
-            dp[i][0] = (position[i + 1] - position[i]) * time[i]
+            dp[0][i] = (position[i + 1] - position[i]) * time[i]
         
-        # Fill dp table considering merges
-        for j in range(1, k + 1):
-            for i in range(n - j - 1):
-                # Calculate minimum cost by merging segments i and i+1 through j merges
-                dp[i][j] = min(dp[i][j], dp[i][j - 1] + (position[i + j + 1] - position[i]) * (time[i] + sum(time[i+1:i+j+1])))
-                
-                # Try merging different sections and update dp table accordingly
-                for m in range(i + 1, n - j):
-                    cost_merge = sum((position[m+1+x] - position[m+x]) * time[m+x] for x in range(j))
-                    dp[i][j] = min(dp[i][j], dp[m][0] + cost_merge)
+        # Fill DP table for each number of merges from 1 to k
+        for merges in range(1, k + 1):
+            # Iterate over segments considering merge possibilities
+            for i in range(n - merges):
+                # Attempt to merge current segment with subsequent ones
+                min_cost = float('inf')
+                current_time = time[i]
+                for j in range(i, n - merges):
+                    if j > i:
+                        current_time += time[j]
+                    segment_length = position[j + 1] - position[i]
+                    min_cost = min(min_cost, dp[merges - 1][j] + segment_length * current_time)
+                dp[merges][i] = min_cost
         
-        # Return minimum possible travel time after exactly k merges from start to end of road
-        return min(dp[0][j] for j in range(k + 1)) if n > k else sum((position[x+1]-position[x])*time[x] for x in range(n-1))
+        # Calculate minimum total travel time after exactly k merges
+        return min(dp[k][i] for i in range(n - k))
 # @lc code=end
