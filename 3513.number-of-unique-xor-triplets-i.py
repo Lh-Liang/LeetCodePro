@@ -11,9 +11,8 @@ class Solution:
         n = len(nums)
         for i in range(n):
             for j in range(i, n):
-                current_xor = nums[i]
                 for k in range(j, n):
-                    current_xor ^= nums[k]
-                    unique_xor_values.add(current_xor)
+                    xor_value = nums[i] ^ nums[j] ^ nums[k]
+                    unique_xor_values.add(xor_value)
         return len(unique_xor_values)
 # @lc code=end
