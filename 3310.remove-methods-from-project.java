@@ -3,45 +3,42 @@
 #
 # [3310] Remove Methods From Project
 #
-
 # @lc code=start
 import java.util.*;
 class Solution {
     public List<Integer> remainingMethods(int n, int k, int[][] invocations) {
-        // Step 1: Build adjacency list
-        List<Integer>[] graph = new ArrayList[n];
+        // Step 1: Build the adjacency list for graph traversal
+        List<Integer>[] graph = new List[n];
         for (int i = 0; i < n; ++i) graph[i] = new ArrayList<>();
-        for (int[] inv : invocations) {
-            graph[inv[0]].add(inv[1]);
+        for (int[] edge : invocations) {
+            graph[edge[0]].add(edge[1]);
         }
-        // Step 2: Find all suspicious methods (reachable from k)
-        boolean[] suspicious = new boolean[n];
-        Deque<Integer> stack = new ArrayDeque<>();
-        stack.push(k);
-        while (!stack.isEmpty()) {
-            int cur = stack.pop();
-            if (suspicious[cur]) continue;
-            suspicious[cur] = true;
-            for (int nei : graph[cur]) {
-                if (!suspicious[nei]) stack.push(nei);
+        // Step 2: Find all suspicious methods via BFS
+        Set<Integer> suspicious = new HashSet<>();
+        Queue<Integer> queue = new ArrayDeque<>();
+        queue.add(k);
+        suspicious.add(k);
+        while (!queue.isEmpty()) {
+            int curr = queue.poll();
+            for (int nei : graph[curr]) {
+                if (suspicious.add(nei)) {
+                    queue.add(nei);
+                }
             }
         }
-        // Step 3: Check for invocations from outside suspicious set to inside
-        for (int[] inv : invocations) {
-            int from = inv[0], to = inv[1];
-            if (!suspicious[from] && suspicious[to]) {
+        // Step 3: Check for any external invocation into suspicious
+        for (int[] edge : invocations) {
+            int from = edge[0], to = edge[1];
+            if (!suspicious.contains(from) && suspicious.contains(to)) {
+                // There is an external invocation
                 List<Integer> all = new ArrayList<>();
                 for (int i = 0; i < n; ++i) all.add(i);
                 return all;
             }
         }
-        // Step 4: Return all non-suspicious methods
+        // Step 4: Return non-suspicious methods
         List<Integer> res = new ArrayList<>();
-        for (int i = 0; i < n; ++i) {
-            if (!suspicious[i]) res.add(i);
-        }
-        // Step 5: Verify output satisfies all problem constraints (e.g., edge cases, cycles)
-        // (In this implementation, all constraints are covered by previous steps)
+        for (int i = 0; i < n; ++i) if (!suspicious.contains(i)) res.add(i);
         return res;
     }
 }
