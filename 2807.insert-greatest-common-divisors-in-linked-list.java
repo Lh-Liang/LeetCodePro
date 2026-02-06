@@ -3,6 +3,7 @@
 #
 # [2807] Insert Greatest Common Divisors in Linked List
 #
+
 # @lc code=start
 /**
 * Definition for singly-linked list.
@@ -15,6 +16,18 @@
 * }
 */
 class Solution {
+    public ListNode insertGreatestCommonDivisors(ListNode head) {
+        if (head == null || head.next == null) return head;
+        ListNode curr = head;
+        while (curr != null && curr.next != null) {
+            int gcdVal = gcd(curr.val, curr.next.val);
+            ListNode gcdNode = new ListNode(gcdVal);
+            gcdNode.next = curr.next;
+            curr.next = gcdNode;
+            curr = gcdNode.next;
+        }
+        return head;
+    }
     private int gcd(int a, int b) {
         while (b != 0) {
             int temp = b;
@@ -22,18 +35,6 @@ class Solution {
             a = temp;
         }
         return a;
-    }
-
-    public ListNode insertGreatestCommonDivisors(ListNode head) {
-        ListNode curr = head;
-        while (curr != null && curr.next != null) {
-            int g = gcd(curr.val, curr.next.val);
-            ListNode newNode = new ListNode(g);
-            newNode.next = curr.next;
-            curr.next = newNode;
-            curr = newNode.next;
-        }
-        return head;
     }
 }
 # @lc code=end
