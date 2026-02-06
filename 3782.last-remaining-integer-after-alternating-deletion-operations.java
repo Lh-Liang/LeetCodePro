@@ -6,18 +6,18 @@
 # @lc code=start
 class Solution {
     public long lastInteger(long n) {
-        long res = 1;
+        long head = 1;
+        long step = 1;
         boolean left = true;
-        long step = 1, remain = n;
-        while (remain > 1) {
-            if (left || remain % 2 == 1) {
-                res += step;
+        while (n > 1) {
+            if (left || n % 2 == 1) {
+                head += step;
             }
-            step *= 2;
-            remain /= 2;
+            step <<= 1;
+            n >>= 1;
             left = !left;
         }
-        return res;
+        return head;
     }
 }
 # @lc code=end
