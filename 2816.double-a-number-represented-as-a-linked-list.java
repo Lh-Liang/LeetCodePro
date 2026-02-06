@@ -16,31 +16,20 @@
 */
 class Solution {
     public ListNode doubleIt(ListNode head) {
-        head = reverse(head);
-        ListNode curr = head;
+        if (head == null) return null;
         int carry = 0;
-        ListNode prev = null;
-        while (curr != null) {
-            int sum = curr.val * 2 + carry;
-            curr.val = sum % 10;
-            carry = sum / 10;
-            prev = curr;
-            curr = curr.next;
-        }
-        if (carry > 0) {
-            prev.next = new ListNode(carry);
-        }
-        return reverse(head);
-    }
-    private ListNode reverse(ListNode head) {
-        ListNode prev = null;
-        while (head != null) {
-            ListNode next = head.next;
-            head.next = prev;
-            prev = head;
-            head = next;
-        }
-        return prev;
-    }
+        ListNode current = head;
+        while (current != null) {
+            int doubledValue = current.val * 2 + carry;
+            current.val = doubledValue % 10;
+            carry = doubledValue / 10;
+            if (current.next == null && carry > 0) {
+                current.next = new ListNode(carry);
+                break; // No need to continue since we just appended last node. 
+            } 
+            current = current.next; 
+        } 
+        return head; 
+    } 
 }
 # @lc code=end
