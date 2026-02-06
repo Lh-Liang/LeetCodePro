@@ -3,7 +3,6 @@
 #
 # [1367] Linked List in Binary Tree
 #
-
 # @lc code=start
 /**
 * Definition for singly-linked list.
@@ -33,16 +32,14 @@
 class Solution {
     public boolean isSubPath(ListNode head, TreeNode root) {
         if (root == null) return false;
-        // Check from this node, or from left subtree, or right subtree
-        return checkPath(head, root) || isSubPath(head, root.left) || isSubPath(head, root.right);
+        if (dfs(head, root)) return true;
+        return isSubPath(head, root.left) || isSubPath(head, root.right);
     }
-    // Helper function to check if list matches from this tree node
-    private boolean checkPath(ListNode head, TreeNode node) {
-        if (head == null) return true; // Finished list: success
-        if (node == null) return false; // Finished tree, list not done: fail
-        if (head.val != node.val) return false;
-        // Try to match next list node with left or right child
-        return checkPath(head.next, node.left) || checkPath(head.next, node.right);
+    private boolean dfs(ListNode head, TreeNode node) {
+        if (head == null) return true;
+        if (node == null) return false;
+        if (node.val != head.val) return false;
+        return dfs(head.next, node.left) || dfs(head.next, node.right);
     }
 }
 # @lc code=end
