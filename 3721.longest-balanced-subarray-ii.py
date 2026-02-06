@@ -7,25 +7,23 @@
 # @lc code=start
 class Solution:
     def longestBalanced(self, nums: List[int]) -> int:
-        max_length = 0
-        left = 0
+        # HashMap to store first occurrence of balance
+        balance_map = {0: -1}
+        # Sets to track distinct evens and odds
         even_set = set()
         odd_set = set()
-        
-        for right in range(len(nums)):
-            if nums[right] % 2 == 0:
-                even_set.add(nums[right])
+        max_length = 0
+        balance = 0  # Difference between counts of evens and odds
+        for i, num in enumerate(nums):
+            if num % 2 == 0:
+                even_set.add(num)
             else:
-                odd_set.add(nums[right])
-                
-            while len(even_set) != len(odd_set) and left <= right:
-                if nums[left] % 2 == 0:
-                    even_set.remove(nums[left])
-                else:
-                    odd_set.remove(nums[left])
-                left += 1
-            
-            if len(even_set) == len(odd_set):
-                max_length = max(max_length, right - left + 1)
+                odd_set.add(num)
+            # Calculate balance as difference between sizes of sets
+            balance = len(even_set) - len(odd_set)
+            if balance in balance_map:
+                max_length = max(max_length, i - balance_map[balance])
+            else:
+                balance_map[balance] = i  # Store first occurrence of this balance
         return max_length
 # @lc code=end
