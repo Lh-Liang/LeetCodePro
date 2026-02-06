@@ -7,28 +7,42 @@
 # @lc code=start
 class Solution:
     def interactionCosts(self, n: int, edges: List[List[int]], group: List[int]) -> int:
-        from collections import defaultdict
-        def dfs(node, parent):
-            size = 1
-            for neighbor in tree[node]:
-                if neighbor != parent:
-                    size += dfs(neighbor, node)
-            subtree_sizes[node] = size
-            return size
-        tree = defaultdict(list)
+        from collections import defaultdict, deque
+        
+        # Step 1: Build the adjacency list
+        adj_list = defaultdict(list)
         for u, v in edges:
-            tree[u].append(v)
-            tree[v].append(u)
-        subtree_sizes = [0] * n
-        dfs(0, -1) # assuming node 0 as root for DFS traversal
-        group_map = defaultdict(list)
-        for i in range(n):
-            group_map[group[i]].append(i)
-        total_cost = 0
-        for nodes in group_map.values():
-            if len(nodes) > 1:
-                cost = 0 # Reset cost calculation per group
-                for u in nodes:
-                    for v in nodes:
-                        if u < v: # Ensure (u,v) is unordered pair and u != v
-                            lca_cost = abs(subtree_sizes[u] - subtree_sizes[v]) # Example calculation method; need accurate method based on path lengths calculated via LCA or other means.                              cost += lca_cost # This needs accurate LCA based path length calculation.                  total_cost += cost // 2 # Because each pair cost is added twice in undirected paths calculation.          return total_cost # @lc code=end
+            adj_list[u].append(v)
+            adj_list[v].append(u)
+        
+        # Step 2 & 4: Function to calculate interaction cost within a single group using BFS
+        def bfs_cost(nodes):
+            if len(nodes) < 2:
+                return 0
+            total_cost = 0
+            for start in nodes:
+                queue = deque([(start, 0)])
+                visited = {start}
+                while queue:
+                    current, dist = queue.popleft()
+                    for neighbor in adj_list[current]:
+                        if neighbor not in visited:
+                            visited.add(neighbor)
+                            queue.append((neighbor, dist + 1))
+                            if neighbor in nodes:
+                                total_cost += dist + 1
+            return total_cost // 2 # Each path is counted twice (u-v and v-u)
+        
+        # Step 3: Group nodes by their group label
+        group_to_nodes = defaultdict(list)
+        for node in range(n):
+            group_to_nodes[group[node]].append(node)
+        
+        total_interaction_cost = 0
+        
+        # Step 5: Calculate interaction costs within each group and aggregate them
+        for nodes in group_to_nodes.values():
+            total_interaction_cost += bfs_cost(nodes)
+
+        return total_interaction_cost
+# @lc code=end
