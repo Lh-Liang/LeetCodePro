@@ -9,28 +9,29 @@ class Solution {
     public int minTimeToReach(int[][] moveTime) {
         int n = moveTime.length, m = moveTime[0].length;
         int[][] minTime = new int[n][m];
-        for (int[] row : minTime) Arrays.fill(row, Integer.MAX_VALUE);
-        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
-        pq.offer(new int[]{0, 0, 0}); // {currentTime, x, y}
+        for (int[] row : minTime)
+            Arrays.fill(row, Integer.MAX_VALUE);
         minTime[0][0] = 0;
-        int[] dx = {1, -1, 0, 0};
-        int[] dy = {0, 0, 1, -1};
+        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[0]));
+        pq.offer(new int[]{0, 0, 0}); // {time, i, j}
+        int[] dirs = {0, 1, 0, -1, 0};
         while (!pq.isEmpty()) {
-            int[] cur = pq.poll();
-            int t = cur[0], x = cur[1], y = cur[2];
-            if (x == n - 1 && y == m - 1) return t;
-            for (int d = 0; d < 4; d++) {
-                int nx = x + dx[d], ny = y + dy[d];
-                if (nx >= 0 && nx < n && ny >= 0 && ny < m) {
-                    int arrive = Math.max(t + 1, moveTime[nx][ny]);
-                    if (arrive < minTime[nx][ny]) { // Only proceed if strictly better
-                        minTime[nx][ny] = arrive;
-                        pq.offer(new int[]{arrive, nx, ny});
+            int[] curr = pq.poll();
+            int time = curr[0], i = curr[1], j = curr[2];
+            if (i == n-1 && j == m-1) return time;
+            if (time > minTime[i][j]) continue;
+            for (int d = 0; d < 4; ++d) {
+                int ni = i + dirs[d], nj = j + dirs[d+1];
+                if (ni >= 0 && ni < n && nj >= 0 && nj < m) {
+                    int nextTime = Math.max(time + 1, moveTime[ni][nj]);
+                    if (nextTime < minTime[ni][nj]) {
+                        minTime[ni][nj] = nextTime;
+                        pq.offer(new int[]{nextTime, ni, nj});
                     }
                 }
             }
         }
-        return -1; // Should not reach here given constraints
+        return -1;
     }
 }
 # @lc code=end
