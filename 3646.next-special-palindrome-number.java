@@ -3,61 +3,68 @@
 #
 # [3646] Next Special Palindrome Number
 #
+
 # @lc code=start
 class Solution {
-    // Helper to check if a string is a palindrome
-    private boolean isPalindrome(String s) {
-        int l = 0, r = s.length() - 1;
-        while (l < r) {
-            if (s.charAt(l++) != s.charAt(r--)) return false;
-        }
-        return true;
-    }
-    // Helper to count digit frequencies
-    private int[] countDigits(String s) {
-        int[] count = new int[10];
-        for (char c : s.toCharArray()) count[c - '0']++;
-        return count;
-    }
-    // Helper to check the special property
-    private boolean isSpecial(int[] count) {
-        for (int d = 0; d <= 9; ++d) {
-            if (count[d] != 0 && count[d] != d) return false;
-        }
-        return true;
-    }
-    // Generate palindromes of given length recursively, no early pruning on partial candidates
-    private void generatePalindromes(int pos, char[] curr, int len, long limit, long[] result) {
-        if (result[0] != -1) return; // already found
-        if (pos >= (len + 1) / 2) {
-            String s = new String(curr);
-            long val = Long.parseLong(s);
-            if (val > limit) {
-                int[] count = countDigits(s);
-                if (isPalindrome(s) && isSpecial(count)) {
-                    result[0] = val;
-                }
-            }
-            return;
-        }
-        for (char d = (pos == 0 ? '1' : '0'); d <= '9'; ++d) {
-            curr[pos] = d;
-            curr[len - 1 - pos] = d;
-            generatePalindromes(pos + 1, curr, len, limit, result);
-            if (result[0] != -1) return;
-        }
-    }
     public long specialPalindrome(long n) {
-        String nStr = Long.toString(n + 1);
-        int minLen = nStr.length();
-        int maxLen = 18;
-        for (int len = minLen; len <= maxLen; ++len) {
-            char[] curr = new char[len];
-            long[] result = new long[]{-1};
-            generatePalindromes(0, curr, len, n, result);
-            if (result[0] != -1) return result[0];
+        long candidate = n + 1;
+        while (true) {
+            candidate = nextPalindrome(candidate);
+            if (isSpecial(candidate)) {
+                return candidate;
+            }
+            candidate++; // In case nextPalindrome returned n itself
         }
-        return -1;
+    }
+    
+    // Generates the next palindrome >= num
+    private long nextPalindrome(long num) {
+        String s = Long.toString(num);
+        int len = s.length();
+        char[] arr = s.toCharArray();
+        // Mirror left to right
+        for (int i = 0; i < len / 2; i++) {
+            arr[len - 1 - i] = arr[i];
+        }
+        long pal = Long.parseLong(new String(arr));
+        if (pal >= num) {
+            return pal;
+        }
+        // Need to increment the middle and mirror again
+        int mid = (len - 1) / 2;
+        while (mid >= 0 && arr[mid] == '9') {
+            arr[mid] = '0';
+            arr[len - 1 - mid] = '0';
+            mid--;
+        }
+        if (mid < 0) {
+            // All 9's, so next palindrome is 100...001
+            StringBuilder sb = new StringBuilder();
+            sb.append('1');
+            for (int i = 1; i < len; i++) sb.append('0');
+            sb.append('1');
+            return Long.parseLong(sb.toString());
+        }
+        arr[mid]++;
+        arr[len - 1 - mid] = arr[mid];
+        // Mirror again
+        for (int i = 0; i < len / 2; i++) {
+            arr[len - 1 - i] = arr[i];
+        }
+        return Long.parseLong(new String(arr));
+    }
+    
+    private boolean isSpecial(long x) {
+        int[] freq = new int[10];
+        char[] arr = Long.toString(x).toCharArray();
+        for (char c : arr) {
+            freq[c - '0']++;
+        }
+        for (int d = 1; d <= 9; d++) {
+            if (freq[d] != 0 && freq[d] != d) return false;
+        }
+        if (freq[0] != 0) return false; // 0 cannot appear since it must appear zero times
+        return true;
     }
 }
 # @lc code=end
