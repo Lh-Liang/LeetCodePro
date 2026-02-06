@@ -1,73 +1,65 @@
+#
+# @lc app=leetcode id=3594 lang=java
+#
+# [3594] Minimum Time to Transport All Individuals
+#
+# @lc code=start
+import java.util.*;
 class Solution {
     public double minTime(int n, int k, int m, int[] time, double[] mul) {
-        Map<Long, Double> memo = new HashMap<>();
+        if (k == 1 && n > 1) return -1.0;
         int FULL = (1 << n) - 1;
-        double res = dfs(FULL, 1, 0, n, k, m, time, mul, memo);
-        if (res == Double.MAX_VALUE || Double.isInfinite(res) || Double.isNaN(res)) {
-            return -1.0;
-        }
-        return res;
+        Map<Integer, Double>[] memo = new Map[m];
+        for (int i = 0; i < m; ++i) memo[i] = new HashMap<>();
+        double res = dfs(FULL, 0, n, k, m, time, mul, memo);
+        return res == Double.POSITIVE_INFINITY ? -1.0 : res;
     }
-    private double dfs(int baseMask, int boatAtBase, int stage, int n, int k, int m, int[] time, double[] mul, Map<Long, Double> memo) {
-        if (baseMask == 0 && boatAtBase == 0) {
-            return 0.0;
-        }
-        long key = (((long) baseMask) << 6) | (boatAtBase << 3) | stage;
-        if (memo.containsKey(key)) {
-            return memo.get(key);
-        }
-        double ans = Double.MAX_VALUE;
-        if (boatAtBase == 1) {
-            List<Integer> basePeople = new ArrayList<>();
-            for (int i = 0; i < n; ++i) {
-                if (((baseMask >> i) & 1) == 1) {
-                    basePeople.add(i);
-                }
+    private double dfs(int mask, int stage, int n, int k, int m, int[] time, double[] mul, Map<Integer, Double>[] memo) {
+        if (mask == 0) return 0.0; // all at destination
+        if (memo[stage].containsKey(mask)) return memo[stage].get(mask);
+        double minTime = Double.POSITIVE_INFINITY;
+        List<Integer> people = new ArrayList<>();
+        for (int i = 0; i < n; ++i) if (((mask >> i) & 1) != 0) people.add(i);
+        // Try all groupings to cross (size 1 to k)
+        int sz = people.size();
+        List<List<Integer>> groups = new ArrayList<>();
+        getGroups(people, k, 0, new ArrayList<>(), groups);
+        for (List<Integer> group : groups) {
+            int nextMask = mask;
+            int maxTime = 0;
+            for (int p : group) {
+                nextMask ^= (1 << p);
+                maxTime = Math.max(maxTime, time[p]);
             }
-            int sz = basePeople.size();
-            for (int mask = 1; mask < (1 << sz); ++mask) {
-                if (Integer.bitCount(mask) > k) continue;
-                int groupMax = 0;
-                int newBaseMask = baseMask;
-                for (int j = 0; j < sz; ++j) {
-                    if (((mask >> j) & 1) == 1) {
-                        groupMax = Math.max(groupMax, time[basePeople.get(j)]);
-                        newBaseMask ^= (1 << basePeople.get(j));
-                    }
-                }
-                double crossTime = groupMax * mul[stage];
-                int advance = (int) Math.floor(crossTime) % m;
-                int nextStage = (stage + advance) % m;
-                double recur = dfs(newBaseMask, 0, nextStage, n, k, m, time, mul, memo);
-                if (recur != Double.MAX_VALUE) {
-                    ans = Math.min(ans, crossTime + recur);
-                }
-            }
-        } else {
-            int destMask = ((1 << n) - 1) ^ baseMask;
-            List<Integer> destPeople = new ArrayList<>();
-            for (int i = 0; i < n; ++i) {
-                if (((destMask >> i) & 1) == 1) {
-                    destPeople.add(i);
-                }
-            }
-            // If there are still people at base but nobody at destination to return the boat, infeasible
-            if (baseMask != 0 && destPeople.isEmpty()) {
-                memo.put(key, Double.MAX_VALUE);
-                return Double.MAX_VALUE;
-            }
-            for (int idx : destPeople) {
-                double retTime = time[idx] * mul[stage];
-                int advance = (int) Math.floor(retTime) % m;
-                int nextStage = (stage + advance) % m;
-                int newBaseMask = baseMask | (1 << idx);
-                double recur = dfs(newBaseMask, 1, nextStage, n, k, m, time, mul, memo);
-                if (recur != Double.MAX_VALUE) {
-                    ans = Math.min(ans, retTime + recur);
+            double trip = maxTime * mul[stage];
+            int stageAdv = ((int)Math.floor(trip)) % m;
+            int newStage = (stage + stageAdv) % m;
+            if (nextMask == 0) {
+                minTime = Math.min(minTime, trip);
+            } else {
+                // try each of the group as returnee
+                for (int ret : group) {
+                    int backMask = nextMask | (1 << ret);
+                    double retTime = time[ret] * mul[newStage];
+                    int retAdv = ((int)Math.floor(retTime)) % m;
+                    int retStage = (newStage + retAdv) % m;
+                    double candidate = trip + retTime + dfs(backMask, retStage, n, k, m, time, mul, memo);
+                    minTime = Math.min(minTime, candidate);
                 }
             }
         }
-        memo.put(key, ans);
-        return ans;
+        memo[stage].put(mask, minTime);
+        return minTime;
+    }
+    // Generate all possible groupings
+    private void getGroups(List<Integer> people, int k, int idx, List<Integer> curr, List<List<Integer>> groups) {
+        if (!curr.isEmpty() && curr.size() <= k) groups.add(new ArrayList<>(curr));
+        if (curr.size() == k || idx == people.size()) return;
+        for (int i = idx; i < people.size(); ++i) {
+            curr.add(people.get(i));
+            getGroups(people, k, i + 1, curr, groups);
+            curr.remove(curr.size() - 1);
+        }
     }
 }
+# @lc code=end
