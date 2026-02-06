@@ -8,17 +8,17 @@ class Solution {
     public long maxWeight(int[] pizzas) {
         Arrays.sort(pizzas);
         int n = pizzas.length;
-        long total = 0;
+        long res = 0;
         int days = n / 4;
-        for (int d = 0; d < days; ++d) {
-            int idx = d * 4;
-            if ((d + 1) % 2 == 1) { // odd day (1-indexed)
-                total += pizzas[idx + 3]; // Z
-            } else {
-                total += pizzas[idx + 2]; // Y
+        for (int i = 0; i < days; ++i) {
+            int idx = n - 4 * i;
+            if ((i & 1) == 0) { // odd-numbered day (1-indexed)
+                res += pizzas[idx - 1]; // largest (Z)
+            } else { // even-numbered day
+                res += pizzas[idx - 2]; // second largest (Y)
             }
         }
-        return total;
+        return res;
     }
 }
 # @lc code=end
