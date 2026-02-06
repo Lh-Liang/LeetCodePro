@@ -7,42 +7,55 @@
 class Solution {
     public boolean maxSubstringLength(String s, int k) {
         int n = s.length();
-        if (k == 0) return true;
         int[] first = new int[26];
         int[] last = new int[26];
         for (int i = 0; i < 26; ++i) {
-            first[i] = -1;
+            first[i] = n;
             last[i] = -1;
         }
         for (int i = 0; i < n; ++i) {
             int idx = s.charAt(i) - 'a';
-            if (first[idx] == -1) first[idx] = i;
-            last[idx] = i;
+            first[idx] = Math.min(first[idx], i);
+            last[idx] = Math.max(last[idx], i);
         }
-        int count = 0;
+        List<int[]> intervals = new ArrayList<>();
+        for (int i = 0; i < 26; ++i) {
+            if (first[i] < n && last[i] > -1) {
+                intervals.add(new int[]{first[i], last[i]});
+            }
+        }
+        // Merge intervals to define special substrings
+        List<int[]> merged = new ArrayList<>();
+        intervals.sort((a, b) -> Integer.compare(a[0], b[0]));
         int i = 0;
-        while (i < n) {
-            int start = i;
-            int end = last[s.charAt(i) - 'a'];
-            int j = i;
-            while (j < end) {
-                end = Math.max(end, last[s.charAt(j) - 'a']);
-                ++j;
-            }
-            // Verify all characters in [start, end] are unique to this substring
-            boolean valid = true;
-            for (int x = start; x <= end; ++x) {
-                int idx = s.charAt(x) - 'a';
-                if (first[idx] < start || last[idx] > end) {
-                    valid = false;
-                    break;
+        while (i < intervals.size()) {
+            int l = intervals.get(i)[0], r = intervals.get(i)[1];
+            int j = i + 1;
+            boolean expanded;
+            do {
+                expanded = false;
+                for (int x = i + 1; x < intervals.size(); ++x) {
+                    if (intervals.get(x)[0] > r) break;
+                    if (intervals.get(x)[1] > r) {
+                        r = intervals.get(x)[1];
+                        expanded = true;
+                    }
                 }
+            } while (expanded);
+            if (!(l == 0 && r == n - 1)) {
+                merged.add(new int[]{l, r});
             }
-            // The substring should not be the whole string and must satisfy uniqueness
-            if (valid && (start > 0 || end < n - 1)) {
+            // Skip to the next non-overlapping interval
+            while (i < intervals.size() && intervals.get(i)[0] <= r) ++i;
+        }
+        // Greedily select disjoint substrings
+        merged.sort((a, b) -> Integer.compare(a[1], b[1]));
+        int count = 0, end = -1;
+        for (int[] interval : merged) {
+            if (interval[0] > end) {
                 count++;
+                end = interval[1];
             }
-            i = end + 1;
         }
         return count >= k;
     }
