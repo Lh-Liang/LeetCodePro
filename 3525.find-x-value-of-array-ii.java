@@ -3,35 +3,35 @@
 #
 # [3525] Find X Value of Array II
 #
-
 # @lc code=start
 class Solution {
     public int[] resultArray(int[] nums, int k, int[][] queries) {
         int n = nums.length;
-        int q = queries.length;
-        int[] res = new int[q];
-        for (int idx = 0; idx < q; ++idx) {
-            int index = queries[idx][0];
-            int value = queries[idx][1];
-            int start = queries[idx][2];
-            int x = queries[idx][3];
-            nums[index] = value; // Update nums persistently
-            int m = n - start; // Length of current subarray
-            int[] arr = new int[m];
-            for (int i = 0; i < m; ++i) arr[i] = nums[start + i];
-            int[] freq = new int[k];
-            int prod = 1;
-            // Suffixes: for i from m-1 downto 0, prod = arr[i]*prod % k
-            // freq[p]: number of suffixes whose product % k == p
-            // We must count all suffixes (including full array, and at least one element)
-            // So we go from right to left, include suffix starting at each position
-            for (int i = m - 1; i >= 0; --i) {
-                prod = (int)((long)prod * arr[i] % k);
-                freq[prod]++;
-            }
-            res[idx] = freq[x];
+        int[] result = new int[queries.length];
+        
+        // Precompute powers modulo k for efficiency
+        int[] powerMod = new int[n+1]; // powerMod[i] will store (nums[i] % k) * (nums[i+1] % k) * ... % k
+        powerMod[n] = 1; // Base case: product is 1 when no elements are considered
+        for (int i = n - 1; i >= 0; i--) {
+            powerMod[i] = (powerMod[i+1] * (nums[i] % k)) % k;
         }
-        return res;
-    }
-}
-# @lc code=end
+        
+        for (int q = 0; q < queries.length; q++) {
+            int index = queries[q][0];
+            int value = queries[q][1];
+            int start = queries[q][2];
+            int xValueTarget = queries[q][3];
+            
+            // Update nums[index]
+            nums[index] = value;
+            
+            // Recompute powerMod from start to end due to update at index `index` if necessary
+            for (int i = Math.max(start, index); i < n; i++) {
+                powerMod[i] = ((i == n-1 ? 1 : powerMod[i+1]) * (nums[i] % k)) % k;
+            }
+            
+            // Calculate number of suffixes resulting in remainder xValueTarget when taken mod k from start to end suffixes possible from current state starting at `start` prefix removed. 
+            int countXValues = 0;
+            for (int i = start; i < n; i++) {  
+                if(powerMod[i] == xValueTarget){ countXValues++; } 
+            }               	   	           	           	           	          		      		    	   		    		     	          	       	      	     	   	o     o      o      o      o      o     o    o     o    o   o   o   o   o   	o     	o    	o   ->->->->->->->o->x->o!>o!>o!>o!>o!>o!>o!>o!>o!>o!>o!>o!>o!>o!>o!>o!--$--$--$--$--$--$--$--$--$--$--$--$!!-->!!-->!!-->!!-->!!-->!!-->!!-->!!-->!!-->!!_____}____}____}_____}____}__}__}_____}. $}$}$}$}$}$}}}}}}}}}}}}}}}}/ / / / / / / / / / / . . . x     - - - - - . . . . x         - - - . . ..x---... ... ... ... ... ... ..x....x.x.x...x.x.x.x.x.x..x..x..x..x..x..xx.x.....xxxxxxxxxxxxxxx....##@##@##@##@##@##@##@##@###@@@@@@####@@@@####@@@@@@####@@@@@@@@########@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@#@@@@@###@@@@@###@@@@@@@@@@@@@@###@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@###@@@@@@$$$$$$$$$$$$$$$$$$######@@@@@@@@#####@@###@@@@#####@@@@#####@@@@@@@@########@@@@@@@@###@@@@#####@@@@@@######@@###$$######$$#####$$########$$#########################.//././././././././././.,.,.,.,.,.,,,.,,,,,,,,,,,,,,,,,,,,,,,///////////oooooooooooooooooooooo...oooooo......ooooooo..ooooooooooooooooooooooo//////..../////...../////...../////......//////........////////......////////..........////////////.........////////////////............................/////////////////////////////.......//////////////////////////////////////////////////////////////////////............../////////////////////////////////////////////////////////////////////////////////////////////////////////////.....................\\\\\\\\\\
