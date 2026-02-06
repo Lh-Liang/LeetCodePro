@@ -1,10 +1,63 @@
-Step 1: Carefully read and understand the problem statement and constraints.
-Step 2: Break down the problem into subtasks:
-  a. Find the minimal SCS length for the input words.
-  b. Generate all SCSs of that minimal length ensuring each contains all words as subsequences.
-  c. For each SCS, compute its frequency array over the 26 lowercase English letters.
-  d. Deduplicate frequency arrays so only unique (non-permutation) solutions remain.
-Step 3: After each subtask, verify correctness and completeness; for example, confirm all SCSs are minimal and include every input word as a subsequence, and that deduplication is accurate.
-Step 4: Use efficient, general-purpose algorithms (e.g., BFS/backtracking/dynamic programming for SCS construction; hash sets for deduplication).
-Step 5: Confirm that the output strictly matches the required List<List<Integer>> format.
-Step 6: Perform a final checklist review to ensure all instructions, constraints, and output format requirements are fully satisfied.
+#
+# @lc app=leetcode id=3435 lang=java
+#
+# [3435] Frequencies of Shortest Supersequences
+#
+# @lc code=start
+import java.util.*;
+class Solution {
+    public List<List<Integer>> supersequences(String[] words) {
+        // Step 1: Get all unique characters
+        Set<Character> chars = new HashSet<>();
+        for (String w : words) for (char c : w.toCharArray()) chars.add(c);
+        List<Character> alphabet = new ArrayList<>(chars);
+        // Step 2: BFS for SCSs
+        Set<String> scsSet = new HashSet<>();
+        Queue<State> queue = new LinkedList<>();
+        queue.offer(new State(new int[words.length], new StringBuilder()));
+        int minLen = Integer.MAX_VALUE;
+        while (!queue.isEmpty()) {
+            State cur = queue.poll();
+            if (cur.isDone(words)) {
+                if (cur.sb.length() < minLen) {
+                    scsSet.clear(); minLen = cur.sb.length();
+                }
+                if (cur.sb.length() == minLen) scsSet.add(cur.sb.toString());
+                continue;
+            }
+            for (char c : alphabet) {
+                int[] nextIdx = Arrays.copyOf(cur.idx, words.length);
+                boolean advanced = false;
+                for (int i = 0; i < words.length; ++i) {
+                    if (nextIdx[i] < words[i].length() && words[i].charAt(nextIdx[i]) == c) {
+                        nextIdx[i]++; advanced = true;
+                    }
+                }
+                if (advanced) {
+                    StringBuilder nsb = new StringBuilder(cur.sb);
+                    nsb.append(c);
+                    queue.offer(new State(nextIdx, nsb));
+                }
+            }
+        }
+        // Step 3: Get unique frequency arrays
+        Set<List<Integer>> freqset = new HashSet<>();
+        for (String s : scsSet) {
+            int[] freq = new int[26];
+            for (char c : s.toCharArray()) freq[c-'a']++;
+            List<Integer> freqList = new ArrayList<>();
+            for (int i=0;i<26;++i) freqList.add(freq[i]);
+            freqset.add(freqList);
+        }
+        return new ArrayList<>(freqset);
+    }
+    static class State {
+        int[] idx; StringBuilder sb;
+        State(int[] idx, StringBuilder sb) { this.idx=idx; this.sb=sb; }
+        boolean isDone(String[] words) {
+            for (int i=0;i<words.length;++i) if (idx[i]!=words[i].length()) return false;
+            return true;
+        }
+    }
+}
+# @lc code=end
