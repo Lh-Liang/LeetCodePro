@@ -7,41 +7,50 @@
 # @lc code=start
 class Solution {
     public long countMajoritySubarrays(int[] nums, int target) {
-        // Transform nums into +1/-1 based on target
         int n = nums.length;
-        int[] arr = new int[n];
+        int[] score = new int[n + 1];
+        // Step 1: Build prefix scores: +1 for target, -1 for others
         for (int i = 0; i < n; ++i) {
-            arr[i] = (nums[i] == target ? 1 : -1);
+            score[i + 1] = score[i] + (nums[i] == target ? 1 : -1);
         }
-        // Calculate prefix sums
-        int[] prefix = new int[n+1];
-        for (int i = 0; i < n; ++i) {
-            prefix[i+1] = prefix[i] + arr[i];
-        }
-        // To handle negative prefix sums, compress the prefix sums
-        java.util.TreeSet<Integer> set = new java.util.TreeSet<>();
-        for (int x : prefix) set.add(x);
-        java.util.HashMap<Integer, Integer> idxMap = new java.util.HashMap<>();
+        // Step 2: Coordinate compression
+        int[] sorted = score.clone();
+        java.util.Arrays.sort(sorted);
+        java.util.Map<Integer, Integer> compress = new java.util.HashMap<>();
         int idx = 0;
-        for (int x : set) idxMap.put(x, idx++);
-        // Fenwick Tree (BIT) for prefix sum frequencies
-        class BIT {
-            private long[] bit;
-            public BIT(int n) { bit = new long[n+2]; }
-            public void add(int i, long v) { for (++i; i < bit.length; i += i & -i) bit[i] += v; }
-            public long sum(int i) { long res = 0; for (++i; i > 0; i -= i & -i) res += bit[i]; return res; }
-        }
-        BIT bit = new BIT(idx);
-        long result = 0;
-        // For each prefix sum, count number of previous prefix sums less than current
-        for (int i = 0; i <= n; ++i) {
-            int mapped = idxMap.get(prefix[i]);
-            if (i > 0) {
-                result += bit.sum(mapped - 1);
+        for (int val : sorted) {
+            if (!compress.containsKey(val)) {
+                compress.put(val, idx++);
             }
-            bit.add(mapped, 1);
         }
-        return result;
+        // Step 3: Fenwick Tree (Binary Indexed Tree)
+        Fenwick fenwick = new Fenwick(idx);
+        long ans = 0;
+        for (int i = 0; i <= n; ++i) {
+            int c = compress.get(score[i]);
+            // Query: sum of counts of prefix scores less than current
+            ans += fenwick.query(c - 1);
+            // Update: add current prefix score
+            fenwick.update(c, 1);
+        }
+        return ans;
+    }
+    // Fenwick Tree implementation
+    static class Fenwick {
+        long[] tree;
+        int n;
+        Fenwick(int n) {
+            this.n = n + 2;
+            tree = new long[this.n];
+        }
+        void update(int i, long delta) {
+            for (++i; i < n; i += i & -i) tree[i] += delta;
+        }
+        long query(int i) {
+            long res = 0;
+            for (++i; i > 0; i -= i & -i) res += tree[i];
+            return res;
+        }
     }
 }
 # @lc code=end
