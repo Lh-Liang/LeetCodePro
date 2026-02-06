@@ -9,9 +9,8 @@ class Solution:
     def lexicographicallySmallestString(self, s: str) -> str:
         stack = []
         for char in s:
-            if stack and (ord(stack[-1]) == ord(char) - 1 or ord(stack[-1]) == ord(char) + 1 or (stack[-1] == 'z' and char == 'a') or (stack[-1] == 'a' and char == 'z')):
+            while stack and ((ord(stack[-1]) - ord(char)) % 26 == 1 or (ord(char) - ord(stack[-1])) % 26 == 1):
                 stack.pop()
-            else:
-                stack.append(char)
+            stack.append(char)
         return ''.join(stack)
 # @lc code=end
