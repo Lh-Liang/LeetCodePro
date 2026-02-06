@@ -11,26 +11,26 @@ class Solution:
         def is_palindrome(s):
             return s == s[::-1]
         
-        # Create adjacency list for graph representation
-        adj_list = defaultdict(list)
+        # Initialize adjacency list
+        graph = defaultdict(list)
         for u, v in edges:
-            adj_list[u].append(v)
-            adj_list[v].append(u)
+            graph[u].append(v)
+            graph[v].append(u)
         
-        # Depth First Search function to explore paths
-        def dfs(node, visited, path):
-            nonlocal max_length
-            if len(path) > 1 and is_palindrome(path):
-                max_length = max(max_length, len(path))  # Update max length if palindrome found
-            
-            visited.add(node)  # Mark node as visited
-            for neighbor in adj_list[node]:
+        # DFS function to find all paths
+        def dfs(node, path):
+            nonlocal max_len
+            if is_palindrome(path):
+                max_len = max(max_len, len(path))
+            visited.add(node)
+            for neighbor in graph[node]:
                 if neighbor not in visited:
-                    dfs(neighbor, visited, path + label[neighbor])  # Recursive DFS call with updated path string
-            visited.remove(node)  # Backtrack by removing node from visited set after exploring its paths fully
+                    dfs(neighbor, path + label[neighbor])
+            visited.remove(node)
         
-nmax_length = 1  # At least one node itself is a palindrome of length 1 initially assumed. 
-dfs(0, set(), label[0])  # Start DFS from each node (only needed once due to undirected nature of graph). 
-nreturn max_length
-
+        max_len = 0
+        for start_node in range(n):
+            visited = set()
+            dfs(start_node, label[start_node])      
+        return max_len  
 # @lc code=end
