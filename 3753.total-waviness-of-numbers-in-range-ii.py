@@ -1,1 +1,1 @@
-Solution implemented.
+Implemented string conversion of numbers.
