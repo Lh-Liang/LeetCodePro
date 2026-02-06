@@ -3,99 +3,42 @@
 #
 # [3534] Path Existence Queries in a Graph II
 #
+
 # @lc code=start
-import java.util.*;
 class Solution {
     public int[] pathExistenceQueries(int n, int[] nums, int maxDiff, int[][] queries) {
-        // Step 1: Sort nodes by nums and connect via Union-Find
-        int[] idx = new int[n];
-        for (int i = 0; i < n; ++i) idx[i] = i;
-        Arrays.sort(idx, (a, b) -> Integer.compare(nums[a], nums[b]));
-        DSU dsu = new DSU(n);
-        for (int i = 1; i < n; ++i) {
-            if (Math.abs(nums[idx[i]] - nums[idx[i-1]]) <= maxDiff) {
-                dsu.union(idx[i], idx[i-1]);
-            }
-        }
-        // Step 2: Build adjacency list for connected nodes within maxDiff
-        List<Integer>[] adj = new ArrayList[n];
-        for (int i = 0; i < n; ++i) adj[i] = new ArrayList<>();
-        for (int i = 1; i < n; ++i) {
-            if (Math.abs(nums[idx[i]] - nums[idx[i-1]]) <= maxDiff) {
-                adj[idx[i]].add(idx[i-1]);
-                adj[idx[i-1]].add(idx[i]);
-            }
-        }
-        // Step 3: For each unique source in queries, run BFS in its component
-        Map<Integer, Set<Integer>> compToSources = new HashMap<>();
-        for (int[] q : queries) {
-            int root = dsu.find(q[0]);
-            compToSources.computeIfAbsent(root, k -> new HashSet<>()).add(q[0]);
-        }
-        // For each (component, source), run BFS and store distances
-        Map<Integer, Map<Integer, Map<Integer, Integer>>> compToSourceDist = new HashMap<>();
-        for (Map.Entry<Integer, Set<Integer>> entry : compToSources.entrySet()) {
-            int comp = entry.getKey();
-            Set<Integer> sources = entry.getValue();
-            // collect all nodes in this component
-            List<Integer> componentNodes = new ArrayList<>();
-            for (int i = 0; i < n; ++i) {
-                if (dsu.find(i) == comp) componentNodes.add(i);
-            }
-            Map<Integer, Map<Integer, Integer>> sourceDist = new HashMap<>();
-            for (int source : sources) {
-                Map<Integer, Integer> dist = new HashMap<>();
-                Queue<Integer> queue = new LinkedList<>();
-                dist.put(source, 0);
-                queue.offer(source);
-                while (!queue.isEmpty()) {
-                    int u = queue.poll();
-                    for (int v : adj[u]) {
-                        if (!dist.containsKey(v)) {
-                            dist.put(v, dist.get(u) + 1);
-                            queue.offer(v);
-                        }
-                    }
+        // Step 1: Construct the graph based on nums and maxDiff.
+        List<Integer>[] adjList = new ArrayList[n];
+        for (int i = 0; i < n; i++) adjList[i] = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (Math.abs(nums[i] - nums[j]) <= maxDiff) {
+                    adjList[i].add(j);
+                    adjList[j].add(i);
                 }
-                sourceDist.put(source, dist);
             }
-            compToSourceDist.put(comp, sourceDist);
         }
-        // Step 4: Answer queries
-        int[] ans = new int[queries.length];
-        for (int i = 0; i < queries.length; ++i) {
-            int u = queries[i][0], v = queries[i][1];
-            if (u == v) {
-                ans[i] = 0;
-                continue;
-            }
-            if (dsu.find(u) != dsu.find(v)) {
-                ans[i] = -1;
-                continue;
-            }
-            Map<Integer, Integer> distMap = compToSourceDist.get(dsu.find(u)).get(u);
-            ans[i] = distMap.getOrDefault(v, -1);
-        }
-        return ans;
-    }
-    static class DSU {
-        int[] parent, rank;
-        DSU(int n) {
-            parent = new int[n];
-            rank = new int[n];
-            for (int i = 0; i < n; ++i) parent[i] = i;
-        }
-        int find(int x) {
-            if (parent[x] != x) parent[x] = find(parent[x]);
-            return parent[x];
-        }
-        void union(int x, int y) {
-            int xr = find(x), yr = find(y);
-            if (xr == yr) return;
-            if (rank[xr] < rank[yr]) parent[xr] = yr;
-            else if (rank[xr] > rank[yr]) parent[yr] = xr;
-            else { parent[yr] = xr; rank[xr]++; }
-        }
-    }
-}
-# @lc code=end
+        // Step 2: Handle queries using BFS/Union-Find for path existence.
+        int[] result = new int[queries.length];
+        Arrays.fill(result, -1); // Initially assume no paths exist.
+        for (int qi = 0; qi < queries.length; qi++) {
+            int[] query = queries[qi];
+            if (query[0] == query[1]) { // Same node case.
+                result[qi] = 0; continue; 
+            } 
+            // BFS Approach: Check connectivity. 
+            Queue<Integer> queue = new LinkedList<>(); 
+            boolean[] visited = new boolean[n]; 
+            queue.add(query[0]); visited[query[0]] = true; 
+            boolean found = false; int dist = 0; 
+            while (!queue.isEmpty() && !found) { 
+                dist++; int size = queue.size(); 
+                for (int s = 0; s < size && !found; s++) { 
+                    int node = queue.poll(); 
+                    for (int neighbor : adjList[node]) { 
+                        if (!visited[neighbor]) { 
+                            if (neighbor == query[1]) { found = true; break; } 
+                            queue.add(neighbor); visited[neighbor] = true; 
+                        } 
+                    } 
+                } ​} if(found) result[qi] = dist - 1; // Adjust distance as needed. ​} return result;} } # @lc code=end
