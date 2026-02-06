@@ -7,24 +7,23 @@
 class Solution {
     public long countSubstrings(String s) {
         int n = s.length();
-        long res = 0;
+        long ans = 0;
         for (int i = 0; i < n; ++i) {
-            char lastChar = s.charAt(i);
-            if (lastChar == '0') continue; // skip if last digit is zero
-            int d = lastChar - '0';
-            int mod = 0;
+            char ch = s.charAt(i);
+            if (ch == '0') continue; // last digit must be non-zero
+            int d = ch - '0';
+            // Single digit substrings
+            ans++;
+            int rem = 0;
             int pow = 1;
-            // Check all substrings ending at i
-            for (int j = i; j >= 0; --j) {
-                int digit = s.charAt(j) - '0';
-                mod = (digit * pow + mod) % d;
-                if (mod == 0) res++;
+            // Go backwards and check all substrings ending at i
+            for (int j = i - 1; j >= 0; --j) {
+                rem = ( (s.charAt(j) - '0') * pow + rem ) % d;
                 pow = (pow * 10) % d;
-                // For efficiency: If pow becomes 0, further digits won't affect mod
-                if (pow == 0) break;
+                if (rem == 0) ans++;
             }
         }
-        return res;
+        return ans;
     }
 }
 # @lc code=end
