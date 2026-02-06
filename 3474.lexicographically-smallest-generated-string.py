@@ -9,20 +9,31 @@ class Solution:
     def generateString(self, str1: str, str2: str) -> str:
         n = len(str1)
         m = len(str2)
-        word = []
+        result = [''] * (n + m - 1)
         i = 0
         while i <= n - m:
             if str1[i] == 'T':
-                word.extend(str2)
-                i += m - 1 # skip next (m-1) indices as they're part of valid substring matching `str2`
+                result[i:i+m] = list(str2)
             else:
-                # Find smallest possible character not matching `str2` at this position
-                # Add smallest lexicographic character that is not a part of `str2` substring starting from here.
-                min_char = 'a' if 'a' != str2[0] else 'b' # Simplified assumption for mismatch case. Adjust logic if necessary.
-                word.append(min_char)
+                # Construct a non-matching segment by altering a character in str2 minimally.
+                non_matching_segment = list(str2)
+                # Try replacements using multiple alternatives to ensure non-match and minimal lexicographical impact.
+                for j in range(m):
+                    for char in 'abcdefghijklmnopqrstuvwxyz':
+                        if char != str2[j]:
+                            non_matching_segment[j] = char
+                            break
+                    break  # Only change one character to ensure minimal change.
+                result[i:i+m] = non_matching_segment
             i += 1
-        # If we reach end without fulfilling all conditions return empty string or complete remainder with smallest characters. 
-        if len(word) < n + m - 1: 
-            word.extend(['a'] * (m - (len(word) - n))) # Fill remaining with smallest chars if needed 
-        return ''.join(word) if len(word) == n + m - 1 else '' 
+        # Fill remaining parts with smallest lexicographical values if needed.
+        for j in range(n+m-1):
+            if result[j] == '':
+                result[j] = 'a'
+        # Verify if constructed result meets all conditions of T and F before returning.
+        for k in range(n):
+            current_substring = ''.join(result[k:k+m])
+            if (str1[k] == 'T' and current_substring != str2) or (str1[k] == 'F' and current_substring == str2):
+                return ""
+        return ''.join(result)
 # @lc code=end
