@@ -1,37 +1,28 @@
-/*
- * @lc app=leetcode id=3630 lang=java
- *
- * [3630] Partition Array for Maximum XOR and AND
- */
-
-// @lc code=start
+#
+# @lc app=leetcode id=3630 lang=java
+#
+# [3630] Partition Array for Maximum XOR and AND
+#
+# @lc code=start
 class Solution {
     public long maximizeXorAndXor(int[] nums) {
+        int n = nums.length;
         long[] max = new long[1];
-        dfs(nums, 0, 0, false, 0, false, 0, false, max);
+        dfs(nums, 0, 0, -1, 0, max);
         return max[0];
     }
-    // xorA, hasA: current XOR and non-empty flag for group A
-    // andB, hasB: current AND and non-empty flag for group B
-    // xorC, hasC: current XOR and non-empty flag for group C
-    private void dfs(int[] nums, int idx, int xorA, boolean hasA, int andB, boolean hasB, int xorC, boolean hasC, long[] max) {
+    private void dfs(int[] nums, int idx, int xorA, int andB, int xorC, long[] max) {
         if (idx == nums.length) {
-            long andBValue = hasB ? andB : 0;
-            long sum = (hasA ? xorA : 0) + andBValue + (hasC ? xorC : 0);
-            if (sum > max[0]) max[0] = sum;
+            long val = (long)xorA + ((andB == -1) ? 0 : andB) + (long)xorC;
+            if (val > max[0]) max[0] = val;
             return;
         }
-        int num = nums[idx];
-        // Assign to A
-        dfs(nums, idx + 1, xorA ^ num, true, andB, hasB, xorC, hasC, max);
-        // Assign to B
-        if (!hasB) {
-            dfs(nums, idx + 1, xorA, hasA, num, true, xorC, hasC, max);
-        } else {
-            dfs(nums, idx + 1, xorA, hasA, andB & num, true, xorC, hasC, max);
-        }
-        // Assign to C
-        dfs(nums, idx + 1, xorA, hasA, andB, hasB, xorC ^ num, true, max);
+        // Put nums[idx] into A
+        dfs(nums, idx + 1, xorA ^ nums[idx], andB, xorC, max);
+        // Put nums[idx] into B
+        dfs(nums, idx + 1, xorA, andB == -1 ? nums[idx] : andB & nums[idx], xorC, max);
+        // Put nums[idx] into C
+        dfs(nums, idx + 1, xorA, andB, xorC ^ nums[idx], max);
     }
 }
-// @lc code=end
+# @lc code=end
