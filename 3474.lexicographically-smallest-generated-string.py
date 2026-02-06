@@ -10,20 +10,19 @@ class Solution:
         n = len(str1)
         m = len(str2)
         word = []
-        # Attempting to build the word lexicographically smallest
-        for i in range(n):
+        i = 0
+        while i <= n - m:
             if str1[i] == 'T':
-                # Append str2 since it must match here
-                word.append(str2)
+                word.extend(str2)
+                i += m - 1 # skip next (m-1) indices as they're part of valid substring matching `str2`
             else:
-                # Append smallest possible character that does not form str2 starting at i
-                # Choose characters that don't match str2 at this position
-                if i + m <= n + m - 1:
-                    if word[i:i+m] == list(str2):
-                        # Adjust first character to break match with str2
-                        alt_char = 'a' if str2[0] != 'a' else 'b'  # Choose a different start char than first of str2
-                        word.append(alt_char + str2[1:])  # Replace first char of this segment with alternative char
-                    else:
-                        word.append(str2)  # If no conflict, append normally due to lack of other valid options.
-        return ''.join(word[:(m+n-1)])  # Return constructed word or empty if not possible as per conditions. 
+                # Find smallest possible character not matching `str2` at this position
+                # Add smallest lexicographic character that is not a part of `str2` substring starting from here.
+                min_char = 'a' if 'a' != str2[0] else 'b' # Simplified assumption for mismatch case. Adjust logic if necessary.
+                word.append(min_char)
+            i += 1
+        # If we reach end without fulfilling all conditions return empty string or complete remainder with smallest characters. 
+        if len(word) < n + m - 1: 
+            word.extend(['a'] * (m - (len(word) - n))) # Fill remaining with smallest chars if needed 
+        return ''.join(word) if len(word) == n + m - 1 else '' 
 # @lc code=end
