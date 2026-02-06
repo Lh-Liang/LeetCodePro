@@ -1,29 +1,44 @@
+#
 # @lc app=leetcode id=3441 lang=python3
 #
 # [3441] Minimum Cost Good Caption
 #
+
 # @lc code=start
 class Solution:
     def minCostGoodCaption(self, caption: str) -> str:
         n = len(caption)
-        if n < 3: return ""  # Impossible to form good captions with less than 3 characters
+        if n < 3: return ''  # Impossible if length < 3
+        
         result = list(caption)
         i = 0
+        
         while i < n:
             start = i
-            # Count group length of current character
+            # Count length of current sequence of same characters
             while i < n and caption[i] == caption[start]:
                 i += 1
-            count = i - start
-            # If group is less than 3, attempt to fix it
-            if count < 3:
-                needed = 3 - count
-                # Try to extend group by changing adjacent different characters or itself if possible
-                for j in range(start, min(start + needed, n)):
-                    if result[j] != 'a': result[j] = chr(ord(result[j]) - 1)
-                    else: result[j] = chr(ord(result[j]) + 1) if j + needed < n else '' # Ensure no empty strings by bounds check
-                # Re-check fixed group length; restart loop from start of this group for accuracy check after change
-                i = start + max(needed, count) - 1 # Ensure minimum operations effect in loop iteration step size adjustment 
-            else:
-                continue  # Already valid group move further 
-        return ''.join(result) if len(set(result)) == len(caption)//3 else "" # Final verification step: whole string must be formed correctly "
+            length = i - start
+            
+            # Process short sequences (< 3)
+            if length < 3:
+                changes_required = 3 - length
+                
+                # Attempt to resolve within current block first for minimal disruption
+                for j in range(i, min(n, start + changes_required)):
+                    if result[j] > 'a':
+                        result[j] = chr(ord(result[j]) - 1)
+                        changes_required -= 1
+                        if changes_required == 0:
+                            break
+                # Adjust previous block if needed (to ensure lexicographical order)
+                for j in range(max(0, start-1), start):
+                    if changes_required > 0 and result[j] < 'z':
+                        result[j] = chr(ord(result[j]) + 1)
+                        changes_required -= 1
+                        if changes_required == 0:
+                            break
+                # If unable to resolve with given conditions, return empty string as no valid transformation exists.
+                if changes_required > 0:
+                    return ''
+n        return ''.join(result) # Convert list back to string before returning final result\@lc code=end
