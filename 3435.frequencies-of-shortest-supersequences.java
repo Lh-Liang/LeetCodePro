@@ -4,60 +4,29 @@
 # [3435] Frequencies of Shortest Supersequences
 #
 # @lc code=start
-import java.util.*;
 class Solution {
     public List<List<Integer>> supersequences(String[] words) {
-        // Step 1: Get all unique characters
-        Set<Character> chars = new HashSet<>();
-        for (String w : words) for (char c : w.toCharArray()) chars.add(c);
-        List<Character> alphabet = new ArrayList<>(chars);
-        // Step 2: BFS for SCSs
-        Set<String> scsSet = new HashSet<>();
-        Queue<State> queue = new LinkedList<>();
-        queue.offer(new State(new int[words.length], new StringBuilder()));
-        int minLen = Integer.MAX_VALUE;
-        while (!queue.isEmpty()) {
-            State cur = queue.poll();
-            if (cur.isDone(words)) {
-                if (cur.sb.length() < minLen) {
-                    scsSet.clear(); minLen = cur.sb.length();
-                }
-                if (cur.sb.length() == minLen) scsSet.add(cur.sb.toString());
-                continue;
+        // Logic to merge pairs of words into SCS
+        List<String> scsList = new ArrayList<>();
+        scsList.add(merge(words[0], words[1])); // Example merge function call
+        
+        // Calculate frequency array for each SCS
+        List<List<Integer>> freqs = new ArrayList<>();
+        for (String scs : scsList) {
+            List<Integer> freq = new ArrayList<>(Collections.nCopies(26, 0));
+            for (char c : scs.toCharArray()) {
+                freq.set(c - 'a', freq.get(c - 'a') + 1);
             }
-            for (char c : alphabet) {
-                int[] nextIdx = Arrays.copyOf(cur.idx, words.length);
-                boolean advanced = false;
-                for (int i = 0; i < words.length; ++i) {
-                    if (nextIdx[i] < words[i].length() && words[i].charAt(nextIdx[i]) == c) {
-                        nextIdx[i]++; advanced = true;
-                    }
-                }
-                if (advanced) {
-                    StringBuilder nsb = new StringBuilder(cur.sb);
-                    nsb.append(c);
-                    queue.offer(new State(nextIdx, nsb));
-                }
-            }
+            freqs.add(freq);
         }
-        // Step 3: Get unique frequency arrays
-        Set<List<Integer>> freqset = new HashSet<>();
-        for (String s : scsSet) {
-            int[] freq = new int[26];
-            for (char c : s.toCharArray()) freq[c-'a']++;
-            List<Integer> freqList = new ArrayList<>();
-            for (int i=0;i<26;++i) freqList.add(freq[i]);
-            freqset.add(freqList);
-        }
-        return new ArrayList<>(freqset);
+        
+        // Filter out permutations by comparing frequency arrays (this is a placeholder)
+        return freqs; 
     }
-    static class State {
-        int[] idx; StringBuilder sb;
-        State(int[] idx, StringBuilder sb) { this.idx=idx; this.sb=sb; }
-        boolean isDone(String[] words) {
-            for (int i=0;i<words.length;++i) if (idx[i]!=words[i].length()) return false;
-            return true;
-        }
-    }
+    
+    private String merge(String s1, String s2) { 
+        // Placeholder function for merging two strings into an SCS 
+        return s1 + s2; // Simplified example merge 
+    } 
 }
 # @lc code=end
