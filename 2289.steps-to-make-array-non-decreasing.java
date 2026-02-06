@@ -3,25 +3,26 @@
 #
 # [2289] Steps to Make Array Non-decreasing
 #
+
 # @lc code=start
 class Solution {
     public int totalSteps(int[] nums) {
         int n = nums.length;
-        int[] dp = new int[n];
-        int res = 0;
-        java.util.Stack<Integer> stack = new java.util.Stack<>();
-        for (int i = 0; i < n; ++i) {
-            int maxSteps = 0;
-            while (!stack.isEmpty() && nums[i] >= nums[stack.peek()]) {
-                maxSteps = Math.max(maxSteps, dp[stack.pop()]);
+        // Stack for holding indices of elements in nums
+        Stack<Integer> stack = new Stack<>();
+        // Array for tracking steps required for each element
+        int[] steps = new int[n];
+        // Iterate through each element in nums
+        for (int i = 0; i < n; i++) {
+            // While stack is not empty and current num is less than num at top index of stack
+            while (!stack.isEmpty() && nums[stack.peek()] <= nums[i]) {
+                steps[i] = Math.max(steps[i], steps[stack.pop()] + 1);
             }
-            if (!stack.isEmpty()) {
-                dp[i] = maxSteps + 1;
-                res = Math.max(res, dp[i]);
-            }
+            // Push current index onto stack for future comparisons
             stack.push(i);
         }
-        return res;
-    }
+        // Max value in steps array is our result, representing maximum deletions required for any element. 
+        return Arrays.stream(steps).max().orElse(0); 
+    } 
 }
 # @lc code=end
