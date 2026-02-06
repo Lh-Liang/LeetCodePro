@@ -7,34 +7,30 @@
 # @lc code=start
 class Solution {
     public int maxDifference(String s, int k) {
-        int n = s.length();
         int maxDiff = Integer.MIN_VALUE;
-        boolean found = false;
-        // Enumerate all digit pairs (a, b), a != b
-        for (int a = 0; a < 5; a++) {
-            for (int b = 0; b < 5; b++) {
-                if (a == b) continue;
-                int[] freq = new int[5];
-                int left = 0;
-                for (int right = 0; right < n; right++) {
-                    freq[s.charAt(right) - '0']++;
-                    // Slide window to maintain length at least k
-                    while (right - left + 1 > k) {
-                        freq[s.charAt(left) - '0']--;
-                        left++;
-                    }
-                    if (right - left + 1 >= k) {
-                        int fa = freq[a];
-                        int fb = freq[b];
-                        if (fa % 2 == 1 && fb > 0 && fb % 2 == 0) {
-                            maxDiff = Math.max(maxDiff, fa - fb);
-                            found = true;
+        for (int start = 0; start <= s.length() - k; start++) {
+            int[] freq = new int[10]; // Digits 0-9
+            for (int end = start; end < s.length(); end++) {
+                freq[s.charAt(end) - '0']++;
+                if (end - start + 1 >= k) {
+                    int oddMax = Integer.MIN_VALUE;
+                    int evenMin = Integer.MAX_VALUE;
+                    for (int i = 0; i < freq.length; i++) {
+                        if (freq[i] > 0) { // Non-zero check
+                            if (freq[i] % 2 == 1) { // Odd frequency check
+                                oddMax = Math.max(oddMax, freq[i]);
+                            } else { // Even frequency check
+                                evenMin = Math.min(evenMin, freq[i]);
+                            }
                         }
+                    }
+                    if (oddMax != Integer.MIN_VALUE && evenMin != Integer.MAX_VALUE) { // Valid pair check
+                        maxDiff = Math.max(maxDiff, oddMax - evenMin);
                     }
                 }
             }
         }
-        return found ? maxDiff : -1;
-    }
+        return maxDiff == Integer.MIN_VALUE ? -1 : maxDiff; // Return -1 if no valid pair found. 
+    } 
 }
 # @lc code=end
