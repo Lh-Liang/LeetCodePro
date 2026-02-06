@@ -7,25 +7,30 @@
 # @lc code=start
 class Solution:
     def maxProduct(self, nums: List[int], k: int, limit: int) -> int:
-        def backtrack(index, even_sum, odd_sum, product):
-            if even_sum - odd_sum == k:
-                return product if product <= limit else -1
-            if index == len(nums):
-                return -1
-            max_product = -1
-            # Include current number in even index position
-            prod1 = backtrack(index + 1, even_sum + nums[index], odd_sum, product * nums[index])
-            if prod1 != -1:
-                max_product = max(max_product, prod1)
-            # Include current number in odd index position (alternate role)
-            prod2 = backtrack(index + 1, even_sum, odd_sum + nums[index], product * nums[index])
-            if prod2 != -1:
-                max_product = max(max_product, prod2)
-            # Exclude current number (do not take it into subsequence)
-            prod3 = backtrack(index + 1, even_sum, odd_sum, product)
-            if prod3 != -1:
-                max_product = max(max_product, prod3)
-            return max_product
-        result = backtrack(0, 0, 0, 1) # Start with index=0 and empty sums and product=1.
-        return result if result != -1 else -1
+        from functools import lru_cache
+        
+        @lru_cache(None)
+        def backtrack(index, alt_sum, product):
+            nonlocal max_product
+            # If current alternating sum equals k and product is within limit
+            if alt_sum == k:
+                if product <= limit:
+                    max_product = max(max_product, product)
+                return
+            
+            # Stop exploration if index is out of bounds or if product exceeds limit
+            if index >= len(nums) or product > limit:
+                return
+            
+            # Include nums[index] in the subsequence and calculate new states
+            new_alt_sum = alt_sum + (nums[index] if (index % 2 == 0) else -nums[index])
+            new_product = product * nums[index]
+            backtrack(index + 1, new_alt_sum, new_product)
+            
+            # Exclude nums[index] from the subsequence
+            backtrack(index + 1, alt_sum, product)
+        
+        max_product = -1
+        backtrack(0, 0, 1)
+        return max_product if max_product != -1 else -1
 # @lc code=end
