@@ -1,53 +1,82 @@
+#
 # @lc app=leetcode id=3373 lang=java
+#
 # [3373] Maximize the Number of Target Nodes After Connecting Trees II
+#
+
+# @lc code=start
+import java.util.*;
 class Solution {
     public int[] maxTargetNodes(int[][] edges1, int[][] edges2) {
-        // Step 1: Convert edge lists to adjacency lists.
-        List<Integer>[] tree1 = buildAdjacencyList(edges1);
-        List<Integer>[] tree2 = buildAdjacencyList(edges2);
-        
-        // Step 2: Calculate depths using BFS for both trees.
-        int[] depth1 = calculateDepths(tree1);
-        int[] depth2 = calculateDepths(tree2);
-        
-        // Step 3: Iterate over each node in the first tree.
         int n = edges1.length + 1;
         int m = edges2.length + 1;
-        int[] result = new int[n];
-
-        for (int i = 0; i < n; i++) {
-            // Step 4: Simulate connecting this node with every node in second tree and find max targets.
-            result[i] = calculateMaxTargets(i, depth1, depth2, m);
+        List<Integer>[] g1 = new ArrayList[n];
+        List<Integer>[] g2 = new ArrayList[m];
+        for (int i = 0; i < n; ++i) g1[i] = new ArrayList<>();
+        for (int i = 0; i < m; ++i) g2[i] = new ArrayList<>();
+        for (int[] e : edges1) {
+            g1[e[0]].add(e[1]);
+            g1[e[1]].add(e[0]);
         }
-
-        return result;
-    }
-
-    private List<Integer>[] buildAdjacencyList(int[][] edges) {
-        int n = edges.length + 1;
-        List<Integer>[] adjList = new ArrayList[n];
-        for (int i = 0; i < n; i++) adjList[i] = new ArrayList<>();
-        for (int[] edge : edges) {
-            adjList[edge[0]].add(edge[1]);
-            adjList[edge[1]].add(edge[0]);
+        for (int[] e : edges2) {
+            g2[e[0]].add(e[1]);
+            g2[e[1]].add(e[0]);
         }
-        return adjList;
+        int[] parity1 = new int[n];
+        int[] evenCount1 = new int[n];
+        int[] oddCount1 = new int[n];
+        bfsParity(g1, parity1, evenCount1, oddCount1);
+        int[] parity2 = new int[m];
+        int even2 = 0, odd2 = 0;
+        boolean[] vis2 = new boolean[m];
+        Queue<Integer> q2 = new LinkedList<>();
+        q2.add(0);
+        vis2[0] = true;
+        parity2[0] = 0;
+        while (!q2.isEmpty()) {
+            int u = q2.poll();
+            if (parity2[u] == 0) even2++;
+            else odd2++;
+            for (int v : g2[u]) {
+                if (!vis2[v]) {
+                    vis2[v] = true;
+                    parity2[v] = parity2[u] ^ 1;
+                    q2.add(v);
+                }
+            }
+        }
+        int[] ans = new int[n];
+        for (int i = 0; i < n; ++i) {
+            int even1 = evenCount1[i];
+            int odd1 = oddCount1[i];
+            ans[i] = Math.max(even1 + even2, odd1 + odd2);
+        }
+        return ans;
     }
-
-    private int[] calculateDepths(List<Integer>[] tree) {
-       int n = tree.length;
-       int[] depths = new int[n];
-       boolean[] visited = new boolean[n];
-       Queue<Integer> queue = new LinkedList<>();
-       queue.add(0); // Start BFS from an arbitrary root, say node 0
-       visited[0] = true;
-
-       while (!queue.isEmpty()) {
-           int node = queue.poll();
-           for (int neighbor : tree[node]) {
-               if (!visited[neighbor]) {
-                   visited[neighbor] = true;
-                   depths[neighbor] = depths[node] + 1;
-                   queue.add(neighbor);
-               }
-           }								   	   			   	   	   	   	    	   	   	    	   	   	    	    }     }     return depths;     }     private int calculateMaxTargets(int i, int[] depth1, int[] depth2, int m) {         // Calculate max targets possible by connecting node `i` from tree1 with each node from tree2         int maxTargets = 0;         for (int j = 0; j < m; j++) {             // If path length is even, increase target count             if ((depth1[i] + depth2[j]) % 2 == 0) {                 maxTargets++;             }         }         return maxTargets;     } }
+    private void bfsParity(List<Integer>[] g, int[] parity, int[] evenCount, int[] oddCount) {
+        int n = g.length;
+        for (int start = 0; start < n; ++start) {
+            boolean[] vis = new boolean[n];
+            Queue<Integer> q = new LinkedList<>();
+            q.add(start);
+            vis[start] = true;
+            parity[start] = 0;
+            int even = 1, odd = 0;
+            while (!q.isEmpty()) {
+                int u = q.poll();
+                for (int v : g[u]) {
+                    if (!vis[v]) {
+                        vis[v] = true;
+                        parity[v] = parity[u] ^ 1;
+                        if (parity[v] == 0) even++;
+                        else odd++;
+                        q.add(v);
+                    }
+                }
+            }
+            evenCount[start] = even;
+            oddCount[start] = odd;
+        }
+    }
+}
+# @lc code=end
