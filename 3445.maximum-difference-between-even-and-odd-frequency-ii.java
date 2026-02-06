@@ -9,49 +9,32 @@ class Solution {
     public int maxDifference(String s, int k) {
         int n = s.length();
         int maxDiff = Integer.MIN_VALUE;
-        // Only 5 digits: '0' to '4'
+        boolean found = false;
+        // Enumerate all digit pairs (a, b), a != b
         for (int a = 0; a < 5; a++) {
             for (int b = 0; b < 5; b++) {
                 if (a == b) continue;
                 int[] freq = new int[5];
-                // Initialize first window of size k
-                for (int i = 0; i < k; i++) {
-                    freq[s.charAt(i) - '0']++;
-                }
-                // Check initial window
-                if (freq[a] % 2 == 1 && freq[b] > 0 && freq[b] % 2 == 0) {
-                    maxDiff = Math.max(maxDiff, freq[a] - freq[b]);
-                }
-                // Slide the window
-                for (int right = k; right < n; right++) {
+                int left = 0;
+                for (int right = 0; right < n; right++) {
                     freq[s.charAt(right) - '0']++;
-                    freq[s.charAt(right - k) - '0']--;
-                    if (freq[a] % 2 == 1 && freq[b] > 0 && freq[b] % 2 == 0) {
-                        maxDiff = Math.max(maxDiff, freq[a] - freq[b]);
+                    // Slide window to maintain length at least k
+                    while (right - left + 1 > k) {
+                        freq[s.charAt(left) - '0']--;
+                        left++;
                     }
-                }
-                // Now handle substrings longer than k
-                // For each window size from k+1 to n
-                for (int window = k + 1; window <= n; window++) {
-                    // Reset frequencies
-                    freq = new int[5];
-                    for (int i = 0; i < window; i++) {
-                        freq[s.charAt(i) - '0']++;
-                    }
-                    if (freq[a] % 2 == 1 && freq[b] > 0 && freq[b] % 2 == 0) {
-                        maxDiff = Math.max(maxDiff, freq[a] - freq[b]);
-                    }
-                    for (int right = window; right < n; right++) {
-                        freq[s.charAt(right) - '0']++;
-                        freq[s.charAt(right - window) - '0']--;
-                        if (freq[a] % 2 == 1 && freq[b] > 0 && freq[b] % 2 == 0) {
-                            maxDiff = Math.max(maxDiff, freq[a] - freq[b]);
+                    if (right - left + 1 >= k) {
+                        int fa = freq[a];
+                        int fb = freq[b];
+                        if (fa % 2 == 1 && fb > 0 && fb % 2 == 0) {
+                            maxDiff = Math.max(maxDiff, fa - fb);
+                            found = true;
                         }
                     }
                 }
             }
         }
-        return maxDiff == Integer.MIN_VALUE ? -1 : maxDiff;
+        return found ? maxDiff : -1;
     }
 }
 # @lc code=end
