@@ -7,18 +7,19 @@
 # @lc code=start
 class Solution:
     def countSubstrings(self, s: str) -> int:
-        n = len(s)
         count = 0
-        # Iterate over every possible end position of a substring
+        n = len(s)
+        # Iterate over all possible end indices of substrings
         for end in range(n):
             last_digit = int(s[end])
             if last_digit == 0:
-                continue  # Cannot divide by zero
-            # Check all substrings ending at `end`
+                continue  # Skip if last digit is zero, as no divisibility possible
+            # Initialize current number starting from s[end] as a single digit number
             num = 0
+            # Extend the substring backwards checking divisibility by last_digit
             for start in range(end, -1, -1):
-                num = num + int(s[start]) * (10 ** (end - start)) 
+                num = num + int(s[start]) * (10 ** (end - start))  # Update number ending at 'end' starting from 'start'
                 if num % last_digit == 0:
-                    count += 1
-        return count
+                    count += 1  # If divisible, increment count
+        return count  # Return total count of such substrings
 # @lc code=end
