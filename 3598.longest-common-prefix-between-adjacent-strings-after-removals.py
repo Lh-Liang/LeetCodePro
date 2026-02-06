@@ -7,24 +7,36 @@
 # @lc code=start
 class Solution:
     def longestCommonPrefix(self, words: List[str]) -> List[int]:
-        def common_prefix_length(s1, s2):
-            # Find the length of longest common prefix between s1 and s2
-            min_len = min(len(s1), len(s2))
-            for i in range(min_len):
-                if s1[i] != s2[i]:
-                    return i
-            return min_len
+        def lcp(str1: str, str2: str) -> int:
+            common_length = 0
+            min_length = min(len(str1), len(str2))
+            for i in range(min_length):
+                if str1[i] == str2[i]:
+                    common_length += 1
+                else:
+                    break
+            return common_length
         
         n = len(words)
-        answer = []
+        if n == 1:
+            return [0] # Only one word means no adjacent pairs exist.
+        
+        # Precompute LCPs for adjacent pairs in original list.
+        lcp_array = [lcp(words[i], words[i + 1]) for i in range(n - 1)]
+        result = []
+        
         for i in range(n):
-            # Create a new list without the i-th element
-            new_words = words[:i] + words[i+1:]
-            max_prefix_length = 0
-            # Calculate max common prefix length between adjacent strings
-            for j in range(len(new_words) - 1):
-                lcp_length = common_prefix_length(new_words[j], new_words[j+1])
-                max_prefix_length = max(max_prefix_length, lcp_length)
-            answer.append(max_prefix_length)
-        return answer
+            if i == 0:
+                max_lcp = lcp_array[1] if n > 2 else 0 # Removing first element.
+            elif i == n - 1:
+                max_lcp = lcp_array[n - 3] if n > 2 else 0 # Removing last element.
+            else:
+                # Removing middle element, recalculate LCP between neighbors of removed element.
+                max_lcp = max(lcp_array[:i-1] + lcp_array[i:]) if n > 2 else 0
+                new_lcp = lcp(words[i - 1], words[i + 1])
+                max_lcp = max(max_lcp, new_lcp)
+            
+            result.append(max_lcp)
+        
+        return result # Return final list of results for all removals
 # @lc code=end
