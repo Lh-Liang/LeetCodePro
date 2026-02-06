@@ -32,7 +32,6 @@ class Solution {
         }
         return reverse(head);
     }
-    
     private ListNode reverse(ListNode head) {
         ListNode prev = null;
         while (head != null) {
