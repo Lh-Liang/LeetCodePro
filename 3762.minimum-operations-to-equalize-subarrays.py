@@ -7,29 +7,28 @@
 # @lc code=start
 class Solution:
     def minOperations(self, nums: List[int], k: int, queries: List[List[int]]) -> List[int]:
-        # Initialize result list for answers
+        def can_make_equal(subarray):
+            # Check if all elements can be made equal mod k
+            first_mod = subarray[0] % k
+            for num in subarray:
+                if num % k != first_mod:
+                    return False
+            return True
+        
+        def min_operations(subarray):
+            # Calculate minimum operations assuming can_make_equal is True
+            target = min(subarray)  # Use any element as target post adjustment by k multiples
+            total_ops = 0
+            for num in subarray:
+                total_ops += abs(num - target) // k  # Each operation is equivalent to one move by k
+            return total_ops
+        
         ans = []
-        
-        # Process each query separately
         for li, ri in queries:
-            # Extract subarray from nums based on current query indices
             subarray = nums[li:ri+1]
-            
-            # Determine unique values in the subarray that can be transformed into each other via operations of size k
-            unique_values = set(subarray)
-            can_be_equalized = len(unique_values) == 1 or all((abs(x - y) % k == 0) for x in unique_values for y in unique_values)
-            
-            if not can_be_equalized:
-                ans.append(-1)  # Not possible to equalize subarray with given k
-                continue
-                
-            # Calculate minimum operations needed to make all elements in subarray equal
-            min_operations = float('inf')
-            target_value = max(subarray)  # Example choice of target value; could be optimized further
-            current_operations = sum(abs(x - target_value) // k for x in subarray if (x - target_value) % k == 0)
-            min_operations = min(min_operations, current_operations)
-            
-            ans.append(min_operations if min_operations != float('inf') else -1)  # Append result for current query
-        
-        return ans  # Return list of results for each query processed
+            if not can_make_equal(subarray):
+                ans.append(-1)  # If impossible to make equal mod k return -1
+            else:
+                ans.append(min_operations(subarray))  # Calculate required operations if feasible
+        return ans
 # @lc code=end
