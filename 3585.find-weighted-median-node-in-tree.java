@@ -3,106 +3,113 @@
 #
 # [3585] Find Weighted Median Node in Tree
 #
+
 # @lc code=start
 import java.util.*;
 class Solution {
     static class Edge {
-        int to, weight;
-        Edge(int t, int w) { to = t; weight = w; }
+        int to, w;
+        Edge(int to, int w) { this.to = to; this.w = w; }
     }
-    int LOGN = 18; // since n <= 1e5, log2(1e5) ~ 17
-    List<Edge>[] adj;
+    int LOG;
+    int[] depth, parent, sumWeight;
     int[][] up;
-    int[] depth, parent;
-    long[] dist; // prefix sum of weights from root
-    int n;
+    int[] upWeight;
+    List<Edge>[] tree;
     public int[] findMedian(int n, int[][] edges, int[][] queries) {
-        this.n = n;
-        adj = new ArrayList[n];
-        for (int i = 0; i < n; i++) adj[i] = new ArrayList<>();
+        tree = new ArrayList[n];
+        for (int i = 0; i < n; i++) tree[i] = new ArrayList<>();
         for (int[] e : edges) {
-            adj[e[0]].add(new Edge(e[1], e[2]));
-            adj[e[1]].add(new Edge(e[0], e[2]));
+            tree[e[0]].add(new Edge(e[1], e[2]));
+            tree[e[1]].add(new Edge(e[0], e[2]));
         }
-        parent = new int[n];
+        LOG = 1;
+        while ((1 << LOG) <= n) LOG++;
         depth = new int[n];
-        dist = new long[n];
-        up = new int[n][LOGN];
-        Arrays.fill(parent, -1);
-        dfs(0, -1, 0, 0L);
-        buildLCA();
-        int[] ans = new int[queries.length];
-        for (int i = 0; i < queries.length; i++) {
-            int u = queries[i][0], v = queries[i][1];
-            if (u == v) { // edge case: same node
-                ans[i] = u;
-                continue;
-            }
-            int lca = getLCA(u, v);
-            long total = dist[u] + dist[v] - 2 * dist[lca];
-            long half = (total + 1) / 2; // need >= half, so round up
-            int median = findWeightedMedian(u, v, lca, half, total);
-            ans[i] = median;
-        }
-        return ans;
-    }
-    void dfs(int u, int p, int d, long sum) {
-        parent[u] = p; depth[u] = d; dist[u] = sum;
-        up[u][0] = p == -1 ? 0 : p;
-        for (Edge e : adj[u]) {
-            if (e.to == p) continue;
-            dfs(e.to, u, d + 1, sum + e.weight);
-        }
-    }
-    void buildLCA() {
-        for (int k = 1; k < LOGN; k++) {
+        parent = new int[n];
+        sumWeight = new int[n];
+        up = new int[n][LOG];
+        upWeight = new int[n];
+        dfs(0, -1, 0, 0);
+        for (int k = 1; k < LOG; k++) {
             for (int v = 0; v < n; v++) {
-                up[v][k] = up[up[v][k - 1]][k - 1];
+                if (up[v][k - 1] != -1) {
+                    up[v][k] = up[up[v][k - 1]][k - 1];
+                } else {
+                    up[v][k] = -1;
+                }
+            }
+        }
+        int[] res = new int[queries.length];
+        for (int qi = 0; qi < queries.length; qi++) {
+            int u = queries[qi][0], v = queries[qi][1];
+            int lca = getLCA(u, v);
+            int total = sumWeight[u] + sumWeight[v] - 2 * sumWeight[lca];
+            int half = (total % 2 == 0) ? total / 2 : total / 2 + 1;
+            // Walk from u to v, accumulate weights, find first node >= half
+            int node = u, dist = 0;
+            if (u == v) { res[qi] = u; continue; }
+            // Step 1: try going up from u towards lca
+            int curr = u;
+            int currW = 0;
+            while (curr != lca) {
+                int par = parent[curr];
+                int w = sumWeight[curr] - sumWeight[par];
+                currW += w;
+                if (currW >= half) {
+                    res[qi] = curr;
+                    break;
+                }
+                curr = par;
+            }
+            if (currW >= half) continue;
+            // Step 2: go from lca down to v
+            // build path from lca to v
+            List<Integer> path = new ArrayList<>();
+            curr = v;
+            while (curr != lca) {
+                path.add(curr);
+                curr = parent[curr];
+            }
+            Collections.reverse(path);
+            for (int x : path) {
+                int par = parent[x];
+                int w = sumWeight[x] - sumWeight[par];
+                currW += w;
+                if (currW >= half) {
+                    res[qi] = x;
+                    break;
+                }
+            }
+        }
+        return res;
+    }
+    void dfs(int v, int p, int d, int wsum) {
+        parent[v] = (p == -1 ? v : p);
+        depth[v] = d;
+        sumWeight[v] = wsum;
+        up[v][0] = (p == -1 ? -1 : p);
+        for (Edge e : tree[v]) {
+            if (e.to != p) {
+                dfs(e.to, v, d + 1, wsum + e.w);
             }
         }
     }
     int getLCA(int u, int v) {
         if (depth[u] < depth[v]) { int t = u; u = v; v = t; }
-        for (int k = LOGN - 1; k >= 0; k--) {
-            if (depth[u] - (1 << k) >= depth[v]) u = up[u][k];
+        for (int k = LOG - 1; k >= 0; k--) {
+            if (up[u][k] != -1 && depth[up[u][k]] >= depth[v]) {
+                u = up[u][k];
+            }
         }
         if (u == v) return u;
-        for (int k = LOGN - 1; k >= 0; k--) {
-            if (up[u][k] != up[v][k]) {
-                u = up[u][k]; v = up[v][k];
+        for (int k = LOG - 1; k >= 0; k--) {
+            if (up[u][k] != -1 && up[u][k] != up[v][k]) {
+                u = up[u][k];
+                v = up[v][k];
             }
         }
         return parent[u];
-    }
-    int findWeightedMedian(int u, int v, int lca, long half, long total) {
-        // Construct path from u to lca (excluding lca), then lca to v (excluding lca), so the full path is uj -> ... -> lca -> ... -> vj
-        ArrayList<Integer> path = new ArrayList<>();
-        int x = u;
-        while (x != lca) {
-            path.add(x);
-            x = parent[x];
-        }
-        ArrayList<Integer> second = new ArrayList<>();
-        x = v;
-        while (x != lca) {
-            second.add(x);
-            x = parent[x];
-        }
-        path.add(lca);
-        for (int i = second.size() - 1; i >= 0; i--) path.add(second.get(i));
-        // Accumulate edge weights along the path
-        long sum = 0;
-        for (int i = 1; i < path.size(); i++) { // path[0] is uj
-            int curr = path.get(i), prev = path.get(i - 1);
-            long w = Math.abs(dist[curr] - dist[prev]);
-            sum += w;
-            if (sum >= half) {
-                // Verification: ensure this is the first node with sum >= half
-                return curr;
-            }
-        }
-        // If not found in the loop, the weighted median is the last node (shouldn't happen in valid inputs)
-        return path.get(path.size() - 1);
     }
 }
 # @lc code=end
