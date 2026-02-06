@@ -8,42 +8,49 @@ import java.util.*;
 class Solution {
     public long minInversionCount(int[] nums, int k) {
         int n = nums.length;
-        int[] copy = Arrays.copyOf(nums, n);
-        Arrays.sort(copy);
-        Map<Integer, Integer> rank = new HashMap<>();
+        // Discretize
+        int[] sorted = nums.clone();
+        Arrays.sort(sorted);
+        Map<Integer, Integer> valToIdx = new HashMap<>();
         int idx = 1;
-        for (int num : copy) {
-            if (!rank.containsKey(num)) rank.put(num, idx++);
+        for (int v : sorted) {
+            if (!valToIdx.containsKey(v)) valToIdx.put(v, idx++);
         }
-        int[] compressed = new int[n];
-        for (int i = 0; i < n; ++i) {
-            compressed[i] = rank.get(nums[i]);
-        }
-        int maxVal = idx;
-        BIT bit = new BIT(maxVal + 2);
+        int[] arr = new int[n];
+        for (int i = 0; i < n; i++) arr[i] = valToIdx.get(nums[i]);
+        int size = idx + 2;
+        BIT bit = new BIT(size);
         long inv = 0;
-        for (int i = 0; i < k; ++i) {
-            inv += bit.query(maxVal) - bit.query(compressed[i]);
-            bit.update(compressed[i], 1);
+        // First window
+        for (int i = 0; i < k; i++) {
+            // Count how many greater elements before i
+            inv += bit.query(size - 1) - bit.query(arr[i]);
+            bit.update(arr[i], 1);
         }
-        long res = inv;
-        for (int i = k; i < n; ++i) {
-            // Remove nums[i-k]
-            bit.update(compressed[i - k], -1);
-            inv -= bit.query(compressed[i - k] - 1);
-            // Add nums[i]
-            inv += bit.query(maxVal) - bit.query(compressed[i]);
-            bit.update(compressed[i], 1);
-            res = Math.min(res, inv);
+        long minInv = inv;
+        for (int i = k; i < n; i++) {
+            // Remove arr[i - k]
+            bit.update(arr[i - k], -1);
+            inv -= bit.query(arr[i - k] - 1);
+            // Add arr[i]
+            inv += bit.query(size - 1) - bit.query(arr[i]);
+            bit.update(arr[i], 1);
+            minInv = Math.min(minInv, inv);
         }
-        return res;
+        return minInv;
     }
-    // BIT supporting prefix sums
-    class BIT {
-        int[] tree; int n;
-        BIT(int n) { this.n = n; tree = new int[n+2]; }
-        void update(int i, int v) { while (i < tree.length) { tree[i] += v; i += i & -i; } }
-        int query(int i) { int s = 0; while (i > 0) { s += tree[i]; i -= i & -i; } return s; }
+    static class BIT {
+        int[] tree;
+        int n;
+        BIT(int n) {
+            this.n = n; tree = new int[n + 2];
+        }
+        void update(int x, int v) {
+            while (x < tree.length) { tree[x] += v; x += x & -x; }
+        }
+        int query(int x) {
+            int sum = 0; while (x > 0) { sum += tree[x]; x -= x & -x; } return sum;
+        }
     }
 }
 # @lc code=end
