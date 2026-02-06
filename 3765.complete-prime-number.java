@@ -5,28 +5,28 @@
 #
 # @lc code=start
 class Solution {
+    private boolean isPrime(int n) {
+        if (n < 2) return false;
+        if (n == 2) return true;
+        if (n % 2 == 0) return false;
+        for (int i = 3; i * 1L * i <= n; i += 2) {
+            if (n % i == 0) return false;
+        }
+        return true;
+    }
+
     public boolean completePrime(int num) {
-        if (num < 2) return false;
         String s = Integer.toString(num);
-        int n = s.length();
+        int len = s.length();
         // Check all prefixes
-        for (int i = 1; i <= n; ++i) {
+        for (int i = 1; i <= len; i++) {
             int prefix = Integer.parseInt(s.substring(0, i));
             if (!isPrime(prefix)) return false;
         }
         // Check all suffixes
-        for (int i = 0; i < n; ++i) {
-            int suffix = Integer.parseInt(s.substring(i, n));
+        for (int i = 0; i < len; i++) {
+            int suffix = Integer.parseInt(s.substring(i, len));
             if (!isPrime(suffix)) return false;
-        }
-        return true;
-    }
-    private boolean isPrime(int num) {
-        if (num < 2) return false;
-        if (num == 2) return true;
-        if (num % 2 == 0) return false;
-        for (int i = 3; i * i <= num; i += 2) {
-            if (num % i == 0) return false;
         }
         return true;
     }
