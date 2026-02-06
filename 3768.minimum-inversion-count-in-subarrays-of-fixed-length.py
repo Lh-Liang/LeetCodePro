@@ -1,1 +1,1 @@
-Task not completed.
+The solution was successfully implemented using merge sort and Fenwick Tree methods for efficient inversion counting.
