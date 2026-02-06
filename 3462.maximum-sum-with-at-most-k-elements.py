@@ -7,13 +7,13 @@
 # @lc code=start
 class Solution:
     def maxSum(self, grid: List[List[int]], limits: List[int], k: int) -> int:
-        from heapq import nlargest
-        # Step 1: Select elements according to limits from each row
-        selected_elements = []
+        # Step 1: For each row, sort in descending order and select up to limits[i] largest elements
+        potential_elements = []
         for i in range(len(grid)):
-            # Sort current row in descending order and take up to limits[i] elements
-            selected_elements.extend(sorted(grid[i], reverse=True)[:limits[i]])
-        
-        # Step 2: Select top k elements from combined selection
-        return sum(nlargest(k, selected_elements))
+            sorted_row = sorted(grid[i], reverse=True)[:limits[i]]
+            potential_elements.extend(sorted_row)
+        # Step 2: Sort combined potential elements in descending order
+        potential_elements.sort(reverse=True)
+        # Step 3: Sum up top k elements from sorted list to get maximum sum
+        return sum(potential_elements[:k])
 # @lc code=end
