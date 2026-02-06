@@ -3,61 +3,53 @@
 #
 # [3776] Minimum Moves to Balance Circular Array
 #
+
 # @lc code=start
 class Solution {
     public long minMoves(int[] balance) {
         int n = balance.length;
         long total = 0;
-        int negIdx = -1;
-        for (int i = 0; i < n; i++) {
-            total += balance[i];
-            if (balance[i] < 0) negIdx = i;
-        }
+        for (int b : balance) total += b;
         if (total < 0) return -1;
-        if (negIdx == -1) return 0;
-        int need = -balance[negIdx];
-        long moves = Long.MAX_VALUE;
-        // Try only left, only right, and combinations
-        for (int split = 0; split <= need; split++) {
-            int[] copy = balance.clone();
-            int lNeed = split;
-            int rNeed = need - split;
-            long cost = 0;
-            int l = (negIdx - 1 + n) % n, lDist = 1;
-            int r = (negIdx + 1) % n, rDist = 1;
-            int lRem = lNeed, rRem = rNeed;
-            boolean valid = true;
-            // Left direction
-            while (lRem > 0 && lDist < n) {
-                int give = Math.min(copy[l], lRem);
-                if (give > 0) {
-                    copy[l] -= give;
-                    lRem -= give;
-                    cost += (long)give * lDist;
-                    if (copy[l] < 0) { valid = false; break; }
-                }
-                l = (l - 1 + n) % n;
-                lDist++;
-            }
-            // Right direction
-            while (valid && rRem > 0 && rDist < n) {
-                int give = Math.min(copy[r], rRem);
-                if (give > 0) {
-                    copy[r] -= give;
-                    rRem -= give;
-                    cost += (long)give * rDist;
-                    if (copy[r] < 0) { valid = false; break; }
-                }
-                r = (r + 1) % n;
-                rDist++;
-            }
-            // Explicitly verify that after transfers, all balances are non-negative
-            for (int x : copy) if (x < 0) valid = false;
-            if (valid && lRem == 0 && rRem == 0) {
-                moves = Math.min(moves, cost);
+        int negIdx = -1;
+        for (int i = 0; i < n; ++i) {
+            if (balance[i] < 0) {
+                negIdx = i;
+                break;
             }
         }
-        return moves == Long.MAX_VALUE ? -1 : moves;
+        if (negIdx == -1) return 0;
+        // Try both clockwise and counterclockwise
+        long minMoves = Long.MAX_VALUE;
+        // Clockwise
+        long[] arr = new long[n];
+        for (int i = 0; i < n; ++i) arr[i] = balance[i];
+        long moves = 0;
+        long needed = -arr[negIdx];
+        int idx = (negIdx + 1) % n;
+        while (needed > 0 && idx != negIdx) {
+            long give = Math.min(arr[idx], needed);
+            moves += give * ((idx - negIdx + n) % n);
+            arr[idx] -= give;
+            needed -= give;
+            idx = (idx + 1) % n;
+        }
+        if (needed == 0) minMoves = moves;
+        // Counterclockwise
+        arr = new long[n];
+        for (int i = 0; i < n; ++i) arr[i] = balance[i];
+        moves = 0;
+        needed = -arr[negIdx];
+        idx = (negIdx - 1 + n) % n;
+        while (needed > 0 && idx != negIdx) {
+            long give = Math.min(arr[idx], needed);
+            moves += give * ((negIdx - idx + n) % n);
+            arr[idx] -= give;
+            needed -= give;
+            idx = (idx - 1 + n) % n;
+        }
+        if (needed == 0) minMoves = Math.min(minMoves, moves);
+        return minMoves == Long.MAX_VALUE ? -1 : minMoves;
     }
 }
 # @lc code=end
