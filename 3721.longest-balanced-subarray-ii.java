@@ -3,45 +3,54 @@
 #
 # [3721] Longest Balanced Subarray II
 #
-# @lc code=start
-import java.util.HashSet;
 
+# @lc code=start
 class Solution {
     public int longestBalanced(int[] nums) {
-        int n = nums.length;
-        int left = 0, right = 0, maxLen = 0;
-        HashSet<Integer> evenSet = new HashSet<>();
-        HashSet<Integer> oddSet = new HashSet<>();
-        int[] count = new int[100001];
-        while (right < n) {
+        int maxLen = 0;
+        int left = 0;
+        Map<Integer, Integer> evens = new HashMap<>();
+        Map<Integer, Integer> odds = new HashMap<>();
+        
+        for (int right = 0; right < nums.length; right++) {
             int num = nums[right];
-            count[num]++;
-            if (num % 2 == 0) evenSet.add(num);
-            else oddSet.add(num);
-            while (left <= right && evenSet.size() > oddSet.size()) {
-                int lnum = nums[left];
-                count[lnum]--;
-                if (count[lnum] == 0) {
-                    if (lnum % 2 == 0) evenSet.remove(lnum);
-                    else oddSet.remove(lnum);
+            if (num % 2 == 0) { // even number
+                evens.put(num, evens.getOrDefault(num, 0) + 1);
+            } else { // odd number
+                odds.put(num, odds.getOrDefault(num, 0) + 1);
+            }
+            
+            while (evens.size() > odds.size()) { // balance condition adjustment
+                int leftNum = nums[left];
+                if (leftNum % 2 == 0) { // adjust even map size
+                    evens.put(leftNum, evens.get(leftNum) - 1);
+                    if (evens.get(leftNum) == 0) { evens.remove(leftNum); }
+                } else { // adjust odd map size
+                    odds.put(leftNum, odds.get(leftNum) - 1);
+                    if (odds.get(leftNum) == 0) { odds.remove(leftNum); }
                 }
-                left++;
-            }
-            while (left <= right && oddSet.size() > evenSet.size()) {
-                int lnum = nums[left];
-                count[lnum]--;
-                if (count[lnum] == 0) {
-                    if (lnum % 2 == 0) evenSet.remove(lnum);
-                    else oddSet.remove(lnum);
+                left++; // move left pointer to shrink window
+            } else if (odds.size() > evens.size()) { // balance condition adjustment in reverse case 
+                while(odds.size() > evens.size()) { …
+                                int leftNum = nums[left];
+                                if (leftNum % 2 != 0) {
+                                    odds.put(leftNum, odds.get(leftNum) - 1);
+                                    if (odds.get(leftNum) == 0) {
+                                        odds.remove(leftNum);
+                                    }
+                                } else {
+                                    evens.put(leftNum, evens.get(leftNum) - 1);
+                                    if (evens.get(leftNum) == 0) {
+                                        evens.remove(leftNum);
+                                    }
+                                }
+                                left++;
+                            }
+                        }
+                        if (evens.size() == odds.size()) {
+                            maxLen = Math.max(maxLen, right - left + 1);
+                        }
+                    }
+                    return maxLen;
                 }
-                left++;
             }
-            if (evenSet.size() == oddSet.size()) {
-                maxLen = Math.max(maxLen, right - left + 1);
-            }
-            right++;
-        }
-        return maxLen;
-    }
-}
-# @lc code=end
