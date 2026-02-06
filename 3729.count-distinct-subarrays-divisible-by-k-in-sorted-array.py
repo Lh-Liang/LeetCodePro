@@ -1,3 +1,4 @@
+#
 # @lc app=leetcode id=3729 lang=python3
 #
 # [3729] Count Distinct Subarrays Divisible by K in Sorted Array
@@ -6,17 +7,15 @@
 # @lc code=start
 class Solution:
     def numGoodSubarrays(self, nums: List[int], k: int) -> int:
-        n = len(nums)
+        from collections import defaultdict
         prefix_sum = 0
-        prefix_sums = {0: -1}  # Maps sum mod k to index
-        count = 0
-        for i in range(n):
-            prefix_sum += nums[i]
-            mod = prefix_sum % k
-            if mod in prefix_sums:
-                if prefix_sums[mod] < i - 1:  # Ensure distinctness by checking the range
-                    count += 1 
-            else:
-                prefix_sums[mod] = i  # Store first occurrence only for distinctness
-        return count
+        mod_count = defaultdict(int)
+        mod_count[0] = 1 # To account for any subarray starting from index 0 being divisible by k
+        total_good_subarrays = 0
+        for num in nums:
+            prefix_sum += num
+            mod_key = prefix_sum % k
+            total_good_subarrays += mod_count[mod_key]
+            mod_count[mod_key] += 1
+        return total_good_subarrays # Counts distinct subarrays with sum divisible by k
 # @lc code=end
