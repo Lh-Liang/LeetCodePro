@@ -1,42 +1,34 @@
-#
 # @lc app=leetcode id=3519 lang=python3
 #
 # [3519] Count Numbers with Non-Decreasing Digits
 #
-
 # @lc code=start
 class Solution:
     def countNumbers(self, l: str, r: str, b: int) -> int:
         MOD = 10**9 + 7
-
-        def to_base(n, base):
-            if n == 0: return '0'
-            digits = []
-            while n:
-                digits.append(int(n % base))
-                n //= base
-            return ''.join(map(str, digits[::-1]))
         
-        def count_non_decreasing(n_str):
-            dp = [[-1] * (len(n_str) + 1) for _ in range(len(n_str))]
-            
-            def dfs(pos, prev_digit, tight):
-                if pos == len(n_str): return 1
-                if not tight and dp[pos][prev_digit] != -1:
-                    return dp[pos][prev_digit]
-                limit = int(n_str[pos]) if tight else b-1
-                count = 0
-                for d in range(prev_digit, limit + 1):
-                    count += dfs(pos+1, d, tight and (d == limit))%MOD
-                if not tight: dp[pos][prev_digit] = count%MOD
-                return count%MOD
-            
-            return dfs(0, 0, True) - 1 # subtract empty string case which is counted by default 
+        def convert_to_base(num_str: str, base: int) -> list:
+            return list(map(int, num_str))
         
-def helper(l_int: int, r_int: int): 
-l_base_b = to_base(l_int-1,b) 
-r_base_b = to_base(r_int,b) 
-cnt_r = count_non_decreasing(r_base_b) 
-cnt_l_minus_1 = count_non_decreasing(l_base_b) eturn (cnt_r - cnt_l_minus_1 + MOD)%MOD 
-l_int = int(l,b) 
-r_int = int(r,b) eturn helper(l_int,r_int) # @lc code=end
+        low = convert_to_base(l.zfill(len(r)), b)
+        high = convert_to_base(r, b)
+        
+        from functools import lru_cache
+        
+        @lru_cache(None)
+        def dp(pos: int, prev_digit: int, tight_low: bool, tight_high: bool) -> int:
+            if pos == len(high):
+                return 1
+            total_count = 0
+            start = low[pos] if tight_low else 0
+            end = high[pos] if tight_high else b - 1
+            for digit in range(start, end + 1):
+                if digit >= prev_digit:
+                    total_count += dp(pos + 1, digit,
+                                      tight_low and (digit == low[pos]),
+                                      tight_high and (digit == high[pos]))
+                    total_count %= MOD
+            return total_count
+        
+        return dp(0, 0, True, True) % MOD
+# @lc code=end
