@@ -3,43 +3,32 @@
 #
 # [3434] Maximum Frequency After Subarray Operation
 #
+
 # @lc code=start
 class Solution {
     public int maxFrequency(int[] nums, int k) {
         int n = nums.length;
         int maxFreq = 0;
-        // Count number of elements already equal to k
-        int kCount = 0;
-        for (int num : nums) {
-            if (num == k) kCount++;
-        }
-        // For each possible value v, try to find the longest consecutive subarray of v
-        // and add k - v to all, making them k
-        for (int v = 1; v <= 50; v++) {
-            int left = 0, right = 0, currLen = 0, localMax = 0;
-            while (right < n) {
-                if (nums[right] == v) {
-                    currLen++;
-                    right++;
-                } else {
-                    localMax = Math.max(localMax, currLen);
-                    // Move left to skip the first non-v element
-                    right++;
-                    left = right;
-                    currLen = 0;
+        for (int i = 0; i < n; ++i) {
+            int cnt = 0;
+            // Try to expand to the left
+            for (int l = i; l >= 0; --l) {
+                int x = k - nums[l];
+                boolean valid = true;
+                for (int m = l; m <= i; ++m) {
+                    if (nums[m] + x != k) {
+                        valid = false;
+                        break;
+                    }
                 }
+                if (valid) cnt = Math.max(cnt, i - l + 1);
             }
-            localMax = Math.max(localMax, currLen);
-            // The frequency if we transform a maximal block of v's to k
-            int freq = localMax;
-            // Add number of k's outside this block (overlap is negligible due to disjoint intervals)
-            freq += kCount;
-            if (v == k) freq -= localMax; // Don't double-count
-            maxFreq = Math.max(maxFreq, freq);
+            maxFreq = Math.max(maxFreq, cnt);
         }
-        // In case we don't do any operation, just count original k's
-        maxFreq = Math.max(maxFreq, kCount);
-        return maxFreq;
+        // Also count original k's
+        int freqK = 0;
+        for (int num : nums) if (num == k) freqK++;
+        return Math.max(maxFreq, freqK);
     }
 }
 # @lc code=end
