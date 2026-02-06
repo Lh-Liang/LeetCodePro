@@ -7,22 +7,31 @@
 # @lc code=start
 class Solution:
     def maxDifference(self, s: str, k: int) -> int:
-        max_diff = -1
+        from collections import Counter
         n = len(s)
-        # Iterate over all possible substrings of length at least k
-        for start in range(n):
-            freq = {}  # Dictionary to store frequency of each character
-            for end in range(start, n):
-                if end - start + 1 >= k:
-                    char = s[end]
-                    if char in freq:
-                        freq[char] += 1
-                    else:
-                        freq[char] = 1
-                    # Calculate max difference between odd and non-zero even frequencies
-                    odd_freqs = [f for f in freq.values() if f % 2 == 1]
-                    even_freqs = [f for f in freq.values() if f % 2 == 0 and f != 0]
-                    if odd_freqs and even_freqs:
-                        current_diff = max(odd_freqs) - min(even_freqs)
-                        max_diff = max(max_diff, current_diff)
-        return max_diff # @lc code=end
+        max_diff = float('-inf')  # Initialize max difference to negative infinity
+        freq = Counter()  # Frequency counter for current window
+        start = 0  # Start of sliding window
+        
+        for end in range(n):
+            char = s[end]
+            freq[char] += 1  # Increment freq count for current char
+            
+            while end - start + 1 >= k:
+                odd_freq_chars = [c for c in freq if freq[c] % 2 == 1]
+                even_freq_chars = [c for c in freq if freq[c] % 2 == 0]
+                
+                if odd_freq_chars and even_freq_chars:  # Check both lists have elements
+                    max_odd_freq = max(freq[c] for c in odd_freq_chars)
+                    min_even_freq = min(freq[c] for c in even_freq_chars)
+                    max_diff = max(max_diff, max_odd_freq - min_even_freq)
+                
+                # Slide window by removing start character's frequency count
+                start_char = s[start]
+                freq[start_char] -= 1
+                if freq[start_char] == 0:
+                    del freq[start_char]
+                start += 1
+        
+        return max_diff if max_diff != float('-inf') else -1
+# @lc code=end
