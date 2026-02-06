@@ -7,20 +7,24 @@
 # @lc code=start
 class Solution:
     def minMoves(self, balance: List[int]) -> int:
-        total_balance = sum(balance)
-        if total_balance < 0:
-            return -1  # Impossible to make all balances non-negative
+        if sum(balance) < 0:
+            return -1
+
         n = len(balance)
-        index = balance.index(min(balance))  # Find the index with negative balance
         moves = 0
-        for i in range(index + 1, index + n):  # Traverse circularly both sides
-            pos = i % n
-            if balance[pos] > 0:
-                move = min(balance[pos], -balance[index])
-                moves += move
-                balance[pos] -= move
-                balance[index] += move
-            if balance[index] >= 0:
-                break
-        return moves if all(b >= 0 for b in balance) else -1
-# @lc code=end
+        neg_index = next((i for i in range(n) if balance[i] < 0), None)
+        if neg_index is None:
+            return 0  # No negative balance means no moves needed.
+        
+        while balance[neg_index] < 0:
+            for i in range(n):
+                if balance[i] > 0:
+                    transfer_amount = min(-balance[neg_index], balance[i])
+                    balance[i] -= transfer_amount
+                    balance[neg_index] += transfer_amount
+                    moves += transfer_amount
+                if balance[neg_index] >= 0:
+                    break
+            neg_index = (neg_index + 1) % n # Circular array consideration.
+        
+        return moves # @lc code=end
