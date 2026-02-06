@@ -7,20 +7,16 @@
 # @lc code=start
 class Solution:
     def totalSteps(self, nums: List[int]) -> int:
-        n = len(nums)
-        stack = []  # will store pairs of (number, steps)
+        # Stack stores tuples of (value, steps)
+        stack = []
         max_steps = 0
-        
-        # Traverse from right to left
-        for i in range(n - 1, -1, -1):
+        # Iterate from right to left through nums
+        for num in reversed(nums):
             current_steps = 0
-            # Pop all elements from stack which are smaller than current element
-            while stack and nums[i] > stack[-1][0]:
-                current_steps = max(current_steps + 1, stack[-1][1])
-                stack.pop()
-            
+            # Resolve current element with stack top until it becomes valid
+            while stack and num > stack[-1][0]:
+                current_steps = max(current_steps + 1, stack.pop()[1])
             max_steps = max(max_steps, current_steps)
-            # Append current number with its count of steps required to remove it completely (if ever needed)
-            stack.append((nums[i], current_steps))
+            stack.append((num, current_steps))
         return max_steps
 # @lc code=end
