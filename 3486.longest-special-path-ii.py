@@ -7,27 +7,39 @@
 # @lc code=start
 class Solution:
     def longestSpecialPath(self, edges: List[List[int]], nums: List[int]) -> List[int]:
-        from collections import defaultdict, deque
+        from collections import defaultdict
         n = len(nums)
         graph = defaultdict(list)
         for u, v, length in edges:
             graph[u].append((v, length))
             graph[v].append((u, length))
         
-        def dfs(node, parent, seen):
-            max_length = 0
+        def dfs(node, parent, visited_values, can_duplicate):
+            visited_values.add(nums[node])
+            max_path_length = 0
             min_nodes = float('inf')
-            seen.add(nums[node])
             for neighbor, length in graph[node]:
-                if neighbor == parent:
-                    continue
-                if nums[neighbor] not in seen or (nums.count(nums[neighbor]) == 1): # Allow one duplicate value on path. 
-                    new_length, new_min_nodes = dfs(neighbor, node, seen.copy()) # Copy seen to handle backtracking correctly. 
-                    new_length += length # Add edge length to current path. 
-                    if new_length > max_length:
-                        max_length = new_length # Update max path length found so far. 
-                        min_nodes = new_min_nodes + 1 # Update min nodes on this max path. 
-                    elif new_length == max_length:
-                        min_nodes = min(min_nodes, new_min_nodes + 1) # Choose smallest nodes count for equal lengths paths. 
-            return max_length, min_nodes if min_nodes != float('inf') else 1 # Return results ensuring minimum nodes is valid. 
-dfs(0, -1, set())
+                if neighbor != parent:
+                    if nums[neighbor] not in visited_values or can_duplicate:
+                        new_duplicate_flag = can_duplicate and nums[neighbor] in visited_values
+                        sub_path_length, sub_node_count = dfs(
+                            neighbor,
+                            node,
+                            visited_values.copy(),
+                            not new_duplicate_flag  # allow duplication only once
+                        )
+                        # Check special path conditions here and update max/min if applicable
+                        total_length = sub_path_length + length
+                        total_nodes = sub_node_count + 1  # include current node in count
+                        if total_length > max_path_length:
+                            max_path_length = total_length
+                            min_nodes = total_nodes
+                        elif total_length == max_path_length:
+                            min_nodes = min(min_nodes, total_nodes)
+            if max_path_length == 0:  # No valid path found; consider single node as a trivial path.
+                return (0, len(visited_values)) 
+            return (max_path_length, min_nodes)
+        
+        result = dfs(0, -1, set(), True) # start DFS from root node with allowance for one duplicate 
+        return [result[0], result[1]] # finalize result logic based on problem constraints 
+# @lc code=end
