@@ -1,4 +1,28 @@
-{
-  "reasoning": "Step 1: Begin with an integer incrementing from n+1. Check if it's a palindrome.
-Step 2: Check if each digit appears exactly as many times as its value.
-Step 3: If both conditions are met, return that number. Otherwise, continue incrementing.", "result": "#\n# @lc app=leetcode id=3646 lang=python3\n#\n# [3646] Next Special Palindrome Number\n#\n\n# @lc code=start\nclass Solution:\n    def specialPalindrome(self, n: int) -> int:\n        def is_palindrome(x):\n            s = str(x)\n            return s == s[::-1]\n        \n        def valid_digit_count(x):\n            from collections import Counter\n            count = Counter(str(x))\n            return all(int(k) == v for k, v in count.items())\n        \ni = n+1\nwhile True:\ni_palindrome = is_palindrome(i)\ndigits_valid = valid_digit_count(i)\if i_palindrome and digits_valid:\return i\ni += 1\
+#
+# @lc app=leetcode id=3646 lang=python3
+#
+# [3646] Next Special Palindrome Number
+#
+
+# @lc code=start
+class Solution:
+    def specialPalindrome(self, n: int) -> int:
+        def is_palindrome(num):
+            s = str(num)
+            return s == s[::-1]
+        
+        def is_special(num):
+            from collections import Counter
+            s = str(num)
+            count = Counter(s)
+            for digit in count:
+                if int(digit) != count[digit]:
+                    return False
+            return True
+        
+        current = n + 1
+        while True:
+            if is_palindrome(current) and is_special(current):
+                return current
+            current += 1
+# @lc code=end
