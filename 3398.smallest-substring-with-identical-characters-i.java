@@ -3,41 +3,37 @@
 #
 # [3398] Smallest Substring With Identical Characters I
 #
+
 # @lc code=start
 class Solution {
     public int minLength(String s, int numOps) {
         int n = s.length();
         int left = 1, right = n;
-        int res = n;
-        while (left <= right) {
-            int mid = left + (right - left) / 2;
-            if (canBreakAllRuns(s, numOps, mid, '0') || canBreakAllRuns(s, numOps, mid, '1')) {
-                res = mid;
-                right = mid - 1;
+        while (left < right) {
+            int mid = (left + right) / 2;
+            if (canAchieve(s, numOps, mid)) {
+                right = mid;
             } else {
                 left = mid + 1;
             }
         }
-        return res;
+        return left;
     }
-    // Check if all runs of ch can be broken into pieces of length <= len with <= numOps flips
-    private boolean canBreakAllRuns(String s, int numOps, int len, char ch) {
-        int flipsNeeded = 0;
-        int i = 0, n = s.length();
+    private boolean canAchieve(String s, int numOps, int maxLen) {
+        int flips = 0;
+        int n = s.length();
+        int i = 0;
         while (i < n) {
-            if (s.charAt(i) != ch) {
-                i++;
-                continue;
-            }
             int j = i;
-            while (j < n && s.charAt(j) == ch) j++;
-            int runLen = j - i;
-            if (runLen > len) {
-                flipsNeeded += (runLen - 1) / len;
+            while (j < n && s.charAt(j) == s.charAt(i)) j++;
+            int len = j - i;
+            if (len > maxLen) {
+                // Need to break this run into pieces of at most maxLen
+                flips += (len - 1) / maxLen;
             }
             i = j;
         }
-        return flipsNeeded <= numOps;
+        return flips <= numOps;
     }
 }
 # @lc code=end
