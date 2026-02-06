@@ -5,34 +5,32 @@
 #
 
 # @lc code=start
-from typing import List
-from collections import defaultdict
-
 class Solution:
     def findAnswer(self, parent: List[int], s: str) -> List[bool]:
-        n = len(parent)
-        # Create adjacency list for tree representation
-        children = defaultdict(list)
-        for i in range(1, n):
-            children[parent[i]].append(i)
+        from collections import defaultdict
         
         def is_palindrome(st):
             return st == st[::-1]
         
+        n = len(parent)
+        tree = defaultdict(list)
+        for child, par in enumerate(parent):
+            if par != -1:
+                tree[par].append(child)
+        
         def dfs(node):
             dfsStr = []
-            stack = [node]
-            while stack:
-                current = stack.pop()
-                dfsStr.append(s[current])
-                for child in sorted(children[current], reverse=True): # Iterate children in increasing order of their numbers by reverse=True in stack append order. 
-                    stack.append(child)
+            def helper(x):
+                for child in sorted(tree[x]):  # Ensure children are processed in order
+                    helper(child)
+                dfsStr.append(s[x])
+            helper(node)
             return ''.join(dfsStr)
         
-        answer = []
+        answer = [False] * n
         for i in range(n):
-            dfsStr = dfs(i)  # Get the DFS string starting from node i.
-            answer.append(is_palindrome(dfsStr))  # Check if it is a palindrome.
+            current_dfsStr = dfs(i)
+            answer[i] = is_palindrome(current_dfsStr)
         
         return answer
 # @lc code=end
