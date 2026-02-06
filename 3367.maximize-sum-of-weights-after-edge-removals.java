@@ -5,67 +5,41 @@
 #
 
 # @lc code=start
-// Step-by-step approach:
-// 1. Build an adjacency list and a map for edge weights.
-// 2. Compute degrees for all nodes.
-// 3. For each node with degree > k, remove lowest-weight incident edges, updating degrees for both endpoints and marking removed edges.
-// 4. Ensure no edge is removed twice, and verify all degrees <= k after removals.
-// 5. Sum weights of remaining edges.
+import java.util.*;
 class Solution {
     public long maximizeSumOfWeights(int[][] edges, int k) {
-        // Step 1: Build adjacency list and edge index map
         int n = edges.length + 1;
-        Map<Integer, List<int[]>> adj = new HashMap<>(); // node -> list of [neighbor, weight, edgeId]
-        Map<String, Integer> edgeWeight = new HashMap<>(); // "u,v" -> weight
-        for (int i = 0; i < edges.length; i++) {
-            int u = edges[i][0], v = edges[i][1], w = edges[i][2];
-            adj.computeIfAbsent(u, x -> new ArrayList<>()).add(new int[]{v, w, i});
-            adj.computeIfAbsent(v, x -> new ArrayList<>()).add(new int[]{u, w, i});
-            edgeWeight.put(u + "," + v, w);
-            edgeWeight.put(v + "," + u, w);
+        List<int[]>[] tree = new ArrayList[n];
+        for(int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
+        for(int[] e : edges) {
+            tree[e[0]].add(new int[]{e[1], e[2]});
+            tree[e[1]].add(new int[]{e[0], e[2]});
         }
-        // Step 2: Compute degrees
-        int[] degree = new int[n];
-        for (int i = 0; i < n; i++) degree[i] = adj.getOrDefault(i, new ArrayList<>()).size();
-        // Step 3: For each node with degree > k, mark lightest edges for removal
-        Set<Integer> removedEdges = new HashSet<>();
-        boolean changed = true;
-        while (changed) {
-            changed = false;
-            for (int i = 0; i < n; i++) {
-                if (degree[i] > k) {
-                    // sort incident edges by weight
-                    List<int[]> incident = new ArrayList<>();
-                    for (int[] nei : adj.get(i)) {
-                        if (!removedEdges.contains(nei[2])) {
-                            incident.add(nei);
-                        }
-                    }
-                    incident.sort(Comparator.comparingInt(a -> a[1]));
-                    int removeCount = degree[i] - k;
-                    for (int j = 0, cnt = 0; j < incident.size() && cnt < removeCount; j++) {
-                        int neighbor = incident.get(j)[0];
-                        int edgeId = incident.get(j)[2];
-                        if (removedEdges.contains(edgeId)) continue;
-                        removedEdges.add(edgeId);
-                        degree[i]--;
-                        degree[neighbor]--;
-                        changed = true;
-                        cnt++;
-                    }
-                }
-            }
+        return dfs(0, -1, tree, k)[0];
+    }
+    private long[] dfs(int u, int parent, List<int[]>[] tree, int k) {
+        // dp[0]: max sum in subtree rooted at u
+        // dp[1]: list of edge weights we can offer to parent for possible selection
+        PriorityQueue<Long> gains = new PriorityQueue<>();
+        long sum = 0;
+        for(int[] nei : tree[u]) {
+            int v = nei[0], w = nei[1];
+            if(v == parent) continue;
+            long[] child = dfs(v, u, tree, k);
+            // child[0]: max sum in subtree rooted at v
+            // child[1]: best gain if we keep edge u-v
+            sum += child[0];
+            gains.offer(child[1] + w);
+            if(gains.size() > k) gains.poll();
         }
-        // Step 5: Sum the weights of remaining edges
-        long total = 0L;
-        for (int i = 0; i < edges.length; i++) {
-            if (!removedEdges.contains(i)) {
-                total += edges[i][2];
-            }
+        long keep = 0;
+        List<Long> list = new ArrayList<>();
+        while(!gains.isEmpty()) {
+            long val = gains.poll();
+            keep += val;
+            list.add(val);
         }
-        // Step 7: Final verification
-        // (Optional, as above loop ensures no degree > k)
-        return total;
+        return new long[]{sum + keep, list.size() == 0 ? 0 : Collections.max(list)};
     }
 }
 # @lc code=end
