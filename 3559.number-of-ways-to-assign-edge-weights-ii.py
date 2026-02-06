@@ -7,32 +7,48 @@
 # @lc code=start
 class Solution:
     def assignEdgeWeights(self, edges: List[List[int]], queries: List[List[int]]) -> List[int]:
-        from collections import defaultdict, deque
+        import collections
         MOD = 10**9 + 7
         n = len(edges) + 1
-        tree = defaultdict(list)
+        graph = collections.defaultdict(list)
         for u, v in edges:
-            tree[u].append(v)
-            tree[v].append(u)
+            graph[u].append(v)
+            graph[v].append(u)
         
-        def bfs(u, v):
-            queue = deque([(u, 0)])
-            visited = {u}
-            while queue:
-                node, depth = queue.popleft()
-                if node == v:
-                    return depth % 2 == 1 # Return True if path length is odd.
-                for neighbor in tree[node]:
-                    if neighbor not in visited:
-                        visited.add(neighbor)
-                        queue.append((neighbor, depth + 1))
-            return False # No valid path found. Should not happen as it’s a tree.
+        # Precompute depths and parents for LCA computation
+        depth = [-1] * (n + 1)
+        parent = [-1] * (n + 1)
         
-        answer = []
-        for u, v in queries:
-            if u == v:
-                answer.append(0) # Path from node to itself has zero length, hence no assignment makes it odd.
-            else:
-                answer.append(2 if bfs(u,v) else 0) # If path length is even (bfs returns False), no valid assignment exists. Otherwise (True), two assignments exist. 
-        return [a % MOD for a in answer]
-# @lc code=end
+        def dfs(node, par, dep):
+            depth[node] = dep
+            parent[node] = par
+            for neighbor in graph[node]:
+                if neighbor == par:
+                    continue
+                dfs(neighbor, node, dep + 1)
+        
+        dfs(1, -1, 0) # Root at node 1 with depth 0
+        
+        def lca(u, v):
+            if depth[u] < depth[v]: # Ensure u is deeper than v or same level.
+                u, v = v, u 
+            # Bring u to the same depth as v. 
+            while depth[u] > depth[v]: 
+                u = parent[u]
+            # Now bring both to their common ancestor. 
+            while u != v:
+                u = parent[u]
+                v = parent[v]
+            return u 
+         
+         def path_length(u, v): 
+             lca_node = lca(u, v) 
+             return depth[u] + depth[v] - 2 * depth[lca_node] 
+         result = [] 
+         for ui, vi in queries: 
+             length = path_length(ui, vi) 
+             if length == 0: 
+                 result.append(0) # No edges in path from node to itself. 
+             else: # There are length ways to assign weights such that cost is odd. 
+                 result.append(pow(2, length - 1, MOD)) # Either choose an odd number of '1' or '2'. 
+         return result # @lc code=end
