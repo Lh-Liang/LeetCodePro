@@ -1,5 +1,26 @@
-Step 1: Analyze the problem requirements and constraints, ensuring a clear understanding of the task and expected deliverables.
-Step 2: Decompose the problem into concrete, actionable sub-tasks, such as identifying efficient approaches for generating all unique XOR triplet values and managing computational complexity.
-Step 3: Translate the high-level plan and decomposed steps into a specific, domain-appropriate implementation in the required template, ensuring the code is complete and ready for execution.
-Step 4: Identify and remove any unused variables or redundant code to maintain clarity and efficiency.
-Step 5: Review and verify that the solution code is present, fits the required template, contains no placeholders, and is fully ready for execution or submission, ensuring all task requirements are addressed.
+#
+# @lc app=leetcode id=3513 lang=java
+#
+# [3513] Number of Unique XOR Triplets I
+#
+# @lc code=start
+import java.util.*;
+class Solution {
+    public int uniqueXorTriplets(int[] nums) {
+        int n = nums.length;
+        Set<Integer> unique = new HashSet<>();
+        int[] prefixXor = new int[n + 1];
+        prefixXor[0] = 0;
+        for (int i = 0; i < n; i++) {
+            prefixXor[i + 1] = prefixXor[i] ^ nums[i];
+        }
+        for (int i = 0; i < n; i++) {
+            for (int k = i; k < n; k++) {
+                int xorVal = prefixXor[k + 1] ^ prefixXor[i];
+                unique.add(xorVal);
+            }
+        }
+        return unique.size();
+    }
+}
+# @lc code=end
