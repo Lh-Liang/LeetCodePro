@@ -3,30 +3,30 @@
 #
 # [3449] Maximize the Minimum Game Score
 #
+
 # @lc code=start
 class Solution {
     public long maxScore(int[] points, int m) {
         int n = points.length;
-        long left = 0, right = (long)1e15;
-        while (left < right) {
-            long mid = right - (right - left) / 2;
+        long left = 0, right = (long)1e15, answer = 0;
+        while (left <= right) {
+            long mid = left + (right - left) / 2;
             if (canAchieve(points, m, mid)) {
-                left = mid;
+                answer = mid;
+                left = mid + 1;
             } else {
                 right = mid - 1;
             }
         }
-        return left;
+        return answer;
     }
+
     private boolean canAchieve(int[] points, int m, long target) {
-        int n = points.length;
         long moves = 0;
-        for (int i = 0; i < n; ++i) {
-            long need = (target + points[i] - 1) / points[i];
-            moves += need;
+        for (int p : points) {
+            moves += (target + p - 1) / p; // ceil(target/p)
+            if (moves > m) return false;
         }
-        // To traverse all indices, need at least n-1 moves (from -1 to 0 to 1 ... n-1)
-        moves += n - 1;
         return moves <= m;
     }
 }
