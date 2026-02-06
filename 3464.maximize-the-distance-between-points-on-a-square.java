@@ -7,16 +7,11 @@
 class Solution {
     public int maxDistance(int side, int[][] points, int k) {
         int n = points.length;
-        int[][] dist = new int[n][n];
-        for (int i = 0; i < n; ++i) {
-            for (int j = 0; j < n; ++j) {
-                dist[i][j] = Math.abs(points[i][0] - points[j][0]) + Math.abs(points[i][1] - points[j][1]);
-            }
-        }
-        int left = 0, right = 2 * side, ans = 0;
+        int left = 0, right = 2 * side;
+        int ans = 0;
         while (left <= right) {
-            int mid = (left + right) / 2;
-            if (canPick(points, dist, k, mid)) {
+            int mid = left + (right - left) / 2;
+            if (canSelect(points, k, mid)) {
                 ans = mid;
                 left = mid + 1;
             } else {
@@ -25,31 +20,31 @@ class Solution {
         }
         return ans;
     }
-    private boolean canPick(int[][] points, int[][] dist, int k, int d) {
-        int n = points.length;
-        return dfs(points, dist, k, d, new boolean[n], 0, 0);
+
+    // Check if we can select k points with pairwise Manhattan distance >= dist
+    private boolean canSelect(int[][] points, int k, int dist) {
+        return backtrack(points, k, dist, 0, new boolean[points.length], 0);
     }
-    private boolean dfs(int[][] points, int[][] dist, int k, int d, boolean[] used, int start, int cnt) {
-        if (cnt == k) {
-            int n = points.length;
-            for (int i = 0; i < n; ++i) {
-                if (!used[i]) continue;
-                for (int j = i + 1; j < n; ++j) {
-                    if (used[j] && dist[i][j] < d) return false;
+
+    private boolean backtrack(int[][] points, int k, int dist, int start, boolean[] used, int count) {
+        if (count == k) return true;
+        for (int i = start; i < points.length; ++i) {
+            if (!used[i]) {
+                boolean valid = true;
+                for (int j = 0; j < points.length; ++j) {
+                    if (used[j]) {
+                        int d = Math.abs(points[i][0] - points[j][0]) + Math.abs(points[i][1] - points[j][1]);
+                        if (d < dist) {
+                            valid = false;
+                            break;
+                        }
+                    }
                 }
-            }
-            return true;
-        }
-        int n = points.length;
-        for (int i = start; i < n; ++i) {
-            boolean valid = true;
-            for (int j = 0; j < n; ++j) {
-                if (used[j] && dist[i][j] < d) { valid = false; break; }
-            }
-            if (valid) {
-                used[i] = true;
-                if (dfs(points, dist, k, d, used, i + 1, cnt + 1)) return true;
-                used[i] = false;
+                if (valid) {
+                    used[i] = true;
+                    if (backtrack(points, k, dist, i + 1, used, count + 1)) return true;
+                    used[i] = false;
+                }
             }
         }
         return false;
