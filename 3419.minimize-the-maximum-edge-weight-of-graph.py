@@ -5,38 +5,40 @@
 #
 
 # @lc code=start
+from collections import defaultdict, deque
+from typing import List
+
 class Solution:
     def minMaxWeight(self, n: int, edges: List[List[int]], threshold: int) -> int:
-        def can_construct(max_weight):
-            from collections import defaultdict, deque
+        # Step 1: Sort edges based on weights for binary search purposes.
+        edges.sort(key=lambda x: x[2])
+        
+        # Helper function to check if node 0 is reachable from all nodes within weight limit and threshold.
+        def canReachZero(max_weight):
             graph = defaultdict(list)
             for u, v, w in edges:
                 if w <= max_weight:
                     graph[u].append((v, w))
-            # Check if all nodes can reach node 0 with BFS/DFS
+            
+            # Use BFS or DFS to check reachability from all nodes to node 0 with threshold constraint.
             visited = set()
             def bfs(start):
                 queue = deque([start])
                 visited.add(start)
                 while queue:
                     node = queue.popleft()
-                    for neighbor, _ in graph[node]:
+                    for neighbor, weight in graph[node]:
                         if neighbor not in visited:
                             visited.add(neighbor)
                             queue.append(neighbor)
-            bfs(0)  # Start from node 0 to check reachability
-            if len(visited) != n:
-                return False  # Not all nodes can reach node 0
-            # Ensure each node has at most 'threshold' outgoing connections with smaller weights prioritized.
-            for u in range(n):
-                if len(graph[u]) > threshold:
-                    return False  # More than threshold connections from this node.
-            return True
-        # Binary search over possible max weights.
-        low, high = min(w for _, _, w in edges), max(w for _, _, w in edges) + 1
-        while low < high:
+            
+            bfs(0)  # Start BFS from node 0.
+            return len(visited) == n  # Check if all nodes are reachable to node 0. 
+        
+        # Step 2: Perform binary search on the sorted edge weights.
+        low, high = 0, len(edges) - 1
+        result = -1
+        while low <= high:
             mid = (low + high) // 2
-            if can_construct(mid):
-                high = mid  # Try smaller weights.
-            else:
-                low = mid + 1  # Increase weight to satisfy constraints. ​return -1 if low == max(w for _, _, w in edges) + 1 else low ​# @lc code=end
+            if canReachZero(edges[mid][2]): # Check reachability with current mid as max weight.
+                result = edges[mid][2]& high = mid - 1 & update result with lower weight. & else: low = mid + 1 # Increase lower bound if not reachable. & return result
