@@ -3,32 +3,23 @@
 #
 # [3434] Maximum Frequency After Subarray Operation
 #
-
 # @lc code=start
 class Solution {
     public int maxFrequency(int[] nums, int k) {
-        int n = nums.length;
-        int maxFreq = 0;
-        for (int i = 0; i < n; ++i) {
-            int cnt = 0;
-            // Try to expand to the left
-            for (int l = i; l >= 0; --l) {
-                int x = k - nums[l];
-                boolean valid = true;
-                for (int m = l; m <= i; ++m) {
-                    if (nums[m] + x != k) {
-                        valid = false;
-                        break;
-                    }
-                }
-                if (valid) cnt = Math.max(cnt, i - l + 1);
+        int left = 0, right = 0, maxFreq = 0;
+        int currentSum = 0;
+        Arrays.sort(nums); // Sorting helps maintain order for frequency evaluation.
+        while (right < nums.length) {
+            currentSum += nums[right];
+            // Check if current window is valid by comparing with the cost of converting all elements to nums[right].
+            while ((right - left + 1) * nums[right] - currentSum > k) {
+                currentSum -= nums[left]; // Adjust by removing elements from left.
+                left++; // Shrink window from the left if it exceeds allowed operations (k).
             }
-            maxFreq = Math.max(maxFreq, cnt);
+            maxFreq = Math.max(maxFreq, right - left + 1); // Update maximum frequency found.
+            right++; // Expand window by moving right pointer forward.
         }
-        // Also count original k's
-        int freqK = 0;
-        for (int num : nums) if (num == k) freqK++;
-        return Math.max(maxFreq, freqK);
+        return maxFreq; // Return the maximum frequency of k possible after one operation.
     }
 }
 # @lc code=end
