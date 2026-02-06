@@ -3,15 +3,16 @@
 #
 # [3704] Count No-Zero Pairs That Sum to N
 #
+
 # @lc code=start
 class Solution:
     def countNoZeroPairs(self, n: int) -> int:
-        def is_no_zero(num):
-            return '0' not in str(num)
+        def contains_no_zero(x):
+            return '0' not in str(x)
         count = 0
-        for a in range(1, n//2 + 1):
+        for a in range(1, (n // 2) + 1):
             b = n - a
-            if is_no_zero(a) and is_no_zero(b):
+            if contains_no_zero(a) and contains_no_zero(b):
                 count += 1
         return count
 # @lc code=end
