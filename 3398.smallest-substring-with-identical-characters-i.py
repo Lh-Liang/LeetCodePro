@@ -3,26 +3,27 @@
 #
 # [3398] Smallest Substring With Identical Characters I
 #
-
 # @lc code=start
 class Solution:
     def minLength(self, s: str, numOps: int) -> int:
         n = len(s)
-        if n == 0: return 0
-        # Prefix sums for zeros and ones
-        prefix_zeros = [0] * (n + 1)
-        prefix_ones = [0] * (n + 1)
-        for i in range(n):
-            prefix_zeros[i+1] = prefix_zeros[i] + (1 if s[i] == '0' else 0)
-            prefix_ones[i+1] = prefix_ones[i] + (1 if s[i] == '1' else 0)
-        min_length = n
-        # Sliding window approach to use flips effectively
-        for start in range(n):
-            for end in range(start, n):
-                zeros_in_window = prefix_zeros[end+1] - prefix_zeros[start]
-                ones_in_window = prefix_ones[end+1] - prefix_ones[start]
-                flips_needed = min(zeros_in_window, ones_in_window)
-                if flips_needed <= numOps:
-                    min_length = min(min_length, end - start + 1)
-        return min_length
+        left = 0
+        max_len = n
+        num_flips = 0
+        max_identical = 0
+        # A dictionary to track counts of '0's and '1's in current window
+        count = {'0': 0, '1': 0}
+        for right in range(n):
+            count[s[right]] += 1
+            # Update the number of flips needed if we want to change all to either '0' or '1'
+            max_identical = max(count['0'], count['1'])
+            # Calculate number of flips required to make all characters in current window identical
+            num_flips = (right - left + 1) - max_identical
+            # If num_flips exceeds numOps, move left pointer forward to reduce window size
+            if num_flips > numOps:
+                count[s[left]] -= 1
+                left += 1
+            # Update max_len with minimum found so far
+            max_len = min(max_len, right - left + 1)
+        return max_len 
 # @lc code=end
