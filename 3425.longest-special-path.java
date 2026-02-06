@@ -8,37 +8,45 @@
 class Solution {
     public int[] longestSpecialPath(int[][] edges, int[] nums) {
         int n = nums.length;
-        List<int[]>[] tree = new List[n];
-        for (int i = 0; i < n; i++) tree[i] = new ArrayList<>();
+        List<int[]>[] adj = new List[n];
+        for (int i = 0; i < n; ++i) adj[i] = new ArrayList<>();
         for (int[] e : edges) {
-            tree[e[0]].add(new int[]{e[1], e[2]});
-            tree[e[1]].add(new int[]{e[0], e[2]});
+            adj[e[0]].add(new int[]{e[1], e[2]});
+            adj[e[1]].add(new int[]{e[0], e[2]});
         }
-        int[] res = new int[]{0, 1}; // {maxLen, minNodes}
-        Set<Integer> seen = new HashSet<>();
-        dfs(0, -1, 0, 1, seen, nums, tree, res);
-        // After traversal, ensure result matches constraints (not necessary here but included for robustness)
+        int[] res = new int[]{0, Integer.MAX_VALUE}; // [max_length, min_nodes]
+        Set<Integer> path = new HashSet<>();
+        dfs(0, -1, adj, nums, path, 0, 1, res);
+        res[1] = Math.max(1, res[1]); // at least one node
         return res;
     }
-    private void dfs(int u, int parent, int curLen, int nodeCount, Set<Integer> seen, int[] nums, List<int[]>[] tree, int[] res) {
-        // Pre-recursion: ensure uniqueness constraint
-        if (seen.contains(nums[u])) return;
-        seen.add(nums[u]);
-        // Update result if needed
-        if (curLen > res[0]) {
-            res[0] = curLen;
-            res[1] = nodeCount;
-        } else if (curLen == res[0]) {
-            res[1] = Math.min(res[1], nodeCount);
+    private void dfs(int u, int parent, List<int[]>[] adj, int[] nums, Set<Integer> path, int curLen, int curNodes, int[] res) {
+        if (path.contains(nums[u])) {
+            if (curLen > res[0]) {
+                res[0] = curLen;
+                res[1] = curNodes - 1;
+            } else if (curLen == res[0]) {
+                res[1] = Math.min(res[1], curNodes - 1);
+            }
+            return;
         }
-        // Recurse on all children (except parent)
-        for (int[] nei : tree[u]) {
-            int v = nei[0], w = nei[1];
-            if (v == parent) continue;
-            dfs(v, u, curLen + w, nodeCount + 1, seen, nums, tree, res);
+        path.add(nums[u]);
+        boolean isLeaf = true;
+        for (int[] nei : adj[u]) {
+            if (nei[0] != parent) {
+                isLeaf = false;
+                dfs(nei[0], u, adj, nums, path, curLen + nei[1], curNodes + 1, res);
+            }
         }
-        // Post-recursion: backtrack state
-        seen.remove(nums[u]);
+        if (isLeaf) {
+            if (curLen > res[0]) {
+                res[0] = curLen;
+                res[1] = curNodes;
+            } else if (curLen == res[0]) {
+                res[1] = Math.min(res[1], curNodes);
+            }
+        }
+        path.remove(nums[u]);
     }
 }
 # @lc code=end
