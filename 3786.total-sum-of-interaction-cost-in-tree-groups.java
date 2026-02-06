@@ -6,55 +6,29 @@
 # @lc code=start
 class Solution {
     public long interactionCosts(int n, int[][] edges, int[] group) {
-        // Build the tree
-        List<Integer>[] tree = new ArrayList[n];
-        for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
-        for (int[] e : edges) {
-            tree[e[0]].add(e[1]);
-            tree[e[1]].add(e[0]);
+        // Create adjacency list from edges
+        List<List<Integer>> adjList = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            adjList.add(new ArrayList<>());
         }
-
-        // Map group id to nodes
+        for (int[] edge : edges) {
+            adjList.get(edge[0]).add(edge[1]);
+            adjList.get(edge[1]).add(edge[0]);
+        }
+        
+        // Map to store group-wise nodes
         Map<Integer, List<Integer>> groupMap = new HashMap<>();
-        for (int i = 0; i < n; ++i) {
+        for (int i = 0; i < n; i++) {
             groupMap.computeIfAbsent(group[i], k -> new ArrayList<>()).add(i);
         }
-
-        long total = 0;
-        for (int gid : groupMap.keySet()) {
-            List<Integer> nodes = groupMap.get(gid);
-            if (nodes.size() < 2) continue;
-            boolean[] inGroup = new boolean[n];
-            for (int x : nodes) inGroup[x] = true;
-            int totalInGroup = nodes.size();
-
-            // DFS to compute subtree sizes for current group
-            int[] subtree = new int[n];
-            dfs(0, -1, tree, inGroup, subtree);
-
-            // For each edge, calculate contribution
-            for (int[] e : edges) {
-                int u = e[0], v = e[1];
-                // Find parent-child (need to determine direction)
-                // We'll use subtree sizes to infer direction
-                // If subtree[v] < subtree[u], swap
-                if (subtree[v] > subtree[u]) { int tmp = u; u = v; v = tmp; }
-                // Now u is parent of v
-                int count = subtree[v];
-                total += (long) count * (totalInGroup - count);
-            }
-        }
-        return total;
-    }
-
-    // Returns how many nodes in this subtree belong to group
-    private int dfs(int node, int parent, List<Integer>[] tree, boolean[] inGroup, int[] subtree) {
-        int cnt = inGroup[node] ? 1 : 0;
-        for (int nei : tree[node]) {
-            if (nei == parent) continue;
-            cnt += dfs(nei, node, tree, inGroup, subtree);
-        }
-        return subtree[node] = cnt;
-    }
-}
-# @lc code=end
+        
+        // Function to calculate interaction cost using DFS
+        long totalCost = 0;
+        for (int grp : groupMap.keySet()) {
+            List<Integer> nodes = groupMap.get(grp);
+            if (nodes.size() < 2) continue; // Single node can't form a pair
+            
+            boolean[] visited = new boolean[n];
+            for (int node : nodes) {
+                Arrays.fill(visited, false); // Reset visited array for each node in group
+                totalCost += dfs(adjList, visited, node, -1); // Calculate cost from current node to others in its group & add to total cost & avoid double counting pairs by starting with -1 depth. & track depth of traversal from current node. & depth gives distance between nodes forming pair. & return sum of all such valid distances. & recursively call dfs on each adjacent unvisited node until no more such nodes exist or max depth is achieved.
