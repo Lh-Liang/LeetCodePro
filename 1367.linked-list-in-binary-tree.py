@@ -18,17 +18,14 @@ class TreeNode:
         self.right = right
 class Solution:
     def isSubPath(self, head: Optional[ListNode], root: Optional[TreeNode]) -> bool:
-        def dfs(head: Optional[ListNode], node: Optional[TreeNode]) -> bool:
-            if not head:
-                return True  # Finished traversing the entire linked list
-            if not node:
-                return False  # Reached a leaf node without matching entire list
-            if head.val == node.val:
-                # Check either left or right subtree can continue matching
-                return dfs(head.next, node.left) or dfs(head.next, node.right)
-            return False  # Current values don't match; can't continue this path
-        if not root:
-            return False  # If root is null, no path can exist
-        # Start DFS from current node or try from children (left/right) of current root
-        return dfs(head, root) or self.isSubPath(head, root.left) or self.isSubPath(head, root.right)
-# @lc code=end
+        if not head: return True # An empty list is always a subpath
+        if not root: return False # Non-empty list cannot be matched by an empty tree
+        
+        def doesPathMatch(head: ListNode, root: TreeNode) -> bool:
+            if not head: return True # All nodes in the list are matched
+            if not root or root.val != head.val: return False # Mismatch in value or end of path in tree reached without matching all nodes in list
+            # Match head against root; recursively check both children paths with next of head
+            return doesPathMatch(head.next, root.left) or doesPathMatch(head.next, root.right)
+        
+        # Perform DFS on each node along with checking if path matches starting from that node
+        return doesPathMatch(head, root) or self.isSubPath(head, root.left) or self.isSubPath(head, root.right) # Check all possible paths in the binary tree for match\# @lc code=end
