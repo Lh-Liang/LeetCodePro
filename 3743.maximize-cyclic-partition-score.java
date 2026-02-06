@@ -1,37 +1,54 @@
+#
+# @lc app=leetcode id=3743 lang=java
+#
+# [3743] Maximize Cyclic Partition Score
+#
+
+# @lc code=start
 class Solution {
     public long maximumScore(int[] nums, int k) {
         int n = nums.length;
+        long maxScore = 0;
         int[] arr = new int[2 * n];
         for (int i = 0; i < 2 * n; ++i) arr[i] = nums[i % n];
-        long[][] minVal = new long[2 * n][n + 1];
-        long[][] maxVal = new long[2 * n][n + 1];
+        // Precompute min and max for all subarrays of length <= n
+        long[][] minTable = new long[2 * n][n + 1];
+        long[][] maxTable = new long[2 * n][n + 1];
         for (int i = 0; i < 2 * n; ++i) {
-            long mi = arr[i], ma = arr[i];
-            minVal[i][1] = mi; maxVal[i][1] = ma;
-            for (int len = 2; len <= n && i + len - 1 < 2 * n; ++len) {
-                mi = Math.min(mi, arr[i + len - 1]);
-                ma = Math.max(ma, arr[i + len - 1]);
-                minVal[i][len] = mi; maxVal[i][len] = ma;
+            minTable[i][0] = Integer.MAX_VALUE;
+            maxTable[i][0] = Integer.MIN_VALUE;
+            for (int len = 1; len <= n && i + len <= 2 * n; ++len) {
+                if (len == 1) {
+                    minTable[i][len] = arr[i];
+                    maxTable[i][len] = arr[i];
+                } else {
+                    minTable[i][len] = Math.min(minTable[i][len - 1], arr[i + len - 1]);
+                    maxTable[i][len] = Math.max(maxTable[i][len - 1], arr[i + len - 1]);
+                }
             }
         }
-        long ans = 0;
+        // Try all starting points
         for (int start = 0; start < n; ++start) {
+            // DP: dp[i][j] = max score for prefix length i (from start), with j partitions
             long[][] dp = new long[n + 1][k + 1];
-            for (int len = 1; len <= n; ++len) {
-                for (int t = 1; t <= Math.min(k, len); ++t) {
-                    if (t == 1) {
-                        dp[len][t] = maxVal[start][len] - minVal[start][len];
-                    } else {
-                        for (int cut = 1; cut < len; ++cut) {
-                            if (t - 1 <= cut) {
-                                dp[len][t] = Math.max(dp[len][t], dp[cut][t - 1] + maxVal[start + cut][len - cut] - minVal[start + cut][len - cut]);
-                            }
+            for (int i = 0; i <= n; ++i) for (int j = 0; j <= k; ++j) dp[i][j] = Long.MIN_VALUE;
+            dp[0][0] = 0;
+            for (int i = 1; i <= n; ++i) {
+                for (int part = 1; part <= Math.min(i, k); ++part) {
+                    for (int last = part - 1; last < i; ++last) {
+                        long range = maxTable[start + last][i - last] - minTable[start + last][i - last];
+                        if (dp[last][part - 1] != Long.MIN_VALUE) {
+                            dp[i][part] = Math.max(dp[i][part], dp[last][part - 1] + range);
                         }
                     }
                 }
             }
-            for (int t = 1; t <= k; ++t) ans = Math.max(ans, dp[n][t]);
+            // Get the max for this rotation
+            for (int part = 1; part <= k; ++part) {
+                maxScore = Math.max(maxScore, dp[n][part]);
+            }
         }
-        return ans;
+        return maxScore;
     }
 }
+# @lc code=end
