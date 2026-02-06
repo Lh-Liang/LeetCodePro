@@ -3,12 +3,18 @@
 #
 # [1206] Design Skiplist
 #
+
 # @lc code=start
 import java.util.Random;
+
 class Skiplist {
     static final int MAX_LEVEL = 16;
-    static final double P = 0.5;
-    class Node {
+    static final double P_FACTOR = 0.5;
+    Node head;
+    int level;
+    Random rand;
+
+    static class Node {
         int val;
         Node[] forward;
         Node(int val, int level) {
@@ -16,40 +22,40 @@ class Skiplist {
             this.forward = new Node[level];
         }
     }
-    Node head;
-    int level;
-    Random rand;
+
     public Skiplist() {
         head = new Node(-1, MAX_LEVEL);
         level = 1;
         rand = new Random();
     }
+
     private int randomLevel() {
         int lvl = 1;
-        while (lvl < MAX_LEVEL && rand.nextDouble() < P) {
+        while (rand.nextDouble() < P_FACTOR && lvl < MAX_LEVEL) {
             lvl++;
         }
         return lvl;
     }
+
     public boolean search(int target) {
-        Node cur = head;
+        Node curr = head;
         for (int i = level - 1; i >= 0; i--) {
-            while (cur.forward[i] != null && cur.forward[i].val < target) {
-                cur = cur.forward[i];
+            while (curr.forward[i] != null && curr.forward[i].val < target) {
+                curr = curr.forward[i];
             }
         }
-        cur = cur.forward[0];
-        // Verification step: ensure the found node matches the target
-        return cur != null && cur.val == target;
+        curr = curr.forward[0];
+        return curr != null && curr.val == target;
     }
+
     public void add(int num) {
         Node[] update = new Node[MAX_LEVEL];
-        Node cur = head;
+        Node curr = head;
         for (int i = level - 1; i >= 0; i--) {
-            while (cur.forward[i] != null && cur.forward[i].val < num) {
-                cur = cur.forward[i];
+            while (curr.forward[i] != null && curr.forward[i].val < num) {
+                curr = curr.forward[i];
             }
-            update[i] = cur;
+            update[i] = curr;
         }
         int lvl = randomLevel();
         if (lvl > level) {
@@ -63,38 +69,39 @@ class Skiplist {
             newNode.forward[i] = update[i].forward[i];
             update[i].forward[i] = newNode;
         }
-        // Verification step: ensure the new node is reachable at all relevant levels
     }
+
     public boolean erase(int num) {
         Node[] update = new Node[MAX_LEVEL];
-        Node cur = head;
+        Node curr = head;
         for (int i = level - 1; i >= 0; i--) {
-            while (cur.forward[i] != null && cur.forward[i].val < num) {
-                cur = cur.forward[i];
+            while (curr.forward[i] != null && curr.forward[i].val < num) {
+                curr = curr.forward[i];
             }
-            update[i] = cur;
+            update[i] = curr;
         }
-        cur = cur.forward[0];
-        // Decompose: verify the node exists before proceeding
-        if (cur == null || cur.val != num) {
+        curr = curr.forward[0];
+        if (curr == null || curr.val != num) {
             return false;
         }
         for (int i = 0; i < level; i++) {
-            if (update[i].forward[i] != cur) break;
-            update[i].forward[i] = cur.forward[i];
+            if (update[i].forward[i] != curr) {
+                break;
+            }
+            update[i].forward[i] = curr.forward[i];
         }
         while (level > 1 && head.forward[level - 1] == null) {
             level--;
         }
-        // Verification step: ensure the node is no longer accessible
         return true;
     }
 }
-/*
-* Your Skiplist object will be instantiated and called as such:
-* Skiplist obj = new Skiplist();
-* boolean param_1 = obj.search(target);
-* obj.add(num);
-* boolean param_3 = obj.erase(num);
-*/
+
+/**
+ * Your Skiplist object will be instantiated and called as such:
+ * Skiplist obj = new Skiplist();
+ * boolean param_1 = obj.search(target);
+ * obj.add(num);
+ * boolean param_3 = obj.erase(num);
+ */
 # @lc code=end
