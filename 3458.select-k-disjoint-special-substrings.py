@@ -7,11 +7,12 @@
 # @lc code=start
 class Solution:
     def maxSubstringLength(self, s: str, k: int) -> bool:
-        # Count the frequency of each character in the string
         from collections import Counter
-        freq = Counter(s)
-        # Calculate the number of unique characters that appear only once
-        unique_chars = sum(1 for count in freq.values() if count == 1)
-        # Check if we have at least k unique characters
-        return unique_chars >= k
+        # Count occurrences of each character
+        char_count = Counter(s)
+        # Find characters that appear exactly once
+        unique_chars = [char for char, count in char_count.items() if count == 1]
+        # Each unique character can be its own special substring since it doesn't repeat anywhere else.
+        # The number of possible substrings equals the number of unique characters.
+        return len(unique_chars) >= k
 # @lc code=end
