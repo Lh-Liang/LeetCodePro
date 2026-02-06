@@ -5,29 +5,20 @@
 #
 
 # @lc code=start
-# Definition for singly-linked list.
-# class ListNode:
-#     def __init__(self, val=0, next=None):
-#         self.val = val
-#         self.next = next
-import math
-
+from math import gcd
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
 class Solution:
     def insertGreatestCommonDivisors(self, head: Optional[ListNode]) -> Optional[ListNode]:
-        if not head or not head.next:
-            return head
-        
-        curr = head
-        while curr and curr.next:
-            # Calculate GCD of current and next node values
-            gcd_val = math.gcd(curr.val, curr.next.val)
-            
-            # Create new node and insert it
-            new_node = ListNode(val=gcd_val, next=curr.next)
-            curr.next = new_node
-            
-            # Move curr to the node after the inserted GCD node
-            curr = new_node.next
-            
+        current = head
+        while current and current.next:
+            next_node = current.next
+            gcd_value = gcd(current.val, next_node.val)
+            gcd_node = ListNode(val=gcd_value)
+            current.next = gcd_node
+            gcd_node.next = next_node
+            current = next_node
         return head
 # @lc code=end
