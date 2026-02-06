@@ -7,45 +7,30 @@
 class Solution {
     public boolean[] findAnswer(int[] parent, String s) {
         int n = parent.length;
-        List<Integer>[] tree = new List[n];
-        for (int i = 0; i < n; ++i) tree[i] = new ArrayList<>();
-        for (int i = 1; i < n; ++i) {
-            tree[parent[i]].add(i);
+        List<List<Integer>> children = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            children.add(new ArrayList<>());
         }
-        // Sort children for each node to enforce increasing order
-        for (int i = 0; i < n; ++i) Collections.sort(tree[i]);
+        for (int i = 1; i < n; i++) {
+            children.get(parent[i]).add(i);
+        }
         
-        // Cache postorder traversals
-        List<Integer>[] postorder = new List[n];
-        boolean[] visited = new boolean[n];
-        for (int i = 0; i < n; ++i) {
-            postorder[i] = new ArrayList<>();
-            dfs(i, tree, postorder[i], visited);
-            Arrays.fill(visited, false); // Reset for each node
-        }
         boolean[] answer = new boolean[n];
-        for (int i = 0; i < n; ++i) {
-            List<Integer> post = postorder[i];
-            int l = 0, r = post.size() - 1;
-            boolean isPalin = true;
-            while (l < r) {
-                if (s.charAt(post.get(l)) != s.charAt(post.get(r))) {
-                    isPalin = false;
-                    break;
-                }
-                l++; r--;
-            }
-            answer[i] = isPalin;
+        for (int i = 0; i < n; i++) {
+            StringBuilder dfsStr = new StringBuilder();
+            dfs(i, s, children, dfsStr);
+            answer[i] = isPalindrome(dfsStr.toString());
         }
         return answer;
     }
-    private void dfs(int x, List<Integer>[] tree, List<Integer> res, boolean[] visited) {
-        if (visited[x]) return;
-        visited[x] = true;
-        for (int y : tree[x]) {
-            dfs(y, tree, res, visited);
+    
+    private void dfs(int x, String s, List<List<Integer>> children, StringBuilder dfsStr) {
+        for (int y : children.get(x)) {
+            dfs(y, s, children, dfsStr);
         }
-        res.add(x);
-    }
-}
+        dfsStr.append(s.charAt(x));
+    } 
+    
+    private boolean isPalindrome(String str) {	return str.equals(new StringBuilder(str).reverse().toString()); } 
+} 
 # @lc code=end
