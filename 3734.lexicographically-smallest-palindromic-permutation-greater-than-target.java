@@ -7,47 +7,44 @@
 class Solution {
     public String lexPalindromicPermutation(String s, String target) {
         int n = s.length();
-        int[] count = new int[26];
-        for (char c : s.toCharArray()) count[c-'a']++;
+        int[] freq = new int[26];
+        for (char c : s.toCharArray()) freq[c - 'a']++;
         int odd = 0;
         char oddChar = 0;
         for (int i = 0; i < 26; i++) {
-            if ((count[i] & 1) == 1) {
-                odd++; oddChar = (char)('a'+i);
+            if (freq[i] % 2 != 0) {
+                odd++;
+                oddChar = (char)('a' + i);
             }
         }
-        if ((n & 1) == 0 && odd != 0) return "";
-        if ((n & 1) == 1 && odd != 1) return "";
-        // build the half and center of the palindrome
-        StringBuilder half = new StringBuilder();
+        if (odd > 1) return "";
+        int halfLen = n / 2;
+        char[] half = new char[halfLen];
+        int idx = 0;
         for (int i = 0; i < 26; i++) {
-            for (int j = 0; j < count[i]/2; j++) half.append((char)('a'+i));
+            for (int j = 0; j < freq[i] / 2; j++) {
+                half[idx++] = (char)('a' + i);
+            }
         }
-        String center = (n%2==1) ? String.valueOf(oddChar) : "";
-        char[] halfArr = half.toString().toCharArray();
-        boolean first = true;
-        while (true) {
+        boolean found = false;
+        do {
             StringBuilder sb = new StringBuilder();
-            sb.append(halfArr);
-            sb.append(center);
-            for (int i = halfArr.length-1; i >= 0; i--) sb.append(halfArr[i]);
+            sb.append(half);
+            if (n % 2 == 1) sb.append(oddChar);
+            sb.append(new StringBuilder(new String(half)).reverse());
             String palindrome = sb.toString();
             if (palindrome.compareTo(target) > 0) return palindrome;
-            // get next permutation for halfArr
-            if (!nextPermutation(halfArr)) break;
-            first = false;
-        }
+        } while (nextPermutation(half));
         return "";
     }
-    // Standard next permutation, returns false if already last permutation
     private boolean nextPermutation(char[] arr) {
         int i = arr.length - 2;
-        while (i >= 0 && arr[i] >= arr[i+1]) i--;
+        while (i >= 0 && arr[i] >= arr[i + 1]) i--;
         if (i < 0) return false;
         int j = arr.length - 1;
         while (arr[j] <= arr[i]) j--;
         char tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
-        for (int l = i+1, r = arr.length-1; l < r; l++, r--) {
+        for (int l = i + 1, r = arr.length - 1; l < r; l++, r--) {
             tmp = arr[l]; arr[l] = arr[r]; arr[r] = tmp;
         }
         return true;
