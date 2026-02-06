@@ -10,26 +10,26 @@ class Solution {
         int n = nums.length;
         int q = queries.length;
         int[] res = new int[q];
-        for (int qi = 0; qi < q; ++qi) {
-            int idx = queries[qi][0], val = queries[qi][1], start = queries[qi][2], xi = queries[qi][3];
-            nums[idx] = val;
-            int m = n - start;
-            // Step 1: Get the working subarray
-            // Step 2: Precompute suffix products modulo k
-            // There are m possible suffixes: nums[start..n-1], nums[start+1..n-1], ..., nums[n-1..n-1]
-            int[] suffixProd = new int[m + 1];
-            suffixProd[m] = 1; // empty suffix (product=1)
-            for (int j = m - 1; j >= 0; --j) {
-                suffixProd[j] = (int)(((long)suffixProd[j + 1] * nums[start + j]) % k);
+        for (int idx = 0; idx < q; ++idx) {
+            int index = queries[idx][0];
+            int value = queries[idx][1];
+            int start = queries[idx][2];
+            int x = queries[idx][3];
+            nums[index] = value; // Update nums persistently
+            int m = n - start; // Length of current subarray
+            int[] arr = new int[m];
+            for (int i = 0; i < m; ++i) arr[i] = nums[start + i];
+            int[] freq = new int[k];
+            int prod = 1;
+            // Suffixes: for i from m-1 downto 0, prod = arr[i]*prod % k
+            // freq[p]: number of suffixes whose product % k == p
+            // We must count all suffixes (including full array, and at least one element)
+            // So we go from right to left, include suffix starting at each position
+            for (int i = m - 1; i >= 0; --i) {
+                prod = (int)((long)prod * arr[i] % k);
+                freq[prod]++;
             }
-            // Step 3: For each possible suffix, check if the product % k == xi
-            int count = 0;
-            // Only consider suffixes that leave the array non-empty.
-            // i.e., suffix starting at position j in [0, m-1]
-            for (int j = 0; j < m; ++j) {
-                if (suffixProd[j] == xi) count++;
-            }
-            res[qi] = count;
+            res[idx] = freq[x];
         }
         return res;
     }
