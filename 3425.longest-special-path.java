@@ -3,50 +3,32 @@
 #
 # [3425] Longest Special Path
 #
-
 # @lc code=start
 class Solution {
     public int[] longestSpecialPath(int[][] edges, int[] nums) {
-        int n = nums.length;
-        List<int[]>[] adj = new List[n];
-        for (int i = 0; i < n; ++i) adj[i] = new ArrayList<>();
-        for (int[] e : edges) {
-            adj[e[0]].add(new int[]{e[1], e[2]});
-            adj[e[1]].add(new int[]{e[0], e[2]});
+        Map<Integer, List<int[]>> graph = new HashMap<>();
+        for (int[] edge : edges) {
+            graph.computeIfAbsent(edge[0], k -> new ArrayList<>()).add(new int[]{edge[1], edge[2]});
+            graph.computeIfAbsent(edge[1], k -> new ArrayList<>()).add(new int[]{edge[0], edge[2]});
         }
-        int[] res = new int[]{0, Integer.MAX_VALUE}; // [max_length, min_nodes]
-        Set<Integer> path = new HashSet<>();
-        dfs(0, -1, adj, nums, path, 0, 1, res);
-        res[1] = Math.max(1, res[1]); // at least one node
-        return res;
+        return dfs(graph, nums, 0, new HashSet<>(), 0);
     }
-    private void dfs(int u, int parent, List<int[]>[] adj, int[] nums, Set<Integer> path, int curLen, int curNodes, int[] res) {
-        if (path.contains(nums[u])) {
-            if (curLen > res[0]) {
-                res[0] = curLen;
-                res[1] = curNodes - 1;
-            } else if (curLen == res[0]) {
-                res[1] = Math.min(res[1], curNodes - 1);
-            }
-            return;
-        }
-        path.add(nums[u]);
-        boolean isLeaf = true;
-        for (int[] nei : adj[u]) {
-            if (nei[0] != parent) {
-                isLeaf = false;
-                dfs(nei[0], u, adj, nums, path, curLen + nei[1], curNodes + 1, res);
-            }
-        }
-        if (isLeaf) {
-            if (curLen > res[0]) {
-                res[0] = curLen;
-                res[1] = curNodes;
-            } else if (curLen == res[0]) {
-                res[1] = Math.min(res[1], curNodes);
-            }
-        }
-        path.remove(nums[u]);
-    }
-}
-# @lc code=end
+    
+    private int[] dfs(Map<Integer, List<int[]>> graph, int[] nums, int node, Set<Integer> visitedValues, int currentLength) {
+        visitedValues.add(nums[node]);
+        int maxLength = currentLength;
+        int minNodes = 1;  // At least one node in path (itself)
+        for (int[] neighbor : graph.getOrDefault(node, Collections.emptyList())) {
+            if (!visitedValues.contains(nums[neighbor[0]])) {
+                Set<Integer> nextVisited = new HashSet<>(visitedValues);
+                nextVisited.add(nums[neighbor[0]]);
+                int[] result = dfs(graph, nums, neighbor[0], nextVisited, currentLength + neighbor[1]);
+                if (result[0] > maxLength || (result[0] == maxLength && result[1] < minNodes)) {
+                    maxLength = result[0];
+                    minNodes = result[1];
+                } 
+            } 
+        } 
+        return new int[]{maxLength, minNodes}; 
+    } 
+}"# @lc code=end
