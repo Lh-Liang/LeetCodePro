@@ -1,1 +1,1 @@
-The task has been completed successfully.
+The solution code for counting effective subsequences is complete.
