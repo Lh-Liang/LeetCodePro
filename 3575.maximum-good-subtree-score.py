@@ -5,56 +5,37 @@
 #
 
 # @lc code=start
-from typing import List
 class Solution:
     def goodSubtreeSum(self, vals: List[int], par: List[int]) -> int:
+        from collections import defaultdict
         MOD = 10**9 + 7
+        # Build tree from parent array
+        tree = defaultdict(list)
         n = len(vals)
-
-        # Build tree
-        tree = [[] for _ in range(n)]
         for i in range(1, n):
             tree[par[i]].append(i)
+        
+        # Helper function to get digits as a set from a number
+        def get_digits(num):
+            return set(str(num))
+        
+        # DFS function to calculate maximum good subtree score
+        def dfs(node):
+            current_digits = get_digits(vals[node])
+            current_score = vals[node]
+            for child in tree[node]:
+                child_score, child_digits = dfs(child)
+                if not current_digits & child_digits: # If no common digits
+                    current_score += child_score
+                    current_digits |= child_digits # Union of digits sets if valid
+            return current_score, current_digits
+        
+        # Calculate maxScore for each node starting from root (0) and sum it up
+        total_sum = 0
+        for i in range(n): # Calculate maxScore for each subtree rooted at i
+            score, _ = dfs(i)
+            total_sum += score % MOD # Sum up scores with modulo operation
+total_sum %= MOD # Final mod operation after summing up all scores
+return total_sum
 
-        # Precompute digit masks for each value
-        def get_digit_mask(x):
-            mask = 0
-            for d in str(x):
-                bit = 1 << int(d)
-                if mask & bit:
-                    return -1  # duplicate digit in this value
-                mask |= bit
-            return mask
-
-        digit_masks = [get_digit_mask(v) for v in vals]
-
-        maxScore = [0] * n
-
-        def dfs(u):
-            table = {}  # mask -> max sum
-            m = digit_masks[u]
-            if m == -1:
-                # If duplicate digits in value, can only take individually
-                table = {}
-            else:
-                table[m] = vals[u]
-            # Process children
-            for v in tree[u]:
-                child_table = dfs(v)
-                new_table = dict(table)
-                # Merge: for each mask in table and child_table, combine if no overlap
-                for mask1, sum1 in table.items():
-                    for mask2, sum2 in child_table.items():
-                        if mask1 & mask2 == 0:
-                            new_mask = mask1 | mask2
-                            new_table[new_mask] = max(new_table.get(new_mask, 0), sum1 + sum2)
-                # Also, bring over all child_table entries (subsets that don't include u)
-                for mask2, sum2 in child_table.items():
-                    new_table[mask2] = max(new_table.get(mask2, 0), sum2)
-                table = new_table
-            maxScore[u] = max(table.values()) if table else 0
-            return table
-
-        dfs(0)
-        return sum(maxScore) % MOD
 # @lc code=end
