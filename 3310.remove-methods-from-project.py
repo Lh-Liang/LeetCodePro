@@ -5,37 +5,30 @@
 #
 
 # @lc code=start
-import collections
-
 class Solution:
     def remainingMethods(self, n: int, k: int, invocations: List[List[int]]) -> List[int]:
-        # Step 1: Build the adjacency list
-        adj = [[] for _ in range(n)]
-        for u, v in invocations:
-            adj[u].append(v)
+        from collections import defaultdict, deque
+        # Build graph and reverse graph (for checking incoming edges)
+        graph = defaultdict(list)
+        reverse_graph = defaultdict(list)
+        for a, b in invocations:
+            graph[a].append(b)
+            reverse_graph[b].append(a)
         
-        # Step 2: Find all suspicious methods using BFS
-        suspicious = [False] * n
-        suspicious[k] = True
-        queue = collections.deque([k])
-        
+        # Find all suspicious methods reachable from k using BFS/DFS
+        suspicious_set = set()
+        queue = deque([k])
         while queue:
-            u = queue.popleft()
-            for v in adj[u]:
-                if not suspicious[v]:
-                    suspicious[v] = True
-                    queue.append(v)
+            method = queue.popleft()
+            if method not in suspicious_set:
+                suspicious_set.add(method)
+                for next_method in graph[method]:
+                    queue.append(next_method)
         
-        # Step 3: Check if any non-suspicious method invokes a suspicious method
-        external_call_exists = False
-        for u, v in invocations:
-            if not suspicious[u] and suspicious[v]:
-                external_call_exists = True
-                break
-        
-        # Step 4: Return result based on the check
-        if external_call_exists:
-            return list(range(n))
-        else:
-            return [i for i in range(n) if not suspicious[i]]
-# @lc code=end
+        # Check if we can remove all suspicious methods by ensuring no non-suspicious methods invoke them.
+        for method in suspicious_set:
+            for invoker in reverse_graph[method]:
+                if invoker not in suspicious_set:
+                    return list(range(n)) # Not possible to remove; return all methods. 
+                    
+        # Return remaining non-suspicious methods.                                       return [i for i in range(n) if i not in suspicious_set]"
