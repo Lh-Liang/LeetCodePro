@@ -3,25 +3,18 @@
 #
 # [3609] Minimum Moves to Reach Target in Grid
 #
-
 # @lc code=start
 class Solution {
 public:
     int minMoves(int sx, int sy, int tx, int ty) {
         int moves = 0;
-        while ((tx > sx && ty > sy) || tx > sx || ty > sy) {
+        while (tx > sx && ty > sy) {
             if (tx > ty) {
-                if (ty == sy) {
-                    return (tx - sx) % ty == 0 ? moves + ((tx - sx) / ty) : -1;
-                }
-                tx %= ty;
+                tx -= max(1, tx - sx);
             } else {
-                if (tx == sx) {
-                    return (ty - sy) % tx == 0 ? moves + ((ty - sy) / tx) : -1;
-                }
-                ty %= tx;
+                ty -= max(1, ty - sy);
             }
-            ++moves;
+            moves++;
         }
         return (tx == sx && ty == sy) ? moves : -1;
     }
