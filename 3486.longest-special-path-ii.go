@@ -1,0 +1,1 @@
+The implementation uses DFS to explore tree paths while obeying distinct value constraints, returning longest path length and minimum nodes.
