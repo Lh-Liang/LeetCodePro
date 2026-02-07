@@ -5,50 +5,50 @@
 #
 
 # @lc code=start
-func minOperations(nums []int, k int, queries [][]int) []int64 {
-    ans := make([]int64, len(queries))
-    
-    for i, query := range queries {
-        li, ri := query[0], query[1]
-        subarray := nums[li:ri+1]
-        ops := calculateMinOperations(subarray, k)
-        ans[i] = ops
-    }
-    
-    return ans
-}
+import (
+    "sort"
+)
 
-func calculateMinOperations(subarray []int, k int) int64 {
-    n := len(subarray)
-    if n == 1 {
-        return 0 // Already equal
-    }
-    
-    // Check feasibility of making all elements equal and calculate minimal operations
-    ops := int64(-1)
-    for targetIndex := range subarray {
-        currentOps := int64(0)
+func minOperations(nums []int, k int, queries [][]int) []int64 {
+    n := len(nums)
+    res := make([]int64, len(queries))
+    for qi, q := range queries {
+        l, r := q[0], q[1]
+        m := r - l + 1
+        mods := nums[l : r+1]
+        mod0 := mods[0] % k
         feasible := true
-        target := subarray[targetIndex]
-        for _, num := range subarray {
-            diff := abs(num - target)
-            if diff % k != 0 {
+        vals := make([]int, m)
+        for i := 0; i < m; i++ {
+            if mods[i]%k != mod0 {
                 feasible = false
                 break
             }
-            currentOps += int64(diff / k)
+            vals[i] = (mods[i] - mod0) / k
         }
-        if feasible && (ops == -1 || currentOps < ops) {
-            ops = currentOps
+        if !feasible {
+            res[qi] = -1
+            continue
         }
+        if m == 1 {
+            res[qi] = 0
+            continue
+        }
+        sort.Ints(vals)
+        median := vals[m/2]
+        var ops int64 = 0
+        for i := 0; i < m; i++ {
+            ops += int64(abs(vals[i] - median))
+        }
+        res[qi] = ops
     }
-    return ops
+    return res
 }
 
-func abs(a int) int {
-    if a < 0 {
-        return -a
+func abs(x int) int {
+    if x < 0 {
+        return -x
     }
-    return a
+    return x
 }
 # @lc code=end
