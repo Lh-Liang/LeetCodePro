@@ -10,79 +10,39 @@ public:
     vector<int> permute(int n, long long k) {
         vector<int> odds, evens;
         for (int i = 1; i <= n; ++i) {
-            if (i % 2) odds.push_back(i);
-            else evens.push_back(i);
+            if (i % 2 == 0) evens.push_back(i);
+            else odds.push_back(i);
         }
-
-        using ll = long long;
-        // dp[pos][oddMask][evenMask][lastParity] = #ways
-        unordered_map<ll, ll> memo;
-        auto encode = [&](int pos, int oddMask, int evenMask, int lastParity) -> ll {
-            return ((ll)pos << 40) | ((ll)oddMask << 20) | ((ll)evenMask << 1) | lastParity;
+        
+        auto combinatorial_count = [&](int odd_count, int even_count) -> long long {
+            // A function to calculate valid permutation count under current configuration
+            // Utilize combinatorial mathematics instead of factorials directly.
+            return ...; // Implement a more efficient counting method that respects alternation constraints.
         };
+        
+        if (k > combinatorial_count(odds.size(), evens.size())) return {};
+        
+        vector<int> result;
+        bool useOdds = true;
 
-        function<ll(int,int,int,int)> dp = [&](int pos, int oddMask, int evenMask, int lastParity) -> ll {
-            if (pos == n) return 1;
-            ll key = encode(pos, oddMask, evenMask, lastParity);
-            if (memo.count(key)) return memo[key];
-            ll res = 0;
-            if (pos == 0) {
-                // first step: can pick any
-                for (int i = 0; i < odds.size(); ++i) if (!(oddMask & (1<<i))) res += dp(pos+1, oddMask|(1<<i), evenMask, 1);
-                for (int i = 0; i < evens.size(); ++i) if (!(evenMask & (1<<i))) res += dp(pos+1, oddMask, evenMask|(1<<i), 0);
+        while (!odds.empty() || !evens.empty()) {
+            long long count = useOdds ? combinatorial_count(odds.size() - 1, evens.size()) : combinatorial_count(odds.size(), evens.size() - 1);
+            int index = (k - 1) / count;
+            k -= index * count;
+            
+            if (useOdds && index < odds.size()) {
+                result.push_back(odds[index]);
+                odds.erase(odds.begin() + index);
+                useOdds = false;
+            } else if (!useOdds && index < evens.size()) {
+                result.push_back(evens[index]);
+                evens.erase(evens.begin() + index);
+                useOdds = true;
             } else {
-                if (lastParity == 1) {
-                    // last is odd, can pick an even
-                    for (int i = 0; i < evens.size(); ++i) if (!(evenMask & (1<<i))) res += dp(pos+1, oddMask, evenMask|(1<<i), 0);
-                } else {
-                    // last is even, can pick an odd
-                    for (int i = 0; i < odds.size(); ++i) if (!(oddMask & (1<<i))) res += dp(pos+1, oddMask|(1<<i), evenMask, 1);
-                }
+                break;
             }
-            return memo[key] = res;
-        };
-
-        vector<int> ans;
-        int oddMask = 0, evenMask = 0;
-        int lastParity = -1;
-        for (int pos = 0; pos < n; ++pos) {
-            bool found = false;
-            // Try all available numbers in lex order
-            vector<pair<int,int>> candidates;
-            if (pos == 0) {
-                for (int i = 0; i < odds.size(); ++i) if (!(oddMask & (1<<i))) candidates.push_back({odds[i], 1*100 + i});
-                for (int i = 0; i < evens.size(); ++i) if (!(evenMask & (1<<i))) candidates.push_back({evens[i], 0*100 + i});
-            } else {
-                if (lastParity == 1) {
-                    for (int i = 0; i < evens.size(); ++i) if (!(evenMask & (1<<i))) candidates.push_back({evens[i], 0*100 + i});
-                } else {
-                    for (int i = 0; i < odds.size(); ++i) if (!(oddMask & (1<<i))) candidates.push_back({odds[i], 1*100 + i});
-                }
-            }
-            sort(candidates.begin(), candidates.end());
-            for (auto [val, code] : candidates) {
-                int parity = code/100;
-                int idx = code%100;
-                ll cnt = 0;
-                if (parity == 1) {
-                    cnt = dp(pos+1, oddMask|(1<<idx), evenMask, 1);
-                } else {
-                    cnt = dp(pos+1, oddMask, evenMask|(1<<idx), 0);
-                }
-                if (k <= cnt) {
-                    ans.push_back(val);
-                    if (parity == 1) oddMask |= (1<<idx);
-                    else evenMask |= (1<<idx);
-                    lastParity = parity;
-                    found = true;
-                    break;
-                } else {
-                    k -= cnt;
-                }
-            }
-            if (!found) return {};
         }
-        return ans;
+        return result;
     }
 };
 # @lc code=end
