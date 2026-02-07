@@ -6,37 +6,68 @@
 
 # @lc code=start
 func longestCommonPrefix(words []string) []int {
-    result := make([]int, len(words))
-    
-    // Helper function to find longest common prefix between two strings
+    n := len(words)
     lcp := func(a, b string) int {
-        i := 0
-        for i < len(a) && i < len(b) && a[i] == b[i] {
-            i++
+        l := 0
+        if len(a) > len(b) {
+            a = a[:len(b)]
+        } else if len(b) > len(a) {
+            b = b[:len(a)]
         }
-        return i
-    }
-    
-    for i := 0; i < len(words); i++ {
-        maxLcp := 0
-        // Create a temporary slice excluding the current index
-        tempWords := append([]string{}, words[:i]...)
-        tempWords = append(tempWords, words[i+1:]...)
-
-        // Compute LCP for adjacent pairs in tempWords
-        for j := 0; j < len(tempWords)-1; j++ {
-            maxLcp = max(maxLcp, lcp(tempWords[j], tempWords[j+1]))
+        for l < len(a) && a[l] == b[l] {
+            l++
         }
-        result[i] = maxLcp
+        return l
     }
-    return result 
-}
-
-// Helper function to get maximum of two integers
-func max(a, b int) int {
-    if a > b {
-        return a
+    if n == 1 {
+        return []int{0}
     }
-    return b
+    prefixLens := make([]int, n-1)
+    for i := 0; i < n-1; i++ {
+        prefixLens[i] = lcp(words[i], words[i+1])
+    }
+    ans := make([]int, n)
+    for i := 0; i < n; i++ {
+        if n == 2 {
+            ans[i] = 0
+            continue
+        }
+        maxL := 0
+        if i == 0 {
+            // Remove first: pairs from (1,2), (2,3), ...
+            for j := 1; j < n-1; j++ {
+                if prefixLens[j] > maxL {
+                    maxL = prefixLens[j]
+                }
+            }
+        } else if i == n-1 {
+            // Remove last: pairs from (0,1), ... (n-3,n-2)
+            for j := 0; j < n-2; j++ {
+                if prefixLens[j] > maxL {
+                    maxL = prefixLens[j]
+                }
+            }
+        } else {
+            // Remove in the middle: (0,1), ..., (i-2,i-1), (i-1,i+1), (i+1,i+2), ...
+            merged := lcp(words[i-1], words[i+1])
+            for j := 0; j < n-2; j++ {
+                if j == i-1 {
+                    if merged > maxL {
+                        maxL = merged
+                    }
+                } else {
+                    idx := j
+                    if j >= i {
+                        idx = j+1 // Since one index is removed, shift
+                    }
+                    if prefixLens[idx] > maxL {
+                        maxL = prefixLens[idx]
+                    }
+                }
+            }
+        }
+        ans[i] = maxL
+    }
+    return ans
 }
-// @lc code=end
+# @lc code=end
