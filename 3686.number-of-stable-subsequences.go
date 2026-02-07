@@ -3,33 +3,45 @@
 #
 # [3686] Number of Stable Subsequences
 #
-
 # @lc code=start
 func countStableSubsequences(nums []int) int {
-    const MOD = 1e9 + 7
+    const MOD = 1_000_000_007
     n := len(nums)
-    if n == 0 {
-        return 0
-    }
-    
-    dp := make([][2]int, n+1)
-    dp[0][0] = 1 // Base case for parity transitions.
-    total := int64(0)
-    
-    for i := range nums {
-        parity := nums[i] % 2 // Determine current number's parity.
-        
-        // Calculate new subsequences ending at position i with current number's parity.
-        dp[i+1][parity] = (dp[i][parity^1] + dp[i][parity]) % MOD // Extend both parities without forming invalid triples.
-        
-        // Correct potential overcount by checking for three consecutive same parity numbers.
-        if i >= 2 && nums[i-1]%2 == parity && nums[i-2]%2 == parity {
-            dp[i+1][parity] = (dp[i+1][parity] - dp[i-2][parity^1] + MOD) % MOD // Subtract invalid cases correctly.
+    // dp[parity][consecutive]: number of subsequences ending with this parity and consecutive count (1 or 2)
+    dp := [2][3]int{}
+    for i := 0; i < n; i++ {
+        p := nums[i] % 2
+        newDp := [2][3]int{}
+        // Start new subsequence with nums[i]
+        newDp[p][1] = (newDp[p][1] + 1) % MOD
+        // Extend all previous subsequences
+        for last := 0; last < 2; last++ {
+            for cnt := 1; cnt <= 2; cnt++ {
+                val := dp[last][cnt]
+                if val == 0 { continue }
+                if last == p {
+                    if cnt == 2 {
+                        continue // would make three consecutive of the same parity
+                    }
+                    newDp[p][cnt+1] = (newDp[p][cnt+1] + val) % MOD
+                } else {
+                    newDp[p][1] = (newDp[p][1] + val) % MOD
+                }
+            }
         }
-        
-        // Update overall result by adding new valid subsequences ending at current index.
-        total = (total + dp[i+1][parity]) % MOD
+        // Merge newDp into dp
+        for last := 0; last < 2; last++ {
+            for cnt := 1; cnt <= 2; cnt++ {
+                dp[last][cnt] = (dp[last][cnt] + newDp[last][cnt]) % MOD
+            }
+        }
     }
-    return int(total)
+    res := 0
+    for last := 0; last < 2; last++ {
+        for cnt := 1; cnt <= 2; cnt++ {
+            res = (res + dp[last][cnt]) % MOD
+        }
+    }
+    return res
 }
 # @lc code=end
