@@ -1,1 +1,28 @@
-# \n# @lc app=leetcode id=3710 lang=cpp\n# \n# [3710] Maximum Partition Factor\n# \n\n# @lc code=start\n#include <vector>\n#include <algorithm>\n#include <cmath>\nusing namespace std;\n\nclass Solution {\npublic:\n    int maxPartitionFactor(vector<vector<int>>& points) {\n        int n = points.size();\n        if (n == 2) return 0; // No intra-group pairs possible when n=2.\n        \n        // Sort points based on x and y coordinates separately.\n        vector<int> x_coords(n), y_coords(n);\n        for (int i = 0; i < n; ++i) {\n            x_coords[i] = points[i][0];\n            y_coords[i] = points[i][1];\n        }\n        sort(x_coords.begin(), x_coords.end());\n        sort(y_coords.begin(), y_coords.end());\n        \n        // Track maximum of minimum distances across partitions.\n        int max_partition_factor = 0;\n        // Consider splitting at various indices on both coordinate arrays.\n        for (int i = 1; i < n; ++i) { // Start from index 1 to ensure non-empty groups.\n            // Calculate potential partition factor for this split position.\n            int min_distance_x = abs(x_coords[i] - x_coords[i-1]);\n            int min_distance_y = abs(y_coords[i] - y_coords[i-1]);\n            int current_partition_factor = min(min_distance_x, min_distance_y);\n            max_partition_factor = max(max_partition_factor, current_partition_factor);\n        }\n        return max_partition_factor; // Return the largest minimum intra-group distance over any valid split.\n    }\n};\n# @lc code=end
+#
+# @lc app=leetcode id=3710 lang=cpp
+#
+# [3710] Maximum Partition Factor
+#
+
+# @lc code=start
+class Solution {
+public:
+    int maxPartitionFactor(vector<vector<int>>& points) {
+        // Sorting points based on x+y and x-y helps to manage quadrant separation
+        vector<int> x_plus_y, x_minus_y;
+        for (const auto& p : points) {
+            x_plus_y.push_back(p[0] + p[1]);
+            x_minus_y.push_back(p[0] - p[1]);
+        }
+        sort(x_plus_y.begin(), x_plus_y.end());
+        sort(x_minus_y.begin(), x_minus_y.end());
+        
+        // Compute maximum partition factor by evaluating splits at mid-points of sorted arrays
+        int n = points.size();
+        int result = 0;
+        result = max(result, abs(x_plus_y[n-1] - x_plus_y[0]));  // Max difference in sorted sums 
+        result = max(result, abs(x_minus_y[n-1] - x_minus_y[0])); // Max difference in sorted differences 
+        return result; // Return max partition factor achieved from evaluated splits 
+    }
+};
+# @lc code=end
