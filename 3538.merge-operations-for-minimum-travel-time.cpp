@@ -4,22 +4,28 @@
 # [3538] Merge Operations for Minimum Travel Time
 #
 # @lc code=start
-#include <vector>
-#include <unordered_map>
-#include <string>
-#include <climits>
-using namespace std;
-
 class Solution {
 public:
     int minTravelTime(int l, int n, int k, vector<int>& position, vector<int>& time) {
-        unordered_map<string, int> memo;
-        return dp(position, time, k, memo);
+        vector<vector<int>> dp(n, vector<int>(k + 1, INT_MAX));
+        // Calculate initial travel times with no merges
+        for (int i = 0; i < n - 1; ++i) {
+            dp[i + 1][0] = (position[i + 1] - position[i]) * time[i];
+            if (i > 0) {
+                dp[i + 1][0] += dp[i][0];
+            }
+        }
+        // Fill DP table for each merge count from 1 to k
+        for (int m = 1; m <= k; ++m) {
+            for (int i = m + 1; i < n; ++i) {
+                // Consider merging segments at current end position i
+                for (int j = m; j < i; ++j) {
+                    int mergedTime = (position[i] - position[j]) * (time[j - 1] + time[j]);
+                    dp[i][m] = min(dp[i][m], dp[j - 1][m - 1] + mergedTime);
+                }
+            }
+        }
+        return dp[n-1][k];
     }
-
-private:
-    // Serialize the times array for memoization
-    string serialize(const vector<int>& time) {
-        string res;
-        for (int t : time) {
-            res += to_string(t) +
+};
+# @lc code=end
