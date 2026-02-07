@@ -1,0 +1,1 @@
+The code successfully calculates total waviness for a range of numbers as per problem requirements.
