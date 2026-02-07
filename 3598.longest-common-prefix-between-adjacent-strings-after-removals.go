@@ -7,29 +7,36 @@
 # @lc code=start
 func longestCommonPrefix(words []string) []int {
     result := make([]int, len(words))
+    
+    // Helper function to find longest common prefix between two strings
+    lcp := func(a, b string) int {
+        i := 0
+        for i < len(a) && i < len(b) && a[i] == b[i] {
+            i++
+        }
+        return i
+    }
+    
     for i := 0; i < len(words); i++ {
-        maxPrefix := 0
-        // Remove the word at index i
-        tempWords := append(words[:i], words[i+1:]...)
+        maxLcp := 0
+        // Create a temporary slice excluding the current index
+        tempWords := append([]string{}, words[:i]...)
+        tempWords = append(tempWords, words[i+1:]...)
+
+        // Compute LCP for adjacent pairs in tempWords
         for j := 0; j < len(tempWords)-1; j++ {
-            lcpLength := commonPrefixLength(tempWords[j], tempWords[j+1])
-            if lcpLength > maxPrefix {
-                maxPrefix = lcpLength
-            }
+            maxLcp = max(maxLcp, lcp(tempWords[j], tempWords[j+1]))
         }
-        result[i] = maxPrefix
+        result[i] = maxLcp
     }
-    return result
+    return result 
 }
-// Helper function to calculate common prefix length between two strings.
-func commonPrefixLength(s1, s2 string) int {
-    minLen := min(len(s1), len(s2))
-    for i := 0; i < minLen; i++ {
-        if s1[i] != s2[i] {
-            return i
-        }
+
+// Helper function to get maximum of two integers
+func max(a, b int) int {
+    if a > b {
+        return a
     }
-    return minLen
+    return b
 }
-// Helper function to find minimum of two integers.
-func min(a, b int) int {if a < b {return a} else {return b}} //helper functions are modular for clarity// //tested extensively with examples for reliability// //optimized for input constraints.
+// @lc code=end
