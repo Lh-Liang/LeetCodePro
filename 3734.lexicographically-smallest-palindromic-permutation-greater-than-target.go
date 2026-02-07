@@ -4,67 +4,94 @@
 # [3734] Lexicographically Smallest Palindromic Permutation Greater Than Target
 #
 # @lc code=start
+import (
+    "sort"
+)
+
 func lexPalindromicPermutation(s string, target string) string {
-    // Step 1: Check if a palindromic permutation is possible
-    charCount := make(map[rune]int)
-    for _, char := range s {
-        charCount[char]++
+    n := len(s)
+    count := make([]int, 26)
+    for _, c := range s {
+        count[c-'a']++
     }
-    oddCount := 0
-    var oddChar rune
-    for char, count := range charCount {
-        if count%2 != 0 {
-            oddCount++
-            oddChar = char
+    odd := 0
+    oddChar := byte(0)
+    for i := 0; i < 26; i++ {
+        if count[i]%2 != 0 {
+            odd++
+            oddChar = byte('a' + i)
         }
     }
-    if oddCount > 1 {
-        return "" // Cannot form a palindrome if more than one character has an odd count
+    if (n%2 == 0 && odd != 0) || (n%2 == 1 && odd != 1) {
+        return ""
     }
-    
-    // Step 2: Form the smallest lexicographical half-palindrome
-    half := []rune{}
-    for char, count := range charCount {
-        for i := 0; i < count/2; i++ {
-            half = append(half, char)
+    // Build half palindrome
+    half := make([]byte, 0, n/2)
+    for i := 0; i < 26; i++ {
+        for j := 0; j < count[i]/2; j++ {
+            half = append(half, byte('a'+i))
         }
+    }
+    // Helper: next permutation
+    nextPerm := func(a []byte) bool {
+        i := len(a) - 2
+        for i >= 0 && a[i] >= a[i+1] {
+            i--
+        }
+        if i < 0 {
+            return false
+        }
+        j := len(a) - 1
+        for a[j] <= a[i] {
+            j--
+        }
+        a[i], a[j] = a[j], a[i]
+        for l, r := i+1, len(a)-1; l < r; l, r = l+1, r-1 {
+            a[l], a[r] = a[r], a[l]
+        }
+        return true
+    }
+    buildPalindrome := func(h []byte) string {
+        res := make([]byte, 0, n)
+        res = append(res, h...)
+        if n%2 == 1 {
+            res = append(res, oddChar)
+        }
+        for i := len(h) - 1; i >= 0; i-- {
+            res = append(res, h[i])
+        }
+        return string(res)
+    }
+    isValid := func(p string) bool {
+        if len(p) != n {
+            return false
+        }
+        cnt := make([]int, 26)
+        for i := 0; i < n; i++ {
+            cnt[p[i]-'a']++
+        }
+        for i := 0; i < 26; i++ {
+            if cnt[i] != count[i] {
+                return false
+            }
+        }
+        for i := 0; i < n/2; i++ {
+            if p[i] != p[n-1-i] {
+                return false
+            }
+        }
+        return true
     }
     sort.Slice(half, func(i, j int) bool { return half[i] < half[j] })
-    
-    // Step 3: Construct full palindrome from half
-    var mid string
-    if oddCount == 1 {
-        mid = string(oddChar)
+    for {
+        p := buildPalindrome(half)
+        if isValid(p) && p > target {
+            return p
+        }
+        if !nextPerm(half) {
+            break
+        }
     }
-    fullPalindrome := string(half) + mid + reverse(string(half))
-
-    // Step 4: Check if initial palindrome is greater than target
-    if fullPalindrome > target {
-        return fullPalindrome
-    }
-
-    // Step 5: Find next valid permutation greater than target maintaining palindromicity using backtracking or iterative adjustments (not shown in detail)
-    nextPalindrome := findNextValidPermutation(half, mid)
-
-    if nextPalindrome > target {
-        return nextPalindrome
-    }
-
     return ""
 }
-
-// Helper function to reverse a string
-func reverse(s string) string {
-    runes := []rune(s)
-    for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-        runes[i], runes[j] = runes[j], runes[i]
-    }
-    return string(runes)
-}
-
-// Placeholder for function to find next valid permutation maintaining palindrome properties.
-sfunc findNextValidPermutation(half []rune, mid string) string {
-s   // Implementation logic here (not shown in detail)
-s   return ""
-s}
-s# @lc code=end
+# @lc code=end
