@@ -1,23 +1,48 @@
-#
-# @lc app=leetcode id=3458 lang=golang
-#
-# [3458] Select K Disjoint Special Substrings
-#
-# @lc code=start
 func maxSubstringLength(s string, k int) bool {
-    // Create a map to count occurrences of each character.
-    charCount := make(map[rune]int)
-    for _, char := range s {
-        charCount[char]++
+    if k == 0 {
+        return true
     }
-    // Count how many characters appear exactly once.
-    uniqueCount := 0
-    for _, count := range charCount {
+    
+    charFrequency := make(map[rune]int)
+    for _, char := range s {
+        charFrequency[char]++
+    }
+    
+    potentialStarters := make(map[rune]bool)
+    for char, count := range charFrequency {
         if count == 1 {
-            uniqueCount++
+            potentialStarters[char] = true
         }
     }
-    // We can select k disjoint special substrings if there are at least k unique characters.
-    return uniqueCount >= k
+
+    usedChars := make(map[rune]bool)
+    specialCount := 0
+
+    for i := 0; i < len(s); i++ {
+        ch := rune(s[i])
+        if potentialStarters[ch] && !usedChars[ch] {
+            j := i
+            tempUsedChars := make(map[rune]bool)
+            isValid := true
+            for j < len(s) && isValid {
+                currentChar := rune(s[j])
+                if charFrequency[currentChar] > 1 || tempUsedChars[currentChar] {
+                    isValid = false
+                    break
+                }
+                tempUsedChars[currentChar] = true
+                j++
+            }
+            if isValid && len(tempUsedChars) > 0 {
+                for c := range tempUsedChars {
+                    usedChars[c] = true
+                }
+                specialCount++
+                if specialCount >= k {
+                    return true
+                }
+            }
+        }
+    }
+    return false
 }
-# @lc code=end
