@@ -9,25 +9,22 @@ class Solution {
 public:
     vector<long long> minOperations(vector<int>& nums, int k, vector<vector<int>>& queries) {
         vector<long long> ans;
-        for (auto& query : queries) {
-            int l = query[0], r = query[1];
-            vector<int> subarray(nums.begin() + l, nums.begin() + r + 1);
-            sort(subarray.begin(), subarray.end());
-            int median = subarray[subarray.size() / 2];
-            long long operations = 0;
-            bool possible = true;
-            for (int num : subarray) {
-                int diff = abs(num - median);
-                if (diff % k != 0) {
-                    possible = false;
+        for (auto &q : queries) {
+            int li = q[0], ri = q[1];
+            int base = nums[li];
+            bool feasible = true;
+            long long ops = 0;
+            for (int i = li; i <= ri; ++i) {
+                if ((nums[i] - base) % k != 0) {
+                    feasible = false;
                     break;
                 } else {
-                    operations += diff / k;
+                    ops += abs(nums[i] - base) / k;
                 }
             }
-            ans.push_back(possible ? operations : -1);
+            ans.push_back(feasible ? ops : -1);
         }
         return ans;
     }
-}; 
+};
 # @lc code=end
