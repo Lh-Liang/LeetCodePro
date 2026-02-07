@@ -5,44 +5,81 @@
 #
 
 # @lc code=start
+import (
+    "math"
+    "fmt"
+    "strings"
+)
+
 func minTravelTime(l int, n int, k int, position []int, time []int) int {
-    // Initialize a DP table with large initial values.
-    const INF = int(1e9)
-    dp := make([][]int, k+1)
-    for i := range dp {
-        dp[i] = make([]int, n)
-        for j := range dp[i] {
-            dp[i][j] = INF
+    type state struct {
+        timeKey string
+        posKey string
+        k int
+    }
+    memo := map[state]int{}
+
+    // Helper to get a unique key for memoization
+    getKey := func(arr []int) string {
+        sb := strings.Builder{}
+        for i, v := range arr {
+            if i > 0 {
+                sb.WriteByte(',')
+            }
+            sb.WriteString(fmt.Sprintf("%d", v))
         }
+        return sb.String()
     }
 
-    // Base case: no merges -> compute direct travel time.
-    dp[0][0] = 0 // Start with zero time at position 0.
-    for i := 1; i < n; i++ {
-        dist := position[i] - position[i-1]
-        dp[0][i] = dp[0][i-1] + dist * time[i-1]
-    }
-
-    // Fill in the DP table for each merge operation up to k.
-    for m := 1; m <= k; m++ {
-        for i := m; i < n; i++ {
-            // Attempt to merge every valid segment pair ending at i.
-            for j := m - 1; j < i; j++ {
-                dist := position[i] - position[j+1]
-                newTime := time[j+1] + time[i]
-                dp[m][i] = min(dp[m][i], dp[m-1][j+1] + dist * newTime)
+    var dp func([]int, []int, int) int
+    dp = func(posArr []int, timeArr []int, mergesLeft int) int {
+        if mergesLeft == 0 {
+            // Calculate total travel time
+            total := 0
+            for i := 0; i < len(timeArr); i++ {
+                dist := posArr[i+1] - posArr[i]
+                total += dist * timeArr[i]
+            }
+            return total
+        }
+        key := state{getKey(timeArr), getKey(posArr), mergesLeft}
+        if val, exists := memo[key]; exists {
+            return val
+        }
+        res := math.MaxInt32
+        // Try all valid merges: can only merge indices 1..len-2 (can't merge endpoints)
+        for i := 1; i < len(timeArr); i++ {
+            // Merge time[i-1] and time[i] into time[i]
+            newTime := make([]int, 0, len(timeArr)-1)
+            newPos := make([]int, 0, len(posArr)-1)
+            // Copy up to i-1
+            for j := 0; j < i-1; j++ {
+                newTime = append(newTime, timeArr[j])
+            }
+            for j := 0; j <= i-1; j++ {
+                newPos = append(newPos, posArr[j])
+            }
+            // Merge: time[i] = time[i-1] + time[i], remove time[i-1], remove pos[i]
+            newTime = append(newTime, timeArr[i-1]+timeArr[i])
+            // Copy rest
+            for j := i+1; j < len(timeArr); j++ {
+                newTime = append(newTime, timeArr[j])
+            }
+            for j := i+1; j < len(posArr); j++ {
+                newPos = append(newPos, posArr[j])
+            }
+            // Verify newTime and newPos alignment
+            if len(newTime) == len(newPos)-1 {
+                val := dp(newPos, newTime, mergesLeft-1)
+                if val < res {
+                    res = val
+                }
             }
         }
+        memo[key] = res
+        return res
     }
 
-    // The answer is the minimum travel time with exactly k merges at the last position.
-    return dp[k][n-1]
-}
-
-func min(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
+    return dp(position, time, k)
 }
 # @lc code=end
