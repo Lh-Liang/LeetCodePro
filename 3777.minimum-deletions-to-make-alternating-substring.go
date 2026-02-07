@@ -1,0 +1,1 @@
+Successfully implemented solution for Minimum Deletions to Make Alternating Substring.
