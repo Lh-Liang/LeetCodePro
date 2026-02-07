@@ -1,18 +1,30 @@
 #
-# @lc app=leetcode id=3725 lang=golang
+# @lc app=leetcode id=3725 lang=python3
 #
 # [3725] Count Ways to Choose Coprime Integers from Rows
 #
 
 # @lc code=start
-func countCoprime(mat [][]int) int {
-    const MOD = 1000000007
-    m, n := len(mat), len(mat[0])
-    // This would be a placeholder for detailed implementation logic.
-    // Implementing dynamic programming or other methods to track states.
-    // This will involve iterating through rows and using GCD checks.
-    
-    // Placeholder return statement; detailed logic should be implemented here based on planning.
-    return 0 // Replace with actual computation logic.
-}
+from math import gcd
+from collections import defaultdict
+
+MOD = int(1e9 + 7)
+
+class Solution:
+    def countCoprime(self, mat):
+        m = len(mat)
+        n = len(mat[0])
+        
+        # Initialize DP table
+        dp = [defaultdict(int) for _ in range(m + 1)]
+        dp[0][0] = 1 # base case: choosing nothing has gcd of zero (neutral element)
+        
+        # Iterate over each row in matrix
+        for i in range(m):
+            for num in mat[i]:
+                for g, count in list(dp[i].items()):
+                    new_gcd = gcd(g, num)
+                    dp[i + 1][new_gcd] = (dp[i + 1][new_gcd] + count) % MOD
+        
+        return dp[m][1]
 # @lc code=end
