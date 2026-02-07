@@ -3,20 +3,24 @@
 #
 # [3513] Number of Unique XOR Triplets I
 #
-
 # @lc code=start
 func uniqueXorTriplets(nums []int) int {
-    uniqueResults := make(map[int]struct{})
+    uniqueXor := make(map[int]struct{})
     n := len(nums)
+    
+    // Iterate over all possible pairs (i, j) and calculate the XOR with each k >= j
     for i := 0; i < n; i++ {
+        xorIJ := 0
         for j := i; j < n; j++ {
-            xorSum := nums[i]
+            xorIJ ^= nums[j]
+            // For k >= j, xorIJ remains unchanged
             for k := j; k < n; k++ {
-                xorSum ^= nums[k]
-                uniqueResults[xorSum] = struct{}{}
+                uniqueXor[xorIJ] = struct{}{}
             }
         }
     }
-    return len(uniqueResults)
+    
+    // The number of unique XOR values is the size of the map keys
+    return len(uniqueXor)
 }
 # @lc code=end
