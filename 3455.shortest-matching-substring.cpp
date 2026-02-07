@@ -1,41 +1,9 @@
-#
-# @lc app=leetcode id=3455 lang=cpp
-#
-# [3455] Shortest Matching Substring
-#
+# \n# @lc app=leetcode id=3455 lang=cpp\n#\n# [3455] Shortest Matching Substring\n#\n# @lc code=start\nclass Solution {\npublic:\n    int shortestMatchingSubstring(string s, string p) {\n        int n = s.size(), m = p.size();\n        size_t first_star = p.find('*');\n        size_t last_star = p.rfind('*');\n        
+        string prefix = p.substr(0, first_star); // Before first *\n        string infix = p.substr(first_star + 1, last_star - first_star - 1); // Between two *\n        string suffix = p.substr(last_star + 1); // After second *
 
-# @lc code=start
-class Solution {
-public:
-    int shortestMatchingSubstring(string s, string p) {
-        // Handle special edge case
-        if (p == "**") return 0;
-        int n = s.size();
-        int m = p.size();
-        // Find star positions
-        int star1 = p.find('*');
-        int star2 = p.find('*', star1 + 1);
-        string prefix = p.substr(0, star1);
-        string middle = p.substr(star1 + 1, star2 - star1 - 1);
-        string suffix = p.substr(star2 + 1);
-        int minLen = n + 1;
-        for (int i = 0; i + prefix.size() <= n; ++i) {
-            // Check prefix
-            if (s.substr(i, prefix.size()) != prefix) continue;
-            int start = i + prefix.size();
-            // Find middle match
-            for (int j = start; j + middle.size() <= n; ++j) {
-                if (s.substr(j, middle.size()) != middle) continue;
-                int afterMiddle = j + middle.size();
-                // Check suffix
-                if (afterMiddle + suffix.size() > n) continue;
-                if (s.substr(afterMiddle, suffix.size()) != suffix) continue;
-                // Valid match from i to afterMiddle + suffix.size() - 1
-                int len = (afterMiddle + suffix.size()) - i;
-                if (len < minLen) minLen = len;
-            }
-        }
-        return (minLen <= n) ? minLen : -1;
-    }
-};
+        int minLength = INT_MAX;\n        for (int i = 0; i <= n - prefix.size(); ++i) {\n            if (s.substr(i, prefix.size()) == prefix) { // Match prefix\n                for (int j = i + prefix.size(); j <= n - suffix.size(); ++j) {\n                    if (infix.empty() || s.find(infix, j) == j) { // Match infix (if exists)\n                        j += infix.size(); // Move past infix if matched or if empty, just continue
+                        if (j + suffix.size() <= n && s.substr(j, suffix.size()) == suffix) { // Match suffix\n                            minLength = min(minLength, j + suffix.size() - i);\n                            break; // Found valid match, break to try shorter options
+                        }\n                    } else { // Skip unmatched positions quickly for infix
+                        size_t next_j = s.find(infix.front(), j+1); \n                        if (next_j == string::npos || next_j >= n - suffix.size()) break; \n                        j = next_j - 1; \n                    }\n                }\n            } else { // Optimize skip when prefix doesn't match
+                size_t next_i = s.find(prefix.front(), i+1); \n                if (next_i == string::npos || next_i > n - prefix.size()) break; \n                i = next_i - 1; \n            }\n        }\n        return (minLength == INT_MAX) ? -1 : minLength;\n    }\n};
 # @lc code=end
