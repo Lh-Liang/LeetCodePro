@@ -6,36 +6,40 @@
 
 # @lc code=start
 func completePrime(num int) bool {
-    // Helper function to check if a number is prime
+    // Helper function to check if n is prime
     isPrime := func(n int) bool {
-        if n <= 1 {
+        if n < 2 {
             return false
         }
-        for i := 2; i*i <= n; i++ {
+        if n == 2 {
+            return true
+        }
+        if n%2 == 0 {
+            return false
+        }
+        for i := 3; i*i <= n; i += 2 {
             if n%i == 0 {
                 return false
             }
         }
         return true
     }
-    
-    strNum := strconv.Itoa(num) // Convert number to string for easy slicing of prefixes/suffixes
-    length := len(strNum)
-    
-    // Check all prefixes and suffixes for primality
-    for i := 1; i <= length; i++ {
-        prefix, errPrefix := strconv.Atoi(strNum[:i]) // Extract prefix from start up to i-1
-        suffix, errSuffix := strconv.Atoi(strNum[length-i:]) // Extract suffix from length-i to end
-        
-        // Handle potential conversion errors (though unlikely with constraints)
-        if errPrefix != nil || errSuffix != nil {
-            return false // Fallback in case of unexpected conversion issues
-        }
-        
-        if !isPrime(prefix) || !isPrime(suffix) {
-            return false // If any prefix or suffix is not prime, return false
+    numStr := strconv.Itoa(num)
+    n := len(numStr)
+    // Check all prefixes
+    for i := 1; i <= n; i++ {
+        prefix, err := strconv.Atoi(numStr[:i])
+        if err != nil || !isPrime(prefix) {
+            return false
         }
     }
-    return true // All prefixes and suffixes are prime
+    // Check all suffixes
+    for i := 1; i <= n; i++ {
+        suffix, err := strconv.Atoi(numStr[n-i:])
+        if err != nil || !isPrime(suffix) {
+            return false
+        }
+    }
+    return true
 }
 # @lc code=end
