@@ -5,32 +5,44 @@
 #
 
 # @lc code=start
-import (
-    "container/heap"
-    "math"
-)
-
-type Point struct {
-    x, y, time int
+func minTimeToReach(moveTime [][]int) int {
+    n := len(moveTime)
+    m := len(moveTime[0])
+    directions := [][2]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} // Right, Down, Left, Up
+    visited := make([][]int, n)
+    for i := range visited {
+        visited[i] = make([]int, m)
+        for j := range visited[i] {
+            visited[i][j] = int(1e9) // Initialize with a large number
+        }
+    }
+    
+    queue := []struct{row, col, time int}{{0, 0, 0}}
+    visited[0][0] = 0
+    
+    for len(queue) > 0 {
+        current := queue[0]
+        queue = queue[1:]
+        
+        for _, dir := range directions {
+            newRow := current.row + dir[0]
+            newCol := current.col + dir[1]
+            if newRow >= 0 && newRow < n && newCol >= 0 && newCol < m {
+                enterTime := max(current.time + 1, moveTime[newRow][newCol])
+                if enterTime < visited[newRow][newCol] {
+                    visited[newRow][newCol] = enterTime
+                    queue = append(queue, struct{row, col, time int}{newRow, newCol, enterTime})
+                }
+            }
+        }
+    }
+    return visited[n-1][m-1]
 }
 
-type PriorityQueue []Point
-
-func (pq PriorityQueue) Len() int { return len(pq) }
-func (pq PriorityQueue) Less(i, j int) bool { return pq[i].time < pq[j].time }
-func (pq PriorityQueue) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
-func (pq *PriorityQueue) Push(x interface{}) { *pq = append(*pq, x.(Point)) }
-func (pq *PriorityQueue) Pop() interface{} { n := len(*pq); item := (*pq)[n-1]; *pq = (*pq)[:n-1]; return item } 
-
-func minTimeToReach(moveTime [][]int) int { 
-    n, m := len(moveTime), len(moveTime[0]) 
-    directions := [][]int{{0, 1}, {1, 0}, {0, -1}, {-1, 0}} 
-    minTime := make([][]int, n) 
-    for i := range minTime { minTime[i] = make([]int, m); for j := range minTime[i] { minTime[i][j] = math.MaxInt32 }} 
-    minTime[0][0] = 0 
-pq := &PriorityQueue{} 
-pq.Push(Point{0, 0, 0}) 
-hp := heap.Init(pq) 
-hp.Pop() // Initialize heap with starting point. 
-hp.Push(Point{0, 0}) // Push initial point into heap. 
-hp.Pop() // Pop initial point from heap. 	// Start pathfinding. while hp.Len() > 0 { curr := hp.Pop().(Point); if curr.x == n-1 && curr.y == m-1 { return curr.time } for _, d := range directions { nx, ny := curr.x+d[0], curr.y+d[1]; if nx >= 0 && ny >= 0 && nx < n && ny < m && curr.time+1 >= moveTime[nx][ny] && curr.time+1 < minTime[nx][ny] { minTime[nx][ny] = curr.time + 1; hp.Push(Point{nx, ny, minTime[nx][ny]}) }}} return -1} # @lc code=end
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+# @lc code=end
