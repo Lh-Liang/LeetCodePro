@@ -6,31 +6,32 @@
 
 # @lc code=start
 func countStableSubarrays(nums []int, queries [][]int) []int64 {
-    results := make([]int64, len(queries))
-    
-    // Helper function to count stable subarrays in range [l:r]
-    countStableInRange := func(l int, r int) int64 {
-        // Initialize variables for sliding window
-        var countStable int64 = 0
-        start := l
-        
-        // Iterate over each possible end of subarray within [l:r]
-        for end := l; end <= r; end++ {
-            // Ensure no inversions in current window [start:end]
-            for start < end && nums[start] > nums[end] {
-                start++
-            }
-            // Number of stable subarrays ending at 'end' is (end - start + 1)
-            countStable += int64(end - start + 1)
+    n := len(nums)
+    nextBreak := make([]int, n) // nextBreak[i] is the last index of the non-decreasing run starting at i
+    nextBreak[n-1] = n-1
+    for i := n-2; i >= 0; i-- {
+        if nums[i] <= nums[i+1] {
+            nextBreak[i] = nextBreak[i+1]
+        } else {
+            nextBreak[i] = i
         }
-        return countStable
     }
-    
-    // Process each query and calculate result using helper function
-    for i, query := range queries {
-        l, r := query[0], query[1]
-        results[i] = countStableInRange(l, r)
+    ans := make([]int64, len(queries))
+    for qi, q := range queries {
+        l, r := q[0], q[1]
+        res := int64(0)
+        i := l
+        for i <= r {
+            j := nextBreak[i]
+            if j > r {
+                j = r
+            }
+            lenRun := j - i + 1
+            res += int64(lenRun) * int64(lenRun+1) / 2
+            i = j + 1
+        }
+        ans[qi] = res
     }
-    return results
+    return ans
 }
 # @lc code=end
