@@ -9,60 +9,41 @@ class Solution {
 public:
     vector<int> findSubtreeSizes(vector<int>& parent, string s) {
         int n = parent.size();
-        vector<int> new_parent = parent;
-        vector<vector<int>> tree(n);
-        // Build original tree
+        vector<vector<int>> adj(n);
+        vector<int> answer(n, 0);
+        unordered_map<char, int> lastSeen;
+        
+        // Build adjacency list representation of the tree
         for (int i = 1; i < n; ++i) {
-            tree[parent[i]].push_back(i);
+            adj[parent[i]].push_back(i);
         }
-        // For each character, maintain a stack of (node, depth)
-        unordered_map<char, vector<int>> char_stack;
-        vector<int> depth(n, 0);
-        function<void(int, int)> dfs = [&](int u, int d) {
-            depth[u] = d;
-            char c = s[u];
-            char_stack[c].push_back(u);
-            // For all children
-            for (int v : tree[u]) {
-                // Only process for x != 0
-                if (v == 0) continue;
-                // Find closest ancestor with same character
-                int closest = -1;
-                if (!char_stack[c].empty()) {
-                    // The last element in stack is the closest ancestor
-                    closest = char_stack[c].back();
-                }
-                // But we push u before processing children, so for v, ancestor is char_stack[c][size-2] (since char_stack[c][size-1]==u==parent of v)
-                if (char_stack[c].size() >= 2) {
-                    closest = char_stack[c][char_stack[c].size() - 2];
-                } else {
-                    closest = -1;
-                }
-                if (closest != -1) {
-                    new_parent[v] = closest;
-                }
-                dfs(v, d + 1);
+        
+        // Function to find size of subtrees via DFS
+        function<int(int)> dfs = [&](int node) {
+            int size = 1;
+            for (int child : adj[node]) {
+                size += dfs(child);
             }
-            char_stack[c].pop_back();
+            return answer[node] = size;
         };
-        dfs(0, 0);
-        // Build new tree
-        vector<vector<int>> new_tree(n);
+        
+        // Traverse and find closest ancestor with same character for each node
         for (int i = 1; i < n; ++i) {
-            new_tree[new_parent[i]].push_back(i);
-        }
-        // Compute subtree sizes
-        vector<int> ans(n, 0);
-        function<int(int)> dfs2 = [&](int u) {
-            int sz = 1;
-            for (int v : new_tree[u]) {
-                sz += dfs2(v);
+            char c = s[i];
+            if (lastSeen.count(c)) {
+                // Change parent if a matching ancestor exists
+                int ancestor = lastSeen[c];
+                adj[parent[i]].erase(remove(adj[parent[i]].begin(), adj[parent[i]].end(), i), adj[parent[i]].end());
+                adj[ancestor].push_back(i);
+                parent[i] = ancestor;
             }
-            ans[u] = sz;
-            return sz;
-        };
-        dfs2(0);
-        return ans;
+            lastSeen[c] = i;
+        }
+        
+        // Calculate subtree sizes from root using DFS
+        dfs(0);
+
+        return answer;
     }
 };
 # @lc code=end
