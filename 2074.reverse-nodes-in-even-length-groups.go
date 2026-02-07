@@ -3,55 +3,54 @@
 #
 # [2074] Reverse Nodes in Even Length Groups
 #
+
 # @lc code=start
 /**
- * Definition for singly-linked list.
- * type ListNode struct {
- *     Val int
- *     Next *ListNode
- * }
- */
+* Definition for singly-linked list.
+* type ListNode struct {
+*     Val int
+*     Next *ListNode
+* }
+*/
 func reverseEvenLengthGroups(head *ListNode) *ListNode {
-    dummy := &ListNode{0, head}
+    dummy := &ListNode{Next: head}
     prev := dummy
-    current := head
-    groupSize := 1
-    
-    for current != nil {
-        // Determine actual count of nodes in this group
-        count := 0
-        start := current
-        for count < groupSize && current != nil {
-            current = current.Next 
-            count++ 
-        }
-        
-        // Reverse nodes if count (group size) is even
-        if count%2 == 0 {
-            prev.Next = reverse(start, count)
-            start.Next = current // Connect reversed part back to main list
-            prev = start         // Move prev to end of reversed segment
-        } else {
-            prev = start         // Move prev to end of non-reversed segment
-        }
-        
-        // Increment groupSize for the next iteration (next group)
-        groupSize++
-    }
-    return dummy.Next // Return new head of modified list
-}
-
-// Helper function to reverse 'k' nodes starting from 'head'
-func reverse(head *ListNode, k int) *ListNode {
-    var prev *ListNode
     curr := head
-    for k > 0 {
-        nextHead := curr.Next 
-        curr.Next = prev 
-        prev = curr 
-        curr = nextHead 
-        k--
+    groupSize := 1
+    for curr != nil {
+        count := 0
+        temp := curr
+        // Count the actual group length
+        for temp != nil && count < groupSize {
+            count++
+            temp = temp.Next
+        }
+        // Find the tail of the group
+        tail := curr
+        for i := 1; i < count; i++ {
+            tail = tail.Next
+        }
+        nextGroupHead := tail.Next
+        if count%2 == 0 {
+            // Reverse the group
+            prevNode := nextGroupHead
+            node := curr
+            for i := 0; i < count; i++ {
+                tmp := node.Next
+                node.Next = prevNode
+                prevNode = node
+                node = tmp
+            }
+            prev.Next = tail
+            prev = curr
+        } else {
+            prev = tail
+        }
+        curr = nextGroupHead
+        groupSize++
+        // After each group, verify pointers (implicit in pointer logic)
     }
-    return prev // Return new head after reversal
+    // Final verification of list structure can be added if needed (implicit in construction)
+    return dummy.Next
 }
 # @lc code=end
