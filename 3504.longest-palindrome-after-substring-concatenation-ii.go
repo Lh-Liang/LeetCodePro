@@ -6,26 +6,35 @@
 
 # @lc code=start
 func longestPalindrome(s string, t string) int {
-    longest := 0
-    // Check single character palindromes
-    freq := make(map[rune]int)
-    for _, ch := range s + t {
-        freq[ch]++
+    n := len(s)
+    m := len(t)
+    // dp[i][j] will store the length of longest palindromic subsequence
+    // within s[0:i] + t[0:j]
+    dp := make([][]int, n+1)
+    for i := range dp {
+        dp[i] = make([]int, m+1)
     }
-    oddCount := 0
-    for _, count := range freq {
-        if count%2 != 0 {
-            oddCount++
+    // Fill DP table considering all substrings of s and t
+    for i := 0; i <= n; i++ {
+        for j := 0; j <= m; j++ {
+            if i > 0 {
+                dp[i][j] = max(dp[i][j], dp[i-1][j])
+            }
+            if j > 0 {
+                dp[i][j] = max(dp[i][j], dp[i][j-1])
+            }
+            if i > 0 && j > 0 && s[i-1] == t[j-1] {
+                dp[i][j] = max(dp[i][j], dp[i-1][j-1] + 2) // Add two for mirrored characters
+            }
         }
     }
-    // The longest palindrome length is total length minus odd counts (if more than one). 
-    // If there are odd counts, we can only use one of them fully (single middle character in palindrome) 
-    // Rest will be used as even pairs. This takes care of single characters being counted once each. 
-    if oddCount > 1 {
-        longest = len(s) + len(t) - (oddCount - 1) 
-    } else {
-        longest = len(s) + len(t) 
-    } 
-    return longest 
+    return dp[n][m]
+}
+
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
 }
 # @lc code=end
