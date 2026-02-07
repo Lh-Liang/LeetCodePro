@@ -1,57 +1,72 @@
-//
-// @lc app=leetcode id=3768 lang=golang
-//
-// [3768] Minimum Inversion Count in Subarrays of Fixed Length
-//
+#
+# @lc app=leetcode id=3768 lang=golang
+#
+# [3768] Minimum Inversion Count in Subarrays of Fixed Length
+#
 
-// @lc code=start
+# @lc code=start
 func minInversionCount(nums []int, k int) int64 {
     n := len(nums)
-    if k == 1 {
-        return 0 // No inversions possible in single-element subarrays
+    values := make([]int, n)
+    copy(values, nums)
+    sort.Ints(values)
+    valueToRank := make(map[int]int)
+    rank := 1
+    for _, v := range values {
+        if _, ok := valueToRank[v]; !ok {
+            valueToRank[v] = rank
+            rank++
+        }
     }
-    
-    // Define a Fenwick Tree structure
-    type FenwickTree struct {
-        tree []int64
+    arr := make([]int, n)
+    for i, v := range nums {
+        arr[i] = valueToRank[v]
+    }
+    maxRank := rank
+
+    type BIT struct {
+        tree []int
         size int
     }
-    
-    // Initialize Fenwick Tree
-    func (ft *FenwickTree) init(size int) {
-        ft.tree = make([]int64, size+1)
-        ft.size = size
+    func newBIT(s int) *BIT {
+        return &BIT{make([]int, s+2), s+2}
     }
-    
-    // Update function for Fenwick Tree
-    func (ft *FenwickTree) update(index int, delta int64) {
-        for i := index; i <= ft.size; i += i & (-i) {
-            ft.tree[i] += delta
+    func (b *BIT) update(i, delta int) {
+        for i < b.size {
+            b.tree[i] += delta
+            i += i & -i
         }
     }
-    
-    // Prefix sum query for Fenwick Tree
-    func (ft *FenwickTree) query(index int) int64 {
-        var sum int64 = 0
-        for i := index; i > 0; i -= i & (-i) {
-            sum += ft.tree[i]
+    func (b *BIT) query(i int) int {
+        res := 0
+        for i > 0 {
+            res += b.tree[i]
+            i -= i & -i
         }
-        return sum
+        return res
     }
-    
-    // Coordinate compression map to ensure indices fit within tree size limits
-    coordinateMap := make(map[int]int)
-    sortedNums := make([]int, n)
-    copy(sortedNums, nums)
-    sort.Ints(sortedNums)
-    idx := 1 // Start indices from 1 for Fenwick Tree compatibility
-    for _, num := range sortedNums {
-        if _, exists := coordinateMap[num]; !exists {
-            coordinateMap[num] = idx
-            idx++
+
+    bit := newBIT(maxRank)
+    inv := int64(0)
+    // Build initial window
+    for i := 0; i < k; i++ {
+        inv += int64(i - bit.query(arr[i]))
+        bit.update(arr[i], 1)
+    }
+    minInv := inv
+    for i := k; i < n; i++ {
+        // Remove arr[i-k]: before removal, subtract its contribution
+        removeVal := arr[i-k]
+        bit.update(removeVal, -1)
+        inv -= int64(bit.query(removeVal-1))
+        // Add arr[i]: before insert, add its contribution
+        addVal := arr[i]
+        inv += int64(bit.query(maxRank-1) - bit.query(addVal))
+        bit.update(addVal, 1)
+        if inv < minInv {
+            minInv = inv
         }
     }
-    
-    fenwickTree := FenwickTree{}
-    fenwickTree.init(len(coordinateMap))
-    															minInversions := int64(^uint64(0) >> 1) // Max integer value as initial min inversion count// Sliding Window Algorithm with Inversion Counting using a Fenwick Tree.for startIdx := 0; startIdx+k <= n; startIdx++ {if startIdx > 0 { prevIndexMapped := coordinateMap[nums[startIdx-1]] fenwickTree.update(prevIndexMapped, -1)} inversionsInWindow := int64(0)	for j := startIdx; j < startIdx+k; j++ {indexMapped := coordinateMap[nums[j]]inversionsInWindow += fenwickTree.query(fenwickTree.size) - fenwickTree.query(indexMapped)	fenwickTree.update(indexMapped, 1)}if inversionsInWindow < minInversions {minInversions = inversionsInWindow}}return minInversions}// @lc code=end
+    return minInv
+}
+# @lc code=end
