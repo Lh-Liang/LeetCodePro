@@ -3,37 +3,49 @@
 #
 # [3646] Next Special Palindrome Number
 #
-
 # @lc code=start
+import (
+    "strconv"
+)
+
 func specialPalindrome(n int64) int64 {
-    for current := n + 1; ; current++ {
-        if isPalindrome(current) && meetsDigitFrequencyCondition(current) {
-            return current
+    // Helper function to check if a number is special
+    hasValidDigitCounts := func(num int64) bool {
+        counts := make(map[rune]int)
+        s := strconv.FormatInt(num, 10)
+        for _, digit := range s {
+            counts[digit]++
         }
-    }
-}
-
-func isPalindrome(num int64) bool {
-    str := strconv.FormatInt(num, 10)
-    for i := 0; i < len(str)/2; i++ {
-        if str[i] != str[len(str)-1-i] {
-            return false
+        for digit, count := range counts {
+            if int(digit-'0') != count { 
+                return false
+            }
         }
+        return true
     }
-    return true
-}
 
-func meetsDigitFrequencyCondition(num int64) bool {
-    countMap := make(map[rune]int)
-    str := strconv.FormatInt(num, 10)
-    for _, digit := range str {
-        countMap[digit]++
+    // Generate next palindrome candidate greater than n
+    generateNextPalindrome := func(num int64) int64 {
+        s := strconv.FormatInt(num, 10)
+        length := len(s)
+        halfLength := length / 2
+        incremented := false
+        var candidate string
+        if length%2 == 0 {
+            firstHalf, _ := strconv.ParseInt(s[:halfLength], 10, 64)
+            firstHalf++
+            incremented = true
+            firstHalfStr := strconv.FormatInt(firstHalf, 10)
+            candidate = firstHalfStr + reverseString(firstHalfStr)
+        } else {
+            middleIndex := halfLength
+            firstHalf, _ := strconv.ParseInt(s[:middleIndex+1], 10, 64)
+            firstHalf++
+            incremented = true
+            firstHalfStr := strconv.FormatInt(firstHalf, 10)
+            candidate = firstHalfStr + reverseString(firstHalfStr[:middleIndex])
+        }
+        result, _ := strconv.ParseInt(candidate, 10, 64)
+        return result
     }
-    for digit, count := range countMap {
-        if int(digit-'0') != count { 
-            return false 
-        } 
-    } 
-    return true 
-}
-# @lc code=end
+    	// Reverse string utility function	reverseString := func(s string) string {		runes := []rune(s)		for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {			runes[i], runes[j] = runes[j], runes[i]		}		return string(runes)	}		candidate := n + 1	for {	candidate = generateNextPalindrome(candidate) // generate next palindrome	if hasValidDigitCounts(candidate){	return candidate	}	candidate++ // ensure we are always moving forward	}	}
