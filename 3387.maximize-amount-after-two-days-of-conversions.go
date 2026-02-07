@@ -3,55 +3,41 @@
 #
 # [3387] Maximize Amount After Two Days of Conversions
 #
-
 # @lc code=start
 func maxAmount(initialCurrency string, pairs1 [][]string, rates1 []float64, pairs2 [][]string, rates2 []float64) float64 {
-    // Construct graph for Day 1 conversions using adjacency lists
-    day1Graph := make(map[string]map[string]float64)
-    for i, pair := range pairs1 {
-        if day1Graph[pair[0]] == nil {
-            day1Graph[pair[0]] = make(map[string]float64)
+    // Helper function to perform Bellman-Ford style relaxation.
+    relax := func(pairs [][]string, rates []float64) map[string]float64 {
+        maxAmounts := make(map[string]float64)
+        maxAmounts[initialCurrency] = 1.0
+        for i := 0; i < len(pairs); i++ {
+            for j := range pairs {
+                start, target := pairs[j][0], pairs[j][1]
+                rate := rates[j]
+                if amount, exists := maxAmounts[start]; exists {
+                    if maxAmounts[target] < amount * rate {
+                        maxAmounts[target] = amount * rate
+                    }
+                }
+            }
         }
-        day1Graph[pair[0]][pair[1]] = rates1[i]
-        day1Graph[pair[1]] = make(map[string]float64) // Reverse conversion not needed here but initialized for completeness
+        return maxAmounts
     }
-    
-    // Calculate all possible amounts after Day 1 using BFS/DFS
-    amountsDay1 := make(map[string]float64)
-    amountsDay1[initialCurrency] = 1.0 // Start with initial currency value of 1.0
-    queue := []struct{currency string; amount float64}{{initialCurrency, 1.0}}
-    
-    for len(queue) > 0 {
-        current := queue[0]
-        queue = queue[1:]
-        for nextCurrency, rate := range day1Graph[current.currency] {
-            newAmount := current.amount * rate
-            if newAmount > amountsDay1[nextCurrency] {
-                amountsDay1[nextCurrency] = newAmount
-                queue = append(queue, struct{currency string; amount float64}{nextCurrency, newAmount})
+
+    // Calculate Day 1 results.
+    maxAfterDay1 := relax(pairs1, rates1)
+
+    // Use results from Day 1 as basis for Day 2 calculations.
+    finalMaxAmounts := make(map[string]float64)
+    for curr, amount := range maxAfterDay1 {
+        tempMax := relax(pairs2, rates2)
+        for newCurr, newAmount := range tempMax {
+            if finalMaxAmounts[newCurr] < newAmount * amount {
+                finalMaxAmounts[newCurr] = newAmount * amount
             }
         }
     }
-    
-    // Construct graph for Day 2 conversions using adjacency lists and calculate maximum after Day 2 conversions based on Day 1 results. Similar process with Day 2 graph. 
-    day2Graph := make(map[string]map[string]float64) 
-    for i, pair := range pairs2 { 
-        if day2Graph[pair[0]] == nil { 
-            day2Graph[pair[0]] = make(map[string]float64) 
-        } 
-        day2Graph[pair[0]][pair[1]] = rates2[i] 
-        day2Graph[pair[1]] = make(map[string]float64) // Reverse conversion not needed here but initialized for completeness 
-    } 
-n maxAmountAfterTwoDays := 0.0 
-n for currencyAfterDayOne, amountAfterDayOne := range amountsDay1 { 
-n queueAfterDayOne := []struct{currency string; amount float64}{{currencyAfterDayOne, amountAfterDayOne}} 
-n amountsDayTwo := make(map[string]float64) 
-n amountsDayTwo[currencyAfterDayOne] = amountAfterDayOne 
-n while len(queueAfterDayOne) > 0 { 
-n currentConversion := queueAfterDayOne[0] 
-n queueAfterDayOne = queueAfterDayOne[1:] 
-n for nextCurrency, rate := range day2Graph[currentConversion.currency] { 
-n newAmountTwoDays := currentConversion.amount * rate 
-n if newAmountTwoDays > amountsDayTwo[nextCurrency] { 
-n amountsDayTwo[nextCurrency] = newAmountTwoDays 
-n queueAfterDayOne = append(queueAfterDayOne, struct{currency string; amount float64}{nextCurrency, newAmountTwoDays}) } } } nn maxAmountForThisPath := amountsDayTwo[initialCurrency] nn if maxAmountForThisPath > maxAmountAfterTwoDays { nn maxAmountAfterTwoDays = maxAmountForThisPath n} n} return maxAmountAfterTwoDays n} # @lc code=end
+
+    // Return maximum amount of initial currency after Day 2.
+    return finalMaxAmounts[initialCurrency]
+}
+# @lc code=end
