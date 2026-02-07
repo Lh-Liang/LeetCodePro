@@ -1,1 +1,1 @@
-Implemented 'search' function.
+The Skiplist has been implemented successfully.
