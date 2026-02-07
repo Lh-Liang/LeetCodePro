@@ -8,43 +8,38 @@
 class Solution {
 public:
     long long maxRectangleArea(vector<int>& xCoord, vector<int>& yCoord) {
-        unordered_set<long long> pointSet;
-        int n = xCoord.size();
-        // Combine x and y into a single hashable integer (offset multiplier > max y)
-        const long long OFFSET = 80000010LL;
-        for (int i = 0; i < n; ++i) {
-            pointSet.insert(xCoord[i] * OFFSET + yCoord[i]);
+        unordered_map<int, set<int>> coordMap;
+        for (int i = 0; i < xCoord.size(); ++i) {
+            coordMap[xCoord[i]].insert(yCoord[i]);
         }
         long long maxArea = -1;
-        // Use a map to group all y's for each x, and x's for each y (optional, can help for optimization)
-        for (int i = 0; i < n; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                int x1 = xCoord[i], y1 = yCoord[i];
-                int x2 = xCoord[j], y2 = yCoord[j];
-                if (x1 == x2 || y1 == y2) continue; // must be diagonal
-                // get other two corners
-                if (!pointSet.count(x1 * OFFSET + y2) || !pointSet.count(x2 * OFFSET + y1)) continue;
-                // Check if any other point is inside or on border (besides the corners)
-                int minX = min(x1, x2), maxX = max(x1, x2);
-                int minY = min(y1, y2), maxY = max(y1, y2);
-                bool valid = true;
-                // Only need to check if any point other than the four corners lies inside/on the border
-                for (int k = 0; k < n; ++k) {
-                    int px = xCoord[k], py = yCoord[k];
-                    // skip rectangle corners
-                    if ((px == x1 && py == y1) || (px == x2 && py == y2) || (px == x1 && py == y2) || (px == x2 && py == y1)) continue;
-                    if (px >= minX && px <= maxX && py >= minY && py <= maxY) {
-                        valid = false;
-                        break;
+        for (auto it1 = coordMap.begin(); it1 != coordMap.end(); ++it1) {
+            auto x1 = it1->first;
+            auto& ySet1 = it1->second;
+            for (auto it2 = next(it1); it2 != coordMap.end(); ++it2) {
+                auto x2 = it2->first;
+                auto& ySet2 = it2->second;
+                vector<int> commonYs;
+                set_intersection(ySet1.begin(), ySet1.end(), ySet2.begin(), ySet2.end(), back_inserter(commonYs));
+                if (commonYs.size() < 2) continue;
+                for (int j = 0; j < commonYs.size(); ++j) {
+                    for (int k = j + 1; k < commonYs.size(); ++k) {
+                        int y1 = commonYs[j], y2 = commonYs[k];
+                        long long area = abs(x2 - x1) * abs(y2 - y1);
+                        bool validRectangle = true;
+                        // Verify no other points are inside or on the borders
+                        for (int l = 0; l < xCoord.size(); ++l) {
+                            if ((xCoord[l] == x1 || xCoord[l] == x2) &&
+                                (yCoord[l] == y1 || yCoord[l] == y2)) continue;
+                            if (xCoord[l] > min(x1, x2) && xCoord[l] < max(x1, x2) &&
+                                yCoord[l] > min(y1, y2) && yCoord[l] < max(y1, y2)) {
+                                validRectangle = false;
+                                break;
+                            }
+                        }
+                        if (validRectangle && area > maxArea) maxArea = area;
                     }
-                }
-                if (valid) {
-                    long long area = (long long)(maxX - minX) * (maxY - minY);
-                    if (area > maxArea) maxArea = area;
                 }
             }
         }
-        return maxArea;
-    }
-};
-# @lc code=end
+        return maxArea != -1 ? maxArea : -1;     } }; // @lc code=end
