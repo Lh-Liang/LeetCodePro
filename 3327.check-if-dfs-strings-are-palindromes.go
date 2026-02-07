@@ -7,39 +7,72 @@
 # @lc code=start
 func findAnswer(parent []int, s string) []bool {
     n := len(parent)
-    children := make(map[int][]int)
+    children := make([][]int, n)
     for i := 1; i < n; i++ {
         p := parent[i]
         children[p] = append(children[p], i)
     }
-    
-    var dfs func(int) string
-    dfs = func(node int) string {
-        dfsStr := ""
-        for _, child := range children[node] {
-            dfsStr += dfs(child)
-        }
-        return dfsStr + string(s[node])
-    }
-
-    isPalindrome := func(str string) bool {
-        l, r := 0, len(str)-1
-        for l < r {
-            if str[l] != str[r] {
-                return false
+    const base, mod = 131, int(1e9+7)
+    powmemo := make(map[[2]int]int)
+    var pow func(int, int) int
+    pow = func(a, b int) int {
+        key := [2]int{a, b}
+        if v, ok := powmemo[key]; ok { return v }
+        v := 1
+        aa := a
+        bb := b
+        for bb > 0 {
+            if bb%2 == 1 {
+                v = v * aa % mod
             }
-            l++
-            r--
+            aa = aa * aa % mod
+            bb /= 2
         }
-        return true
+        powmemo[key] = v
+        return v
     }
-    
     answer := make([]bool, n)
-    for i := 0; i < n; i++ {
-        dfsStr := dfs(i)
-        answer[i] = isPalindrome(dfsStr)
+    var dfs func(int) (int, int, int)
+    // Returns (forward hash, reverse hash, length) for the subtree rooted at x
+    dfs = func(x int) (int, int, int) {
+        fh, rh, l := 0, 0, 0
+        for _, y := range children[x] {
+            cfh, crh, cl := dfs(y)
+            fh = (fh*pow(base, cl) + cfh) % mod
+            rh = (crh*pow(base, l) + rh) % mod
+            l += cl
+        }
+        ch := int(s[x])
+        fh = (fh*base + ch) % mod
+        rh = (rh + ch*pow(base, l)) % mod
+        l++
+        return fh, rh, l
     }
-    
+    // For small subtrees, explicitly build string to check
+    var build func(int, *[]byte)
+    build = func(x int, buf *[]byte) {
+        for _, y := range children[x] {
+            build(y, buf)
+        }
+        *buf = append(*buf, s[x])
+    }
+    for i := 0; i < n; i++ {
+        fh, rh, l := dfs(i)
+        isPal := fh == rh
+        if l <= 20 {
+            buf := make([]byte, 0, l)
+            build(i, &buf)
+            valid := true
+            for j := 0; j < l/2; j++ {
+                if buf[j] != buf[l-1-j] {
+                    valid = false
+                    break
+                }
+            }
+            isPal = valid
+        }
+        answer[i] = isPal
+    }
     return answer
 }
 # @lc code=end
