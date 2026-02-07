@@ -5,52 +5,33 @@
 #
 
 # @lc code=start
-import (
-    "sort"
-)
-
 func maxSum(grid [][]int, limits []int, k int) int64 {
-    // Define a type for storing matrix elements along with their original row index.
-    type Element struct {
-        value int
-        row   int
-    }
-    
-    // Initialize a slice to store potential elements.
-    var elements []Element
-    
-    // Step 1: Collect elements within their respective row limits.
-    for i, row := range grid {
-        // Sort each row in descending order to facilitate selecting maximum values.
+    n := len(grid)
+    dp := make([]int64, k+1)
+    for i := 0; i < n; i++ {
+        row := grid[i]
         sort.Sort(sort.Reverse(sort.IntSlice(row)))
-        count := 0
-        for _, val := range row {
-            if count < limits[i] { // Respect the limit for this specific row.
-                elements = append(elements, Element{value: val, row: i})
-                count++
-            } else {
-                break // Stop adding when limit is reached.
+        prefix := make([]int64, limits[i]+1)
+        for j := 1; j <= limits[i] && j <= len(row); j++ {
+            prefix[j] = prefix[j-1] + int64(row[j-1])
+        }
+        ndp := make([]int64, k+1)
+        copy(ndp, dp)
+        for take := 1; take <= limits[i] && take <= len(row); take++ {
+            for prev := 0; prev+take <= k; prev++ {
+                if dp[prev] + prefix[take] > ndp[prev+take] {
+                    ndp[prev+take] = dp[prev] + prefix[take]
+                }
             }
         }
+        dp = ndp
     }
-    
-    // Step 2: Sort all collected elements in descending order based on their value.
-    sort.Slice(elements, func(i, j int) bool { return elements[i].value > elements[j].value })
-    
-    // Step 3: Select up to k top elements to maximize the sum.
-    var sum int64 = 0
-    for i := 0; i < min(k, len(elements)); i++ {
-        sum += int64(elements[i].value)
+    ans := int64(0)
+    for i := 0; i <= k; i++ {
+        if dp[i] > ans {
+            ans = dp[i]
+        }
     }
-    
-    return sum
-}
-
-// Helper function for minimum of two integers.
-func min(a, b int) int {
-    if a < b {
-        return a
-    }
-    return b
+    return ans
 }
 # @lc code=end
