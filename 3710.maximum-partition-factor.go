@@ -6,27 +6,32 @@
 
 # @lc code=start
 func maxPartitionFactor(points [][]int) int {
-    // Step 1: Calculate all pairwise Manhattan distances.
-    n := len(points)
-    if n == 2 {
-        return 0 // Special case: only two points, partition factor is 0.
-    }
-    maxPartitionFactor := 0
-    for i := 0; i < n; i++ {
-        for j := i + 1; j < n; j++ {
-            distance := abs(points[i][0] - points[j][0]) + abs(points[i][1] - points[j][1])
-            // Step 2: Evaluate potential groupings and calculate partition factor.
-            // In practice, this involves more complex logic with sorting or geometric tricks. 
-            if distance > maxPartitionFactor {
-                maxPartitionFactor = distance // Update maximum found partition factor. 
+    maxDist := 0
+    
+    // Calculate max difference for each of the four transformations
+    for _, transform := range [][]int{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}} {
+        transformedValues := make([]int, len(points))
+        
+        // Transform points using current transformation
+        for i, point := range points {
+            transformedValues[i] = transform[0]*point[0] + transform[1]*point[1]
+        }
+        
+        // Find min and max of transformed values
+        minValue := transformedValues[0]
+        maxValue := transformedValues[0]
+        
+        for _, value := range transformedValues {
+            if value < minValue {
+                minValue = value
+            }
+            if value > maxValue {
+                maxValue = value
             }
         }
-    }
-    return maxPartitionFactor // Return the maximum possible partition factor. 
-}
-// Helper function to calculate absolute value. 
-func abs(x int) int { 
-    if x < 0 { return -x } 
-    return x 
-}
-# @lc code=end
+        
+        // Calculate distance for current transformation
+        currentDist := maxValue - minValue
+        if currentDist > maxDist {
+            maxDist = currentDist
+        }									   	   	   	   	         }	     return maxDist } # @lc code=end
