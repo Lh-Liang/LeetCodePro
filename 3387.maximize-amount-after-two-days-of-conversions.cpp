@@ -1,4 +1,3 @@
-#
 # @lc app=leetcode id=3387 lang=cpp
 #
 # [3387] Maximize Amount After Two Days of Conversions
@@ -7,62 +6,46 @@
 class Solution {
 public:
     double maxAmount(string initialCurrency, vector<vector<string>>& pairs1, vector<double>& rates1, vector<vector<string>>& pairs2, vector<double>& rates2) {
-        // Step 1: Map all currencies to indices
-        unordered_map<string, int> currencyIndex;
-        int idx = 0;
-        auto registerCurrency = [&](const string& s) {
-            if (!currencyIndex.count(s)) currencyIndex[s] = idx++;
-        };
-        registerCurrency(initialCurrency);
-        for (auto& p : pairs1) { registerCurrency(p[0]); registerCurrency(p[1]); }
-        for (auto& p : pairs2) { registerCurrency(p[0]); registerCurrency(p[1]); }
-        int n = idx;
-        // Step 2: Build adjacency lists for both days with direct and reverse rates
-        vector<vector<pair<int, double>>> g1(n), g2(n);
+        unordered_map<string, unordered_map<string, double>> graphDay1;
+        unordered_map<string, unordered_map<string, double>> graphDay2;
+        
+        // Build graph for day 1
         for (int i = 0; i < pairs1.size(); ++i) {
-            int u = currencyIndex[pairs1[i][0]], v = currencyIndex[pairs1[i][1]];
-            g1[u].emplace_back(v, rates1[i]);
-            g1[v].emplace_back(u, 1.0 / rates1[i]);
+            string start = pairs1[i][0];
+            string end = pairs1[i][1];
+            double rate = rates1[i];
+            graphDay1[start][end] = rate;
+            graphDay1[end][start] = 1.0 / rate;
         }
+        
+        // Build graph for day 2
         for (int i = 0; i < pairs2.size(); ++i) {
-            int u = currencyIndex[pairs2[i][0]], v = currencyIndex[pairs2[i][1]];
-            g2[u].emplace_back(v, rates2[i]);
-            g2[v].emplace_back(u, 1.0 / rates2[i]);
+            string start = pairs2[i][0];
+            string end = pairs2[i][1];
+            double rate = rates2[i];
+            graphDay2[start][end] = rate;
+            graphDay2[end][start] = 1.0 / rate;
         }
-        // Step 3: Day 1 DP (Bellman-Ford-like for max product)
-        vector<double> day1(n, 0.0);
-        day1[currencyIndex[initialCurrency]] = 1.0;
-        for (int iter = 0; iter < n; ++iter) {
-            vector<double> next = day1;
-            for (int u = 0; u < n; ++u) {
-                for (auto& [v, rate] : g1[u]) {
-                    if (day1[u] * rate > next[v]) {
-                        next[v] = day1[u] * rate;
-                    }
+        
+        // BFS to find max amount after day 1 conversions
+        unordered_map<string, double> maxAmountDay1;
+        queue<pair<string, double>> q;
+        q.push({initialCurrency, 1.0});
+        maxAmountDay1[initialCurrency] = 1.0;
+        while (!q.empty()) {
+            auto [currentCurrency, currentAmount] = q.front(); q.pop();
+            for (auto& [nextCurrency, rate] : graphDay1[currentCurrency]) {
+                double newAmount = currentAmount * rate;
+                if (newAmount > maxAmountDay1[nextCurrency]) {
+                    maxAmountDay1[nextCurrency] = newAmount;
+                    q.push({nextCurrency, newAmount});
                 }
             }
-            day1 = next;
         }
-        // Step 4: For each possible currency after day 1, run Day 2 DP to maximize initialCurrency
-        double res = day1[currencyIndex[initialCurrency]]; // Option to do nothing
-        for (int start = 0; start < n; ++start) {
-            if (day1[start] == 0.0) continue;
-            vector<double> day2(n, 0.0);
-            day2[start] = day1[start];
-            for (int iter = 0; iter < n; ++iter) {
-                vector<double> next = day2;
-                for (int u = 0; u < n; ++u) {
-                    for (auto& [v, rate] : g2[u]) {
-                        if (day2[u] * rate > next[v]) {
-                            next[v] = day2[u] * rate;
-                        }
-                    }
-                }
-                day2 = next;
-            }
-            res = max(res, day2[currencyIndex[initialCurrency]]);
-        }
-        return res;
-    }
-};
-# @lc code=end
+        
+        // BFS to find max amount after day 2 conversions starting from results of day 1
+        unordered_map<string, double> maxAmountDay2 = maxAmountDay1; // Initialize with results from day 1
+        double result = maxAmountDay1[initialCurrency];
+        queue<pair<string,double>> q2; // Prepare queue for second day's exploration
+	for(auto&[currency,amount]:maxAmountDay1){if(amount>0){q2.push({currency,amount});}}	while(!q2.empty()){	auto[currentCurrency,currentAmount]=q2.front();q2.pop();for(auto&[nextCurrency,	rate]:graphDay2[currentCurrency]){
+double newAmount=currentAmount*rate;if(newAmount>maxAmountDay2[nextCurren]){maxAmountDay2[nextCurrency]=newAmount;q.push({nextCurren,newAmoun});}if(newAmount>result&&nextCurrency==initialCurrency){result=newAmoun;}return result;}	}	}	}; # @lc code=end
