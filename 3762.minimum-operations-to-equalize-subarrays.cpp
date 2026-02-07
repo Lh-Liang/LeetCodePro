@@ -8,33 +8,26 @@
 class Solution {
 public:
     vector<long long> minOperations(vector<int>& nums, int k, vector<vector<int>>& queries) {
-        int n = nums.size();
         vector<long long> ans;
-        for (auto& q : queries) {
-            int l = q[0], r = q[1];
-            vector<int> sub;
-            for (int i = l; i <= r; ++i) sub.push_back(nums[i]);
-            int rem = sub[0] % k;
+        for (auto& query : queries) {
+            int l = query[0], r = query[1];
+            vector<int> subarray(nums.begin() + l, nums.begin() + r + 1);
+            sort(subarray.begin(), subarray.end());
+            int median = subarray[subarray.size() / 2];
+            long long operations = 0;
             bool possible = true;
-            for (int x : sub) {
-                if (x % k != rem) {
+            for (int num : subarray) {
+                int diff = abs(num - median);
+                if (diff % k != 0) {
                     possible = false;
                     break;
+                } else {
+                    operations += diff / k;
                 }
             }
-            if (!possible) {
-                ans.push_back(-1);
-                continue;
-            }
-            vector<long long> vals;
-            for (int x : sub) vals.push_back((x - rem) / k);
-            sort(vals.begin(), vals.end());
-            long long median = vals[vals.size() / 2];
-            long long ops = 0;
-            for (long long v : vals) ops += abs(v - median);
-            ans.push_back(ops);
+            ans.push_back(possible ? operations : -1);
         }
         return ans;
     }
-};
+}; 
 # @lc code=end
