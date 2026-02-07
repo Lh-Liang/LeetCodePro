@@ -1,32 +1,29 @@
-#
 # @lc app=leetcode id=3399 lang=cpp
-#
 # [3399] Smallest Substring With Identical Characters II
-#
-
 # @lc code=start
 class Solution {
 public:
     int minLength(string s, int numOps) {
         int n = s.size();
-        int left = 1, right = n;
-        auto can = [&](int k, char ch) {
-            int flips = 0, res = n+1;
-            for (int i = 0, j = 0; i < n; ++i) {
-                if (s[i] != ch) ++flips;
-                if (i - j + 1 > k) {
-                    if (s[j++] != ch) --flips;
-                }
-                if (i - j + 1 == k && flips <= numOps) return true;
-            }
-            return false;
-        };
-        while (left < right) {
-            int mid = left + (right - left) / 2;
-            if (can(mid, '0') || can(mid, '1')) right = mid;
-            else left = mid + 1;
+        if (numOps >= n) return 1; // If operations exceed or equal string length, all can be made identical
+        vector<int> prefixZeros(n + 1, 0), prefixOnes(n + 1, 0);
+        
+        // Create prefix sum arrays for zeros and ones
+        for (int i = 0; i < n; ++i) {
+            prefixZeros[i + 1] = prefixZeros[i] + (s[i] == '0');
+            prefixOnes[i + 1] = prefixOnes[i] + (s[i] == '1');
         }
-        return left;
+        
+        int result = n; // Initialize result with maximum possible length 
+        // Use sliding windows to find minimum max segment length
+        for (int start = 0, end = 0; end < n; ++end) {
+            while (start <= end && min(prefixOnes[end + 1] - prefixOnes[start], \
+prefixZeros[end + 1] - prefixZeros[start]) > numOps) {
+                ++start;
+            }
+            result = min(result, end - start + 1);
+        }
+        return result;
     }
 };
 # @lc code=end
