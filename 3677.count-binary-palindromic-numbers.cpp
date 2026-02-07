@@ -3,40 +3,35 @@
 #
 # [3677] Count Binary Palindromic Numbers
 #
-
 # @lc code=start
 class Solution {
 public:
     int countBinaryPalindromes(long long n) {
-        int res = 0;
-        int len = 0;
-        long long x = n;
-        while (x) {
-            ++len;
-            x >>= 1;
-        }
-        // Account for n=0
+        int count = 0;
         if (n == 0) return 1;
-        // For length from 1 up to len
-        for (int l = 1; l <= len; ++l) {
-            int half = (l + 1) / 2;
-            long long start = 1LL << (half - 1);
-            long long end = 1LL << half;
-            for (long long left = start; left < end; ++left) {
-                long long v = left;
-                long long r = left;
-                if (l % 2 == 1) r >>= 1;
-                // Mirror left to right to form palindrome
-                while (r) {
-                    v = (v << 1) | (r & 1);
-                    r >>= 1;
-                }
-                if (v <= n) ++res;
+        
+        // Function to generate palindrome from half and return its value
+        auto generate_palindrome = [](long long half, bool odd_length) -> long long {
+            std::string half_str = std::bitset<50>(half).to_string();
+            half_str.erase(0, half_str.find_first_not_of('0'));
+            std::string reversed_half = half_str;
+            std::reverse(reversed_half.begin(), reversed_half.end());
+            if (odd_length) half_str.pop_back();
+            
+            std::string full_palindrome = half_str + reversed_half;
+            return std::stoll(full_palindrome, nullptr, 2);
+        };
+        
+        // Generate palindromes by mirroring halves
+        for (int length = 1; ; ++length) {
+            long long start = (1LL << ((length - 1) / 2));
+            long long end = (1LL << ((length + 1) / 2));
+            for (long long i = start; i < end; ++i) {
+                long long palindrome = generate_palindrome(i, length % 2);
+                if (palindrome > n) return count;
+                ++count;
             }
         }
-        // Add 0
-        res += 1;
-        return res;
     }
 };
 # @lc code=end
