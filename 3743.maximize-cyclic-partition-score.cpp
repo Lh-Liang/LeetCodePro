@@ -9,38 +9,45 @@ class Solution {
 public:
     long long maximumScore(vector<int>& nums, int k) {
         int n = nums.size();
-        vector<int> arr(nums);
-        arr.insert(arr.end(), nums.begin(), nums.end()); // duplicate for cyclic
-        // Precompute range for all intervals of length up to n
-        vector<vector<int>> maxv(2 * n, vector<int>(n + 1, INT_MIN));
-        vector<vector<int>> minv(2 * n, vector<int>(n + 1, INT_MAX));
-        for (int i = 0; i < 2 * n; ++i) {
-            int mx = INT_MIN, mn = INT_MAX;
-            for (int l = 1; l <= n && i + l - 1 < 2 * n; ++l) {
-                mx = max(mx, arr[i + l - 1]);
-                mn = min(mn, arr[i + l - 1]);
-                maxv[i][l] = mx;
-                minv[i][l] = mn;
-            }
-        }
-        long long ans = 0;
-        for (int st = 0; st < n; ++st) {
-            vector<vector<long long>> dp(n + 1, vector<long long>(k + 1, LLONG_MIN));
-            dp[0][0] = 0;
-            for (int i = 1; i <= n; ++i) {
-                for (int p = 1; p <= k; ++p) {
-                    for (int t = 1; t <= i; ++t) {
-                        int l = i - t + 1;
-                        long long range = maxv[st + l - 1][t] - minv[st + l - 1][t];
-                        if (dp[i - t][p - 1] != LLONG_MIN)
-                            dp[i][p] = max(dp[i][p], dp[i - t][p - 1] + range);
+        long long max_score = 0;
+        // Dynamic programming table for storing maximum scores based on partition points
+        vector<vector<long long>> dp(n, vector<long long>(k + 1, 0));
+        // Iterate over each possible starting point in original `nums`
+        for (int start = 0; start < n; ++start) {
+            int max_val = INT_MIN, min_val = INT_MAX;
+            // Use deque for efficient range queries (maintaining max/min)
+            deque<int> maxDeque, minDeque;
+            // Extend window up to n elements from start (handle wrap-around using modulo)
+            for (int end = start; end < start + n; ++end) {
+                int idx = end % n;
+                // Maintain max/min using deque
+                while (!maxDeque.empty() && nums[maxDeque.back()] <= nums[idx]) {
+                    maxDeque.pop_back();
+                }
+                while (!minDeque.empty() && nums[minDeque.back()] >= nums[idx]) {
+                    minDeque.pop_back();
+                }
+                maxDeque.push_back(idx);
+                minDeque.push_back(idx);
+                // Calculate range from deques' front elements
+                int currentRange = nums[maxDeque.front()] - nums[minDeque.front()];
+                if ((end - start + 1) <= k) { // Valid partition size check
+                    dp[start][end - start + 1] = std::max(dp[start][end - start + 1], currentRange);
+                    if (start > 0) {
+                        dp[start][end - start + 1] += dp[start - 1][k];
                     }
+                    max_score = std::max(max_score, dp[start][end - start + 1]);
+                }
+                // Remove out-of-window elements from deques
+                if (!maxDeque.empty() && maxDeque.front() == idx - k) {
+                    maxDeque.pop_front();
+                }
+                if (!minDeque.empty() && minDeque.front() == idx - k) {
+                    minDeque.pop_front();
                 }
             }
-            for (int p = 1; p <= k; ++p)
-                ans = max(ans, dp[n][p]);
         }
-        return ans;
+        return max_score;
     }
 };
 # @lc code=end
