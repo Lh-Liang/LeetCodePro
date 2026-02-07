@@ -3,27 +3,39 @@
 #
 # [3434] Maximum Frequency After Subarray Operation
 #
-
 # @lc code=start
 func maxFrequency(nums []int, k int) int {
-    // Sort nums to allow efficient evaluation of subarrays
-    sort.Ints(nums)
-    left := 0
-    sum := 0 // To store sum of elements within current window
-    maxFreq := 0 // To store maximum frequency found
-    // Iterate over nums with right as end of sliding window
-    for right := 0; right < len(nums); right++ {
-        sum += nums[right] // Add current element to sum
-        // Check if we can transform current window into nums[right]
-        while nums[right]*(right-left+1)-sum > k {
-            sum -= nums[left] // Remove leftmost element from sum
-            left++ // Move left pointer forward
-        }
-        // Update max frequency if current window is valid
-        maxFreq = max(maxFreq, right-left+1)
+    n := len(nums)
+    delta := make([]int, n)
+    for i := 0; i < n; i++ {
+        delta[i] = k - nums[i]
     }
-    return maxFreq // Return maximum frequency found
+    maxFreq := 0
+    deltaGroups := make(map[int][]int)
+    for i, d := range delta {
+        deltaGroups[d] = append(deltaGroups[d], i)
+    }
+    for _, positions := range deltaGroups {
+        // Find the largest contiguous segment in positions
+        if len(positions) == 0 {
+            continue
+        }
+        count := 1
+        localMax := 1
+        for i := 1; i < len(positions); i++ {
+            if positions[i] == positions[i-1]+1 {
+                count++
+            } else {
+                count = 1
+            }
+            if count > localMax {
+                localMax = count
+            }
+        }
+        if localMax > maxFreq {
+            maxFreq = localMax
+        }
+    }
+    return maxFreq
 }
-// Helper function to determine max of two integers
-func max(a, b int) int { if a > b { return a } else { return b }}
 # @lc code=end
