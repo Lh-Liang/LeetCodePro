@@ -3,26 +3,25 @@
 #
 # [3609] Minimum Moves to Reach Target in Grid
 #
+
 # @lc code=start
 class Solution {
 public:
     int minMoves(int sx, int sy, int tx, int ty) {
         int moves = 0;
-        while (tx > sx || ty > sy) {
-            if (tx < sx || ty < sy) return -1;
-            if (tx >= ty && tx > sx) {
-                int m = std::max(tx, ty);
-                int jump = std::max(1, (tx - sx) / m);
-                tx -= jump * m;
-                moves += jump;
-            } else if (ty > tx && ty > sy) {
-                int m = std::max(tx, ty);
-                int jump = std::max(1, (ty - sy) / m);
-                ty -= jump * m;
-                moves += jump;
+        while ((tx > sx && ty > sy) || tx > sx || ty > sy) {
+            if (tx > ty) {
+                if (ty == sy) {
+                    return (tx - sx) % ty == 0 ? moves + ((tx - sx) / ty) : -1;
+                }
+                tx %= ty;
             } else {
-                return -1;
+                if (tx == sx) {
+                    return (ty - sy) % tx == 0 ? moves + ((ty - sy) / tx) : -1;
+                }
+                ty %= tx;
             }
+            ++moves;
         }
         return (tx == sx && ty == sy) ? moves : -1;
     }
