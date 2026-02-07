@@ -3,27 +3,23 @@
 #
 # [3462] Maximum Sum With at Most K Elements
 #
-
 # @lc code=start
 class Solution {
 public:
     long long maxSum(vector<vector<int>>& grid, vector<int>& limits, int k) {
-        vector<int> candidates;
-        int n = grid.size();
-        for (int i = 0; i < n; ++i) {
-            auto row = grid[i];
-            sort(row.rbegin(), row.rend());
-            int cnt = min((int)row.size(), limits[i]);
-            for (int j = 0; j < cnt; ++j) {
-                candidates.push_back(row[j]);
+        priority_queue<int> maxHeap;
+        for (int i = 0; i < grid.size(); ++i) {
+            sort(grid[i].rbegin(), grid[i].rend()); // Sort each row in descending order
+            for (int j = 0; j < min(limits[i], (int)grid[i].size()); ++j) {
+                maxHeap.push(grid[i][j]); // Add up to limits[i] elements from each row to the heap
             }
         }
-        sort(candidates.rbegin(), candidates.rend());
-        long long ans = 0;
-        for (int i = 0; i < min(k, (int)candidates.size()); ++i) {
-            ans += candidates[i];
+        long long sum = 0;
+        while (k-- > 0 && !maxHeap.empty()) {
+            sum += maxHeap.top();
+            maxHeap.pop(); // Extract top k elements from heap for maximum sum
         }
-        return ans;
+        return sum;
     }
 };
 # @lc code=end
