@@ -4,35 +4,83 @@
 # [3562] Maximum Profit from Trading Stocks with Discounts
 #
 # @lc code=start
+import (
+    "math"
+)
+
 func maxProfit(n int, present []int, future []int, hierarchy [][]int, budget int) int {
-    // Create a map to store direct boss relationship
-    bosses := make(map[int]int)
-    for _, pair := range hierarchy {
-        bosses[pair[1]-1] = pair[0]-1 // Convert to 0-based index
-    }
-    
-    // Initialize DP table with 0 profit initially
-    dp := make([][]int, n+1)
-    for i := range dp {
-        dp[i] = make([]int, budget+1)
+    tree := make([][]int, n)
+    for _, edge := range hierarchy {
+        u, v := edge[0]-1, edge[1]-1
+        tree[u] = append(tree[u], v)
     }
 
-    // Iterate over each employee
-    for i := 0; i < n; i++ {
-        for b := 0; b <= budget; b++ {
-            // Case 1: Don't buy current employee's stock - carry forward previous max profit
-            dp[i+1][b] = max(dp[i+1][b], dp[i][b])
-            
-            // Case 2: Buy at full price if affordable and calculate potential profit
-            if b >= present[i] {
-                profitFullPrice := future[i] - present[i]
-                dp[i+1][b] = max(dp[i+1][b], dp[i][b-present[i]] + profitFullPrice)
+    // Knapsack merge helper: merges two DP arrays under budget constraint
+    mergeDP := func(dp1, dp2 []int) []int {
+        res := make([]int, budget+1)
+        for i := 0; i <= budget; i++ {
+            res[i] = math.MinInt32
+        }
+        for c1 := 0; c1 <= budget; c1++ {
+            if dp1[c1] == math.MinInt32 { continue }
+            for c2 := 0; c2 <= budget-c1; c2++ {
+                if dp2[c2] == math.MinInt32 { continue }
+                if dp1[c1]+dp2[c2] > res[c1+c2] {
+                    res[c1+c2] = dp1[c1]+dp2[c2]
+                }
             }
-            
-            // Case 3: Buy at discounted price if boss has bought their stock and it's affordable
-            if bossIdx, ok := bosses[i]; ok && b >= present[i]/2 {
-                discountedPrice := present[i] / 2
-                discountedProfit := future[i] - discountedPrice
-                dp[i+1][b] = max(dp[i+1][b], dp[bossIdx+1][b-discountedPrice]+discountedProfit)
+        }
+        return res
+    }
+
+    var dfs func(node int, bossBought bool) []int
+    dfs = func(node int, bossBought bool) []int {
+        // DP array: dp[cost] = max profit with total cost 'cost'
+        dp := make([]int, budget+1)
+        for i := range dp {
+            dp[i] = math.MinInt32
+        }
+        dp[0] = 0
+        // Case 1: Not buying this stock, merge all children's DPs in not-buying mode
+        for _, child := range tree[node] {
+            childDp := dfs(child, false)
+            dp = mergeDP(dp, childDp)
+        }
+        res := make([]int, budget+1)
+        copy(res, dp)
+        // Case 2: Buying this stock
+        buyPrice := present[node]
+        if bossBought {
+            buyPrice = present[node] / 2
+        }
+        if buyPrice <= budget {
+            buyProfit := future[node] - buyPrice
+            dp2 := make([]int, budget+1)
+            for i := range dp2 {
+                dp2[i] = math.MinInt32
             }
-dp[n][budget]											// Add helper function below...		// Helper function to compute max value between two integersfunc max(a,b int)int{	if a>b{return a}return b}	// @lc code=end
+            dp2[buyPrice] = buyProfit
+            for _, child := range tree[node] {
+                childDp := dfs(child, true)
+                dp2 = mergeDP(dp2, childDp)
+            }
+            // Merge: select maximum profit for each cost
+            for c := 0; c <= budget; c++ {
+                if dp2[c] > res[c] {
+                    res[c] = dp2[c]
+                }
+            }
+        }
+        // Verification (optional): ensure all res[c] <= budget and not MinInt32 unless achievable
+        return res
+    }
+    ans := dfs(0, false)
+    maxP := 0
+    for c := 0; c <= budget; c++ {
+        if ans[c] > maxP {
+            maxP = ans[c]
+        }
+    }
+    return maxP
+}
+# @lc code=end
