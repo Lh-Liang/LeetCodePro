@@ -3,43 +3,52 @@
 #
 # [3721] Longest Balanced Subarray II
 #
-
 # @lc code=start
 func longestBalanced(nums []int) int {
-    // Maps to keep track of first occurrence of each balance
-    balanceMap := make(map[int]int)
-    balanceMap[0] = -1 // Initial balance zero at start (before index 0)
-    
-    evenSet := make(map[int]bool)
-    oddSet := make(map[int]bool)
-    maxLength := 0
-    balance := 0 
-
-    for i, num := range nums {
-        if num % 2 == 0 {
-            // Even number handling
-            if !evenSet[num] {
-                evenSet[num] = true
-                balance++
-            }
+    evenMap := make(map[int]int)
+    oddMap := make(map[int]int)
+    left := 0
+    maxLen := 0
+    for right, num := range nums {
+        if num%2 == 0 {
+            evenMap[num]++
         } else {
-            // Odd number handling
-            if !oddSet[num] {
-                oddSet[num] = true
-                balance--
-            }
+            oddMap[num]++
         }
-        
-        // Check if this balance has been seen before
-        if prevIndex, found := balanceMap[balance]; found {
-            maxLength = max(maxLength, i - prevIndex)
-        } else {
-            // Record first occurrence of this balance
-            balanceMap[balance] = i 
+        for left <= right && len(evenMap) > len(oddMap) {
+            if nums[left]%2 == 0 {
+                evenMap[nums[left]]--
+                if evenMap[nums[left]] == 0 {
+                    delete(evenMap, nums[left])
+                }
+            } else {
+                oddMap[nums[left]]--
+                if oddMap[nums[left]] == 0 {
+                    delete(oddMap, nums[left])
+                }
+            }
+            left++
+        }
+        for left <= right && len(oddMap) > len(evenMap) {
+            if nums[left]%2 == 0 {
+                evenMap[nums[left]]--
+                if evenMap[nums[left]] == 0 {
+                    delete(evenMap, nums[left])
+                }
+            } else {
+                oddMap[nums[left]]--
+                if oddMap[nums[left]] == 0 {
+                    delete(oddMap, nums[left])
+                }
+            }
+            left++
+        }
+        if len(evenMap) == len(oddMap) {
+            if right-left+1 > maxLen {
+                maxLen = right-left+1
+            }
         }
     }
-    return maxLength
+    return maxLen
 }
-// Utility function to get maximum value.
-func max(a, b int) int { if a > b { return a } else { return b } }
-def main() {} # @lc code=end
+# @lc code=end
