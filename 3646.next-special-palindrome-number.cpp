@@ -1,81 +1,47 @@
-#
-# @lc app=leetcode id=3646 lang=cpp
-#
-# [3646] Next Special Palindrome Number
-#
-
-# @lc code=start
+//
+// @lc app=leetcode id=3646 lang=cpp
+//
+// [3646] Next Special Palindrome Number
+//
+// @lc code=start
 class Solution {
 public:
-    // Helper to check if a number string is palindrome
-    bool isPalindrome(const string& s) {
-        int l = 0, r = s.size() - 1;
-        while (l < r) {
-            if (s[l++] != s[r--]) return false;
+    long long specialPalindrome(long long n) {
+        long long num = n + 1;
+        while (true) {
+            num = generateNextPalindrome(num);
+            if (isPalindrome(num) && isValidSpecial(num)) {
+                return num;
+            }
+        }
+    }
+    
+    bool isPalindrome(long long num) {
+        std::string s = std::to_string(num);
+        return std::equal(s.begin(), s.begin() + s.size()/2, s.rbegin());
+    }
+    
+    bool isValidSpecial(long long num) {
+        std::string s = std::to_string(num);
+        int count[10] = {0};
+        for (char c : s) {
+            int digit = c - '0';
+            if (digit == 0 || digit > s.size()) return false; // Check valid range
+            ++count[digit];
+        }
+        for (int i = 0; i < 10; ++i) {
+            if (count[i] != 0 && count[i] != i) return false; // Each k occurs exactly k times
         }
         return true;
     }
-    // Try possible digit count combinations
-    void backtrack(vector<int>& counts, int idx, vector<vector<int>>& combs) {
-        if (idx > 9) {
-            int total = 0;
-            for (int k = 1; k <= 9; ++k) total += counts[k];
-            if (total > 0) combs.push_back(counts);
-            return;
-        }
-        // Option: don't use this digit
-        counts[idx] = 0; backtrack(counts, idx+1, combs);
-        // Option: use this digit exactly idx times
-        counts[idx] = idx; backtrack(counts, idx+1, combs);
-    }
-    // Generate all palindromes from a given digit count
-    void buildPalindromes(vector<int>& counts, int len, string& curr, int pos, vector<string>& pals) {
-        if (pos >= len/2) {
-            string pal = curr;
-            if (len % 2) {
-                for (int mid = 1; mid <= 9; ++mid) {
-                    if (counts[mid] % 2 == 1) {
-                        pal[len/2] = '0' + mid;
-                        pals.push_back(pal);
-                        break;
-                    }
-                }
-            } else pals.push_back(pal);
-            return;
-        }
-        for (int d = 1; d <= 9; ++d) {
-            if (counts[d] >= 2) {
-                curr[pos] = curr[len-1-pos] = '0' + d;
-                counts[d] -= 2;
-                buildPalindromes(counts, len, curr, pos+1, pals);
-                counts[d] += 2;
-            }
-        }
-    }
-    long long specialPalindrome(long long n) {
-        vector<vector<int>> combs;
-        vector<int> counts(10, 0);
-        backtrack(counts, 1, combs);
-        long long res = -1;
-        for (auto& c : combs) {
-            int total = 0, odd = 0;
-            for (int k = 1; k <= 9; ++k) {
-                total += c[k];
-                if (c[k] % 2) ++odd;
-            }
-            if (odd > 1) continue;
-            string curr(total, '0');
-            vector<string> pals;
-            buildPalindromes(c, total, curr, 0, pals);
-            for (auto& s : pals) {
-                if (s[0] == '0') continue;
-                long long val = stoll(s);
-                if (val > n && (res == -1 || val < res)) {
-                    res = val;
-                }
-            }
-        }
-        return res;
-    }
-};
-# @lc code=end
+    
+    long long generateNextPalindrome(long long num) {
+        std::string s = std::to_string(num);
+        int len = s.length();
+
+        // Mirror first half to second half
+        for (int i = 0; i < len / 2; ++i) {
+s[len - i - 1] = s[i];}
+
+        // If mirrored palindrome is not greater, increment middle part
+        if (std::stoll(s) <= num) {int mid = (len - 1) / 2;while (mid >= 0 && s[mid] == '9') {s[mid] = '0';--mid;}if (mid >= 0) {s[mid] += 1;} else { // Handle overflow like '999' -> '1001's[0] = '1';s += '1';}// Remirror after incrementfor (int i = 0; i < len / 2; ++i) {s[len - i - 1] = s[i];}}return std::stoll(s);}};// @lc code=end
