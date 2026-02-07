@@ -1,39 +1,33 @@
+#
+# @lc app=leetcode id=3630 lang=cpp
+#
+# [3630] Partition Array for Maximum XOR and AND
+#
+
+# @lc code=start
 class Solution {
 public:
     long long maximizeXorAndXor(vector<int>& nums) {
         int n = nums.size();
         long long max_value = 0;
-
-        // Helper function to calculate XOR of a set
-        auto calculateXOR = [](const vector<int>& subset) {
-            int xor_value = 0;
-            for (int num : subset) xor_value ^= num;
-            return xor_value;
-        };
-
-        // Helper function to calculate AND of a set
-        auto calculateAND = [](const vector<int>& subset) {
-            if (subset.empty()) return 0;
-            int and_value = subset[0];
-            for (int i = 1; i < subset.size(); ++i) and_value &= subset[i];
-            return and_value;
-        };
-
-        // Try all possible partitions using bitmasks
-        for (int maskA = 0; maskA < (1 << n); ++maskA) {
-            for (int maskB = 0; maskB < (1 << n); ++maskB) {
-                if ((maskA & maskB) != 0) continue; // A and B must be disjoint
-                vector<int> A, B, C;
-                for (int i = 0; i < n; ++i) {
-                    if ((maskA & (1 << i)) != 0) A.push_back(nums[i]);
-                    else if ((maskB & (1 << i)) != 0) B.push_back(nums[i]);
-                    else C.push_back(nums[i]);
-                }
-                long long current_value = calculateXOR(A) + calculateAND(B) + calculateXOR(C);
-                max_value = max(max_value, current_value);
-            }
+        // Explore all possible partitions using bitmasking. Total of 3^N partitions.
+        for (int mask = 0; mask < (1 << n); ++mask) {
+            long long xorA = 0, xorC = 0;
+            int andB = -1; // -1 indicates B is empty initially.
+            for (int i = 0; i < n; ++i) {
+                if ((mask & (1 << i)) == 0) { 
+                    xorA ^= nums[i]; 
+                } else { 
+                    if (andB == -1) { 
+                        andB = nums[i]; 
+                    } else { 
+                        andB &= nums[i]; 
+                    } 
+                } 
+            } 
+            max_value = max(max_value, xorA + (andB == -1 ? 0 : andB) + xorC);
         }
-
         return max_value;
     }
 };
+# @lc code=end
