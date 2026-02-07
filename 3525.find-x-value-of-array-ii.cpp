@@ -4,45 +4,36 @@
 # [3525] Find X Value of Array II
 #
 # @lc code=start
+#include <vector>
+#include <numeric>
+using namespace std;
+
 class Solution {
 public:
     vector<int> resultArray(vector<int>& nums, int k, vector<vector<int>>& queries) {
         vector<int> results;
-        int n = nums.size();
-        
-        // Precompute prefix products modulo k
-        vector<int> prefixProducts(n + 1, 1);
-        for (int i = 1; i <= n; ++i) {
-            prefixProducts[i] = (prefixProducts[i - 1] * nums[i - 1]) % k;
-        }
-        
-        for (auto& query : queries) {
+        for (auto &query : queries) {
             int index = query[0];
             int value = query[1];
             int start = query[2];
-            int x_value = query[3];
+            int xi = query[3];
             
-            // Update nums with new value at specified index and recompute prefix product if needed
-            if (nums[index] != value) {
-                nums[index] = value;
-                for (int i = index + 1; i <= n; ++i) {
-                    prefixProducts[i] = (prefixProducts[i - 1] * nums[i - 1]) % k;
-                }
-            }
+            // Update nums with new value at indexi
+            nums[index] = value;
             
-            // Calculate x-value after removing prefix up to 'start'.
-            long long product_mod_k = prefixProducts[start];
-            int count_x_value = 0;
-            for (int i = start; i < n; ++i) {
-                long long suffix_product_mod_k = (prefixProducts[n] / prefixProducts[i]) % k;
-                if (suffix_product_mod_k == x_value) {
-                    count_x_value++;
-                }
-                product_mod_k = (product_mod_k * nums[i]) % k;
-            }
-            results.push_back(count_x_value);
-        }
-        return results;
-    }
-};
+            // Calculate product mod k for remaining elements after removing prefix up to starti-1
+            long long productModK = 1;
+            vector<int> modCount(k, 0);
+            modCount[0] = 1; // Zero remainder is always possible with empty suffix removal.
+            
+            // Iterate over possible suffixes starting from 'start' to end of nums.
+            for (int i = start; i < nums.size(); ++i) {
+                productModK = (productModK * nums[i]) % k;
+                modCount[productModK]++; // Count occurrences of each remainder mod k.
+            } 
+            results.push_back(modCount[xi]); // The x-value is the count of xi remainders mod k. 
+        } 
+        return results; 
+    } 
+}; 
 # @lc code=end
