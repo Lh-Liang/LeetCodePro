@@ -3,31 +3,46 @@
 #
 # [3510] Minimum Pair Removal to Sort Array II
 #
+
 # @lc code=start
+#include <vector>
+#include <set>
+using namespace std;
+
 class Solution {
 public:
     int minimumPairRemoval(vector<int>& nums) {
-        int ops = 0;
-        auto is_sorted = [](const vector<int>& arr) {
-            for (int i = 1; i < arr.size(); ++i)
-                if (arr[i] < arr[i-1]) return false;
-            return true;
-        };
-        while (!is_sorted(nums)) {
-            int min_sum = nums[0] + nums[1];
-            int idx = 0;
-            for (int i = 1; i < nums.size() - 1; ++i) {
-                int s = nums[i] + nums[i+1];
-                if (s < min_sum) {
-                    min_sum = s;
-                    idx = i;
-                }
+        int operations = 0;
+        int n = nums.size();
+        set<int> indices; // Stores indices of problematic points
+        
+        // Identify initial problematic points
+        for (int i = 0; i < n - 1; ++i) {
+            if (nums[i] > nums[i + 1]) {
+                indices.insert(i);
             }
-            nums[idx] = nums[idx] + nums[idx+1];
-            nums.erase(nums.begin() + idx + 1);
-            ++ops;
         }
-        return ops;
+        
+        while (!indices.empty()) {
+            auto it = indices.begin();
+            int index = *it;
+            indices.erase(it);
+            
+            // Merge the pair at index with its sum
+            nums[index] = nums[index] + nums[index + 1];
+            nums.erase(nums.begin() + index + 1);
+            --n;
+            ++operations;
+
+            // Re-evaluate and adjust problematic points around the merged point
+            if (index > 0 && nums[index - 1] > nums[index]) {
+                indices.insert(index - 1);
+            }
+            if (index < n - 1 && nums[index] > nums[index + 1]) {
+                indices.insert(index);
+            }
+        }
+        return operations;
     }
 };
-# @lc code=end
+success
