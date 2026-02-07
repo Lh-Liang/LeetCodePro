@@ -3,43 +3,31 @@
 #
 # [3776] Minimum Moves to Balance Circular Array
 #
+
 # @lc code=start
+#include <vector>
+#include <algorithm>
+using namespace std;
 class Solution {
 public:
     long long minMoves(vector<int>& balance) {
+        long long total = 0; // To store total moves needed.
         int n = balance.size();
-        int neg_index = -1;
-        long long total_deficit = 0;
-        
-        // Find the index with negative balance and calculate total deficit
+        int negIndex = -1; // Index of negative balance if any.
         for (int i = 0; i < n; ++i) {
-            if (balance[i] < 0) {
-                neg_index = i;
-                total_deficit = -balance[i];
-                break;
-            }
+            if (balance[i] < 0) negIndex = i; // Identify negative balance index.
+            total += abs(balance[i]); // Calculate total absolute balances.
         }
-        
-        // If there's no deficit, no moves are needed
-        if (neg_index == -1) return 0;
-
-        long long moves = 0;
-        int current_index = (neg_index + 1) % n;
-        
-        while (total_deficit > 0 && current_index != neg_index) {
-            if (balance[current_index] > 0) {
-                long long transfer_amount = std::min(total_deficit, static_cast<long long>(balance[current_index]));
-                total_deficit -= transfer_amount;
-                balance[current_index] -= transfer_amount;
-                moves += transfer_amount;
-            }
-            current_index = (current_index + 1) % n;
-        }
-
-        // Check if it's possible to balance
-        if (total_deficit > 0) return -1;
-
-        return moves;
+        if (negIndex == -1) return 0; // No need to move if no negatives.
+        vector<long long> prefix(n+1, 0); 
+        for (int i = 1; i <= n; ++i) prefix[i] = prefix[i-1] + balance[i-1]; // Prefix sum calculation.
+        auto check = [&]() -> bool { 
+            for (int i = 0; i < n; ++i) { 
+                if (prefix[i] - prefix[negIndex] < 0 || prefix[n] - prefix[negIndex] + prefix[i] < 0) return false; 
+            } 
+            return true; 
+        }; 
+        return check() ? total : -1; // Return total moves or -1 if impossible.
     }
 };
 # @lc code=end
