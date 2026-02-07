@@ -1,47 +1,51 @@
-#
-# @lc app=leetcode id=3425 lang=cpp
-#
-# [3425] Longest Special Path
-#
 # @lc code=start
-#include <vector>
-#include <unordered_set>
-#include <unordered_map>
-using namespace std;
 class Solution {
 public:
     vector<int> longestSpecialPath(vector<vector<int>>& edges, vector<int>& nums) {
-        int n = nums.size();
-        vector<vector<pair<int, int>>> tree(n);
-        for (const auto& e : edges) {
-            int u = e[0], v = e[1], l = e[2];
-            tree[u].emplace_back(v, l);
-            tree[v].emplace_back(u, l);
+        // Initialize adjacency list for tree representation
+        unordered_map<int, vector<pair<int, int>>> adj;
+        for (const auto& edge : edges) {
+            int u = edge[0], v = edge[1], length = edge[2];
+            adj[u].emplace_back(v, length);
+            adj[v].emplace_back(u, length);
         }
-
-        int maxLen = 0, minNodes = 1;
-        unordered_set<int> seen;
-        function<void(int, int, int, int)> dfs = [&](int node, int parent, int curLen, int curNodes) {
-            if (seen.count(nums[node])) return;
-            seen.insert(nums[node]);
-            if (curLen > maxLen) {
-                maxLen = curLen;
-                minNodes = curNodes;
-            } else if (curLen == maxLen) {
-                minNodes = min(minNodes, curNodes);
-            }
-            for (auto& [nei, l] : tree[node]) {
-                if (nei != parent) {
-                    dfs(nei, node, curLen + l, curNodes + 1);
+        
+        // Variables to track longest path and minimum nodes
+        int maxLength = 0;
+        int minNodes = INT_MAX;
+        
+        // Helper function for DFS
+        function<void(int, int, int, set<int>&)> dfs = [&](int node, int parent, int currentLength, set<int>& visitedValues) {
+            if (visitedValues.count(nums[node])) return; // Ensure unique values
+            
+            visitedValues.insert(nums[node]);
+            bool isLeaf = true;
+            
+            for (const auto& [nextNode, length] : adj[node]) {
+                if (nextNode != parent) { // Avoid revisiting parent node
+                    isLeaf = false;
+                    dfs(nextNode, node, currentLength + length, visitedValues);
                 }
             }
-            seen.erase(nums[node]);
+            
+            // Update results if at a leaf or end of valid path
+            if (isLeaf || currentLength > maxLength) {
+                if (currentLength > maxLength) {
+                    maxLength = currentLength;
+                    minNodes = visitedValues.size();
+                } else if (currentLength == maxLength) {
+                    minNodes = min(minNodes, static_cast<int>(visitedValues.size()));
+                }
+            }
+            
+            visitedValues.erase(nums[node]); // Backtrack
         };
-        for (int i = 0; i < n; ++i) {
-            seen.clear();
-            dfs(i, -1, 0, 1);
-        }
-        return {maxLen, minNodes};
+        
+        // Start DFS from root node 0 with empty visited values set
+        set<int> initialVisitedValues;
+        dfs(0, -1, 0, initialVisitedValues);
+        
+        return {maxLength, minNodes};
     }
 };
 # @lc code=end
