@@ -6,26 +6,33 @@
 
 # @lc code=start
 func maximizeXorAndXor(nums []int) int64 {
+    var maxVal int64 = 0
     n := len(nums)
-    memo := map[int]int64{}
-    var dfs func(mask int) int64
-    dfs = func(mask int) int64 {
-        if val, exists := memo[mask]; exists {
-            return val
-        }
-        xorA, xorC, andB := int64(0), int64(0), int64(^uint64(0))
-        for i := 0; i < n; i++ {
-            if mask&(1<<i) != 0 {
-                continue // Element already used.
+    
+    var dfs func(int, int64, int64, int64)
+    dfs = func(index int, xorA int64, andB int64, xorC int64) {
+        if index == n {
+            if xorA + andB + xorC > maxVal {
+                maxVal = xorA + andB + xorC
             }
-            xorA = max(xorA, dfs(mask|(1<<i)) ^ int64(nums[i])) 
-            xorC = max(xorC, dfs(mask|(1<<i)) ^ int64(nums[i])) 
-            andB = max(andB, dfs(mask|(1<<i)) & int64(nums[i])) 
+            return
         }
-        result := xorA + xorC + andB
-        memo[mask] = result
-        return result
+        
+        // Case 1: Add nums[index] to A (XOR calculation)
+        dfs(index+1, xorA^int64(nums[index]), andB, xorC)
+        
+        // Case 2: Add nums[index] to B (AND calculation)
+        newAndB := nums[index]
+        if andB != 0 { 
+            newAndB = nums[index] & int(andB) 
+        }
+        dfs(index+1, xorA, int64(newAndB), xorC)
+        
+        // Case 3: Add nums[index] to C (XOR calculation)
+        dfs(index+1, xorA, andB, xorC^int64(nums[index]))
     }
-    return dfs(0) // Start with an empty mask.
+                    
+dfs(0 ,0 ,0 ,0 )
+return maxVal
 }
 # @lc code=end
