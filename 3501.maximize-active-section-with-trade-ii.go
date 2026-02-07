@@ -6,68 +6,95 @@
 
 # @lc code=start
 func maxActiveSectionsAfterTrade(s string, queries [][]int) []int {
-    results := make([]int, len(queries))
-    
-    for i, query := range queries {
-        li, ri := query[0], query[1]
-        substring := s[li : ri+1]
-        augmented := "1" + substring + "1"
-        
-        originalActiveSections := countActiveSections(augmented)
-        
-        maxIncreaseFromTrade := calculateMaxIncreaseFromTrade(augmented)
-        
-        if maxIncreaseFromTrade > 0 {
-            results[i] = originalActiveSections - 2 + maxIncreaseFromTrade // Adjust for augmented extra '1's not contributing to final count if a trade is made
-        } else {
-            results[i] = originalActiveSections - 2 // No trade advantage, just return original count adjusted for augmentation.
-        }
-    }
-    return results
-}
-
-// Helper function to count active sections in a given binary string segment
-func countActiveSections(segment string) int {
-    count := 0
-    inBlock := false
-    for _, char := range segment {
-        if char == '1' {
-            if !inBlock {
-                count++
-                inBlock = true
+    res := make([]int, len(queries))
+    for idx, q := range queries {
+        l, r := q[0], q[1]
+        sub := s[l:r+1]
+        t := "1" + sub + "1"
+        n := len(t)
+        // Count original '1's (excluding augmented '1's)
+        origOnes := 0
+        for i := 1; i < n-1; i++ {
+            if t[i] == '1' {
+                origOnes++
             }
-        } else {
-            inBlock = false
         }
+        maxOnes := origOnes
+        // Early exit if no '1's or all '1's (trivial cases)
+        allOnes, allZeros := true, true
+        for i := 1; i < n-1; i++ {
+            if t[i] == '0' { allOnes = false }
+            if t[i] == '1' { allZeros = false }
+        }
+        if allOnes || allZeros {
+            res[idx] = origOnes
+            continue
+        }
+        // Identify all '1' blocks surrounded by '0's
+        oneBlocks := [][2]int{}
+        i := 1
+        for i < n-1 {
+            if t[i] == '1' && t[i-1] == '0' {
+                j := i
+                for j < n-1 && t[j] == '1' {
+                    j++
+                }
+                if t[i-1] == '0' && t[j] == '0' {
+                    oneBlocks = append(oneBlocks, [2]int{i, j - 1})
+                }
+                i = j
+            } else {
+                i++
+            }
+        }
+        // Early exit if no valid trade candidates
+        if len(oneBlocks) == 0 {
+            res[idx] = origOnes
+            continue
+        }
+        // Try each valid trade
+        for _, blk := range oneBlocks {
+            tt := []byte(t)
+            numLost := 0
+            for k := blk[0]; k <= blk[1]; k++ {
+                if tt[k] == '1' {
+                    tt[k] = '0'
+                    numLost++
+                }
+            }
+            // Find all zero blocks surrounded by '1's
+            zeroBlocks := [][2]int{}
+            zeroStart := -1
+            for j := 1; j < n-1; j++ {
+                if tt[j] == '0' && tt[j-1] == '1' {
+                    zeroStart = j
+                }
+                if zeroStart != -1 && (j == n-2 || tt[j+1] != '0') {
+                    if tt[zeroStart-1] == '1' && tt[j+1] == '1' {
+                        zeroBlocks = append(zeroBlocks, [2]int{zeroStart, j})
+                    }
+                    zeroStart = -1
+                }
+            }
+            // Evaluate all possible zero block conversions after this trade
+            for _, zblk := range zeroBlocks {
+                ttt := make([]byte, len(tt))
+                copy(ttt, tt)
+                numGain := 0
+                for k := zblk[0]; k <= zblk[1]; k++ {
+                    if ttt[k] == '0' {
+                        ttt[k] = '1'
+                        numGain++
+                    }
+                }
+                curOnes := origOnes - numLost + numGain
+                if curOnes > maxOnes {
+                    maxOnes = curOnes
+                }
+            }
+        }
+        res[idx] = maxOnes
     }
-    return count
+    return res
 }
-
-// Function to calculate potential increase in active sections from trades
-func calculateMaxIncreaseFromTrade(segment string) int {
-    maxIncrease := 0
-    currentSegmentLength := len(segment)
-    zeroStartIndex, zeroEndIndex := -1, -1
-    oneStartIndex, oneEndIndex := -1, -1
-    
-    for i := 0; i < currentSegmentLength-1; i++ {
-        if segment[i] == '0' && segment[i+1] == '1' && zeroStartIndex != -1 { // Closing zero block and opening one block.
-n          zeroEndIndex = i // End of zero block.
-n          increase := (zeroEndIndex - zeroStartIndex + 2) // Calculate increase potential including surrounding ones.
-n          if increase > maxIncrease { maxIncrease = increase }
-n          zeroStartIndex = -1 // Reset zero block start index.
-n      } else if segment[i] == '0' && segment[i+1] == '0' && zeroStartIndex == -1 { // Opening new zero block.
-n          zeroStartIndex = i // Start new zero block.
-n      }
-n      
-n      if segment[i] == '1' && segment[i+1] == '0' && oneStartIndex != -1 { // Closing one block and opening zero block.
-n          oneEndIndex = i // End of one block.
-n          increase := (oneEndIndex - oneStartIndex + 2) 	// Calculate decrease potential including surrounding zeros.
-n          if increase > maxIncrease { maxIncrease = increase }
-n          oneStartIndex = -1 // Reset one block start index.
-n      } else if segment[i] == '1' && segment[i+1] == '1' && oneStartIndex == -1 { // Opening new one block.
-n          oneStartIndex = i // Start new one block.
-n      }
-n   }
-n   return maxIncrease // See maximum potential increase from identified blocks.
-n} \@ lc code=end
+# @lc code=end
