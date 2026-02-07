@@ -6,44 +6,48 @@
 # @lc code=start
 class Solution {
 public:
-    // Helper to compute length of longest common prefix of a and b
-    int lcp(const string& a, const string& b) {
-        int n = min(a.size(), b.size());
-        int i = 0;
-        while (i < n && a[i] == b[i]) ++i;
-        return i;
-    }
     vector<int> longestCommonPrefix(vector<string>& words) {
         int n = words.size();
         if (n <= 1) return vector<int>(n, 0);
-        vector<int> pre(n-1);
-        // Step 1: Precompute prefix lengths for all adjacent pairs
-        for (int i = 0; i < n-1; ++i) {
-            pre[i] = lcp(words[i], words[i+1]);
+        
+        vector<int> result(n);
+        vector<int> prefixLCP(n - 1), suffixLCP(n - 1);
+        
+        // Precompute LCP for adjacent pairs
+        for (int i = 0; i < n - 1; ++i) {
+            prefixLCP[i] = commonPrefixLength(words[i], words[i + 1]);
         }
-        // Step 2: For each removal, calculate the result
-        vector<int> ans(n, 0);
+        
+        // Build prefix LCP sums
+        for (int i = 1; i < n - 1; ++i) {
+            prefixLCP[i] += prefixLCP[i - 1];
+        }
+
+        // Build suffix LCP sums
+        suffixLCP[n - 2] = commonPrefixLength(words[n - 2], words[n - 1]);
+        for (int i = n - 3; i >= 0; --i) {
+            suffixLCP[i] = commonPrefixLength(words[i], words[i + 1]) + suffixLCP[i + 1];
+        }
+        
+        // Calculate result for each removal
         for (int i = 0; i < n; ++i) {
-            int max_lcp = 0;
-            // For removal at i, affected pairs: (i-1,i) and (i,i+1), new pair: (i-1,i+1)
-            if (n == 2) {
-                // Only one pair exists, after removal no pair remains
-                ans[i] = 0;
-                continue;
+            int maxLCP = 0;
+            if (i > 0 && i < n - 1) {
+                maxLCP = commonPrefixLength(words[i - 1], words[i + 1]);
             }
-            // Compute max among unaffected pairs
-            // Pairs before (i-1,i): pre[0..i-2]
-            for (int j = 0; j < i-1; ++j) max_lcp = max(max_lcp, pre[j]);
-            // Pairs after (i,i+1): pre[i+1..n-2]
-            for (int j = i+1; j < n-1; ++j) max_lcp = max(max_lcp, pre[j]);
-            // Now, handle the new pair (i-1,i+1) if both are in bounds
-            if (i > 0 && i < n-1) {
-                int new_lcp = lcp(words[i-1], words[i+1]);
-                max_lcp = max(max_lcp, new_lcp);
-            }
-            ans[i] = max_lcp;
+            if (i > 0) maxLCP = max(maxLCP, prefixLCP[i - 1]);
+            if (i < n - 2) maxLCP = max(maxLCP, suffixLCP[i + 1]);
+            result[i] = maxLCP;
         }
-        return ans;
+
+        return result;
+    }
+private:
+    int commonPrefixLength(const string& s1, const string& s2) {
+        int len = min(s1.length(), s2.length());
+        int i = 0;
+        while (i < len && s1[i] == s2[i]) { ++i; }
+        return i;
     }
 };
 # @lc code=end
