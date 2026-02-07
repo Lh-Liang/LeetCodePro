@@ -6,37 +6,56 @@
 
 # @lc code=start
 func maxRectangleArea(xCoord []int, yCoord []int) int64 {
-    type Point struct{
-        x, y int
+    n := len(xCoord)
+    type pt struct{ x, y int }
+    points := make(map[pt]struct{}, n)
+    for i := 0; i < n; i++ {
+        points[pt{xCoord[i], yCoord[i]}] = struct{}{}
     }
-    
-    pointMap := make(map[int]map[int]bool)
-    
-    // Populate pointMap for quick lookups
-    for i := 0; i < len(xCoord); i++ {
-        if _, ok := pointMap[xCoord[i]]; !ok {
-            pointMap[xCoord[i]] = make(map[int]bool)
-        }
-        pointMap[xCoord[i]][yCoord[i]] = true
-    }
-    
     maxArea := int64(-1)
-    
-    // Iterate through pairs of points to find potential rectangles
-    for i := 0; i < len(xCoord); i++ {
-        for j := i + 1; j < len(xCoord); j++ {
-            if xCoord[i] != xCoord[j] && yCoord[i] != yCoord[j] { // Check for potential diagonal corners
-                // Check existence of opposite corners in the map
-                if pointMap[xCoord[i]][yCoord[j]] && pointMap[xCoord[j]][yCoord[i]] { 
-                    // Calculate area of potential rectangle
-                    area := int64(abs(xCoord[j]-xCoord[i])) * int64(abs(yCoord[j]-yCoord[i]))
-                    if area > maxArea {
-                        maxArea = area
-                    }
+    for i := 0; i < n; i++ {
+        for j := i + 1; j < n; j++ {
+            x1, y1 := xCoord[i], yCoord[i]
+            x2, y2 := xCoord[j], yCoord[j]
+            if x1 == x2 || y1 == y2 {
+                continue
+            }
+            // Check if the other two corners exist
+            if _, ok := points[pt{x1, y2}]; !ok {
+                continue
+            }
+            if _, ok := points[pt{x2, y1}]; !ok {
+                continue
+            }
+            // The four corners are (x1,y1), (x1,y2), (x2,y1), (x2,y2)
+            // Check if any other point is inside or on the border (excluding four corners)
+            minX, maxX := x1, x2
+            if minX > maxX {
+                minX, maxX = maxX, minX
+            }
+            minY, maxY := y1, y2
+            if minY > maxY {
+                minY, maxY = maxY, minY
+            }
+            valid := true
+            for k := 0; k < n; k++ {
+                px, py := xCoord[k], yCoord[k]
+                if (px == x1 && py == y1) || (px == x1 && py == y2) || (px == x2 && py == y1) || (px == x2 && py == y2) {
+                    continue
+                }
+                if px >= minX && px <= maxX && py >= minY && py <= maxY {
+                    valid = false
+                    break
+                }
+            }
+            if valid {
+                area := int64((maxX - minX) * (maxY - minY))
+                if area > maxArea {
+                    maxArea = area
                 }
             }
         }
     }
-    return maxArea 
+    return maxArea
 }
-func abs(x int) int { if x < 0 { return -x }; return x } # @lc code=end
+# @lc code=end
