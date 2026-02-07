@@ -9,59 +9,42 @@ class Solution {
 public:
     string generateString(string str1, string str2) {
         int n = str1.size(), m = str2.size();
-        int L = n + m - 1;
-        string word(L, '?');
-        // Step 1: enforce 'T' positions
-        for (int i = 0; i < n; ++i) {
+        // Initialize result with smallest character for lexicographic priority
+        string result(n + m - 1, 'a');
+        vector<bool> placed(n + m - 1, false);
+        
+        // Place str2 where required by 'T', checking for conflicts with 'F'
+        for (int i = 0; i <= n - m; ++i) {
             if (str1[i] == 'T') {
                 for (int j = 0; j < m; ++j) {
-                    int pos = i + j;
-                    if (word[pos] == '?' || word[pos] == str2[j]) {
-                        word[pos] = str2[j];
-                    } else {
-                        return ""; // conflict
-                    }
+                    if (placed[i + j] && result[i + j] != str2[j]) return "";
+                    result[i + j] = str2[j];
+                    placed[i + j] = true;
                 }
             }
         }
-        // Step 2: handle 'F' positions
-        for (int i = 0; i < n; ++i) {
+
+        // Fill remaining with smallest lexicographical order while respecting 'F'
+        for (int i = 0; i <= n + m - 2; ++i) {
+            if (!placed[i]) {
+                result[i] = 'a';
+            }
+        }
+
+        // Ensure no formation under 'F' constraints at construction time
+        for (int i = 0; i <= n - m; ++i) {
             if (str1[i] == 'F') {
-                bool found = false;
-                string curr;
-                // Try to make the lex smallest substring not equal to str2, respecting already set chars
-                for (int k = 0; k < m && !found; ++k) {
-                    // Try to change character at position k
-                    for (char c = 'a'; c <= 'z'; ++c) {
-                        if (c != str2[k]) {
-                            bool possible = true;
-                            string temp;
-                            for (int j = 0; j < m; ++j) {
-                                int pos = i + j;
-                                char want = (j == k) ? c : str2[j];
-                                if (word[pos] != '?' && word[pos] != want) {
-                                    possible = false;
-                                    break;
-                                }
-                                temp += want;
-                            }
-                            if (possible) {
-                                // Apply this substring
-                                for (int j = 0; j < m; ++j) {
-                                    word[i + j] = temp[j];
-                                }
-                                found = true;
-                                break;
-                            }
-                        }
+                bool matches = true;
+                for (int j = 0; j < m && matches; ++j) {
+                    if (result[i + j] != str2[j]) {
+                        matches = false;
                     }
                 }
-                if (!found) return "";
+                if (matches) return "";
             }
         }
-        // Step 3: fill unset positions with 'a'
-        for (char& ch : word) if (ch == '?') ch = 'a';
-        return word;
+
+        return result;
     }
 };
 # @lc code=end
