@@ -7,46 +7,38 @@
 class Solution {
 public:
     long long minMoves(vector<int>& balance) {
-        long long sum = 0;
         int n = balance.size();
-        for (int b : balance) sum += b;
-        if (sum < 0) return -1;
-        int negIdx = -1;
+        int neg_index = -1;
+        long long total_deficit = 0;
+        
+        // Find the index with negative balance and calculate total deficit
         for (int i = 0; i < n; ++i) {
             if (balance[i] < 0) {
-                negIdx = i;
+                neg_index = i;
+                total_deficit = -balance[i];
                 break;
             }
         }
-        if (negIdx == -1) return 0; // All non-negative
-        long long deficit = -balance[negIdx];
+        
+        // If there's no deficit, no moves are needed
+        if (neg_index == -1) return 0;
+
         long long moves = 0;
-        int left = (negIdx - 1 + n) % n;
-        int right = (negIdx + 1) % n;
-        while (deficit > 0) {
-            // Find closest nonzero surplus to negIdx
-            int l = left, r = right, d = 1;
-            bool found = false;
-            while (d < n && !found) {
-                if (balance[l] > 0) {
-                    long long t = min((long long)balance[l], deficit);
-                    balance[l] -= t;
-                    deficit -= t;
-                    moves += t * d;
-                    found = true;
-                } else if (balance[r] > 0) {
-                    long long t = min((long long)balance[r], deficit);
-                    balance[r] -= t;
-                    deficit -= t;
-                    moves += t * d;
-                    found = true;
-                }
-                l = (l - 1 + n) % n;
-                r = (r + 1) % n;
-                ++d;
+        int current_index = (neg_index + 1) % n;
+        
+        while (total_deficit > 0 && current_index != neg_index) {
+            if (balance[current_index] > 0) {
+                long long transfer_amount = std::min(total_deficit, static_cast<long long>(balance[current_index]));
+                total_deficit -= transfer_amount;
+                balance[current_index] -= transfer_amount;
+                moves += transfer_amount;
             }
-            if (!found) return -1; // Shouldn't happen, but for safety
+            current_index = (current_index + 1) % n;
         }
+
+        // Check if it's possible to balance
+        if (total_deficit > 0) return -1;
+
         return moves;
     }
 };
