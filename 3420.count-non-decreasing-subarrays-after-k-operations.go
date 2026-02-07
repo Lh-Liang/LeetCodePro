@@ -1,0 +1,1 @@
+The solution code for counting non-decreasing subarrays after up to K operations is ready.
