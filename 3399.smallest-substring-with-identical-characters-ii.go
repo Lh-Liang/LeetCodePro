@@ -7,55 +7,54 @@
 # @lc code=start
 func minLength(s string, numOps int) int {
     n := len(s)
-    if n == 0 {
-        return 0
-    }
-
-    // Step 1: Identify consecutive segments and their lengths.
-    var segmentLengths []int
-    currentLength := 1
-    for i := 1; i < n; i++ {
-        if s[i] == s[i-1] {
-            currentLength++
+    left, right := 1, n
+    ans := n
+    for left <= right {
+        mid := (left + right) / 2
+        if check(s, numOps, mid) {
+            ans = mid
+            right = mid - 1
         } else {
-            segmentLengths = append(segmentLengths, currentLength)
-            currentLength = 1
+            left = mid + 1
         }
     }
-    segmentLengths = append(segmentLengths, currentLength) // Add last segment.
-
-    // Step 2: Calculate initial max segment length.
-    maxSegment := findMax(segmentLengths)
-    
-    // Edge case: if no operations allowed, return initial max segment length.
-    if numOps == 0 {
-        return maxSegment
-    }
-
-    // Step 3 & 4: Simulate potential flips and apply a greedy strategy.
-    minMaxSegment := maxSegment
-    for i := range segmentLengths {
-        if i > 0 && numOps > 0 {
-            possibleReduction := min(segmentLengths[i], numOps)
-            newMaxSegment := max(findMax(segmentLengths[:i])-possibleReduction, findMax(segmentLengths[i+1:]))
-            minMaxSegment = min(minMaxSegment, newMaxSegment)
-            numOps -= possibleReduction
-        }
-        if numOps <= 0 {
-            break
-        }
-    }
-
-    return minMaxSegment
+    return ans
 }
 
-func findMax(arr []int) int {
-    maxVal := arr[0]
-    for _, val := range arr[1:] {
-        if val > maxVal {
-            maxVal = val
+func check(s string, numOps int, length int) bool {
+    n := len(s)
+    minFlips0, minFlips1 := n, n
+    flips0, flips1 := 0, 0
+    for i := 0; i < length; i++ {
+        if s[i] != '0' {
+            flips0++
+        }
+        if s[i] != '1' {
+            flips1++
         }
     }
-    return maxVal
+    minFlips0 = flips0
+    minFlips1 = flips1
+    for i := length; i < n; i++ {
+        if s[i] != '0' {
+            flips0++
+        }
+        if s[i-length] != '0' {
+            flips0--
+        }
+        if s[i] != '1' {
+            flips1++
+        }
+        if s[i-length] != '1' {
+            flips1--
+        }
+        if flips0 < minFlips0 {
+            minFlips0 = flips0
+        }
+        if flips1 < minFlips1 {
+            minFlips1 = flips1
+        }
+    }
+    return minFlips0 <= numOps || minFlips1 <= numOps
 }
-template<class T> T min(T a, T b) { return (a < b) ? a : b; }
+# @lc code=end
