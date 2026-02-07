@@ -5,60 +5,41 @@
 #
 # @lc code=start
 /**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int x) : val(x), next(nullptr) {}
- *     ListNode(int x, ListNode *next) : val(x), next(next) {}
- * };
- */
-#include <vector>
-#include <algorithm>
-#include <climits>
-
-using namespace std;
-
+* Definition for singly-linked list.
+* struct ListNode {
+*     int val;
+*     ListNode *next;
+*     ListNode() : val(0), next(nullptr) {}
+*     ListNode(int x) : val(x), next(nullptr) {}
+*     ListNode(int x, ListNode *next) : val(x), next(next) {}
+* };
+*/
 class Solution {
 public:
     vector<int> nodesBetweenCriticalPoints(ListNode* head) {
-        if (!head || !head->next || !head->next->next) {
-            return {-1, -1};
-        }
-
-        int firstCP = -1;
-        int prevCP = -1;
-        int minDist = INT_MAX;
-        
-        int prevVal = head->val;
-        ListNode* curr = head->next;
-        int currIdx = 1;
-
-        while (curr->next != nullptr) {
-            int currVal = curr->val;
-            int nextVal = curr->next->val;
-
-            // Check if curr is a local maxima or local minima
-            if ((currVal > prevVal && currVal > nextVal) || (currVal < prevVal && currVal < nextVal)) {
-                if (firstCP == -1) {
-                    firstCP = currIdx;
-                } else {
-                    minDist = min(minDist, currIdx - prevCP);
-                }
-                prevCP = currIdx;
-            }
-
-            prevVal = currVal;
-            curr = curr->next;
-            currIdx++;
-        }
-
-        if (firstCP == prevCP) {
-            return {-1, -1};
-        }
-
-        return {minDist, prevCP - firstCP};
+        int index = 0;
+        int firstCritical = -1; 
+        int lastCritical = -1; 
+        vector<int> criticalIndices; 
+        ListNode* prev = nullptr; 
+        ListNode* curr = head; 
+        while (curr && curr->next) { 
+            if (prev && ((curr->val > prev->val && curr->val > curr->next->val) || (curr->val < prev->val && curr->val < curr->next->val))) { 
+                if (firstCritical == -1) firstCritical = index; 
+                lastCritical = index; 
+                criticalIndices.push_back(index); 
+            } 
+            prev = curr; 
+            curr = curr->next; 
+            index++; 
+        } 
+        if (criticalIndices.size() < 2) return {-1, -1}; 
+        int minDistance = INT_MAX; 
+        for (int i = 1; i < criticalIndices.size(); ++i) { 
+            minDistance = min(minDistance, criticalIndices[i] - criticalIndices[i-1]); 
+        } 
+        int maxDistance = lastCritical - firstCritical; 
+        return {minDistance, maxDistance}; 
     }
 };
 # @lc code=end
