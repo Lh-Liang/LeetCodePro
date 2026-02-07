@@ -6,20 +6,18 @@
 # @lc code=start
 class Solution {
 public:
-    bool isNoZero(long long num) {
-        while (num > 0) {
-            if (num % 10 == 0) return false;
-            num /= 10;
-        }
-        return true;
-    }
-
     long long countNoZeroPairs(long long n) {
+        auto isNoZero = [](long long x) {
+            while (x > 0) {
+                if (x % 10 == 0) return false;
+                x /= 10;
+            }
+            return true;
+        };
         long long count = 0;
         for (long long a = 1; a < n; ++a) {
-            if (!isNoZero(a)) continue; // Skip numbers with zero digits directly
             long long b = n - a;
-            if (isNoZero(b)) {
+            if (isNoZero(a) && isNoZero(b)) {
                 ++count;
             }
         }
