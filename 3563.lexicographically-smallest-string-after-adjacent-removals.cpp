@@ -3,23 +3,18 @@
 #
 # [3563] Lexicographically Smallest String After Adjacent Removals
 #
-
 # @lc code=start
 class Solution {
 public:
     string lexicographicallySmallestString(string s) {
-        string stk;
-        auto is_consecutive = [](char a, char b) {
-            return (abs(a - b) == 1) || (a == 'a' && b == 'z') || (a == 'z' && b == 'a');
-        };
+        std::vector<char> stk; // Using vector as a stack for simplicity.
         for (char c : s) {
-            if (!stk.empty() && is_consecutive(stk.back(), c)) {
-                stk.pop_back();
-            } else {
-                stk.push_back(c);
+            while (!stk.empty() && ((stk.back() == c + 1) || (stk.back() == c - 1) || (stk.back() == 'a' && c == 'z') || (stk.back() == 'z' && c == 'a'))) {
+                stk.pop_back(); // Remove consecutive alphabetical pairs considering circular alphabet.
             }
+            stk.push_back(c); // Add current character to potential result.
         }
-        return stk;
+        return std::string(stk.begin(), stk.end()); // Convert vector back to string as result.
     }
 };
 # @lc code=end
