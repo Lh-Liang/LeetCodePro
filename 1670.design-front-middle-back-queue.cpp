@@ -1,91 +1,51 @@
-#
-# @lc app=leetcode id=1670 lang=cpp
-#
-# [1670] Design Front Middle Back Queue
-#
 # @lc code=start
 #include <deque>
+using namespace std;
 
 class FrontMiddleBackQueue {
-    std::deque<int> left, right;
+private:
+    deque<int> front;
+    deque<int> back;
 
-    // Invariant: right.size() == left.size() OR right.size() == left.size() + 1
     void balance() {
-        if (left.size() > right.size()) {
-            right.push_front(left.back());
-            left.pop_back();
-        } else if (right.size() > left.size() + 1) {
-            left.push_back(right.front());
-            right.pop_front();
+        if (front.size() > back.size() + 1) {
+            back.push_front(front.back());
+            front.pop_back();
+        } else if (back.size() > front.size()) {
+            front.push_back(back.front());
+            back.pop_front();
         }
     }
 
 public:
     FrontMiddleBackQueue() {}
-
+    
     void pushFront(int val) {
-        left.push_front(val);
+        front.push_front(val);
         balance();
     }
-
+    
     void pushMiddle(int val) {
-        if (left.size() == right.size()) {
-            right.push_front(val);
+        if (front.size() <= back.size()) {
+            front.push_back(val);
         } else {
-            left.push_back(val);
+            back.push_front(val);
         }
+        balance();
     }
-
+    
     void pushBack(int val) {
-        right.push_back(val);
+        back.push_back(val);
         balance();
     }
-
+    
     int popFront() {
-        if (right.empty()) return -1;
-        int val;
-        if (left.empty()) {
-            val = right.front();
-            right.pop_front();
-        } else {
-            val = left.front();
-            left.pop_front();
+        int res = -1;
+        if (!front.empty()) {
+            res = front.front();
+            front.pop_front();
+        } else if (!back.empty()) {
+            res = back.front();
+            back.pop_front();
         }
-        balance();
-        return val;
-    }
-
-    int popMiddle() {
-        if (right.empty()) return -1;
-        int val;
-        if (left.size() == right.size()) {
-            val = left.back();
-            left.pop_back();
-        } else {
-            val = right.front();
-            right.pop_front();
-        }
-        // No balance() needed here as the logic maintains the size constraint directly
-        return val;
-    }
-
-    int popBack() {
-        if (right.empty()) return -1;
-        int val = right.back();
-        right.pop_back();
-        balance();
-        return val;
-    }
-};
-
-/**
- * Your FrontMiddleBackQueue object will be instantiated and called as such:
- * FrontMiddleBackQueue* obj = new FrontMiddleBackQueue();
- * obj->pushFront(val);
- * obj->pushMiddle(val);
- * obj->pushBack(val);
- * int param_4 = obj->popFront();
- * int param_5 = obj->popMiddle();
- * int param_6 = obj->popBack();
- */
-# @lc code=end
+balance();return res;}int popMiddle(){int res=-1;if(front.size()==back.size()){res=front.back();front.pop_back();}else{res=back.front();back.pop_front();}balance();return res;}int popBack(){int res=-1;if(!back.empty()){res=back.back();back.pop_back();}else if(!front.empty()){res=front.back();front.pop_back();}balance();return res;}"}
