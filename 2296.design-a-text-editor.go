@@ -1,13 +1,6 @@
-#
-# @lc app=leetcode id=2296 lang=golang
-#
-# [2296] Design a Text Editor
-#
-
 # @lc code=start
 type TextEditor struct {
-    left  []rune // holds characters to the left of the cursor
-    right []rune // holds characters to the right of the cursor
+    left, right []rune
 }
 
 func Constructor() TextEditor {
@@ -15,7 +8,9 @@ func Constructor() TextEditor {
 }
 
 func (this *TextEditor) AddText(text string) {
-    this.left = append(this.left, []rune(text)...)
+    for _, c := range text {
+        this.left = append(this.left, c)
+    }
 }
 
 func (this *TextEditor) DeleteText(k int) int {
@@ -26,18 +21,29 @@ func (this *TextEditor) DeleteText(k int) int {
 
 func (this *TextEditor) CursorLeft(k int) string {
     moveCount := min(k, len(this.left))
-    this.right = append(this.left[len(this.left)-moveCount:], this.right...)
+    this.right = append(this.right, this.left[len(this.left)-moveCount:]...)
     this.left = this.left[:len(this.left)-moveCount]
-    return string(this.left[max(0, len(this.left)-10):])
+    return getLastTenChars(this.left)
 }
 
 func (this *TextEditor) CursorRight(k int) string {
     moveCount := min(k, len(this.right))
-    this.left = append(this.left, this.right[:moveCount]...)
-    this.right = this.right[moveCount:]
-    return string(this.left[max(0, len(this.left)-10):])
+    this.left = append(this.left, this.right[len(this.right)-moveCount:]...)
+    this.right = this.right[:len(this.right)-moveCount]
+    return getLastTenChars(this.left)
 }
-// Helper functions to get min and max of two integers. 
-func min(a, b int) int { if a < b { return a } else { return b } } 
-func max(a, b int) int { if a > b { return a } else { return b } } 
-bject will be instantiated and called as such: obj := Constructor(); obj.AddText(text); param_2 := obj.DeleteText(k); param_3 := obj.CursorLeft(k); param_4 := obj.CursorRight(k);
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+func getLastTenChars(s []rune) string {
+    if len(s) <= 10 {
+        return string(s)
+    }
+    return string(s[len(s)-10:])
+}
+# @lc code=end
