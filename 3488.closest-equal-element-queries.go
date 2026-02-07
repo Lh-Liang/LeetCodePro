@@ -7,21 +7,35 @@
 # @lc code=start
 func solveQueries(nums []int, queries []int) []int {
     indexMap := make(map[int][]int)
-    // Store all indices for each number in nums
-    for i, num := range nums {
-        indexMap[num] = append(indexMap[num], i)
+    n := len(nums)
+    for i := 0; i < n; i++ {
+        indexMap[nums[i]] = append(indexMap[nums[i]], i)
     }
     results := make([]int, len(queries))
-    n := len(nums)
-    // Calculate minimum distances for each query
-    for qi, q := range queries {
-        val := nums[q]
-        if indices, exists := indexMap[val]; exists {
-            minDist := n // Initialize with max possible distance (array length)
-            for _, j := range indices {
-                if j != q { // Skip self comparison
-                    dist1 := abs(q - j) // Direct distance
-                    dist2 := n - dist1 // Circular distance going around the end of array
-                    minDist = min(minDist, min(dist1, dist2)) // Take the smaller of direct or circular paths
-                } else if len(indices) == 1 { // If only one occurrence exists (itself)
-                    minDist = -1 "No other matching element
+    min := func(a, b int) int {
+        if a < b { return a }
+        return b
+    }
+    for qIdx, query := range queries {
+        value := nums[query]
+        if indices, exists := indexMap[value]; exists {
+            minDist := n // effectively infinite in this context
+            for _, idx := range indices {
+                if idx != query {
+                    distClockwise := (idx - query + n) % n
+                    distCounterClockwise := (query - idx + n) % n
+                    minDist = min(minDist, min(distClockwise, distCounterClockwise))
+                }
+            }
+            if minDist == n { // no other matching index found
+                results[qIdx] = -1
+            } else {
+                results[qIdx] = minDist
+            }
+        } else { 
+            results[qIdx] = -1 
+        }
+    }
+    return results 
+}
+# @lc code=end
