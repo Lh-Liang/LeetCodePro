@@ -3,30 +3,27 @@
 #
 # [3771] Total Score of Dungeon Runs
 #
-
 # @lc code=start
 func totalScore(hp int, damage []int, requirement []int) int64 {
+    // Use prefix sums to efficiently compute remaining health after entering rooms
     n := len(damage)
-    totalScore := int64(0)
-    cumulativeDamage := make([]int, n+1)
-    
-    // Calculate cumulative damage from the start to each room
+    prefix := make([]int, n+1)
     for i := 0; i < n; i++ {
-        cumulativeDamage[i+1] = cumulativeDamage[i] + damage[i]
+        prefix[i+1] = prefix[i] + damage[i]
     }
-    
-    // Calculate scores starting from each room using prefix sums
+    var total int64 = 0
+    // For each starting room
     for start := 0; start < n; start++ {
-        currentHp := hp - cumulativeDamage[start]
-        currentScore := 0
+        curr_hp := hp
+        score := 0
         for i := start; i < n; i++ {
-            if currentHp >= requirement[i] {
-                currentScore++
+            curr_hp -= damage[i]
+            if curr_hp >= requirement[i] {
+                score++
             }
-            currentHp -= damage[i]
         }
-        totalScore += int64(currentScore)
+        total += int64(score)
     }
-    return totalScore
+    return total
 }
 # @lc code=end
