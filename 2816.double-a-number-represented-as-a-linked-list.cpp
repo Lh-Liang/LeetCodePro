@@ -3,6 +3,7 @@
 #
 # [2816] Double a Number Represented as a Linked List
 #
+
 # @lc code=start
 /**
 * Definition for singly-linked list.
@@ -17,20 +18,16 @@
 class Solution {
 public:
     ListNode* doubleIt(ListNode* head) {
-        if (!head) return nullptr; // Edge case handled but not needed per constraints
-        int carry = 0; // Initialize carry to handle overflow
-        ListNode *current = head; // Pointer to traverse the list
-        while (current != nullptr) { // Traverse each node in the list
-            int newVal = current->val * 2 + carry; // Double current value and add carry
-            current->val = newVal % 10; // Update node value with last digit of newVal
-            carry = newVal / 10; // Update carry for overflow
-            if (current->next == nullptr && carry > 0) { // If at last node and have a carry
-                current->next = new ListNode(carry); // Add new node for remaining carry
-                break;
-            }
-            current = current->next; // Move to next node
-        }
-        return head; // Return modified list head
-    }
-}; 
-# @lc code=end
+        // Reverse the linked list first.
+        head = reverseList(head);
+        
+        // Traverse reversed list, double each node's value, and manage carry.
+        ListNode *cur = head;
+        int carry = 0;
+        while (cur != nullptr) {
+            int newVal = cur->val * 2 + carry; // Double current node's value and add carry from previous operation.
+            cur->val = newVal % 10; // Set current node's value to remainder of division by 10.
+            carry = newVal / 10; // Update carry for next node.
+            if (cur->next == nullptr && carry > 0) { // If at last node and there's a remaining carry. Add new node if needed. 
+                cur->next = new ListNode(carry); 
+                break; 	// Break since we handled extra digit.	 			 } 	 cur = cur->next; } 			// Reverse back to restore original order after processing. return reverseList(head); } private: ListNode* reverseList(ListNode* head) { if (!head || !head->next) return head; 				ListNode *prev = nullptr, *curr = head, *next = nullptr; while (curr != nullptr) { next = curr->next; curr->next = prev; prev = curr; curr = next;} return prev;} }; # @lc code=end
