@@ -7,7 +7,7 @@
 # @lc code=start
 func findAnswer(parent []int, s string) []bool {
     n := len(parent)
-    children := make([][]int, n)
+    children := make(map[int][]int)
     for i := 1; i < n; i++ {
         p := parent[i]
         children[p] = append(children[p], i)
@@ -21,13 +21,25 @@ func findAnswer(parent []int, s string) []bool {
         }
         return dfsStr + string(s[node])
     }
+
+    isPalindrome := func(str string) bool {
+        l, r := 0, len(str)-1
+        for l < r {
+            if str[l] != str[r] {
+                return false
+            }
+            l++
+            r--
+        }
+        return true
+    }
     
     answer := make([]bool, n)
     for i := 0; i < n; i++ {
         dfsStr := dfs(i)
         answer[i] = isPalindrome(dfsStr)
     }
+    
     return answer
 }
-
-func isPalindrome(s string) bool { &lt;- helper function to check palindrome condition &gt; &gt;
+# @lc code=end
