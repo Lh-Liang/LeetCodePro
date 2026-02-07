@@ -8,23 +8,25 @@
 func totalScore(hp int, damage []int, requirement []int) int64 {
     n := len(damage)
     totalScore := int64(0)
+    cumulativeDamage := make([]int, n+1)
     
-    for start := 0; start < n; start++ {
-        currentHp := hp
-        currentScore := 0
-        
-        for i := start; i < n; i++ {
-            currentHp -= damage[i]
-            if currentHp >= requirement[i] {
-                currentScore++
-            } else { // Health is not enough to earn a point from room i+1 onwards. 
-                break // Optimization: stop early as subsequent rooms will not earn any points. 
-            }
-        }
-        
-        totalScore += int64(currentScore)
+    // Calculate cumulative damage from the start to each room
+    for i := 0; i < n; i++ {
+        cumulativeDamage[i+1] = cumulativeDamage[i] + damage[i]
     }
     
+    // Calculate scores starting from each room using prefix sums
+    for start := 0; start < n; start++ {
+        currentHp := hp - cumulativeDamage[start]
+        currentScore := 0
+        for i := start; i < n; i++ {
+            if currentHp >= requirement[i] {
+                currentScore++
+            }
+            currentHp -= damage[i]
+        }
+        totalScore += int64(currentScore)
+    }
     return totalScore
 }
 # @lc code=end
