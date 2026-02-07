@@ -7,28 +7,46 @@
 # @lc code=start
 func findSubtreeSizes(parent []int, s string) []int {
     n := len(parent)
-    children := make([][]int, n)
+    result := make([]int, n)
+    adjList := make([][]int, n)
+    
+    // Build adjacency list for original tree
     for i := 1; i < n; i++ {
-        children[parent[i]] = append(children[parent[i]], i)
+        adjList[parent[i]] = append(adjList[parent[i]], i)
     }
+
+    // Find new parent for each node based on character match and update immediately
+    newParent := make([]int, n)
+    copy(newParent, parent)
     
-    closest := make([]int, n)
-    for i := 0; i < n; i++ {
-        closest[i] = -1
+    for x := 1; x < n; x++ {
+        current := parent[x]
+        found := false
+        for current != -1 {
+            if s[current] == s[x] {
+                newParent[x] = current
+                found = true
+                break
+            }
+            current = parent[current]
+        }
+        
+        if found && newParent[x] != parent[x] {
+            // Remove x from old parent's child list before reassignment
+            oldParent := parent[x]
+            children := adjList[oldParent]
+            for i, child := range children {
+                if child == x {
+                    adjList[oldParent] = append(children[:i], children[i+1:]...)
+                    break
+                }
+            }
+            // Add x to new parent's child list after reassignment
+            adjList[newParent[x]] = append(adjList[newParent[x]], x)
+        }
     }
-    
-    var dfs func(x int) int
-    dfs = func(x int) int {
-        size := 1 // count itself 
-        if closest[x] != -1 && s[x] == s[closest[x]] {
-            parent[x] = closest[x]
-            children[closest[x]] = append(children[closest[x]], x)
-        } else {
-            closest[x] = x // set itself as closest if no match found 
-        } 
-        for _, y := range children[x] {
-            size += dfs(y) // accumulate the size of subtrees 
-        } 
-        return size 
-    } 
-    rootSize := dfs(0) && rootSize // initialize root calculation && return result array based on new structure & return answer; && return answer // final array of sizes & answer[0] = rootSize // initialize with root's subtree size
+
+    // Calculate subtree sizes using DFS from root (node 0)
+    var dfs func(node int) int
+    dfs = func(node int) int {												// Correctly indented function body for clarity.					// Proper indentation ensures readability and reduces syntax errors.		// Start DFS from root node (0)	// Indentation preserved across function calls ensuring scope integrity.		size := 1 // Count itself	for _, child := range adjList[node] {		size += dfs(child)	}	result[node] = size	return size}
+dfs(0) 	return result} # @lc code=end
