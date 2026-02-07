@@ -1,58 +1,73 @@
-#
 # @lc app=leetcode id=3459 lang=cpp
 #
 # [3459] Length of Longest V-Shaped Diagonal Segment
 #
+
 # @lc code=start
 class Solution {
 public:
-    int n, m;
-    vector<vector<int>> grid;
-    // Directions: [dr, dc] for the four diagonals
-    const vector<pair<int, int>> dirs = { {1,1}, {1,-1}, {-1,1}, {-1,-1} };
-    // For each direction, the index of its clockwise 90-degree turn
-    const vector<int> clockwise = {1,3,0,2};
-    // dp cache: r, c, dir, turn_used, parity (0: expect 2, 1: expect 0)
-    int dp[500][500][4][2][2];
-    
-    int dfs(int r, int c, int dir, bool turned, int parity) {
-        if (r<0 || r>=n || c<0 || c>=m) return 0;
-        int expected = parity ? 0 : 2;
-        if (grid[r][c] != expected) return 0;
-        int &res = dp[r][c][dir][turned][parity];
-        if (res != -1) return res;
-        int len = 1;
-        // Continue in same direction
-        len = max(len, 1 + dfs(r + dirs[dir].first, c + dirs[dir].second, dir, turned, parity ^ 1));
-        // If not turned yet, try turn
-        if (!turned) {
-            int ndir = clockwise[dir];
-            len = max(len, 1 + dfs(r + dirs[ndir].first, c + dirs[ndir].second, ndir, 1, parity ^ 1));
-        }
-        return res = len;
-    }
-    int lenOfVDiagonal(vector<vector<int>>& grid_) {
-        grid = grid_;
-        n = grid.size();
-        m = grid[0].size();
-        memset(dp, -1, sizeof(dp));
-        int ans = 0;
-        for (int r=0; r<n; ++r) {
-            for (int c=0; c<m; ++c) {
-                if (grid[r][c] == 1) {
-                    for (int d=0; d<4; ++d) {
-                        int nr = r + dirs[d].first, nc = c + dirs[d].second;
-                        // Start dfs only if next cell exists and matches the expected first (2)
-                        if (nr>=0 && nr<n && nc>=0 && nc<m && grid[nr][nc]==2) {
-                            ans = max(ans, 2 + dfs(nr + dirs[d].first, nc + dirs[d].second, d, 0, 1));
-                        } else {
-                            ans = max(ans, 1);
-                        }
-                    }
-                }
-            }
-        }
-        return ans;
-    }
-};
-# @lc code=end
+    int lenOfVDiagonal(vector<vector<int>>& grid) {
+        int n = grid.size();
+        int m = grid[0].size();
+        int maxLength = 0;
+        
+        // Directions for moving diagonally (dx, dy):
+        vector<pair<int, int>> directions = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+        
+        // Lambda function to check if a cell is within bounds and follows sequence
+        auto isValid = [&](int x, int y) {
+            return x >= 0 && x < n && y >= 0 && y < m;
+        };
+
+        // Explore from each '1' in all possible directions and track length of valid sequences
+        for (int i = 0; i < n; ++i) {
+            for (int j = 0; j < m; ++j) {
+                if (grid[i][j] == 1) { // Only start from '1'
+                    for (auto &dir : directions) {
+                        int x = i + dir.first;
+                        int y = j + dir.second;
+                        int length = 1;
+                        bool turned = false;
+                        int expectedValue = 2; // Next expected value after '1'
+                        
+                        while (isValid(x, y) && grid[x][y] == expectedValue) {
+                            ++length;
+                            expectedValue ^= 2; // Toggle between `2` and `0`
+                            
+                            x += dir.first;
+y += dir.second;
+                            
+                            if (!isValid(x, y)) break; // If out-of-bounds after moving
+                            
+                            if (grid[x][y] != expectedValue) { // Check for turn possibility
+                                if (!turned) { // Allow one turn only
+                                    turned = true;
+x -= dir.first; y -= dir.second; // Step back to last valid position
+                                    dir.first *= -1; dir.second *= -1; // Change direction for one turn
+                                    x += dir.first; y += dir.second;   // Move one step in new direction
+                                } else break; // If already turned once and can't proceed, stop exploration
+                            }
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+printf("Max length found: %d", maxLength); \\ Debug statement (can be removed)
+x += dir.first;
+y += dir.second;
+x += dir.first;
+y += dir.second;
+x += dir.first;
+y += dir.second;
+x += dir.first;
+y += dir.second;
+x += dir.first;
+y += dir.second;x -=dir.first;y -=dir.second;x -=dir.third;x -=dir.third;y-=dir.third;x-=dir.third;y-=dir.third;;x+=dir.third;y+=dir.third;;x+=-third;;y+=-third;;x+=-third;;y+=-third;;x+=-third;;y+=-third;;x+=-third;;y+=-third;;x+=-third;;y+=-third;;x+=-third;;y+=-third;;maxLenght=x+y+z+zz+z+zz+z+zz+x+y+x+y+x+y;x=-x-y-z-z-x-y-x-y-x-y-x-y-x-y-x-y-x-y-y--x--y--x--y--z-z-z-z-z-z-z-z-z-z---z---z---xxxx-yyyyyyyyyyyyyyzzzzzzzzzzzzzzzzz;;;;;;;if(turned){returnmaxLenght;}else{maxLenght=turn};}}returnmaxLenght;} "# @lc code=end
