@@ -1,0 +1,1 @@
+The solution code involves parsing inputs into tree structures, determining paths using DFS/BFS, calculating valid weight assignments using combinatorial logic, and applying modulo 10^9+7 to ensure constraint compliance.
