@@ -3,56 +3,42 @@
 #
 # [3501] Maximize Active Section with Trade II
 #
-# @lc code=start
+
+#include <vector>
+#include <string>
+using namespace std;
+
+// @lc code=start
 class Solution {
 public:
     vector<int> maxActiveSectionsAfterTrade(string s, vector<vector<int>>& queries) {
-        vector<int> res;
-        for (const auto& q : queries) {
-            int l = q[0], r = q[1];
-            string t = '1' + s.substr(l, r - l + 1) + '1';
-            int n = t.size();
-            // Count original number of '1's
-            int orig = 0;
-            for (int i = 1; i < n - 1; ++i) orig += t[i] == '1';
-            int max_ones = orig;
-            // Find all blocks of '1's surrounded by '0's
-            for (int i = 1; i < n - 1;) {
-                // Eligible '1' block: t[i-1]=='0', t[i]=='1', ... t[j]=='1', t[j+1]=='0'
-                if (t[i-1] == '0' && t[i] == '1') {
-                    int j = i;
-                    while (j < n - 1 && t[j] == '1') ++j;
-                    if (t[j] == '0') {
-                        // Simulate converting [i,j-1] to '0's
-                        string t2 = t;
-                        for (int k = i; k < j; ++k) t2[k] = '0';
-                        // Now find all eligible '0' blocks surrounded by '1's
-                        for (int x = 1; x < n - 1;) {
-                            if (t2[x-1] == '1' && t2[x] == '0') {
-                                int y = x;
-                                while (y < n - 1 && t2[y] == '0') ++y;
-                                if (t2[y] == '1') {
-                                    // Simulate converting [x, y-1] to '1's
-                                    string t3 = t2;
-                                    for (int k = x; k < y; ++k) t3[k] = '1';
-                                    int count = 0;
-                                    for (int z = 1; z < n - 1; ++z) count += t3[z] == '1';
-                                    if (count > max_ones) max_ones = count;
-                                }
-                                x = y;
-                            } else {
-                                ++x;
-                            }
+        vector<int> result;
+        
+        for (auto& query : queries) {
+            int l = query[0], r = query[1];
+            string sub = "1" + s.substr(l, r - l + 1) + "1";
+            int maxActive = 0;
+            
+            // Function to count active sections ('1')
+            auto countActiveSections = [](const string& str) {
+                int count = 0;
+                bool inSection = false;
+                for (char c : str) {
+                    if (c == '1') {
+                        if (!inSection) {
+                            inSection = true;
+                            count++;
                         }
+                    } else {
+                        inSection = false;
                     }
-                    i = j;
-                } else {
-                    ++i;
                 }
-            }
-            res.push_back(max_ones);
-        }
-        return res;
-    }
-};
-# @lc code=end
+                return count;
+            };
+            
+            // Initial count of active sections without any trade
+            int initialActiveSections = countActiveSections(sub);
+            maxActive = initialActiveSections; // Initialize maxActive with current active sections count
+
+            // Traverse through the string and consider possible trades:
+auto tryTrade=[&](int start,int end){int beforeTrade=countActiveSections(sub);for(int i=start;i<end;++i){sub[i]='0';}int afterTrade=countActiveSections(sub);maxActive=max(maxActive,afterTrade);for(int i=start;i<end;++i){sub[i]='1';}};int n=sub.size();for(int i=0;i<n;){if(sub[i]=='0'){int j=i;while(j<n&&sub[j]=='0'){j++;}if(i>0&&j<n){tryTrade(i,j);}i=j;}else{i++;}}result.push_back(maxActive);}return result;};// @lc code=end
