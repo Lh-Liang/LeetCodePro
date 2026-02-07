@@ -6,30 +6,31 @@
 
 # @lc code=start
 /**
-* Definition for singly-linked list.
-* type ListNode struct {
-*     Val int
-*     Next *ListNode
-* }
-*/
+ * Definition for singly-linked list.
+ * type ListNode struct {
+ *     Val int
+ *     Next *ListNode
+ * }
+ */
 func doubleIt(head *ListNode) *ListNode {
+    current := head
     carry := 0
-    dummy := &ListNode{0, head}
-    cur := head
-    prev := dummy
     
-    for cur != nil {
-        sum := cur.Val*2 + carry
-        cur.Val = sum % 10
-        carry = sum / 10
-        prev = cur
-        cur = cur.Next
+    // Traverse the linked list and double each digit
+    for current != nil {
+        newValue := current.Val*2 + carry
+        current.Val = newValue % 10
+        carry = newValue / 10
+        
+        if current.Next == nil && carry > 0 {
+            // If at end of list and there is carry, add new node
+            current.Next = &ListNode{Val: carry}
+            break
+        }
+        
+        current = current.Next
     }
     
-    if carry > 0 {
-        prev.Next = &ListNode{carry, nil}
-    }
-    
-    return dummy.Next
+    return head
 }
 # @lc code=end
