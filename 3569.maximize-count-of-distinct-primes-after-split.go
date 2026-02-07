@@ -3,38 +3,54 @@
 #
 # [3569] Maximize Count of Distinct Primes After Split
 #
-
 # @lc code=start
 func maximumCount(nums []int, queries [][]int) []int {
-    // Precompute all prime numbers up to 100000 using Sieve of Eratosthenes
-    const maxVal = 100000
-    isPrime := make([]bool, maxVal+1)
-    for i := 2; i <= maxVal; i++ {
+    maxVal := 100005
+    // Sieve of Eratosthenes to determine primes up to maxVal
+    isPrime := make([]bool, maxVal)
+    for i := range isPrime {
         isPrime[i] = true
     }
-    for i := 2; i*i <= maxVal; i++ {
+    isPrime[0], isPrime[1] = false, false
+    for i := 2; i*i < maxVal; i++ {
         if isPrime[i] {
-            for j := i*i; j <= maxVal; j += i {
+            for j := i * i; j < maxVal; j += i {
                 isPrime[j] = false
             }
         }
     }
-    
-    var result []int
-    
-    // Helper function to count distinct primes in a subarray using sliding window technique
-    countDistinctPrimes := func(subarray []int) int {
-        primeSet := make(map[int]struct{})
-        for _, num := range subarray {
-            if num > 1 && isPrime[num] {
-                primeSet[num] = struct{}{} 
-            } 
-        } 
-        return len(primeSet) 
-    } 
-    
-    // Process each query with efficient updates and state maintenance
-    for _, query := range queries { 
-        idx, val := query[0], query[1]
-        nums[idx] = val 
-        maxDistinctPrimes := 0 	// Implement sliding window or similar strategy here to efficiently compute splits 	// Try every possible split point k from 1 to len(nums)-1 	for k := 1; k < len(nums); k++ { 	   leftPrimesCount := countDistinctPrimes(nums[:k]) 	   rightPrimesCount := countDistinctPrimes(nums[k:]) 	   totalDistinctPrimes := leftPrimesCount + rightPrimesCount 	   if totalDistinctPrimes > maxDistinctPrimes { 	      maxDistinctPrimes = totalDistinctPrimes } } result = append(result, maxDistinctPrimes) } return result } # @lc code=end
+
+    n := len(nums)
+    ans := make([]int, 0, len(queries))
+    for _, q := range queries {
+        idx, val := q[0], q[1]
+        nums[idx] = val
+        // Build prefix and suffix prime distinct count
+        prefixSet := make(map[int]struct{})
+        suffixSet := make(map[int]struct{})
+        prefixCount := make([]int, n+1)
+        suffixCount := make([]int, n+1)
+        for i := 0; i < n; i++ {
+            if nums[i] < maxVal && isPrime[nums[i]] {
+                prefixSet[nums[i]] = struct{}{}
+            }
+            prefixCount[i+1] = len(prefixSet)
+        }
+        for i := n - 1; i >= 0; i-- {
+            if nums[i] < maxVal && isPrime[nums[i]] {
+                suffixSet[nums[i]] = struct{}{}
+            }
+            suffixCount[i] = len(suffixSet)
+        }
+        maxDistinct := 0
+        for k := 1; k < n; k++ {
+            total := prefixCount[k] + suffixCount[k]
+            if total > maxDistinct {
+                maxDistinct = total
+            }
+        }
+        ans = append(ans, maxDistinct)
+    }
+    return ans
+}
+# @lc code=end
