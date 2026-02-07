@@ -8,36 +8,22 @@ class Solution {
 public:
     int minSwaps(vector<int>& nums, vector<int>& forbidden) {
         int n = nums.size();
-        vector<int> conflicted;
+        int swaps = 0;
         for (int i = 0; i < n; ++i) {
             if (nums[i] == forbidden[i]) {
-                conflicted.push_back(i);
-            }
-        }
-        if (conflicted.empty()) return 0;
-        unordered_map<int, vector<int>> value_indices;
-        for (int i = 0; i < n; ++i) {
-            value_indices[nums[i]].push_back(i);
-        }
-        vector<bool> used(n, false);
-        int swaps = 0;
-        for (int idx : conflicted) {
-            if (used[idx]) continue;
-            bool found = false;
-            for (int j = 0; j < n; ++j) {
-                if (j == idx || used[j]) continue;
-                if (nums[j] != forbidden[idx] && nums[idx] != forbidden[j]) {
-                    used[idx] = used[j] = true;
-                    ++swaps;
-                    found = true;
-                    break;
+                bool swapped = false;
+                for (int j = i + 1; j < n; ++j) {
+                    if (nums[j] != forbidden[i] && nums[j] != forbidden[j]) {
+                        std::swap(nums[i], nums[j]);
+                        ++swaps;
+                        swapped = true;
+                        break;
+                    }
                 }
-            }
-            if (!found) {
-                return -1;
+                if (!swapped) return -1; // Return -1 if no valid swap is found
             }
         }
-        return swaps;
+        return swaps; // Return total number of swaps performed
     }
 };
 # @lc code=end
