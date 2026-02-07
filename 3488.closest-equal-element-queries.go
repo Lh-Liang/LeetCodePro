@@ -6,36 +6,46 @@
 
 # @lc code=start
 func solveQueries(nums []int, queries []int) []int {
-    indexMap := make(map[int][]int)
     n := len(nums)
-    for i := 0; i < n; i++ {
-        indexMap[nums[i]] = append(indexMap[nums[i]], i)
+    valToIndices := make(map[int][]int)
+    for i, v := range nums {
+        valToIndices[v] = append(valToIndices[v], i)
     }
-    results := make([]int, len(queries))
-    min := func(a, b int) int {
-        if a < b { return a }
-        return b
-    }
-    for qIdx, query := range queries {
-        value := nums[query]
-        if indices, exists := indexMap[value]; exists {
-            minDist := n // effectively infinite in this context
-            for _, idx := range indices {
-                if idx != query {
-                    distClockwise := (idx - query + n) % n
-                    distCounterClockwise := (query - idx + n) % n
-                    minDist = min(minDist, min(distClockwise, distCounterClockwise))
-                }
-            }
-            if minDist == n { // no other matching index found
-                results[qIdx] = -1
-            } else {
-                results[qIdx] = minDist
-            }
-        } else { 
-            results[qIdx] = -1 
+    answer := make([]int, len(queries))
+    for idx, q := range queries {
+        v := nums[q]
+        indices := valToIndices[v]
+        if len(indices) == 1 {
+            answer[idx] = -1
+            continue
         }
+        minDist := n
+        for _, j := range indices {
+            if j == q {
+                continue
+            }
+            d := abs(j - q)
+            d = min(d, n - d)
+            if d < minDist {
+                minDist = d
+            }
+        }
+        answer[idx] = minDist
     }
-    return results 
+    return answer
+}
+
+func abs(x int) int {
+    if x < 0 {
+        return -x
+    }
+    return x
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
 }
 # @lc code=end
