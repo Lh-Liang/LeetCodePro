@@ -1,0 +1,1 @@
+Successfully implemented solution for Minimum Operations to Equalize Subarrays problem.
