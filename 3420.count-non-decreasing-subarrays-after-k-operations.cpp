@@ -1,30 +1,30 @@
-#
-# @lc app=leetcode id=3420 lang=cpp
-#
-# [3420] Count Non-Decreasing Subarrays After K Operations
-#
-
 # @lc code=start
+#include <vector>
+
 class Solution {
 public:
-    long long countNonDecreasingSubarrays(vector<int>& nums, int k) {
+    long long countNonDecreasingSubarrays(std::vector<int>& nums, int k) {
+        long long count = 0;
         int n = nums.size();
-        long long ans = 0;
-        for (int left = 0; left < n; ++left) {
-            long long used = 0;
-            int max_val = nums[left];
-            for (int right = left + 1; right < n; ++right) {
-                if (nums[right] < max_val) {
-                    used += max_val - nums[right];
-                    if (used > k) break;
-                } else {
-                    max_val = nums[right];
-                }
+        int start = 0;
+        int total_increments = 0;
+
+        for (int end = 0; end < n; ++end) {
+            if (end > 0 && nums[end] < nums[end - 1]) {
+                total_increments += nums[end - 1] - nums[end];
             }
-            // The number of valid subarrays starting at left is (right - left)
-            ans += (right - left);
+            
+            while (total_increments > k && start <= end) {
+                if (start + 1 < n && nums[start + 1] < nums[start]) {
+                    total_increments -= nums[start] - nums[start + 1];
+                }
+                start++;
+            }
+
+            count += (end - start + 1);
         }
-        return ans;
+
+        return count;
     }
 };
 # @lc code=end
