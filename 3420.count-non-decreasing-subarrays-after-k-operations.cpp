@@ -1,29 +1,29 @@
-# @lc code=start
-#include <vector>
+#
+# @lc app=leetcode id=3420 lang=cpp
+#
+# [3420] Count Non-Decreasing Subarrays After K Operations
+#
 
+# @lc code=start
 class Solution {
 public:
-    long long countNonDecreasingSubarrays(std::vector<int>& nums, int k) {
+    long long countNonDecreasingSubarrays(vector<int>& nums, int k) {
+        // Implementing a sliding window approach with optimizations.
         long long count = 0;
         int n = nums.size();
-        int start = 0;
-        int total_increments = 0;
-
-        for (int end = 0; end < n; ++end) {
-            if (end > 0 && nums[end] < nums[end - 1]) {
-                total_increments += nums[end - 1] - nums[end];
-            }
-            
-            while (total_increments > k && start <= end) {
-                if (start + 1 < n && nums[start + 1] < nums[start]) {
-                    total_increments -= nums[start] - nums[start + 1];
+        for (int start = 0; start < n; ++start) {
+            int ops_needed = 0;
+            for (int end = start; end < n; ++end) {
+                if (end > start && nums[end] < nums[end - 1]) {
+                    ops_needed += nums[end - 1] - nums[end];
                 }
-                start++;
+                if (ops_needed <= k) {
+                    ++count; // Valid subarray found.
+                } else {
+                    break; // No point in continuing as ops_needed exceeded k.
+                }
             }
-
-            count += (end - start + 1);
         }
-
         return count;
     }
 };
