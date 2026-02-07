@@ -7,48 +7,70 @@
 # @lc code=start
 func maxSumTrionic(nums []int) int64 {
     n := len(nums)
-    if n < 4 {
-        return 0 // Not enough elements for a trionic subarray
+    prefix := make([]int64, n+1)
+    for i := 0; i < n; i++ {
+        prefix[i+1] = prefix[i] + int64(nums[i])
     }
-    
-    inc1 := make([]int64, n) // Max sum of increasing segment ending at i
-    dec := make([]int64, n)  // Max sum of decreasing segment starting at i
-    inc2 := make([]int64, n) // Max sum of increasing segment starting at i
-    
-    inc1[0] = int64(nums[0])
+    // Precompute length of strictly increasing sequences ending at i
+    incLeft := make([]int, n)
     for i := 1; i < n; i++ {
-        if nums[i] > nums[i-1] {
-            inc1[i] = inc1[i-1] + int64(nums[i])
+        if nums[i-1] < nums[i] {
+            incLeft[i] = incLeft[i-1] + 1
         } else {
-            inc1[i] = int64(nums[i])
+            incLeft[i] = 0
         }
     }
-
-    dec[n-1] = int64(nums[n-1])
-    for i := n-2; i >= 0; i-- {
-        if nums[i] > nums[i+1] {
-            dec[i] = dec[i+1] + int64(nums[i])
-        } else {
-            dec[i] = int64(nums[i])
-        }
-    }
-
-    inc2[n-1] = int64(nums[n-1])
+    // Precompute length of strictly increasing sequences starting at i
+    incRight := make([]int, n)
     for i := n-2; i >= 0; i-- {
         if nums[i] < nums[i+1] {
-            inc2[i] = inc2[i+1] + int64(nums[i])
+            incRight[i] = incRight[i+1] + 1
         } else {
-            inc2[i] = int64(nums[i])
+            incRight[i] = 0
         }
     }
-
-    var maxSum int64 = -9223372036854775808 // Define minimum possible value for int64
-
-    // Calculate maximum trionic sum by combining segments.
-    for p := 1; p < n-2; p++ { // Ensure there is space for both decrease and increase after p
-        if nums[p-1] < nums[p] { // Ensure valid increase before p
-            for q := p+1; q < n-1; q++ { // Ensure there is space after q for increase
-                if nums[q-1] > nums[q] { // Ensure valid decrease before q
-                    currentSum := inc1[p]+dec[q]+inc2[q]-int64(nums[p])-int64(nums[q])// Correct double counted parts.
-n                    if currentSum > maxSum{
-n                        maxSum = currentSumn}	n}	n}	n}	n}	return maxSumn	//# @lc code=end
+    // Precompute length of strictly decreasing sequences ending at i
+    decLeft := make([]int, n)
+    for i := 1; i < n; i++ {
+        if nums[i-1] > nums[i] {
+            decLeft[i] = decLeft[i-1] + 1
+        } else {
+            decLeft[i] = 0
+        }
+    }
+    // Precompute length of strictly decreasing sequences starting at i
+    decRight := make([]int, n)
+    for i := n-2; i >= 0; i-- {
+        if nums[i] > nums[i+1] {
+            decRight[i] = decRight[i+1] + 1
+        } else {
+            decRight[i] = 0
+        }
+    }
+    maxSum := int64(-1<<63)
+    // For each possible middle (peak of decreasing segment), try all possible q (end of decreasing, start of last increasing)
+    for q := 2; q < n-1; q++ {
+        // q is the end of decreasing, the strictly decreasing segment is from p to q
+        decLen := decLeft[q]
+        if decLen == 0 {
+            continue
+        }
+        p := q - decLen
+        // The first strictly increasing segment ends at p, so it starts at l = p - incLeft[p]
+        inc1Len := incLeft[p]
+        l := p - inc1Len
+        if l >= 0 && l < p && p < q {
+            // The last strictly increasing segment starts at q, so it ends at r = q + incRight[q]
+            inc2Len := incRight[q]
+            r := q + inc2Len
+            if r < n && q < r {
+                sum := prefix[r+1] - prefix[l]
+                if sum > maxSum {
+                    maxSum = sum
+                }
+            }
+        }
+    }
+    return maxSum
+}
+# @lc code=end
