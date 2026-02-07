@@ -5,22 +5,25 @@
 #
 # @lc code=start
 func uniqueXorTriplets(nums []int) int {
-    uniqueXor := make(map[int]struct{})
+    // Step 1: Precompute prefix XORs
     n := len(nums)
-    
-    // Iterate over all possible pairs (i, j) and calculate the XOR with each k >= j
+    prefixXor := make([]int, n+1)
     for i := 0; i < n; i++ {
-        xorIJ := 0
+        prefixXor[i+1] = prefixXor[i] ^ nums[i]
+    }
+    // Step 2: Use a set to record unique triplet values
+    unique := make(map[int]struct{})
+    // Step 3: Iterate over all possible (i, j, k) where i <= j <= k
+    for i := 0; i < n; i++ {
         for j := i; j < n; j++ {
-            xorIJ ^= nums[j]
-            // For k >= j, xorIJ remains unchanged
             for k := j; k < n; k++ {
-                uniqueXor[xorIJ] = struct{}{}
+                // Compute nums[i] ^ nums[j] ^ nums[k]
+                val := nums[i] ^ nums[j] ^ nums[k]
+                unique[val] = struct{}{}
             }
         }
     }
-    
-    // The number of unique XOR values is the size of the map keys
-    return len(uniqueXor)
+    // Step 4: Return the number of unique values
+    return len(unique)
 }
 # @lc code=end
