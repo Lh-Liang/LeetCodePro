@@ -6,32 +6,40 @@
 
 # @lc code=start
 func longestBalanced(nums []int) int {
-    // Initialize variables
-    maxLength := 0
-    balance := 0
+    // Maps to keep track of first occurrence of each balance
     balanceMap := make(map[int]int)
-    balanceMap[0] = -1 // Initial balance of 0 at index -1 for full array consideration
+    balanceMap[0] = -1 // Initial balance zero at start (before index 0)
+    
     evenSet := make(map[int]bool)
     oddSet := make(map[int]bool)
-    
+    maxLength := 0
+    balance := 0 
+
     for i, num := range nums {
         if num % 2 == 0 {
-            evenSet[num] = true 
+            // Even number handling
+            if !evenSet[num] {
+                evenSet[num] = true
+                balance++
+            }
         } else {
-            oddSet[num] = true 
+            // Odd number handling
+            if !oddSet[num] {
+                oddSet[num] = true
+                balance--
+            }
         }
         
-        // Calculate current balance based on distinct counts
-        balance = len(evenSet) - len(oddSet)
-        
         // Check if this balance has been seen before
-        if idx, exists := balanceMap[balance]; exists {
-            maxLength = max(maxLength, i - idx) 
+        if prevIndex, found := balanceMap[balance]; found {
+            maxLength = max(maxLength, i - prevIndex)
         } else {
-            balanceMap[balance] = i // Store first occurrence of this balance
-        } 
-    } 
-    return maxLength 
+            // Record first occurrence of this balance
+            balanceMap[balance] = i 
+        }
+    }
+    return maxLength
 }
-// Helper function to get max value between two integers.
-def max(a, b int) int { if a > b { return a } else { return b }}
+// Utility function to get maximum value.
+func max(a, b int) int { if a > b { return a } else { return b } }
+def main() {} # @lc code=end
