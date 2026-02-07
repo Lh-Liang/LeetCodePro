@@ -6,62 +6,57 @@
 
 # @lc code=start
 func remainingMethods(n int, k int, invocations [][]int) []int {
-    // Step 1: Create adjacency list for invocations
-    adj := make([][]int, n)
+    // Create adjacency lists for the graph representation
+    adjList := make([][]int, n)
+    reverseAdjList := make([][]int, n)
     for _, invocation := range invocations {
-        adj[invocation[0]] = append(adj[invocation[0]], invocation[1])
+        adjList[invocation[0]] = append(adjList[invocation[0]], invocation[1])
+        reverseAdjList[invocation[1]] = append(reverseAdjList[invocation[1]], invocation[0])
     }
     
-    // Step 2: Use BFS/DFS to find all reachable nodes from k (suspicious nodes)
-    var dfs func(int) []bool
-    dfs = func(node int) []bool {
-        visited := make([]bool, n)
-        var stack []int
-        stack = append(stack, node)
-        visited[node] = true
-        for len(stack) > 0 {
-            current := stack[len(stack)-1]
-            stack = stack[:len(stack)-1]
-            for _, neighbor := range adj[current] {
-                if !visited[neighbor] {
-                    visited[neighbor] = true
-                    stack = append(stack, neighbor)
+    // Find all suspicious methods using DFS starting from method k
+    suspicious := make([]bool, n)
+    var dfs func(node int)
+    dfs = func(node int) {
+        if suspicious[node] {
+            return
+        }
+        suspicious[node] = true
+        for _, nei := range adjList[node] {
+            dfs(nei)
+        }
+    }
+    dfs(k)
+    
+    // Check for any incoming edges to the suspicious set from outside
+    canRemoveSuspicious := true
+    for i := 0; i < n; i++ {
+        if !suspicious[i] { // Only consider non-suspicious methods
+            for _, nei := range adjList[i] {
+                if suspicious[nei] { // Found an incoming edge to a suspicious method
+                    canRemoveSuspicious = false
+                    break
                 }
             }
         }
-        return visited 
-n}
-n   
-suspicious := dfs(k) 
-n   
-inDegree := make([]int, n) 
-n   
-outDegree := make([][]int, n) 
-n   
-forsource , targets:= range adj{ 
-n       for _, target := range targets { 
-n           outDegree[source] = append(outDegree[source], target) 
-n           inDegree[target]++ 
-n       } 
-n   } 
-n   
-successfullyIsolated := true
-   
-sfor i:= 0; i< n; i++{ 
-successfullyIsolated = successfullyIsolated && (suspicious[i] || inDegree[i]==0)
-forsuccessfullyIsolated && !suspicious[i]{
-successfullyIsolated=false
-break
+        if !canRemoveSuspicious {
+            break
+        }
+    }
+    
+    // Determine result based on whether we can safely remove suspicious methods or not
+    result := []int{}
+    if canRemoveSuspicious {
+        for i := 0; i < n; i++ {
+            if !suspicious[i] {
+                result = append(result, i)
+            }
+        }
+    } else {
+        for i := 0; i < n; i++ {
+            result = append(result, i)
+        }
+    }
+    return result
 }
-s}
-sif successfullyIsolated{output:=[]int{}
-sfor j:=0; j<n;j++{
-sif !suspicious[j]{
-soutput=append(output,j)
-g}
-g}
-greturn output
-g}
-greturn []int{}
-g}g
 # @lc code=end
