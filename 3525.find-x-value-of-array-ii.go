@@ -7,32 +7,27 @@
 # @lc code=start
 func resultArray(nums []int, k int, queries [][]int) []int {
     n := len(nums)
-    result := make([]int, len(queries))
-    
-    for idx, query := range queries {
-        indexi, valuei, starti, xi := query[0], query[1], query[2], query[3]
-        
-        // Update nums[indexi] to valuei
-        nums[indexi] = valuei
-        
-        // Calculate prefix product up to starti-1
-        prefixProduct := 1
-        for i := 0; i < starti; i++ {
-            prefixProduct = (prefixProduct * nums[i]) % k
+    res := make([]int, len(queries))
+    curr := make([]int, n)
+    copy(curr, nums)
+    for qi, q := range queries {
+        idx, val, start, x := q[0], q[1], q[2], q[3]
+        curr[idx] = val
+        arr := curr[start:]
+        m := len(arr)
+        prefixProd := make([]int, m+1)
+        prefixProd[0] = 1
+        for i := 0; i < m; i++ {
+            prefixProd[i+1] = (prefixProd[i] * arr[i]) % k
         }
-        
-        // Calculate suffix product from starti onwards and check conditions for x-value
-        suffixProduct := 1
         count := 0
-        for i := n - 1; i >= starti; i-- {
-            if (prefixProduct * suffixProduct) % k == xi {
+        for j := 1; j <= m; j++ {
+            if prefixProd[j] == x {
                 count++
             }
-            suffixProduct = (suffixProduct * nums[i]) % k
         }
-        
-        result[idx] = count
+        res[qi] = count
     }
-    return result
+    return res
 }
 # @lc code=end
