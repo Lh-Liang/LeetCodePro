@@ -5,33 +5,28 @@
 #
 
 # @lc code=start
-#include <string>
-#include <vector>
-#include <unordered_map>
-using namespace std;
-
 class Solution {
 public:
     long long countSubstrings(string s) {
+        long long count = 0;
         int n = s.size();
-        long long res = 0;
-        for (int d = 1; d <= 9; ++d) {
-            unordered_map<int, int> cnt;
-            cnt[0] = 1; // empty prefix
-            int mod = 0;
-            int pow10 = 1;
-            for (int i = 0; i < n; ++i) {
-                int x = s[i] - '0';
-                mod = (mod * 10 + x) % d;
-                if (x == d) {
-                    res += cnt[mod];
-                }
-                if (i+1 < n && s[i+1] - '0' == d) {
-                    cnt[mod]++;
-                }
+        
+        // Iterate over each end position of the substring
+        for (int j = 0; j < n; ++j) {
+            int lastDigit = s[j] - '0';
+            if (lastDigit == 0) continue; // Ignore if last digit is zero
+            
+            int num = 0;
+            int multiplier = 1;
+            // Consider substrings ending at j and check divisibility by lastDigit
+            for (int i = j; i >= 0; --i) {
+                num += (s[i] - '0') * multiplier; // Build number from right to left using multiplication to avoid overflow issues
+                if (num % lastDigit == 0) count++; // Check divisibility by lastDigit
+                multiplier *= 10;
+                // If leading parts become zero due to previous zeroes, continue checking further unless it's a single zero.
             }
         }
-        return res;
+        return count;
     }
 };
 # @lc code=end
