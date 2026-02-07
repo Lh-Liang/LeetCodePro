@@ -1,35 +1,40 @@
-#
-# @lc app=leetcode id=3734 lang=cpp
-#
-# [3734] Lexicographically Smallest Palindromic Permutation Greater Than Target
-#
-
 # @lc code=start
 class Solution {
 public:
     string lexPalindromicPermutation(string s, string target) {
-        int n = s.size();
-        vector<int> cnt(26, 0);
-        for (char c : s) cnt[c - 'a']++;
-        int odd = 0, odd_char = -1;
-        for (int i = 0; i < 26; ++i) {
-            if (cnt[i] % 2) {
-                odd++;
-                odd_char = i;
-            }
+        unordered_map<char, int> char_count;
+        for (char c : s) {
+            char_count[c]++;
         }
-        if (odd > 1) return "";
-        string half = "";
-        for (int i = 0; i < 26; ++i) half += string(cnt[i]/2, 'a' + i);
-        string middle = odd_char != -1 ? string(1, 'a' + odd_char) : "";
-        string smallest = half + middle + string(half.rbegin(), half.rend());
-        if (smallest > target) return smallest;
+        
+        int odd_count = 0;
+        for (auto &pair : char_count) {
+            if (pair.second % 2 != 0) odd_count++;
+        }
+
+        if (odd_count > 1 || (odd_count == 1 && s.size() % 2 == 0)) {
+            return ""; // No palindromic permutation possible
+        }
+
+        string half = "", middle = "";
+        for (auto &pair : char_count) {
+            if (pair.second % 2 != 0) {
+                middle += pair.first; // Middle character for odd-length palindrome
+            }
+            half += string(pair.second / 2, pair.first);
+        }
+
         sort(half.begin(), half.end());
+        
+        string best_palindrome = "";
         do {
             string candidate = half + middle + string(half.rbegin(), half.rend());
-            if (candidate > target) return candidate;
+            if (candidate > target && (best_palindrome.empty() || candidate < best_palindrome)) {
+                best_palindrome = candidate;
+            }
         } while (next_permutation(half.begin(), half.end()));
-        return "";
+
+        return best_palindrome;
     }
 };
 # @lc code=end
