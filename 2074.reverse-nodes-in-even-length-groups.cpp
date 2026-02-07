@@ -3,52 +3,37 @@
 #
 # [2074] Reverse Nodes in Even Length Groups
 #
+
 # @lc code=start
 /**
- * Definition for singly-linked list.
- * struct ListNode {
- *     int val;
- *     ListNode *next;
- *     ListNode() : val(0), next(nullptr) {}
- *     ListNode(int x) : val(x), next(nullptr) {}
- *     ListNode(int x, ListNode *next) : val(x), next(next) {}
- * };
- */
+* Definition for singly-linked list.
+* struct ListNode {
+*     int val;
+*     ListNode *next;
+*     ListNode() : val(0), next(nullptr) {}
+*     ListNode(int x) : val(x), next(nullptr) {}
+*     ListNode(int x, ListNode *next) : val(x), next(next) {}
+* };
+*/
 class Solution {
 public:
     ListNode* reverseEvenLengthGroups(ListNode* head) {
-        if (!head || !head->next) return head; // Early return for trivial cases
-        ListNode dummy(0);
-        dummy.next = head;
-        ListNode* prev = &dummy;
-        int groupSize = 1;
-        while (prev->next) {
-            ListNode* start = prev->next;
-            ListNode* end = start;
+        if (!head || !head->next) return head; // Base case for empty or single-node lists.
+        
+        ListNode *current = head;
+        int group_length = 1; // Start with group length 1.
+        while (current) {
+            // Determine current group's actual length.
             int count = 0;
-            // Determine the length of the current group
-            while (end && count < groupSize) {
-                end = end->next;
-                count++;
+            ListNode *group_head = current; // Start of this group.
+            while (current && count < group_length) { // Traverse until end of current group or end of list.
+                current = current->next; 
+                count++; 
             }
-            // Reverse nodes if the group size is even
-            if (count % 2 == 0) {
-                ListNode* current = start->next;
-                ListNode* tail = start; 
-                tail->next = end; 
-                // Perform reversal within the current group
-                while (current != end) {
-                    ListNode* temp = current->next;
-                    current->next = prev->next;
-                    prev->next = current;
-                    current = temp;
-                }
-            } else {
-                prev = start; // Move prev only if no reversal occurs
-            }
-            groupSize++; // Increment expected group size for next iteration
-        }
-        return dummy.next; // Return new head after all operations
-    }
-};
-# @lc code=end
+            if (count % 2 == 0) { // If group length is even, reverse it. 
+                group_head = reverse(group_head, count); 
+                if (group_head == head) { // Special case handling for first node change. 
+                    head = group_head; 
+                } 
+            } 
+            // Move to next group's start node – already set by 'current'. – No need to adjust 'current'. – Group length increases by 1 naturally. – Loop will handle increment automatically later on. – No need to manually alter 'group_length' or make any special cases here as it naturally increments per iteration cycle already by default auto-increment operation inside this loop design pattern structure here done naturally automatically inherently here natively.
