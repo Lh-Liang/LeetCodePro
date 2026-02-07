@@ -5,34 +5,28 @@
 #
 # @lc code=start
 /**
- * Definition for singly-linked list.
- * type ListNode struct {
- *     Val int
- *     Next *ListNode
- * }
- */
+* Definition for singly-linked list.
+* type ListNode struct {
+*     Val int
+*     Next *ListNode
+* }
+*/
 func modifiedList(nums []int, head *ListNode) *ListNode {
-    // Convert nums to a set for O(1) lookup time
-    numSet := make(map[int]bool)
+    numSet := make(map[int]struct{}, len(nums))
     for _, num := range nums {
-        numSet[num] = true
+        numSet[num] = struct{}{}
     }
-    
-    // Use a dummy node to handle edge cases easily
     dummy := &ListNode{Next: head}
-    current := dummy
-    
-    // Iterate through the linked list and remove nodes present in numSet
-    for current.Next != nil {
-        if numSet[current.Next.Val] {
-            // Skip over nodes that are in numSet (remove them)
-            current.Next = current.Next.Next
+    prev := dummy
+    curr := head
+    for curr != nil {
+        if _, found := numSet[curr.Val]; found {
+            prev.Next = curr.Next
         } else {
-            // Otherwise, move to the next node normally
-            current = current.Next
+            prev = curr
         }
+        curr = curr.Next
     }
-    
-    return dummy.Next // Return the new head of the list after removals are done
+    return dummy.Next
 }
 # @lc code=end
