@@ -13,21 +13,25 @@
 */
 func gcd(a, b int) int {
     for b != 0 {
-        a, b = b, a % b
+        a, b = b, a%b
     }
     return a
 }
 
 func insertGreatestCommonDivisors(head *ListNode) *ListNode {
-    current := head
-    for current != nil && current.Next != nil {
-        next := current.Next
-        gcdValue := gcd(current.Val, next.Val) // Calculate GCD using custom function.
-        gcdNode := &ListNode{Val: gcdValue} // Create new node with GCD value.
-        gcdNode.Next = next // Link new node between current and next.
-        current.Next = gcdNode // Update current's next to point to this new node.
-        current = next // Move to next original node in sequence.
+    if head == nil || head.Next == nil {
+        return head
     }
-    return head // Return modified head of linked list after insertion of all GCDs.
+    curr := head
+    for curr != nil && curr.Next != nil {
+        v1 := curr.Val
+        v2 := curr.Next.Val
+        g := gcd(v1, v2)
+        node := &ListNode{Val: g, Next: curr.Next}
+        curr.Next = node
+        curr = node.Next
+    }
+    // Optional verification step: check that all nodes are linked correctly (could be implemented if needed)
+    return head
 }
 # @lc code=end
