@@ -3,7 +3,6 @@
 #
 # [2058] Find the Minimum and Maximum Number of Nodes Between Critical Points
 #
-
 # @lc code=start
 /**
 * Definition for singly-linked list.
@@ -13,38 +12,29 @@
 * }
 */
 func nodesBetweenCriticalPoints(head *ListNode) []int {
-    if head == nil || head.Next == nil || head.Next.Next == nil {
+    indices := []int{}
+    pos := 1
+    prev := head
+    curr := head.Next
+    for curr != nil && curr.Next != nil {
+        next := curr.Next
+        if (curr.Val > prev.Val && curr.Val > next.Val) || (curr.Val < prev.Val && curr.Val < next.Val) {
+            indices = append(indices, pos)
+        }
+        prev = curr
+        curr = next
+        pos++
+    }
+    if len(indices) < 2 {
         return []int{-1, -1}
     }
-    prev := head.Val
-    index := 1
-    firstCriticalPoint := -1
-    lastCriticalPoint := -1
-    minDistance := int(^uint(0) >> 1) // Initialize to max int value
-    maxDistance := -1
-    current := head.Next
-    for current != nil && current.Next != nil {
-        if (current.Val > prev && current.Val > current.Next.Val) || 
-           (current.Val < prev && current.Val < current.Next.Val) {
-            if firstCriticalPoint == -1 { // First critical point found.
-                firstCriticalPoint = index
-            } else { // Calculate distances for subsequent critical points.
-                minDistance = min(minDistance, index-lastCriticalPoint)
-                maxDistance = index-firstCriticalPoint 
-            }
-            lastCriticalPoint = index 
+    minDist := indices[1] - indices[0]
+    maxDist := indices[len(indices)-1] - indices[0]
+    for i := 2; i < len(indices); i++ {
+        if indices[i] - indices[i-1] < minDist {
+            minDist = indices[i] - indices[i-1]
         }
-        prev = current.Val 
-        current = current.Next 
-        index++ 
     }
-    if minDistance == int(^uint(0) >> 1) {
-        return []int{-1,-1} 
-    }
-    return []int{minDistance,maxDistance} 
-}
-func min(a,b int) int { 
-    if a < b { return a } 
-    return b 
+    return []int{minDist, maxDist}
 }
 # @lc code=end
