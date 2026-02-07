@@ -3,45 +3,46 @@
 #
 # [3458] Select K Disjoint Special Substrings
 #
-
 # @lc code=start
 class Solution {
 public:
     bool maxSubstringLength(string s, int k) {
-        int n = s.size();
-        vector<int> first(26, n), last(26, -1);
-        // Step 1: Record first and last occurrence of each character
-        for (int i = 0; i < n; ++i) {
-            int idx = s[i] - 'a';
-            if (first[idx] == n) first[idx] = i;
-            last[idx] = i;
+        if (k == 0) return true;
+        unordered_map<char, int> charCount;
+        for (char c : s) {
+            charCount[c]++;
         }
-        // Step 2: Generate candidate intervals
-        vector<pair<int, int>> intervals;
-        for (int ch = 0; ch < 26; ++ch) {
-            if (first[ch] < last[ch]) { // must not be the entire string
-                int l = first[ch], r = last[ch];
-                bool valid = true;
-                // Step 3: Check all chars inside interval
-                for (int i = l; i <= r && valid; ++i) {
-                    int ci = s[i] - 'a';
-                    if (first[ci] < l || last[ci] > r) valid = false;
+
+        vector<pair<int, int>> potentialSegments;
+        unordered_set<char> usedChars;
+        int n = s.length();
+
+        for (int start = 0; start < n; ++start) {
+            if (usedChars.find(s[start]) != usedChars.end()) continue;
+            unordered_set<char> currentSegmentChars;
+            int end = start;
+            bool isValidSegment = true;
+            
+            while (end < n && isValidSegment) {
+                char currentChar = s[end];
+                if (charCount[currentChar] == 1 && currentSegmentChars.find(currentChar) == currentSegmentChars.end()) {
+                    currentSegmentChars.insert(currentChar);
+                    end++;
+                } else if (currentSegmentChars.find(currentChar) != currentSegmentChars.end()) {
+                    // Character repeats within the current segment, so invalidate it.
+                    isValidSegment = false;
+                } else {
+                    break; // Character appears outside intended segment.
                 }
-                if (valid) intervals.push_back({l, r});
+            }
+            
+            if (isValidSegment && !currentSegmentChars.empty()) {
+                potentialSegments.push_back({start, end - 1});
+                usedChars.insert(currentSegmentChars.begin(), currentSegmentChars.end());
             }
         }
-        // Step 4: Greedy: sort by end, select disjoint
-        sort(intervals.begin(), intervals.end(), [](auto&a, auto&b){ return a.second < b.second; });
-        int cnt = 0, end = -1;
-        for (auto &[l, r] : intervals) {
-            if (l > end) {
-                ++cnt;
-                end = r;
-                if (cnt == k) return true;
-            }
-        }
-        // Step 5: Check if we have k substrings
-        return k == 0 || cnt >= k;
+
+        return potentialSegments.size() >= k;
     }
 };
 # @lc code=end
