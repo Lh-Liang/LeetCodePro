@@ -8,27 +8,26 @@
 class Solution {
 public:
     int maxProduct(vector<int>& nums, int k, int limit) {
-        int max_product = -1;
-        // Iterate through all possible subsets
-        int n = nums.size();
-        for (int mask = 1; mask < (1 << n); ++mask) {
-            int alt_sum = 0;
-            int product = 1;
-            bool valid = true;
-            for (int i = 0; i < n; ++i) {
-                if (mask & (1 << i)) {
-                    if ((product *= nums[i]) > limit) {
-                        valid = false; // Product exceeds limit, break early.
-                        break;
-                    }
-                    alt_sum += (i % 2 == 0 ? nums[i] : -nums[i]);
-                }
+        // Implement backtracking to generate subsequences
+        function<void(int, vector<int>&)> backtrack = [&](int start, vector<int>& path) {
+            int altSum = 0, prod = 1;
+            for (int i = 0; i < path.size(); ++i) {
+                if (i % 2 == 0) altSum += path[i];
+                else altSum -= path[i];
+                prod *= path[i];
+                if (prod > limit) return; // Early stop if product exceeds limit
             }
-            if (valid && alt_sum == k) {
-                max_product = max(max_product, product);
+            if (altSum == k) maxProd = max(maxProd, prod);
+            for (int i = start; i < nums.size(); ++i) {
+                path.push_back(nums[i]);
+                backtrack(i + 1, path);
+                path.pop_back();
             }
-        }
-        return max_product; // Return maximum product found or -1 if none.
-    }
-};
+        };
+        int maxProd = -1; // Initialize with -1 as per problem statement when no valid subsequence exists.
+        vector<int> path; // Current sequence being explored.
+        backtrack(0, path); // Start backtracking from index 0.
+        return maxProd; // Return maximum found or -1 if none found. 
+    } 
+}; 
 # @lc code=end
