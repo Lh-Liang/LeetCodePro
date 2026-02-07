@@ -1,31 +1,40 @@
-#
-# @lc app=leetcode id=3449 lang=golang
-#
-# [3449] Maximize the Minimum Game Score
-#
-# @lc code=start
+//
+// @lc app=leetcode id=3449 lang=golang
+//
+// [3449] Maximize the Minimum Game Score
+//
+// @lc code=start
 func maxScore(points []int, m int) int64 {
     n := len(points)
-    left, right := 0, int(1e18) // Setting high right bound due to constraints
     
-    check := func(minVal int64) bool {
-        moves := int64(0)
-        for _, point := range points {
-            if point < minVal {
-                moves += minVal - int64(point)
+    // Helper function to check feasibility of achieving a certain minimum value.
+    isFeasible := func(target int) bool {
+        totalMoves := 0
+        currentScore := make([]int, n)
+        for i := 0; i < n; i++ {
+            if currentScore[i] < target {
+                needed := target - currentScore[i]
+                totalMoves += (needed + points[i] - 1) / points[i] // Ceiling division
+            }
+            if totalMoves > m {
+                return false
             }
         }
-        return moves <= int64(m)
+        return true
     }
     
-    for left < right { // Binary search for maximum possible minimum score
-        mid := (left + right + 1) / 2
-        if check(mid) {
-            left = mid // Try for a higher minimum score if possible
+    left, right := 0, 1000000000 // Start with reasonable bounds for binary search based on constraints.
+    var result int64 = 0
+    
+    for left <= right {
+        mid := (left + right) / 2
+        if isFeasible(mid) { // Check if mid can be achieved as minimum value.
+            result = int64(mid) // If yes, update result.
+            left = mid + 1 // Try for a better (higher) result.
         } else {
-            right = mid - 1 // Reduce the maximum possible score when condition fails
-        }
-    }
-    return int64(left) // This will be our answer since it maximizes our minimum game score.
-}
-# @lc code=end
+            right = mid - 1 // Otherwise, decrease the potential result range.
+        } 
+    } 
+    return result 
+a}
+a // @lc code=end
