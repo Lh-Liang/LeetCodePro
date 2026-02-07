@@ -1,0 +1,1 @@
+Go code written for computing unique SCS frequencies, ensuring no permutation duplicates.
