@@ -1,1 +1,23 @@
-# \n# @lc app=leetcode id=2289 lang=cpp\n# \n# [2289] Steps to Make Array Non-decreasing\n# \n\n# @lc code=start\nclass Solution {\npublic:\n    int totalSteps(vector<int>& nums) {\n        int n = nums.size();\n        vector<int> dp(n, 0); // To track steps for each element.\n        stack<int> s; // To store indices of elements in nums.\n        int result = 0; // To keep track of maximum steps required.\n        for (int i = 0; i < n; ++i) {\n            while (!s.empty() && nums[s.top()] <= nums[i]) { \n                result = max(result, dp[s.top()]); \n                s.pop(); \n            }\n            if (!s.empty()) { \n                dp[i] = dp[s.top()] + 1; \n            }\n            result = max(result, dp[i]); \n            s.push(i); \n        }\n        return result; \n    } \n}; # @lc code=end
+// @lc app=leetcode id=2289 lang=cpp
+//
+// [2289] Steps to Make Array Non-decreasing
+//
+// @lc code=start
+class Solution {
+public:
+    int totalSteps(vector<int>& nums) {
+        vector<int> dp(nums.size(), 0);
+        stack<int> st;
+        int max_steps = 0;
+        for (int i = 0; i < nums.size(); ++i) {
+            while (!st.empty() && nums[st.top()] <= nums[i]) {
+                dp[i] = max(dp[i], dp[st.top()] + 1);
+                st.pop();
+            }
+            max_steps = max(max_steps, dp[i]);
+            st.push(i);
+        }
+        return max_steps;
+    }
+};
+// @lc code=end
