@@ -1,29 +1,31 @@
+#
 # @lc app=leetcode id=3399 lang=cpp
+#
 # [3399] Smallest Substring With Identical Characters II
+#
+
 # @lc code=start
 class Solution {
 public:
     int minLength(string s, int numOps) {
         int n = s.size();
-        if (numOps >= n) return 1; // If operations exceed or equal string length, all can be made identical
-        vector<int> prefixZeros(n + 1, 0), prefixOnes(n + 1, 0);
+        int maxSeq = n; // Initialize with total length as maximum possible sequence
+        // Edge cases
+        if (numOps >= n) return 1; // If more or equal ops than length, we can make all characters different
         
-        // Create prefix sum arrays for zeros and ones
-        for (int i = 0; i < n; ++i) {
-            prefixZeros[i + 1] = prefixZeros[i] + (s[i] == '0');
-            prefixOnes[i + 1] = prefixOnes[i] + (s[i] == '1');
-        }
-        
-        int result = n; // Initialize result with maximum possible length 
-        // Use sliding windows to find minimum max segment length
-        for (int start = 0, end = 0; end < n; ++end) {
-            while (start <= end && min(prefixOnes[end + 1] - prefixOnes[start], \
-prefixZeros[end + 1] - prefixZeros[start]) > numOps) {
-                ++start;
+        // Two pointers for sliding window approach
+        int left = 0, right = 0;
+        vector<int> counts(2, 0); // counts[0] for '0', counts[1] for '1' within current window
+        while (right < n) {
+            counts[s[right] - '0']++; // Increase count for current character
+            while (min(counts[0], counts[1]) > numOps) { // More operations needed than allowed, slide left pointer
+                counts[s[left] - '0']--; // Decrease count for left character as it slides out of window
+                left++; 
             }
-            result = min(result, end - start + 1);
-        }
-        return result;
-    }
-};
+            maxSeq = min(maxSeq, right - left + 1); // Update max possible sequence based on current valid window size
+            right++; 
+        } 
+        return maxSeq; 
+    } 
+}; 
 # @lc code=end
