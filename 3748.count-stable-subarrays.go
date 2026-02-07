@@ -6,30 +6,31 @@
 
 # @lc code=start
 func countStableSubarrays(nums []int, queries [][]int) []int64 {
-    n := len(nums)
-    ans := make([]int64, len(queries))
-    // Precomputed prefix arrays or segment trees can be used here for optimization.
-    // Implementing a simple two-pointer or sliding window technique to handle inversions efficiently.
+    results := make([]int64, len(queries))
     
-    // Process each query individually:
-    for i, query := range queries {
-        li, ri := query[0], query[1]
-        count := int64(0)
-        // For each possible start of subarray within [li, ri]:
-        for start := li; start <= ri; start++ {
-            maxElement := nums[start]
-            // Expand subarray from 'start' to 'end' within [li, ri]:
-            for end := start; end <= ri; end++ {
-                if nums[end] >= maxElement {
-                    maxElement = nums[end]
-                    count++  // Valid stable subarray found from 'start' to 'end'.
-                } else {
-                    break  // Inversion found, stop expanding this subarray.
-                }
+    // Helper function to count stable subarrays in range [l:r]
+    countStableInRange := func(l int, r int) int64 {
+        // Initialize variables for sliding window
+        var countStable int64 = 0
+        start := l
+        
+        // Iterate over each possible end of subarray within [l:r]
+        for end := l; end <= r; end++ {
+            // Ensure no inversions in current window [start:end]
+            for start < end && nums[start] > nums[end] {
+                start++
             }
+            // Number of stable subarrays ending at 'end' is (end - start + 1)
+            countStable += int64(end - start + 1)
         }
-        ans[i] = count  // Store result for current query.
+        return countStable
     }
-    return ans  // Return results for all queries.
+    
+    // Process each query and calculate result using helper function
+    for i, query := range queries {
+        l, r := query[0], query[1]
+        results[i] = countStableInRange(l, r)
+    }
+    return results
 }
 # @lc code=end
