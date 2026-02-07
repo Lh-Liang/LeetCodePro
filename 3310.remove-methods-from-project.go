@@ -3,60 +3,46 @@
 #
 # [3310] Remove Methods From Project
 #
-
 # @lc code=start
 func remainingMethods(n int, k int, invocations [][]int) []int {
-    // Create adjacency lists for the graph representation
-    adjList := make([][]int, n)
-    reverseAdjList := make([][]int, n)
-    for _, invocation := range invocations {
-        adjList[invocation[0]] = append(adjList[invocation[0]], invocation[1])
-        reverseAdjList[invocation[1]] = append(reverseAdjList[invocation[1]], invocation[0])
+    // Step 1: Build adjacency list
+    adj := make([][]int, n)
+    for _, inv := range invocations {
+        from, to := inv[0], inv[1]
+        adj[from] = append(adj[from], to)
     }
-    
-    // Find all suspicious methods using DFS starting from method k
+    // Step 2: Find suspicious set via BFS from k
     suspicious := make([]bool, n)
-    var dfs func(node int)
-    dfs = func(node int) {
-        if suspicious[node] {
-            return
-        }
-        suspicious[node] = true
-        for _, nei := range adjList[node] {
-            dfs(nei)
+    queue := []int{k}
+    suspicious[k] = true
+    for len(queue) > 0 {
+        curr := queue[0]
+        queue = queue[1:]
+        for _, nei := range adj[curr] {
+            if !suspicious[nei] {
+                suspicious[nei] = true
+                queue = append(queue, nei)
+            }
         }
     }
-    dfs(k)
-    
-    // Check for any incoming edges to the suspicious set from outside
-    canRemoveSuspicious := true
+    // Step 3: Check for outside invocations into suspicious set
+    for _, inv := range invocations {
+        from, to := inv[0], inv[1]
+        if !suspicious[from] && suspicious[to] {
+            res := make([]int, n)
+            for i := 0; i < n; i++ {
+                res[i] = i
+            }
+            return res
+        }
+    }
+    // Step 4: Return all methods not in suspicious set
+    var res []int
     for i := 0; i < n; i++ {
-        if !suspicious[i] { // Only consider non-suspicious methods
-            for _, nei := range adjList[i] {
-                if suspicious[nei] { // Found an incoming edge to a suspicious method
-                    canRemoveSuspicious = false
-                    break
-                }
-            }
-        }
-        if !canRemoveSuspicious {
-            break
+        if !suspicious[i] {
+            res = append(res, i)
         }
     }
-    
-    // Determine result based on whether we can safely remove suspicious methods or not
-    result := []int{}
-    if canRemoveSuspicious {
-        for i := 0; i < n; i++ {
-            if !suspicious[i] {
-                result = append(result, i)
-            }
-        }
-    } else {
-        for i := 0; i < n; i++ {
-            result = append(result, i)
-        }
-    }
-    return result
+    return res
 }
 # @lc code=end
