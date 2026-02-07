@@ -6,16 +6,7 @@
 
 # @lc code=start
 func countNoZeroPairs(n int64) int64 {
-    var isNoZero func(int64) bool = func(x int64) bool {
-        for x > 0 {
-            if x%10 == 0 {
-                return false
-            }
-            x /= 10
-        }
-        return true
-    }
-    count := int64(0)
+    var count int64 = 0
     for a := int64(1); a < n; a++ {
         b := n - a
         if isNoZero(a) && isNoZero(b) {
@@ -23,5 +14,15 @@ func countNoZeroPairs(n int64) int64 {
         }
     }
     return count
+}
+
+func isNoZero(x int64) bool {
+    for x > 0 {
+        if x%10 == 0 {
+            return false
+        }
+        x /= 10
+    }
+    return true
 }
 # @lc code=end
