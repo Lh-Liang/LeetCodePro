@@ -3,26 +3,29 @@
 #
 # [3448] Count Substrings Divisible By Last Digit
 #
-
 # @lc code=start
 func countSubstrings(s string) int64 {
-    var count int64 = 0
     n := len(s)
-    for i := 0; i < n; i++ {
-        num := 0
-        lastDigit := int(s[i] - '0')
-        if lastDigit == 0 {
-            continue // Skip substrings ending with zero as divisor cannot be zero
-        }
-        // Incremental update for substring values
-        for j := i; j >= 0; j-- {
-            num = num * 10 + int(s[j]-'0') // Build number from right to left correctly considering positional significance
-            if num % lastDigit == 0 {
-                count++ // Valid substring found
+    ans := int64(0)
+    for d := 1; d <= 9; d++ {
+        modCount := make([]int64, d)
+        mod := 0
+        modCount[0] = 1
+        for i := 0; i < n; i++ {
+            mod = (mod*10 + int(s[i]-'0')) % d
+            if int(s[i]-'0') == d {
+                ans += modCount[mod]
             }
-            num %= lastDigit // Ensure number doesn't grow too large (optimization)
+            modCount[mod]++
+            if int(s[i]-'0') == 0 {
+                mod = 0
+                for j := 0; j < d; j++ {
+                    modCount[j] = 0
+                }
+                modCount[0] = 1
+            }
         }
     }
-    return count
+    return ans
 }
 # @lc code=end
