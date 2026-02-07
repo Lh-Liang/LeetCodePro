@@ -8,47 +8,53 @@
 func lenOfVDiagonal(grid [][]int) int {
     n := len(grid)
     m := len(grid[0])
-    directions := [4][2]int{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}} // Diagonal directions
-    maxLength := 0
-    
-    max := func(a, b int) int {
-        if a > b {
-            return a
+    maxLen := 0
+    // Diagonal directions: 0: down-right, 1: up-left, 2: down-left, 3: up-right
+    dirs := [][2]int{{1,1}, {-1,-1}, {1,-1}, {-1,1}}
+    // For each direction, the clockwise turn is:
+    nextDir := []int{3,2,0,1}
+    inBounds := func(r, c int) bool { return r >= 0 && r < n && c >= 0 && c < m }
+    // Alternating sequence: starts with 1, then alternates 2,0,2,0,...
+    expectedVal := func(idx int) int {
+        if idx == 0 {
+            return 1
         }
-        return b
+        if idx%2 == 1 {
+            return 2
+        }
+        return 0
     }
-    
-    var dfs func(x, y, dirIndex int, length int, turnsUsed bool)
-    dfs = func(x, y, dirIndex int, length int, turnsUsed bool) {
-        if x < 0 || x >= n || y < 0 || y >= m {
+    // Early pruning: stop if remaining steps can't exceed maxLen
+    var search func(r, c, dir, idx, turned, length int)
+    search = func(r, c, dir, idx, turned, length int) {
+        if !inBounds(r, c) {
             return
         }
-        expectedSequence := []int{1, 2, 0}
-        expectedValue := expectedSequence[length % len(expectedSequence)]
-        if grid[x][y] != expectedValue {
+        if grid[r][c] != expectedVal(idx) {
             return
         }
-        length += 1
-        maxLength = max(maxLength, length)
-        nextX := x + directions[dirIndex][0]
-        nextY := y + directions[dirIndex][1]
-        dfs(nextX, nextY, dirIndex, length, turnsUsed) // Continue in same direction
-        if !turnsUsed { // Allow one clockwise turn if not used yet
-            for newDirIndex := range directions { // Attempt all other directions for valid turn
-                if newDirIndex != dirIndex { // Ensure it's a different direction to allow turn
-                    nextX = x + directions[newDirIndex][0]
-                    nextY = y + directions[newDirIndex][1]
-                    dfs(nextX, nextY, newDirIndex, length, true) // Change direction once if beneficial
+        if length > maxLen {
+            maxLen = length
+        }
+        // Move forward in the same direction
+        nr, nc := r+dirs[dir][0], c+dirs[dir][1]
+        search(nr, nc, dir, idx+1, turned, length+1)
+        // Try a clockwise turn if not yet used
+        if turned == 0 {
+            ndir := nextDir[dir]
+            nr2, nc2 := r+dirs[ndir][0], c+dirs[ndir][1]
+            search(nr2, nc2, ndir, idx+1, 1, length+1)
+        }
+    }
+    for i := 0; i < n; i++ {
+        for j := 0; j < m; j++ {
+            if grid[i][j] == 1 {
+                for d := 0; d < 4; d++ {
+                    search(i, j, d, 0, 0, 1)
                 }
             }
         }
     }
-    for i := range grid {
-        for j := range grid[i] {
-            if grid[i][j] == 1 { // Start from '1'
-                dfs(i, j, -1, 0, false) // Initiate DFS from each '1' without pre-defining direction in start call loop through directions inside DFS itself.
-            }
-        }
-    }
-    return maxLength}
-b
+    return maxLen
+}
+# @lc code=end
