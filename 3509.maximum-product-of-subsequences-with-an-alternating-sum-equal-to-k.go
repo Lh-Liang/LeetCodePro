@@ -6,10 +6,34 @@
 
 # @lc code=start
 func maxProduct(nums []int, k int, limit int) int {
-    // Placeholder for code that generates subsequences.
-    // Placeholder for code that calculates alternating sum for each subsequence.
-    // Placeholder for filtering subsequences based on alternating sum equal to k.
-    // Placeholder for calculating product of valid subsequences within limit.
-    return -1  // If no valid subsequence exists.
+    maxProduct := -1
+    var dfs func(index int, alternatingSum int, currentProduct int)
+    
+    dfs = func(index int, alternatingSum int, currentProduct int) {
+        if index == len(nums) {  // Base case: reached end of nums
+            if alternatingSum == k && currentProduct <= limit {
+                if currentProduct > maxProduct {
+                    maxProduct = currentProduct
+                }
+            }
+            return
+        }
+        
+        // Option 1: Include nums[index] in subsequence
+        newAlternatingSum := alternatingSum + nums[index]
+        if index % 2 == 1 {  // Odd index, subtract instead of add
+            newAlternatingSum = alternatingSum - nums[index]
+        }
+        newProduct := currentProduct * nums[index]
+        if newProduct <= limit {  // Only consider valid products within limit
+            dfs(index + 1, newAlternatingSum, newProduct)
+        }
+        
+        // Option 2: Exclude nums[index] from subsequence
+        dfs(index + 1, alternatingSum, currentProduct)
+    }
+    
+    dfs(0, 0, 1)  // Start DFS with initial values
+    return maxProduct
 }
 # @lc code=end
