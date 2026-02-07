@@ -3,52 +3,36 @@
 #
 # [3488] Closest Equal Element Queries
 #
-
 # @lc code=start
-#include <vector>
-#include <unordered_map>
-#include <algorithm>
-using namespace std;
-
 class Solution {
 public:
     vector<int> solveQueries(vector<int>& nums, vector<int>& queries) {
+        unordered_map<int, vector<int>> index_map;
         int n = nums.size();
-        unordered_map<int, vector<int>> pos;
+        // Fill hashmap with indices for each value in nums
         for (int i = 0; i < n; ++i) {
-            pos[nums[i]].push_back(i);
+            index_map[nums[i]].push_back(i);
         }
-        vector<int> res;
-        for (int q : queries) {
-            int val = nums[q];
-            const vector<int>& indices = pos[val];
-            if (indices.size() == 1) {
-                res.push_back(-1);
+        vector<int> result;
+        // Process each query
+        for (int query : queries) {
+            int target = nums[query];
+            if (index_map[target].size() == 1) { // Only one occurrence of target value
+                result.push_back(-1);
                 continue;
             }
-            // Find the position of q in indices
-            auto it = lower_bound(indices.begin(), indices.end(), q);
-            int min_dist = n;
-            // Check previous index (wrap around if needed)
-            if (it != indices.begin()) {
-                int prev = *(it - 1);
-                min_dist = min(min_dist, min(abs(q - prev), n - abs(q - prev)));
-            } else {
-                int prev = indices.back();
-                min_dist = min(min_dist, min(abs(q - prev), n - abs(q - prev)));
+            int min_distance = INT_MAX;
+            // Find minimum distance in a circular manner
+            for (int idx : index_map[target]) {
+                if (idx != query) { // Don't compare with itself
+                    int dist_cw = (idx - query + n) % n; // Clockwise distance
+                    int dist_ccw = (query - idx + n) % n; // Counter-clockwise distance
+                    min_distance = min(min_distance, min(dist_cw, dist_ccw));
+                }
             }
-            // Check next index (wrap around if needed)
-            if (it != indices.end() && *it != q) {
-                int next = *it;
-                min_dist = min(min_dist, min(abs(q - next), n - abs(q - next)));
-            } else {
-                int next = indices[0];
-                if (next != q)
-                    min_dist = min(min_dist, min(abs(q - next), n - abs(q - next)));
-            }
-            res.push_back(min_dist);
-        }
-        return res;
-    }
-};
+            result.push_back(min_distance);
+        } 
+        return result; 
+    } 
+}; 
 # @lc code=end
