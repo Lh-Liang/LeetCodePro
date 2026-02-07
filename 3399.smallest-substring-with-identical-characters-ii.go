@@ -7,32 +7,55 @@
 # @lc code=start
 func minLength(s string, numOps int) int {
     n := len(s)
-    left, right := 0, 0
-    maxLen := 0
-    flipCount := 0
-    currentChar := ' ' // not a valid char initially
-    
-    for right < n {
-        if s[right] != currentChar {
-            flipCount++
-            if flipCount > numOps {
-                currentChar = s[left]
-                flipCount--
-                for left < n && s[left] == currentChar {
-                    left++
-                }
-                left++ // move past last different char causing excess flips
-            } else {
-                currentChar = s[right]
-            }
-        }
-        maxLen = max(maxLen, right-left+1)
-        right++
+    if n == 0 {
+        return 0
     }
-    return maxLen// - 1 because we want minimum longest-length after flips (as asked in problem) 
+
+    // Step 1: Identify consecutive segments and their lengths.
+    var segmentLengths []int
+    currentLength := 1
+    for i := 1; i < n; i++ {
+        if s[i] == s[i-1] {
+            currentLength++
+        } else {
+            segmentLengths = append(segmentLengths, currentLength)
+            currentLength = 1
+        }
+    }
+    segmentLengths = append(segmentLengths, currentLength) // Add last segment.
+
+    // Step 2: Calculate initial max segment length.
+    maxSegment := findMax(segmentLengths)
+    
+    // Edge case: if no operations allowed, return initial max segment length.
+    if numOps == 0 {
+        return maxSegment
+    }
+
+    // Step 3 & 4: Simulate potential flips and apply a greedy strategy.
+    minMaxSegment := maxSegment
+    for i := range segmentLengths {
+        if i > 0 && numOps > 0 {
+            possibleReduction := min(segmentLengths[i], numOps)
+            newMaxSegment := max(findMax(segmentLengths[:i])-possibleReduction, findMax(segmentLengths[i+1:]))
+            minMaxSegment = min(minMaxSegment, newMaxSegment)
+            numOps -= possibleReduction
+        }
+        if numOps <= 0 {
+            break
+        }
+    }
+
+    return minMaxSegment
 }
-def max(a, b int) int { if a > b { return a } else { return b } } 
-def min(a, b int) int { if a < b { return a } else { return b } } 
-def abs(a int) int { if a < 0 { return -a } else { return a } } 
-def zeroIfNegative(a int) int { if a < 0 { return 0 } else { return a }} 
-def minLengthAfterFlips(s string, k int) int{ cnt:= make(map[byte]int); cnt['0'], cnt['1'] = 0 , 0; res:= len(s); j := 0; for i:= range s{cnt[s[i]]++; for min(cnt['0'], cnt['1']) > k{cnt[s[j]]--; j++;} res=min(res,max(cnt['0'],cnt['1']))} return res;} # @lc code=end
+
+func findMax(arr []int) int {
+    maxVal := arr[0]
+    for _, val := range arr[1:] {
+        if val > maxVal {
+            maxVal = val
+        }
+    }
+    return maxVal
+}
+template<class T> T min(T a, T b) { return (a < b) ? a : b; }
