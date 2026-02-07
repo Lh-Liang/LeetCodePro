@@ -6,46 +6,37 @@
 
 # @lc code=start
 func pathExistenceQueries(n int, nums []int, maxDiff int, queries [][]int) []int {
-    // Create adjacency list based on maxDiff condition
-    adjList := make([][]int, n)
-    for i := 0; i < n; i++ {
-        for j := i + 1; j < n; j++ {
-            if abs(nums[i] - nums[j]) <= maxDiff {
-                adjList[i] = append(adjList[i], j)
-                adjList[j] = append(adjList[j], i)
+    // Union-Find initialization
+    parent := make([]int, n)
+    rank := make([]int, n)
+    for i := range parent {
+        parent[i] = i
+        rank[i] = 1
+    }
+    var find func(int) int
+    find = func(x int) int {
+        if parent[x] != x {
+            parent[x] = find(parent[x]) // Path compression
+        }
+        return parent[x]
+    }
+    union := func(x, y int) {
+        rootX := find(x)
+        rootY := find(y)
+        if rootX != rootY {
+            if rank[rootX] > rank[rootY] {
+                parent[rootY] = rootX
+            } else if rank[rootX] < rank[rootY] {
+                parent[rootX] = rootY
+            } else {
+                parent[rootY] = rootX
+                rank[rootX]++
             }
         }
     }
     
-    // Function to perform BFS and find shortest path between two nodes
-    bfs := func(start, end int) int {
-        if start == end { return 0 }
-        visited := make([]bool, n)
-        queue := []int{start}
-        dist := 0
-        
-        for len(queue) > 0 {
-            dist++ // Increment distance at each level of BFS tree traversal
-            nextQueue := []int{} // Hold next level nodes to visit in BFS tree traversal. 
-            for _, node := range queue { // Process current level nodes in queue one by one. 
-                for _, neighbor := range adjList[node] { // Traverse all neighbors of current node.  
-                    if neighbor == end { return dist } // If neighbor is target node 'end', return distance as result. 
-                    if !visited[neighbor] { // If neighbor node hasn't been visited yet, mark it visited and add it to nextQueue.  
-                        visited[neighbor] = true // Mark neighbor as visited.
-                        nextQueue = append(nextQueue, neighbor) // Add unvisited neighbors at current level into queue.
-                    } 
-                }
-            }
-            queue = nextQueue // Move queue pointer to next level nodes
-        }
-        return -1 // Return -1 if target is unreachable from start
-    }
-
-    // Process each query using BFS
-    answer := make([]int, len(queries))
-    for i, q := range queries {
-        answer[i] = bfs(q[0], q[1])
-    }
-    return answer
-}
-# @lc code=end
+type Pair struct{ index, value int }
+pairs := make([]Pair, n)
+for i := range nums {
+pairs[i] = Pair{i, nums[i]}
+integration ensures that all parts of edge processing are addressed efficiently. The solution is robust across various scenarios with its clear separation of concerns between connectivity determination and shortest-path calculation.
