@@ -13,24 +13,35 @@
  * }
  */
 func doubleIt(head *ListNode) *ListNode {
-    current := head
-    carry := 0
-    
-    // Traverse the linked list and double each digit
-    for current != nil {
-        newValue := current.Val*2 + carry
-        current.Val = newValue % 10
-        carry = newValue / 10
-        
-        if current.Next == nil && carry > 0 {
-            // If at end of list and there is carry, add new node
-            current.Next = &ListNode{Val: carry}
-            break
+    // Helper to reverse a singly linked list
+    reverse := func(node *ListNode) *ListNode {
+        var prev *ListNode = nil
+        for node != nil {
+            next := node.Next
+            node.Next = prev
+            prev = node
+            node = next
         }
-        
-        current = current.Next
+        return prev
     }
-    
-    return head
+    // Step 1: reverse the list
+    head = reverse(head)
+    carry := 0
+    curr := head
+    var prev *ListNode = nil
+    // Step 2: double each node and handle carry
+    for curr != nil {
+        sum := curr.Val * 2 + carry
+        curr.Val = sum % 10
+        carry = sum / 10
+        prev = curr
+        curr = curr.Next
+    }
+    // Step 3: handle leftover carry
+    if carry > 0 {
+        prev.Next = &ListNode{Val: carry}
+    }
+    // Step 4: reverse again to restore original order
+    return reverse(head)
 }
 # @lc code=end
