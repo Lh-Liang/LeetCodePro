@@ -5,21 +5,26 @@
 #
 
 # @lc code=start
-import "math"
-
-type ListNode struct {
-    Val  int
-    Next *ListNode
+/**
+* Definition for singly-linked list.
+* type ListNode struct {
+*     Val int
+*     Next *ListNode
+* }
+*/
+func gcd(a, b int) int {
+    if b == 0 { return a } 
+    return gcd(b, a % b) 
 }
-
 func insertGreatestCommonDivisors(head *ListNode) *ListNode {
-    current := head
-    for current != nil && current.Next != nil {
-        gcdValue := math.Gcd(current.Val, current.Next.Val)
-        newNode := &ListNode{Val: gcdValue, Next: current.Next}
-        current.Next = newNode
-        current = newNode.Next // Move two steps forward because one step goes to new node. 
-    }
-    return head
+    current := head 
+    for current != nil && current.Next != nil { 
+        gcdValue := gcd(current.Val, current.Next.Val) 
+        newNode := &ListNode{Val: gcdValue} 
+        newNode.Next = current.Next 
+        current.Next = newNode 
+        current = newNode.Next 
+    } 
+    return head 
 }
 # @lc code=end
