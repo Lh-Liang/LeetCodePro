@@ -7,28 +7,26 @@
 class Solution {
 public:
     long long maxProduct(vector<int>& nums) {
-        unordered_map<int, int> bitmask_max;
-        for (int num : nums) {
-            int bm = num;
-            if (bitmask_max.count(bm))
-                bitmask_max[bm] = max(bitmask_max[bm], num);
-            else
-                bitmask_max[bm] = num;
-        }
-        vector<pair<int, int>> masks;
-        for (auto& p : bitmask_max) {
-            masks.push_back({p.first, p.second});
-        }
-        long long res = 0;
-        int n = masks.size();
+        vector<pair<int, int>> bitmasks; // To store number and its bitmask
+        long long maxProduct = 0;
+        int n = nums.size();
         for (int i = 0; i < n; ++i) {
-            for (int j = i + 1; j < n; ++j) {
-                if ((masks[i].first & masks[j].first) == 0) {
-                    res = max(res, 1LL * masks[i].second * masks[j].second);
+            int num = nums[i];
+            int bitmask = 0;
+            for (int j = 0; j < 31; ++j) { // Assuming numbers up to 10^6 which fits in 31 bits
+                if (num & (1 << j)) {
+                    bitmask |= (1 << j);
                 }
             }
+            for (const auto& [storedNum, storedBitmask] : bitmasks) {
+                if ((bitmask & storedBitmask) == 0) { // no common set bits
+                    maxProduct = max(maxProduct, (long long)num * storedNum);
+                }
+            }
+            // Store the current number and its calculated bitmask for future checks
+            bitmasks.emplace_back(num, bitmask);
         }
-        return res;
+        return maxProduct;
     }
 };
 # @lc code=end
