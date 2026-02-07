@@ -7,46 +7,149 @@
 # @lc code=start
 func canPartitionGrid(grid [][]int) bool {
     m, n := len(grid), len(grid[0])
-    totalSum := 0
-    rowSums := make([]int, m)
-    colSums := make([]int, n)
-    
-    // Calculate total sum and row/column prefix sums
+    total := 0
     for i := 0; i < m; i++ {
         for j := 0; j < n; j++ {
-            totalSum += grid[i][j]
-            rowSums[i] += grid[i][j]
-            colSums[j] += grid[i][j]
+            total += grid[i][j]
         }
     }
     
-    // If total sum is odd, it's impossible to partition equally
-    if totalSum % 2 != 0 {
+    // Helper to check connectivity after removing (ri,ci) from region
+    var isConnected func(region map[[2]int]struct{}, remove [2]int) bool
+    isConnected = func(region map[[2]int]struct{}, remove [2]int) bool {
+        delete(region, remove)
+        if len(region) == 0 {
+            return false
+        }
+        // BFS from any cell in region
+        for start := range region {
+            queue := [][2]int{start}
+            visited := map[[2]int]struct{}{start: {}}
+            for len(queue) > 0 {
+                p := queue[0]
+                queue = queue[1:]
+                dirs := [][2]int{{0,1},{0,-1},{1,0},{-1,0}}
+                for _, d := range dirs {
+                    ni, nj := p[0]+d[0], p[1]+d[1]
+                    np := [2]int{ni, nj}
+                    if _, ok := region[np]; ok {
+                        if _, seen := visited[np]; !seen {
+                            visited[np] = struct{}{}
+                            queue = append(queue, np)
+                        }
+                    }
+                }
+            }
+            return len(visited) == len(region)
+        }
         return false
     }
-    equalSum := totalSum / 2
-    
-    // Check horizontal cuts with prefix sums
-    currentTopSum := 0
-    for i := 0; i < m-1; i++ {
-        currentTopSum += rowSums[i]
-        if checkEqualWithDiscount(currentTopSum, equalSum, grid) {
-            return true
+
+    // Horizontal cuts
+    rowSums := make([]int, m+1)
+    for i := 0; i < m; i++ {
+        for j := 0; j < n; j++ {
+            rowSums[i+1] += grid[i][j]
         }
     }
-    
-    // Check vertical cuts with prefix sums
-    currentLeftSum := 0
-    for j := 0; j < n-1; j++ {
-        currentLeftSum += colSums[j]
-        if checkEqualWithDiscount(currentLeftSum, equalSum, grid) {
+    for cut := 1; cut < m; cut++ {
+        sumA := rowSums[cut]
+        sumB := total - sumA
+        if sumA == sumB {
             return true
         }
+        diff := sumA - sumB
+        // Check discount from section A
+        if diff > 0 {
+            // Try removing any cell in section A (rows 0..cut-1)
+            for i := 0; i < cut; i++ {
+                for j := 0; j < n; j++ {
+                    if grid[i][j] == diff {
+                        // Build region A
+                        region := map[[2]int]struct{}{}
+                        for x := 0; x < cut; x++ {
+                            for y := 0; y < n; y++ {
+                                region[[2]int{x, y}] = struct{}{}
+                            }
+                        }
+                        if isConnected(region, [2]int{i, j}) {
+                            return true
+                        }
+                    }
+                }
+            }
+        } else if diff < 0 {
+            // Try removing any cell in section B (rows cut..m-1)
+            for i := cut; i < m; i++ {
+                for j := 0; j < n; j++ {
+                    if grid[i][j] == -diff {
+                        // Build region B
+                        region := map[[2]int]struct{}{}
+                        for x := cut; x < m; x++ {
+                            for y := 0; y < n; y++ {
+                                region[[2]int{x, y}] = struct{}{}
+                            }
+                        }
+                        if isConnected(region, [2]int{i, j}) {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
     }
-    
+    // Vertical cuts
+    colSums := make([]int, n+1)
+    for j := 0; j < n; j++ {
+        for i := 0; i < m; i++ {
+            colSums[j+1] += grid[i][j]
+        }
+    }
+    for cut := 1; cut < n; cut++ {
+        sumA := colSums[cut]
+        sumB := total - sumA
+        if sumA == sumB {
+            return true
+        }
+        diff := sumA - sumB
+        if diff > 0 {
+            // Try removing any cell in section A (cols 0..cut-1)
+            for i := 0; i < m; i++ {
+                for j := 0; j < cut; j++ {
+                    if grid[i][j] == diff {
+                        // Build region A
+                        region := map[[2]int]struct{}{}
+                        for x := 0; x < m; x++ {
+                            for y := 0; y < cut; y++ {
+                                region[[2]int{x, y}] = struct{}{}
+                            }
+                        }
+                        if isConnected(region, [2]int{i, j}) {
+                            return true
+                        }
+                    }
+                }
+            }
+        } else if diff < 0 {
+            // Try removing any cell in section B (cols cut..n-1)
+            for i := 0; i < m; i++ {
+                for j := cut; j < n; j++ {
+                    if grid[i][j] == -diff {
+                        // Build region B
+                        region := map[[2]int]struct{}{}
+                        for x := 0; x < m; x++ {
+                            for y := cut; y < n; y++ {
+                                region[[2]int{x, y}] = struct{}{}
+                            }
+                        }
+                        if isConnected(region, [2]int{i, j}) {
+                            return true
+                        }
+                    }
+                }
+            }
+        }
+    }
     return false
 }
-
-func checkEqualWithDiscount(sectionSum int, target int, grid [][]int) bool {	   difference := abs(sectionSum - target)	   	   // Iterate over all cells to find a suitable discount	   for i := range grid {	       for j := range grid[i] {	           if difference == 0 || difference == grid[i][j] {	               if ensureConnectednessAfterDiscount(grid, i, j) {	                   return true	               }	           }	       }	   }	   return false	}
-bool ensureConnectednessAfterDiscount(grid [][]int, x int, y int) bool {   // Implement flood-fill or BFS/DFS from any non-discounted cell   // Check connectivity of both partitioned sections   return true}
-bool abs(x int) int { if x < 0 { return -x } else { return x } }
+# @lc code=end
