@@ -3,36 +3,46 @@
 #
 # [3630] Partition Array for Maximum XOR and AND
 #
-
 # @lc code=start
 func maximizeXorAndXor(nums []int) int64 {
-    var maxVal int64 = 0
     n := len(nums)
-    
-    var dfs func(int, int64, int64, int64)
-    dfs = func(index int, xorA int64, andB int64, xorC int64) {
-        if index == n {
-            if xorA + andB + xorC > maxVal {
-                maxVal = xorA + andB + xorC
-            }
-            return
-        }
-        
-        // Case 1: Add nums[index] to A (XOR calculation)
-        dfs(index+1, xorA^int64(nums[index]), andB, xorC)
-        
-        // Case 2: Add nums[index] to B (AND calculation)
-        newAndB := nums[index]
-        if andB != 0 { 
-            newAndB = nums[index] & int(andB) 
-        }
-        dfs(index+1, xorA, int64(newAndB), xorC)
-        
-        // Case 3: Add nums[index] to C (XOR calculation)
-        dfs(index+1, xorA, andB, xorC^int64(nums[index]))
+    type key struct {
+        i, xorA, andB, xorC int
     }
-                    
-dfs(0 ,0 ,0 ,0 )
-return maxVal
+    memo := make(map[key]int64)
+    var dfs func(i int, xorA int, andB int, xorC int) int64
+    dfs = func(i int, xorA int, andB int, xorC int) int64 {
+        k := key{i, xorA, andB, xorC}
+        if val, exists := memo[k]; exists {
+            return val
+        }
+        if i == n {
+            ab := 0
+            if andB != -1 {
+                ab = andB
+            }
+            return int64(xorA + ab + xorC)
+        }
+        // Assign nums[i] to A
+        resA := dfs(i+1, xorA^nums[i], andB, xorC)
+        // Assign nums[i] to B
+        newAndB := nums[i]
+        if andB != -1 {
+            newAndB = andB & nums[i]
+        }
+        resB := dfs(i+1, xorA, newAndB, xorC)
+        // Assign nums[i] to C
+        resC := dfs(i+1, xorA, andB, xorC^nums[i])
+        maxRes := resA
+        if resB > maxRes {
+            maxRes = resB
+        }
+        if resC > maxRes {
+            maxRes = resC
+        }
+        memo[k] = maxRes
+        return maxRes
+    }
+    return dfs(0, 0, -1, 0)
 }
 # @lc code=end
