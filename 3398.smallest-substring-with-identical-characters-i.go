@@ -3,38 +3,52 @@
 #
 # [3398] Smallest Substring With Identical Characters I
 #
-
 # @lc code=start
 func minLength(s string, numOps int) int {
     n := len(s)
-    maxLen := 0 // This will track the maximum length of a substring with identical characters
-    left := 0   // Left pointer for our sliding window
-    count0, count1 := 0, 0 // Count of '0's and '1's in current window
-    
-    for right := 0; right < n; right++ {
-        if s[right] == '0' {
-            count0++
-        } else {
-            count1++
-        }
-        
-        // If we need more than numOps flips to make all chars identical in this window
-        while min(count0, count1) > numOps {
-            if s[left] == '0' {
-                count0--
-            } else {
-                count1--
+    // Helper: check if possible to make all substrings of size k have at most numOps flips
+    isPossible := func(k int) bool {
+        // Try making all substrings of size k as all '0'
+        cnt := make([]int, n+1) // prefix sum for '1' count
+        for i := 0; i < n; i++ {
+            cnt[i+1] = cnt[i]
+            if s[i] == '1' {
+                cnt[i+1]++
             }
-            left++
         }
-        
-        // Calculate current maxLen as longest substring of identical chars within current valid window
-        maxLen = max(maxLen, right - left + 1)
+        for i := 0; i <= n-k; i++ {
+            ones := cnt[i+k] - cnt[i]
+            if ones <= numOps {
+                return true
+            }
+        }
+        // Try making all substrings of size k as all '1'
+        cnt = make([]int, n+1) // prefix sum for '0' count
+        for i := 0; i < n; i++ {
+            cnt[i+1] = cnt[i]
+            if s[i] == '0' {
+                cnt[i+1]++
+            }
+        }
+        for i := 0; i <= n-k; i++ {
+            zeros := cnt[i+k] - cnt[i]
+            if zeros <= numOps {
+                return true
+            }
+        }
+        return false
     }
-    
-    return n - maxLen // Minimum length after minimizing longest identical character substring
+    low, high := 1, n
+    ans := n
+    for low <= high {
+        mid := (low + high) / 2
+        if isPossible(mid) {
+            ans = mid
+            high = mid - 1
+        } else {
+            low = mid + 1
+        }
+    }
+    return ans
 }
-
-func min(a, b int) int { if a < b { return a }; return b }
-func max(a, b int) int { if a > b { return a }; return b }
 # @lc code=end
