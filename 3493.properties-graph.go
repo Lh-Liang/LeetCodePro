@@ -1,55 +1,54 @@
+#
+# @lc app=leetcode id=3493 lang=golang
+#
+# [3493] Properties Graph
+#
+
 # @lc code=start
 func numberOfComponents(properties [][]int, k int) int {
     n := len(properties)
-    adjList := make([][]int, n)
-
-    // Define intersect function to calculate common distinct integers
-    intersect := func(a, b []int) int {
-        setA := make(map[int]struct{})
-        for _, num := range a {
-            setA[num] = struct{}{}
+    // Preprocess: Convert each properties[i] to a set for fast intersection
+    sets := make([]map[int]struct{}, n)
+    for i := 0; i < n; i++ {
+        sets[i] = make(map[int]struct{})
+        for _, v := range properties[i] {
+            sets[i][v] = struct{}{}
         }
-        count := 0
-        for _, num := range b {
-            if _, exists := setA[num]; exists {
-                count++
-                delete(setA, num) // Ensure distinct counting
-            }
-        }
-        return count
     }
-
-    // Build adjacency list based on intersection condition
+    // Build adjacency list
+    adj := make([][]int, n)
     for i := 0; i < n; i++ {
         for j := i + 1; j < n; j++ {
-            if intersect(properties[i], properties[j]) >= k {
-                adjList[i] = append(adjList[i], j)
-                adjList[j] = append(adjList[j], i)
+            count := 0
+            for v := range sets[i] {
+                if _, ok := sets[j][v]; ok {
+                    count++
+                }
+            }
+            if count >= k {
+                adj[i] = append(adj[i], j)
+                adj[j] = append(adj[j], i)
             }
         }
     }
-
-    // Function for DFS traversal
+    // DFS to count connected components
     visited := make([]bool, n)
     var dfs func(int)
-    dfs = func(node int) {
-        visited[node] = true
-        for _, neighbor := range adjList[node] {
-            if !visited[neighbor] {
-                dfs(neighbor)
+    dfs = func(u int) {
+        visited[u] = true
+        for _, v := range adj[u] {
+            if !visited[v] {
+                dfs(v)
             }
         }
     }
-
-    // Count connected components using DFS
-    components := 0
+    count := 0
     for i := 0; i < n; i++ {
         if !visited[i] {
             dfs(i)
-            components++
+            count++
         }
     }
-
-    return components
+    return count
 }
 # @lc code=end
