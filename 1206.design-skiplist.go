@@ -5,27 +5,43 @@
 #
 
 # @lc code=start
+import (
+    "math/rand"
+    "time"
+)
+
+const (
+    maxLevel = 16
+    p = 0.25
+)
+
 type Node struct {
     val int
-    forward []*Node // pointers to next nodes in different levels
+    forward []*Node
 }
 
 type Skiplist struct {
-    head *Node // starting point of the skip list
-    maxLevel int
+    head *Node
+    level int
 }
 
 func Constructor() Skiplist {
-    return Skiplist{
-        head: &Node{forward: make([]*Node, 16)}, // assume max level is 16 for simplicity
-        maxLevel: 16,
+    rand.Seed(time.Now().UnixNano())
+    head := &Node{val: -1, forward: make([]*Node, maxLevel)}
+    return Skiplist{head: head, level: 1}
+}
+
+func randomLevel() int {
+    lvl := 1
+    for lvl < maxLevel && rand.Float64() < p {
+        lvl++
     }
+    return lvl
 }
 
 func (this *Skiplist) Search(target int) bool {
     curr := this.head
-    for i := this.maxLevel - 1; i >= 0; i-- {
-        // Move forward while next node value is less than target
+    for i := this.level - 1; i >= 0; i-- {
         for curr.forward[i] != nil && curr.forward[i].val < target {
             curr = curr.forward[i]
         }
@@ -35,27 +51,33 @@ func (this *Skiplist) Search(target int) bool {
 }
 
 func (this *Skiplist) Add(num int) {
-    update := make([]*Node, this.maxLevel)
+    update := make([]*Node, maxLevel)
     curr := this.head
-    for i := this.maxLevel - 1; i >= 0; i-- {
+    for i := this.level - 1; i >= 0; i-- {
         for curr.forward[i] != nil && curr.forward[i].val < num {
             curr = curr.forward[i]
         }
-        update[i] = curr // track nodes that need to be updated at each level
+        update[i] = curr
     }
-    level := randomLevel(this.maxLevel)
-    newNode := &Node{val: num, forward: make([]*Node, level)}
-    for i := 0; i < level; i++ {
-        newNode.forward[i] = update[i].forward[i]
-        update[i].forward[i] = newNode
+    lvl := randomLevel()
+    if lvl > this.level {
+        for i := this.level; i < lvl; i++ {
+            update[i] = this.head
+        }
+        this.level = lvl
+    }
+    node := &Node{val: num, forward: make([]*Node, lvl)}
+    for i := 0; i < lvl; i++ {
+        node.forward[i] = update[i].forward[i]
+        update[i].forward[i] = node
     }
 }
 
 func (this *Skiplist) Erase(num int) bool {
-    update := make([]*Node, this.maxLevel)
-    found := false
+    update := make([]*Node, maxLevel)
     curr := this.head
-    for i := this.maxLevel - 1; i >= 0; i-- {
+    found := false
+    for i := this.level - 1; i >= 0; i-- {
         for curr.forward[i] != nil && curr.forward[i].val < num {
             curr = curr.forward[i]
         }
@@ -64,4 +86,17 @@ func (this *Skiplist) Erase(num int) bool {
     curr = curr.forward[0]
     if curr != nil && curr.val == num {
         found = true
-        for i := 0; i < len(curr.forward); i++ {if update[i].forward[i] == curr {update[i].forward[i] =curr.forward[\u001b}returnfound}returnfalse}	funcrandomLevel(maxLevellintint{	level:=1	forlevel<maxLevellrand.Float32()<0.5{level++}returnlevel}
+        for i := 0; i < this.level; i++ {
+            if update[i].forward[i] != curr {
+                break
+            }
+            update[i].forward[i] = curr.forward[i]
+        }
+        for this.level > 1 && this.head.forward[this.level-1] == nil {
+            this.level--
+        }
+    }
+    return found
+}
+
+# @lc code=end
