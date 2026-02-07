@@ -7,43 +7,84 @@
 # @lc code=start
 func maximumScore(nums []int, k int) int64 {
     n := len(nums)
-    extended := append(nums, nums...)
-    dp := make([][]int64, k+1)
-    for i := range dp {
-        dp[i] = make([]int64, n*2)
+    arr := append(nums, nums...)
+    size := 2 * n
+    log := make([]int, size+1)
+    for i := 2; i <= size; i++ {
+        log[i] = log[i/2] + 1
     }
-    
-    for i := 0; i < n*2; i++ {
+    K := log[size] + 1
+    stMin := make([][]int, size)
+    stMax := make([][]int, size)
+    for i := range stMin {
+        stMin[i] = make([]int, K)
+        stMax[i] = make([]int, K)
+        stMin[i][0] = arr[i]
+        stMax[i][0] = arr[i]
+    }
+    for j := 1; j < K; j++ {
+        for i := 0; i+(1<<j) <= size; i++ {
+            stMin[i][j] = min(stMin[i][j-1], stMin[i+(1<<(j-1))][j-1])
+            stMax[i][j] = max(stMax[i][j-1], stMax[i+(1<<(j-1))][j-1])
+        }
+    }
+    rangeMin := func(l, r int) int {
+        j := log[r-l]
+        return min(stMin[l][j], stMin[r-(1<<j)][j])
+    }
+    rangeMax := func(l, r int) int {
+        j := log[r-l]
+        return max(stMax[l][j], stMax[r-(1<<j)][j])
+    }
+    type key struct{start, remain, length int}
+    memo := make(map[key]int64)
+    var dp func(start, remain, length int) int64
+    dp = func(start, remain, length int) int64 {
+        if remain == 1 {
+            minV := rangeMin(start, start+length)
+            maxV := rangeMax(start, start+length)
+            return int64(maxV - minV)
+        }
+        k := key{start, remain, length}
+        if v, ok := memo[k]; ok {
+            return v
+        }
+        maxScore := int64(0)
+        for l := 1; l <= length-(remain-1); l++ {
+            minV := rangeMin(start, start+l)
+            maxV := rangeMax(start, start+l)
+            rest := dp(start+l, remain-1, length-l)
+            score := int64(maxV-minV) + rest
+            if score > maxScore {
+                maxScore = score
+            }
+        }
+        memo[k] = maxScore
+        return maxScore
+    }
+    result := int64(0)
+    for start := 0; start < n; start++ {
         for parts := 1; parts <= k; parts++ {
-            if parts == 1 {
-                maxNum := int64(extended[i])
-                minNum := int64(extended[i])
-                for j := i; j >= 0 && j > i-n; j-- {
-                    maxNum = max(maxNum, int64(extended[j]))
-                    minNum = min(minNum, int64(extended[j]))
-                    dp[parts][i] = max(dp[parts][i], maxNum-minNum)
-                }
-            } else {
-                maxNum := int64(extended[i])
-                minNum := int64(extended[i])
-                for j := i - 1; j >= 0 && j > i-n; j-- {
-                    maxNum = max(maxNum, int64(extended[j]))
-                    minNum = min(minNum, int64(extended[j]))
-                    dp[parts][i] = max(dp[parts][i], dp[parts-1][j]+maxNum-minNum)
-                }
+            score := dp(start, parts, n)
+            if score > result {
+                result = score
             }
         }
     }
-    
-    result := int64(0)
-    for i := n-1; i < n*2-1; i++ {
-        result = max(result, dp[k][i])
-    }
     return result
 }
-the
-func max(a, b int64) int64 { if a > b { return a } else { return b } }
-the
-func min(a, b int64) int64 { if a < b { return a } else { return b } }
-the 
-dp code=end
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+
+func max(a, b int) int {
+    if a > b {
+        return a
+    }
+    return b
+}
+# @lc code=end
