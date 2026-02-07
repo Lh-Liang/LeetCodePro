@@ -3,45 +3,24 @@
 #
 # [3771] Total Score of Dungeon Runs
 #
-
 # @lc code=start
 class Solution {
 public:
     long long totalScore(int hp, vector<int>& damage, vector<int>& requirement) {
         int n = damage.size();
-        vector<long long> prefix(n + 1, 0);
-        for (int i = 0; i < n; ++i) {
-            prefix[i + 1] = prefix[i] + damage[i];
-        }
-        vector<long long> diff(n + 2, 0);
-        for (int i = 0; i < n; ++i) {
-            // We want to find the earliest start index j such that:
-            // hp - (prefix[i + 1] - prefix[j]) >= requirement[i]
-            // <=> prefix[j] <= hp - requirement[i] + prefix[i + 1]
-            long long target = hp - requirement[i] + prefix[i + 1];
-            // Binary search for leftmost j in [0, i + 1) such that prefix[j] <= target
-            int l = 0, r = i + 1;
-            int res = i + 1;
-            while (l < r) {
-                int m = (l + r) / 2;
-                if (prefix[m] <= target) {
-                    res = m;
-                    r = m;
-                } else {
-                    l = m + 1;
+        long long total_score = 0;
+        for (int j = 0; j < n; ++j) {
+            int current_hp = hp;
+            int score_j = 0;
+            for (int i = j; i < n; ++i) {
+                current_hp -= damage[i];
+                if (current_hp >= requirement[i]) {
+                    ++score_j;
                 }
             }
-            if (res <= i) {
-                diff[res] += 1;
-                diff[i + 1] -= 1;
-            }
+            total_score += score_j;
         }
-        long long ans = 0, cur = 0;
-        for (int i = 0; i < n; ++i) {
-            cur += diff[i];
-            ans += cur;
-        }
-        return ans;
+        return total_score;
     }
 };
 # @lc code=end
