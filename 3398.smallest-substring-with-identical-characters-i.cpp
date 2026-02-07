@@ -3,32 +3,38 @@
 #
 # [3398] Smallest Substring With Identical Characters I
 #
+
 # @lc code=start
 class Solution {
 public:
     int minLength(string s, int numOps) {
-        int n = s.length();
-        int max_len = n;  // Initialize max_len with maximum possible length
-        for (int char_type : {0, 1}) { // Try both '0' and '1' as base types for flipping
-            int left = 0, right = 0, flips = 0;
-            while (right < n) {
-                // Increment flip count if current char is not matching char_type
-                if (s[right] - '0' != char_type) {
-                    flips++;
-                }
-                // If flips exceed numOps, move left pointer to reduce flip count
-                while (flips > numOps) {
-                    if (s[left] - '0' != char_type) {
-                        flips--;
-                    }
-                    left++;
-                }
-                // Update minimal longest identical substring length found so far
-                max_len = std::min(max_len, right - left + 1);
-                right++; // Move right pointer forward
+        // Initialize variables to track left and right pointers, number of zeroes and ones.
+        int n = s.size();
+        int left = 0, right = 0;
+        int countZero = 0, countOne = 0;
+        int maxBlockSize = INT_MAX;
+        
+        // Use sliding window technique.
+        while (right < n) {
+            // Increment counts based on current character.
+            if (s[right] == '0') {
+                countZero++;
+            } else {
+                countOne++;
             }
-        }
-        return max_len; // Return smallest possible longest identical substring after operations.
-    }
-};
-# @lc code=end
+            
+            // If more than numOps flips needed for either character, move left pointer.
+            while (std::min(countZero, countOne) > numOps) {
+                if (s[left] == '0') {
+                    countZero--;
+                } else {
+                    countOne--;
+                }
+                left++;
+            }
+            
+            // Update maxBlockSize with current window size.
+            maxBlockSize = std::min(maxBlockSize, right - left + 1);
+            right++;
+        } 
+        return maxBlockSize;   	// Return minimum block size found after operations. 	}	}; # @lc code=end
