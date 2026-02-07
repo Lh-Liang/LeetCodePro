@@ -3,28 +3,23 @@
 #
 # [3434] Maximum Frequency After Subarray Operation
 #
-
 # @lc code=start
-#include <vector>
-#include <algorithm>
-using namespace std;
-
 class Solution {
 public:
     int maxFrequency(vector<int>& nums, int k) {
         sort(nums.begin(), nums.end());
-        long long totalOperations = 0;
-        int left = 0;
-        int maxFreq = 0;
-        for (int right = 0; right < nums.size(); ++right) {
-            totalOperations += nums[right];
-            while ((right - left + 1) * nums[right] - totalOperations > k) {
-                totalOperations -= nums[left];
-                ++left;
+        long long total = 0;
+        int l = 0;
+        int res = 1;
+        for (int r = 0; r < nums.size(); ++r) {
+            total += nums[r];
+            while ((long long)nums[r] * (r - l + 1) > total + k) {
+                total -= nums[l];
+                ++l;
             }
-            maxFreq = max(maxFreq, right - left + 1);
+            res = max(res, r - l + 1);
         }
-        return maxFreq;
+        return res;
     }
 };
 # @lc code=end
