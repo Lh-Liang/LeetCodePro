@@ -7,46 +7,51 @@
 # @lc code=start
 func findSubtreeSizes(parent []int, s string) []int {
     n := len(parent)
-    result := make([]int, n)
-    adjList := make([][]int, n)
-    
-    // Build adjacency list for original tree
+    children := make([][]int, n)
     for i := 1; i < n; i++ {
-        adjList[parent[i]] = append(adjList[parent[i]], i)
+        children[parent[i]] = append(children[parent[i]], i)
     }
-
-    // Find new parent for each node based on character match and update immediately
     newParent := make([]int, n)
     copy(newParent, parent)
-    
-    for x := 1; x < n; x++ {
-        current := parent[x]
-        found := false
-        for current != -1 {
-            if s[current] == s[x] {
-                newParent[x] = current
-                found = true
-                break
+    // Step 1: DFS to assign new parents based on closest same-char ancestor
+    var dfs func(node int, path map[byte]int)
+    dfs = func(node int, path map[byte]int) {
+        if node != 0 {
+            c := s[node]
+            if y, ok := path[c]; ok {
+                newParent[node] = y
             }
-            current = parent[current]
         }
-        
-        if found && newParent[x] != parent[x] {
-            // Remove x from old parent's child list before reassignment
-            oldParent := parent[x]
-            children := adjList[oldParent]
-            for i, child := range children {
-                if child == x {
-                    adjList[oldParent] = append(children[:i], children[i+1:]...)
-                    break
-                }
-            }
-            // Add x to new parent's child list after reassignment
-            adjList[newParent[x]] = append(adjList[newParent[x]], x)
+        c := s[node]
+        orig, had := path[c]
+        path[c] = node
+        for _, ch := range children[node] {
+            dfs(ch, path)
+        }
+        if had {
+            path[c] = orig
+        } else {
+            delete(path, c)
         }
     }
-
-    // Calculate subtree sizes using DFS from root (node 0)
-    var dfs func(node int) int
-    dfs = func(node int) int {												// Correctly indented function body for clarity.					// Proper indentation ensures readability and reduces syntax errors.		// Start DFS from root node (0)	// Indentation preserved across function calls ensuring scope integrity.		size := 1 // Count itself	for _, child := range adjList[node] {		size += dfs(child)	}	result[node] = size	return size}
-dfs(0) 	return result} # @lc code=end
+    dfs(0, map[byte]int{ s[0]: 0 })
+    // Step 2: Build new children list from newParent
+    newChildren := make([][]int, n)
+    for i := 1; i < n; i++ {
+        newChildren[newParent[i]] = append(newChildren[newParent[i]], i)
+    }
+    // Step 3: DFS to compute subtree sizes
+    ans := make([]int, n)
+    var dfs2 func(int) int
+    dfs2 = func(u int) int {
+        sz := 1
+        for _, v := range newChildren[u] {
+            sz += dfs2(v)
+        }
+        ans[u] = sz
+        return sz
+    }
+    dfs2(0)
+    return ans
+}
+# @lc code=end
