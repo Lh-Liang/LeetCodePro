@@ -6,31 +6,42 @@
 
 # @lc code=start
 func subtreeInversionSum(edges [][]int, nums []int, k int) int64 {
-    // Step 1: Convert edges into an adjacency list for easy tree traversal.
-    adjList := make(map[int][]int)
-    for _, edge := range edges {
-        u, v := edge[0], edge[1]
-        adjList[u] = append(adjList[u], v)
-        adjList[v] = append(adjList[v], u)
+    n := len(nums)
+    adj := make([][]int, n)
+    for _, e := range edges {
+        u, v := e[0], e[1]
+        adj[u] = append(adj[u], v)
+        adj[v] = append(adj[v], u)
     }
-
-    // Step 2: Implement DFS with dynamic programming to calculate potential sums.
-    var dfs func(node, parent int) (sumWithoutInversion, sumWithInversion int64)
-    dfs = func(node, parent int) (sumWithoutInversion, sumWithInversion int64) {
-        currentSum := int64(nums[node])
-        invertedSum := -currentSum
-        
-        for _, neighbor := range adjList[node] {
-            if neighbor == parent { continue }
-            childWithoutInv, childWithInv := dfs(neighbor, node)
-            currentSum += max(childWithoutInv, childWithInv)
-            invertedSum += max(-childWithoutInv, -childWithInv) // Invert child sums as well.
+    type state struct{ node, dist int }
+    memo := make(map[state]int64)
+    var dfs func(u, parent, dist int) int64
+    dfs = func(u, parent, dist int) int64 {
+        key := state{u, dist}
+        if val, ok := memo[key]; ok {
+            return val
         }
-        return currentSum, invertedSum + 2*int64(nums[node]) // Inverting root node itself.
+        // Case 1: do not invert at u
+        sum0 := int64(nums[u])
+        for _, v := range adj[u] {
+            if v == parent { continue }
+            sum0 += dfs(v, u, min(dist+1, k))
+        }
+        res := sum0
+        // Case 2: invert at u if allowed
+        if dist >= k {
+            sum1 := int64(-nums[u])
+            for _, v := range adj[u] {
+                if v == parent { continue }
+                sum1 += dfs(v, u, 1)
+            }
+            if sum1 > res {
+                res = sum1
+            }
+        }
+        memo[key] = res
+        return res
     }
-
-    // Step 3: Start DFS from root node 0 considering all constraints.
-    resultWithoutInversion, resultWithInversion := dfs(0, -1)
-    return max(resultWithoutInversion, resultWithInversion) // Return the maximum possible sum.
+    return dfs(0, -1, k)
 }
 # @lc code=end
