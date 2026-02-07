@@ -1,0 +1,6 @@
+func lastInteger(n int64) int64 {
+    if n == 1 {
+        return 1
+    }
+    return 2 * (1 + n/2 - lastInteger(n/2))
+}
