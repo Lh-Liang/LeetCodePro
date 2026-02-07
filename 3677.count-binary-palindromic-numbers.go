@@ -5,57 +5,53 @@
 #
 # @lc code=start
 func countBinaryPalindromes(n int64) int {
-    if n == 0 {
-        return 1 // "0" is a palindrome
-    }
-    
     count := 0
-    
-    // Generate palindromes
-    for length := 1; ; length++ {
-        found := false
-        // Generate odd-length palindromes
-        for half := int64(1 << (length - 1)); half < (1 << length); half++ {
-            palindrome := buildPalindrome(half, true)
-            if palindrome > n {
-                found = true
-                break
+    maxBits := 0
+    t := n
+    for t > 0 {
+        maxBits++
+        t >>= 1
+    }
+    // Handle edge case when n == 0
+    if n == 0 {
+        return 1
+    }
+    // Generate palindromes of odd and even lengths
+    for length := 1; length <= maxBits+1; length++ {
+        half := (length + 1) / 2
+        start := int64(1) << (half - 1)
+        end := int64(1) << half
+        for i := start; i < end; i++ {
+            pal := i
+            x := i
+            if length%2 == 1 {
+                x >>= 1
             }
-            count++
-        }
-        // Generate even-length palindromes
-        for half := int64(1 << (length - 1)); half < (1 << length); half++ {
-            palindrome := buildPalindrome(half, false)
-            if palindrome > n {
-                found = true
-                break
+            for x > 0 {
+                pal = (pal << 1) | (x & 1)
+                x >>= 1
             }
-            count++
-        }
-        if found {
-            break
+            if pal <= n && isBinaryPalindrome(pal) {
+                count++
+            }
         }
     }
     return count
 }
 
-// Function to build a binary palindrome given half of it.
-func buildPalindrome(half int64, isOddLength bool) int64 {
-    binaryStr := strconv.FormatInt(half, 2)
-    reversedHalf := reverseString(binaryStr)
-    if isOddLength {
-        reversedHalf = reversedHalf[1:] // Omit the middle character for odd lengths
+func isBinaryPalindrome(x int64) bool {
+    bits := []int{}
+    for x > 0 {
+        bits = append(bits, int(x&1))
+        x >>= 1
     }
-    fullBinaryStr := binaryStr + reversedHalf
-    palindrome, _ := strconv.ParseInt(fullBinaryStr, 2, 64)
-    return palindrome
-}
-
-func reverseString(s string) string {
-    runes := []rune(s)
-    for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
-        runes[i], runes[j] = runes[j], runes[i]
+    n := len(bits)
+    for i := 0; i < n/2; i++ {
+        if bits[i] != bits[n-1-i] {
+            return false
+        }
     }
-    return string(runes)
+    // For 0, bits is empty, so treat as palindrome
+    return true
 }
 # @lc code=end
