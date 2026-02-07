@@ -1,0 +1,1 @@
+The solution for selecting up to 4 non-overlapping intervals with maximum weight was successfully implemented.
