@@ -1,1 +1,1 @@
-All operations (PushFront, PushMiddle, PushBack, PopFront, PopMiddle, PopBack) have been implemented successfully.
+The task has been completed.
