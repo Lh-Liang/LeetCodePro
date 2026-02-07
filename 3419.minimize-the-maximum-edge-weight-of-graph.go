@@ -3,65 +3,65 @@
 #
 # [3419] Minimize the Maximum Edge Weight of Graph
 #
+
 # @lc code=start
 func minMaxWeight(n int, edges [][]int, threshold int) int {
-    // Sort edges by weight in ascending order for binary search.
-    sort.Slice(edges, func(i, j int) bool {
-        return edges[i][2] < edges[j][2]
-    })
-    
-    // Binary search over possible maximum edge weights.
-    low, high := 0, len(edges)-1
-    result := -1
-    
-    for low <= high {
-        mid := (low + high) / 2
-        maxWeight := edges[mid][2]
-        
-        // Filter and create graph with edges having weight <= maxWeight.
-        filteredEdges := make([][]int, 0)
-        for _, edge := range edges {
-            if edge[2] <= maxWeight {
-                filteredEdges = append(filteredEdges, edge)
-            } else {
-                break // As sorted by weight, no need to check further.
+    canReach := func(maxWeight int) bool {
+        out := make([][]struct{to, w int}, n)
+        for _, e := range edges {
+            a, b, w := e[0], e[1], e[2]
+            if w <= maxWeight {
+                out[a] = append(out[a], struct{to, w int}{b, w})
             }
         }
-        
-        // Check connectivity from node 0 using BFS/DFS and outgoing threshold constraint.
-        if isConnectedAndWithinThreshold(n, filteredEdges, threshold) {
-            result = maxWeight // Found a valid configuration.
-            high = mid - 1     // Try for smaller maxWeight.
+        for i := 0; i < n; i++ {
+            sort.Slice(out[i], func(a, b int) bool {
+                return out[i][a].w < out[i][b].w
+            })
+            if len(out[i]) > threshold {
+                out[i] = out[i][:threshold]
+            }
+        }
+        // Ensure all nodes have at most threshold outgoing edges (enforced above)
+        // Now check reachability
+        rev := make([][]int, n)
+        for from, ls := range out {
+            for _, e := range ls {
+                rev[e.to] = append(rev[e.to], from)
+            }
+        }
+        visited := make([]bool, n)
+        queue := []int{0}
+        visited[0] = true
+        for len(queue) > 0 {
+            node := queue[0]
+            queue = queue[1:]
+            for _, nb := range rev[node] {
+                if !visited[nb] {
+                    visited[nb] = true
+                    queue = append(queue, nb)
+                }
+            }
+        }
+        for i := 0; i < n; i++ {
+            if !visited[i] {
+                return false
+            }
+        }
+        // All constraints are satisfied
+        return true
+    }
+    left, right := 1, 1_000_000
+    ans := -1
+    for left <= right {
+        mid := (left + right) / 2
+        if canReach(mid) {
+            ans = mid
+            right = mid - 1
         } else {
-            low = mid + 1      // Increase maxWeight as current failed.
+            left = mid + 1
         }
     }
-    return result
+    return ans
 }
-
-func isConnectedAndWithinThreshold(n int, edges [][]int, threshold int) bool {
-outDegree := make([]int, n)
-adjList := make([][]int, n)
-bfsQueue := []int{0}
-isVisited := make([]bool, n)
-isVisited[0] = true
-visitedCount := 1 // Start from node 0 being visited
-for _, edge := range edges {
-outDegree[edge[0]]++
-adjList[edge[0]] = append(adjList[edge[0]], edge[1])
-i}
-f exceedsThreshold(outDegree, threshold) {
-break false
-}
-f len(bfsQueue) > 0 {
-deueue head...
-f or each neighbor...
-m ark visited...
-i f unvisited...
-increment count...
-c ontinue traversal...
-al check against visited count...
-equal to n?
-ture or false based on reachability...
-graph traversal logic using adjacency list...
-graph validation against constraints...
+# @lc code=end
