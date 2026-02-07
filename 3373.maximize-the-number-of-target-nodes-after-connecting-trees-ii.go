@@ -5,70 +5,106 @@
 #
 
 # @lc code=start
-package main
-
-import (
-    "container/list"
-)
-
 func maxTargetNodes(edges1 [][]int, edges2 [][]int) []int {
     n := len(edges1) + 1
     m := len(edges2) + 1
-    
-    // Build adjacency lists for both trees
-    adjList1 := make([][]int, n)
-    adjList2 := make([][]int, m)
-    for _, edge := range edges1 {
-        u, v := edge[0], edge[1]
-        adjList1[u] = append(adjList1[u], v)
-        adjList1[v] = append(adjList1[v], u)
+    // Build adjacency lists
+    adj1 := make([][]int, n)
+    for _, e := range edges1 {
+        a, b := e[0], e[1]
+        adj1[a] = append(adj1[a], b)
+        adj1[b] = append(adj1[b], a)
     }
-    
-    for _, edge := range edges2 {
-        u, v := edge[0], edge[1]
-        adjList2[u] = append(adjList2[u], v)
-        adjList2[v] = append(adjList2[v], u)
+    adj2 := make([][]int, m)
+    for _, e := range edges2 {
+        a, b := e[0], e[1]
+        adj2[a] = append(adj2[a], b)
+        adj2[b] = append(adj2[b], a)
     }
-
-    // BFS to determine distance from each node to all others in Tree 2
-    bfsDistances := func(start int, adjList [][]int) []int {
-        distances := make([]int, len(adjList))
-        for i := range distances {
-            distances[i] = -1 // unvisited marker
-        }
-        queue := list.New()
-        queue.PushBack(start)
-        distances[start] = 0
-        
-        for queue.Len() > 0 {
-            current := queue.Remove(queue.Front()).(int)
-            currentDistance := distances[current]
-            
-            for _, neighbor := range adjList[current] {
-                if distances[neighbor] == -1 { // not visited yet
-                    distances[neighbor] = currentDistance + 1
-                    queue.PushBack(neighbor)
+    // BFS to get depth parity for all nodes in both trees
+    depth1 := make([]int, n)
+    var bfs1 = func() {
+        vis := make([]bool, n)
+        queue := []int{0}
+        vis[0] = true
+        for len(queue) > 0 {
+            cur := queue[0]
+            queue = queue[1:]
+            for _, nei := range adj1[cur] {
+                if !vis[nei] {
+                    depth1[nei] = depth1[cur] + 1
+                    vis[nei] = true
+                    queue = append(queue, nei)
                 }
             }
         }
-        return distances
     }
-    
-    // Precompute distances from all nodes in Tree 2 to every other node using LCA or similar efficient methods.
-    distMatrixTree2 := make([][]int, m)
-    for i := 0; i < m; i++ {
-        distMatrixTree2[i] = bfsDistances(i, adjList2)
+    bfs1()
+    depth2 := make([]int, m)
+    var bfs2 = func() {
+        vis := make([]bool, m)
+        queue := []int{0}
+        vis[0] = true
+        for len(queue) > 0 {
+            cur := queue[0]
+            queue = queue[1:]
+            for _, nei := range adj2[cur] {
+                if !vis[nei] {
+                    depth2[nei] = depth2[cur] + 1
+                    vis[nei] = true
+                    queue = append(queue, nei)
+                }
+            }
+        }
     }
-    
-    result := make([]int, n)
-
-    // Calculate maximum targetable nodes for each node in Tree 1 by connecting Tree 2 optimally using efficient traversal techniques.
-
-    for i := 0; i < n; i++ { 
-        maxTargets := 0
-
-        // Try connecting every node j from Tree 2 and calculate how many are targets efficiently.
-
-        for j := 0; j < m; j++ { 
-            targetsCount := 0
-            	// Implement optimized check leveraging precomputed data like LCA results if available.	for _, dist := range distMatrixTree2[j] { 	if dist % 2 == 0 && dist != -1 { // -1 means unreachable so should not count that	targetsCount++	} 	} 	if targetsCount > maxTargets { 	maxTargets = targetsCount	} 	} 	result[i] = maxTargets	} return result }
+    bfs2()
+    // Count even and odd depths
+    even1, odd1 := 0, 0
+    for _, d := range depth1 {
+        if d%2 == 0 {
+            even1++
+        } else {
+            odd1++
+        }
+    }
+    even2, odd2 := 0, 0
+    for _, d := range depth2 {
+        if d%2 == 0 {
+            even2++
+        } else {
+            odd2++
+        }
+    }
+    // Sanity check: even + odd should sum to number of nodes for each tree
+    if even1+odd1 != n || even2+odd2 != m {
+        // handle error or return empty
+        return []int{}
+    }
+    // For each node in tree1, maximize target nodes
+    res := make([]int, n)
+    for i := 0; i < n; i++ {
+        parity := depth1[i] % 2
+        // Option 1: connect to a node of same parity in tree2
+        cnt1 := 0
+        if parity == 0 {
+            cnt1 = even1 + even2
+        } else {
+            cnt1 = odd1 + odd2
+        }
+        // Option 2: connect to node of opposite parity
+        cnt2 := 0
+        if parity == 0 {
+            cnt2 = even1 + odd2
+        } else {
+            cnt2 = odd1 + even2
+        }
+        if cnt1 > cnt2 {
+            res[i] = cnt1
+        } else {
+            res[i] = cnt2
+        }
+    }
+    // Optional: verify results for a small example here (omitted for brevity)
+    return res
+}
+# @lc code=end
