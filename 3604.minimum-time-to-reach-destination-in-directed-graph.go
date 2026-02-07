@@ -1,61 +1,81 @@
-import "container/heap"
-import "math"
+#
+# @lc app=leetcode id=3604 lang=golang
+#
+# [3604] Minimum Time to Reach Destination in Directed Graph
+#
+
+# @lc code=start
+import (
+    "container/heap"
+    "math"
+)
 
 type Edge struct {
-    to    int
-    start int
-    end   int
+    to, start, end int
 }
+
 type Item struct {
-    node int
-    time int64
+    time, node int
 }
-type PriorityQueue []*Item
+
+type PriorityQueue []Item
+
 func (pq PriorityQueue) Len() int { return len(pq) }
 func (pq PriorityQueue) Less(i, j int) bool { return pq[i].time < pq[j].time }
 func (pq PriorityQueue) Swap(i, j int) { pq[i], pq[j] = pq[j], pq[i] }
-func (pq *PriorityQueue) Push(x interface{}) { *pq = append(*pq, x.(*Item)) }
+func (pq *PriorityQueue) Push(x interface{}) { *pq = append(*pq, x.(Item)) }
 func (pq *PriorityQueue) Pop() interface{} {
     old := *pq
     n := len(old)
-    item := old[n-1]
+    x := old[n-1]
     *pq = old[0 : n-1]
-    return item
+    return x
 }
-func minTime(n int, edges [][]int) int {
-    graph := make([][]Edge, n)
-    for _, edge := range edges {
-        u, v, start, end := edge[0], edge[1], edge[2], edge[3]
-        graph[u] = append(graph[u], Edge{v, start, end})
-    }
 
+func minTime(n int, edges [][]int) int {
+    // Build adjacency list
+    graph := make([][]Edge, n)
+    for _, e := range edges {
+        u, v, s, e2 := e[0], e[1], e[2], e[3]
+        graph[u] = append(graph[u], Edge{to: v, start: s, end: e2})
+    }
+    // Dijkstra's / BFS with time
     pq := &PriorityQueue{}
     heap.Init(pq)
-    heap.Push(pq, &Item{node: 0, time: 0})
-
-    dist := make([]int64, n)
-    for i := range dist {
-        dist[i] = math.MaxInt64 // infinity
+    heap.Push(pq, Item{time: 0, node: 0})
+    visited := make([]int, n)
+    for i := range visited {
+        visited[i] = math.MaxInt64
     }
-    dist[0] = 0
-
+    visited[0] = 0
     for pq.Len() > 0 {
-        item := heap.Pop(pq).(*Item)
-        if item.time > dist[item.node] {
+        it := heap.Pop(pq).(Item)
+        t, u := it.time, it.node
+        if u == n-1 {
+            return t
+        }
+        if t > visited[u] {
             continue
         }
-        for _, e := range graph[item.node] {
-            waitTime := max(item.time, e.start)
-            if waitTime <= e.end && waitTime+1 < dist[e.to] {
-                dist[e.to] = waitTime + 1
-                heap.Push(pq, &Item{node: e.to, time: dist[e.to]})
+        for _, e := range graph[u] {
+            // Wait until the edge can be used
+            if t > e.end {
+                continue
+            }
+            depart := t
+            if depart < e.start {
+                depart = e.start
+            }
+            if depart > e.end {
+                continue
+            }
+            arrive := depart + 1
+            if arrive < visited[e.to] {
+                visited[e.to] = arrive
+                heap.Push(pq, Item{time: arrive, node: e.to})
             }
         }
     }
-
-    if dist[n-1] == math.MaxInt64 {
-        return -1
-    }
-    return int(dist[n-1])
+    return -1
 }
-type PriorityQueue []*Item
+# @lc code=end
