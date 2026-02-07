@@ -3,35 +3,30 @@
 #
 # [3725] Count Ways to Choose Coprime Integers from Rows
 #
-
 # @lc code=start
-#include <vector>
-#include <numeric>
-#include <unordered_map>
-using namespace std;
-
 class Solution {
 public:
     int countCoprime(vector<vector<int>>& mat) {
-        const int MOD = 1e9 + 7, MAXVAL = 150;
+        const int MOD = 1e9 + 7;
         int m = mat.size();
-        unordered_map<int, int> dp;
-        // Initialize DP for the first row
-        for (int v : mat[0]) {
-            dp[v] = (dp[v] + 1) % MOD;
+        int n = mat[0].size();
+        unordered_map<int, long long> gcd_count;
+        // Initialize with first row values as potential gcds
+        for (int num : mat[0]) {
+            gcd_count[num]++;
         }
-        // Update DP for each subsequent row
+        // Process each subsequent row
         for (int i = 1; i < m; ++i) {
-            unordered_map<int, int> new_dp;
-            for (auto& [g, cnt] : dp) {
-                for (int v : mat[i]) {
-                    int ng = gcd(g, v);
-                    new_dp[ng] = (new_dp[ng] + cnt) % MOD;
+            unordered_map<int, long long> new_gcd_count;
+            for (int num : mat[i]) {
+                for (auto& [gcd_val, count] : gcd_count) {
+                    int new_gcd = gcd(gcd_val, num);
+                    new_gcd_count[new_gcd] = (new_gcd_count[new_gcd] + count) % MOD;
                 }
+                new_gcd_count[num] = (new_gcd_count[num] + 1) % MOD; // Count this number alone too.
             }
-            dp = move(new_dp);
+            gcd_count.swap(new_gcd_count); // Update with current row's results.
         }
-        return dp.count(1) ? dp[1] : 0;
+        return gcd_count[1]; // Return number of ways to achieve gcd of 1.
     }
-};
-# @lc code=end
+}; # @lc code=end
