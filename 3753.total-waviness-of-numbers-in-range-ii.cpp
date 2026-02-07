@@ -8,18 +8,20 @@
 class Solution {
 public:
     long long totalWaviness(long long num1, long long num2) {
-        long long total_waviness = 0;
-        for (long long num = num1; num <= num2; ++num) {
-            std::string s = std::to_string(num);
-            int n = s.length();
-            if (n < 3) continue; // Skip numbers with less than 3 digits
-            for (int i = 1; i < n - 1; ++i) {
-                if ((s[i] > s[i-1] && s[i] > s[i+1]) || (s[i] < s[i-1] && s[i] < s[i+1])) {
-                    ++total_waviness;
+        long long totalWaviness = 0;
+        for (long long i = num1; i <= num2; ++i) {
+            std::string s = std::to_string(i);
+            int waviness = 0;
+            if (s.length() > 2) { // Only consider numbers with at least 3 digits.
+                for (int j = 1; j < s.length() - 1; ++j) {
+                    if ((s[j] > s[j-1] && s[j] > s[j+1]) || (s[j] < s[j-1] && s[j] < s[j+1])) {
+                        ++waviness; // Increment if it is a peak or valley.
+                    }
                 }
             }
+            totalWaviness += waviness;
         }
-        return total_waviness;
+        return totalWaviness;
     }
-};
+}; 
 # @lc code=end
