@@ -7,50 +7,25 @@
 class Solution {
 public:
     int longestPalindrome(string s, string t) {
-        int n = s.size(), m = t.size();
-        string total = s + t;
-        int N = n + m;
-        int res = 0;
-        // Check palindromes centered at every possible center (odd/even)
-        for(int center = 0; center < N; ++center) {
-            // Odd length palindrome
-            int l = center, r = center;
-            while(l >= 0 && r < N && total[l] == total[r]) {
-                // At least one char from s and one from t
-                if (l < n && r >= n) {
-                    res = max(res, r - l + 1);
-                }
-                l--; r++;
-            }
-            // Even length palindrome
-            l = center; r = center + 1;
-            while(l >= 0 && r < N && total[l] == total[r]) {
-                if (l < n && r >= n) {
-                    res = max(res, r - l + 1);
-                }
-                l--; r++;
+        // Calculate character frequencies for both strings
+        vector<int> freq_s(26, 0), freq_t(26, 0);
+        for (char c : s) freq_s[c - 'a']++;
+        for (char c : t) freq_t[c - 'a']++;
+        
+        // Compute maximum length of palindrome
+        int maxLength = 0;
+        bool oddCenter = false; // To allow a single odd character in the center if needed
+        // Calculate pairs from both sides and check central character possibility
+        for (int i = 0; i < 26; ++i) {
+            int pairs = min(freq_s[i], freq_t[i]);
+            maxLength += pairs * 2;
+            
+            if ((freq_s[i] > pairs || freq_t[i] > pairs) && !oddCenter) {
+                maxLength += 1; // Allow one odd character as center of palindrome
+                oddCenter = true;
             }
         }
-        // Also, palindromes fully in s and fully in t
-        auto getLongest = [](const string& str) {
-            int len = str.size(), best = 0;
-            for (int i = 0; i < len; ++i) {
-                int l = i, r = i;
-                while (l >= 0 && r < len && str[l] == str[r]) {
-                    best = max(best, r - l + 1);
-                    l--; r++;
-                }
-                l = i; r = i+1;
-                while (l >= 0 && r < len && str[l] == str[r]) {
-                    best = max(best, r - l + 1);
-                    l--; r++;
-                }
-            }
-            return best;
-        };
-        res = max(res, getLongest(s));
-        res = max(res, getLongest(t));
-        return res;
+        return maxLength;
     }
 };
 # @lc code=end
