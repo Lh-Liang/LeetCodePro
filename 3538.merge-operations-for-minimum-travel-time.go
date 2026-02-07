@@ -6,26 +6,43 @@
 
 # @lc code=start
 func minTravelTime(l int, n int, k int, position []int, time []int) int {
-    // Initialize total travel time
-    totalTime := 0
-    
-    // Helper function to calculate total travel time given positions and times
-    calcTotalTime := func(pos []int, t []int) int {
-        tTime := 0
-        for i := 0; i < len(pos)-1; i++ {
-            distance := pos[i+1] - pos[i]
-            tTime += distance * t[i]
+    // Initialize a DP table with large initial values.
+    const INF = int(1e9)
+    dp := make([][]int, k+1)
+    for i := range dp {
+        dp[i] = make([]int, n)
+        for j := range dp[i] {
+            dp[i][j] = INF
         }
-        return tTime
     }
-    
-    // Perform k merges by always merging segments with minimal additional cost
-    for m := 0; m < k; m++ {
-        minIncrease := int(^uint(0) >> 1) // Maximum possible integer value
-        minIndex := -1
-        
-        // Find the best pair to merge that results in minimal increase of total time 
-        for i := 1; i < len(time); i++ {
-            newTime := time[i-1] + time[i]
-            if newTime < minIncrease {
-                minIncrease = newTime – time[i-1]–time[i]–time[i-1] –time[i]; –time[i]; –time[i]; –time[i]; –time[i]; –time[i]; –time[i]; –time[i]; –time[i]; –time[i]; –time[i]; –time[i]; –time[i];}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}minIndex = i;}if min:}if min:}if min:}if min:}if min:}if min:}if min:}if min:}if min:}if min:}if min:}if min:}	// Merge signs at position[minIndex-1] and position[minIndex], update times accordingly}	position[minIndex-1] = position[minIndex]}position[minIndex]}position[minIndex]}position[minIndex]}position[minIndex]}position[minIndex]}position[minIndex]}position[minIndex]}position[minIndex]}position[minIndex]}position[min Index-1] + position[Min index]= position[Min index]= Times[Min index]= Times[Min index]-=-=- + -=-=--=- -=--=- -=--=- -=--=- -=--=- -=--=- +=-=--=- +=-=--=- +=-=--+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-=+=-==+==+==+==+==+==+==+==+==+==+==}}}}}}}}return calcTotalTime(position, time)}// @lc code=end
+
+    // Base case: no merges -> compute direct travel time.
+    dp[0][0] = 0 // Start with zero time at position 0.
+    for i := 1; i < n; i++ {
+        dist := position[i] - position[i-1]
+        dp[0][i] = dp[0][i-1] + dist * time[i-1]
+    }
+
+    // Fill in the DP table for each merge operation up to k.
+    for m := 1; m <= k; m++ {
+        for i := m; i < n; i++ {
+            // Attempt to merge every valid segment pair ending at i.
+            for j := m - 1; j < i; j++ {
+                dist := position[i] - position[j+1]
+                newTime := time[j+1] + time[i]
+                dp[m][i] = min(dp[m][i], dp[m-1][j+1] + dist * newTime)
+            }
+        }
+    }
+
+    // The answer is the minimum travel time with exactly k merges at the last position.
+    return dp[k][n-1]
+}
+
+func min(a, b int) int {
+    if a < b {
+        return a
+    }
+    return b
+}
+# @lc code=end
