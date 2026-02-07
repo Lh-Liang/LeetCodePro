@@ -5,24 +5,37 @@
 #
 
 # @lc code=start
-package main
-
-import (
-    "math"
-    "strconv"
-)
-
-func isPrime(n int) bool {
-    if n <= 1 { return false }
-    if n <= 3 { return true }
-    if n%2 == 0 || n%3 == 0 { return false }
-    for i := 5; i*i <= n; i += 6 {
-        if n%i == 0 || n%(i+2) == 0 { return false }
-    }
-    return true
-}
-
 func completePrime(num int) bool {
-    strNum := strconv.Itoa(num)
+    // Helper function to check if a number is prime
+    isPrime := func(n int) bool {
+        if n <= 1 {
+            return false
+        }
+        for i := 2; i*i <= n; i++ {
+            if n%i == 0 {
+                return false
+            }
+        }
+        return true
+    }
+    
+    strNum := strconv.Itoa(num) // Convert number to string for easy slicing of prefixes/suffixes
     length := len(strNum)
-    // Check all prefixes:for i := 1; i <= length; i++ {         prefix, _ := strconv.Atoi(strNum[:i])         if !isPrime(prefix) { return false } } // Check all suffixes:for i := length; i > 0; i-- {         suffix, _ := strconv.Atoi(strNum[i-1:])         if !isPrime(suffix) { return false } } return true } # @lc code=end
+    
+    // Check all prefixes and suffixes for primality
+    for i := 1; i <= length; i++ {
+        prefix, errPrefix := strconv.Atoi(strNum[:i]) // Extract prefix from start up to i-1
+        suffix, errSuffix := strconv.Atoi(strNum[length-i:]) // Extract suffix from length-i to end
+        
+        // Handle potential conversion errors (though unlikely with constraints)
+        if errPrefix != nil || errSuffix != nil {
+            return false // Fallback in case of unexpected conversion issues
+        }
+        
+        if !isPrime(prefix) || !isPrime(suffix) {
+            return false // If any prefix or suffix is not prime, return false
+        }
+    }
+    return true // All prefixes and suffixes are prime
+}
+# @lc code=end
