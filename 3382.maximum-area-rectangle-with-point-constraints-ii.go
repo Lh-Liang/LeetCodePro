@@ -6,16 +6,30 @@
 
 # @lc code=start
 func maxRectangleArea(xCoord []int, yCoord []int) int64 {
-    pointSet := make(map[[2]int]bool)
-    for i := 0; i < len(xCoord); i++ {
-        pointSet[[2]int{xCoord[i], yCoord[i]}] = true
+    type Point struct{
+        x, y int
     }
+    
+    pointMap := make(map[int]map[int]bool)
+    
+    // Populate pointMap for quick lookups
+    for i := 0; i < len(xCoord); i++ {
+        if _, ok := pointMap[xCoord[i]]; !ok {
+            pointMap[xCoord[i]] = make(map[int]bool)
+        }
+        pointMap[xCoord[i]][yCoord[i]] = true
+    }
+    
     maxArea := int64(-1)
+    
+    // Iterate through pairs of points to find potential rectangles
     for i := 0; i < len(xCoord); i++ {
         for j := i + 1; j < len(xCoord); j++ {
-            if xCoord[i] != xCoord[j] && yCoord[i] != yCoord[j] { // Ensure they form a diagonal of a rectangle
-                if pointSet[[2]int{xCoord[i], yCoord[j]}] && pointSet[[2]int{xCoord[j], yCoord[i]}] {
-                    area := int64(abs(xCoord[i]-xCoord[j]) * abs(yCoord[i]-yCoord[j]))
+            if xCoord[i] != xCoord[j] && yCoord[i] != yCoord[j] { // Check for potential diagonal corners
+                // Check existence of opposite corners in the map
+                if pointMap[xCoord[i]][yCoord[j]] && pointMap[xCoord[j]][yCoord[i]] { 
+                    // Calculate area of potential rectangle
+                    area := int64(abs(xCoord[j]-xCoord[i])) * int64(abs(yCoord[j]-yCoord[i]))
                     if area > maxArea {
                         maxArea = area
                     }
@@ -23,6 +37,6 @@ func maxRectangleArea(xCoord []int, yCoord []int) int64 {
             }
         }
     }
-    return maxArea
+    return maxArea 
 }
-func abs(a int) int { if a < 0 { return -a } else { return a }}\ # @lc code=end
+func abs(x int) int { if x < 0 { return -x }; return x } # @lc code=end
