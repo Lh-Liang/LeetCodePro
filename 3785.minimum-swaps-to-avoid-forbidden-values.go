@@ -7,31 +7,37 @@
 # @lc code=start
 func minSwaps(nums []int, forbidden []int) int {
     n := len(nums)
-    swaps := 0
-    // Use a map to track positions of elements in nums that are not forbidden
-    positionMap := make(map[int]int)
+    swapCount := 0
+    conflictIndices := make([]int, 0)
+    nonConflictIndices := make(map[int]bool)
+    
     for i := 0; i < n; i++ {
-        if nums[i] != forbidden[i] {
-            positionMap[nums[i]] = i
+        if nums[i] == forbidden[i] {
+            conflictIndices = append(conflictIndices, i)
+        } else {
+            nonConflictIndices[i] = true
         }
     }
     
-    for i := 0; i < n; i++ {
-        if nums[i] == forbidden[i] { 
-            found := false 
-            // Try to find a swap candidate that fixes both positions if possible 
-            for j := i + 1; j < n; j++ { 
-                if nums[j] != forbidden[j] && nums[j] != forbidden[i] { 
-                    // Swap if it helps avoid forbidden values at both indexes 
-                    nums[i], nums[j] = nums[j], nums[i]
-                    swaps++ 
-                    found = true 
-                    break 
-                } 
-            } 
-            if !found { return -1 } // If no valid swap found, return -1 as it's unsolvable 
-        } 
-    } 
-    return swaps 
-} 
+    if len(conflictIndices) == 0 {
+        return 0
+    }
+
+    for _, ci := range conflictIndices {
+        foundSwap := false
+        for ai := range nonConflictIndices {
+            if nums[ai] != forbidden[ci] && nums[ci] != forbidden[ai] {
+                nums[ci], nums[ai] = nums[ai], nums[ci]
+                delete(nonConflictIndices, ai)
+                swapCount++
+                foundSwap = true
+                break
+            }
+        }
+        if !foundSwap {
+            return -1
+        }
+    }
+    return swapCount
+}
 # @lc code=end
