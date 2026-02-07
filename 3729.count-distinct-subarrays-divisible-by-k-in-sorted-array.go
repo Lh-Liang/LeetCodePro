@@ -3,21 +3,27 @@
 #
 # [3729] Count Distinct Subarrays Divisible by K in Sorted Array
 #
-
 # @lc code=start
 func numGoodSubarrays(nums []int, k int) int64 {
     prefixSum := 0
-    countMap := make(map[int]int)
-    countMap[0] = 1 // To account for single elements divisible by k
-    result := int64(0)
-    for _, num := range nums {
-        prefixSum += num
-        modValue := ((prefixSum % k) + k) % k // Handle negative mod results
-        if cnt, found := countMap[modValue]; found {
-            result += int64(cnt)
+    modCount := map[int]int{0: 1} // initial mod 0 for empty prefix
+    seenSubarrays := map[string]struct{}{}
+    count := int64(0)
+    
+    for start := 0; start < len(nums); start++ {
+        prefixSum = 0
+        for end := start; end < len(nums); end++ {
+            prefixSum += nums[end]
+            if prefixSum%k == 0 {
+                // Generate a unique key for the current subarray sequence
+                key := fmt.Sprintf("%v", nums[start:end+1])
+                if _, exists := seenSubarrays[key]; !exists {
+                    seenSubarrays[key] = struct{}{}
+                    count++
+                }
+            }
         }
-        countMap[modValue]++ // Track occurrence of this mod value
     }
-    return result
+    return count
 }
 # @lc code=end
