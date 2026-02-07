@@ -3,30 +3,27 @@
 #
 # [3739] Count Subarrays With Majority Element II
 #
+
 # @lc code=start
+#include <vector>
+#include <unordered_map>
+using namespace std;
 class Solution {
 public:
     long long countMajoritySubarrays(vector<int>& nums, int target) {
         int n = nums.size();
-        int target_count = 0;
-        vector<int> prefix(n + 1, 0);
-        unordered_map<int, int> count_map;
-        count_map[0] = 1; // To handle cases where prefix itself is valid
-        long long result = 0;
+        long long count = 0;
+        unordered_map<int, int> prefix_count;
+        prefix_count[0] = 1; // Base case for zero difference.
+        int diff = 0; // To track number of targets over non-targets.
         for (int i = 0; i < n; ++i) {
-            if (nums[i] == target) {
-                ++target_count;
+            if (nums[i] == target) diff++; 
+            else diff--; 
+            // Check if there is a previous point where the same diff occurred.
+            if (diff > 0) { 
+                count += prefix_count[diff]; 
+            } else { 
+                count += prefix_count[diff - 1]; 
             }
-            // Calculate current prefix sum difference
-            int current_diff = 2 * target_count - (i + 1); // More than half condition converted to linear form
-            // Check if there's a previous prefix with same difference that can create a valid subarray here
-            if (count_map.find(current_diff) != count_map.end()) {
-                result += count_map[current_diff]; 
-            }
-            // Store/update current prefix difference in map for future subarrays ending at later points
-            ++count_map[current_diff]; 
-        } 
-        return result; 
-    } 
-}; 
-# @lc code=end
+            // Update map with current diff.
+prefix_count[diff]++; " }
