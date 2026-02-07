@@ -3,32 +3,32 @@
 #
 # [3609] Minimum Moves to Reach Target in Grid
 #
+
 # @lc code=start
 func minMoves(sx int, sy int, tx int, ty int) int {
-    type Point struct { x, y int }
-    queue := []Point{{sx, sy}}
-    visited := make(map[Point]bool)
-    visited[Point{sx, sy}] = true
-    steps := 0
-    for len(queue) > 0 {
-        nextQueue := []Point{}
-        for _, p := range queue {
-            if p.x == tx && p.y == ty {
-                return steps
+    moves := 0
+    // Reverse approach: reduce tx or ty until reaching sx or sy
+    for tx > sx && ty > sy {
+        if tx > ty {
+            if tx%ty == 0 {
+                return -1 // no valid path exists if remainder is zero and not matching exactly
             }
-            m := max(p.x, p.y)
-            newPoints := []Point{{p.x + m, p.y}, {p.x, p.y + m}}
-            for _, np := range newPoints {
-                if np.x <= tx && np.y <= ty && !visited[np] {
-                    visited[np] = true
-                    nextQueue = append(nextQueue, np)
-                }
+            tx %= ty // reduce larger by smaller
+        } else {
+            if ty%tx == 0 {
+                return -1 // no valid path exists if remainder is zero and not matching exactly
             }
+            ty %= tx // reduce larger by smaller
         }
-        queue = nextQueue
-        steps++
+        moves++
     }
-    return -1 // If we exhaust options without reaching (tx, ty), return -1. 
+    // Check if one coordinate has reached and can be used to align the other
+    if sx == tx && sy <= ty && (ty-sy)%sx == 0 {
+        return moves + (ty-sy)/sx 
+    } else if sy == ty && sx <= tx && (tx-sx)%sy == 0 {
+        return moves + (tx-sx)/sy 
+    } else {
+        return -1 
+    }
 }
-func max(a, b int) int { if a > b { return a }; return b } 
 # @lc code=end
