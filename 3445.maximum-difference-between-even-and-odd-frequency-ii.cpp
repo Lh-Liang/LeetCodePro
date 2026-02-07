@@ -3,40 +3,45 @@
 #
 # [3445] Maximum Difference Between Even and Odd Frequency II
 #
-
 # @lc code=start
 class Solution {
 public:
     int maxDifference(string s, int k) {
-        int n = s.length();
-        // prefix[d][i]: count of digit d in s[0..i-1]
-        int prefix[5][30005] = {};
-        for (int d = 0; d < 5; ++d) prefix[d][0] = 0;
-        for (int i = 0; i < n; ++i) {
-            for (int d = 0; d < 5; ++d) {
-                prefix[d][i+1] = prefix[d][i] + (s[i] == ('0'+d) ? 1 : 0);
-            }
-        }
-        int ans = -1;
-        for (int l = 0; l <= n - k; ++l) {
-            for (int r = l + k; r <= n; ++r) {
-                // freq[d]: frequency of digit d in s[l..r-1]
-                int freq[5] = {};
-                for (int d = 0; d < 5; ++d) {
-                    freq[d] = prefix[d][r] - prefix[d][l];
-                }
-                for (int a = 0; a < 5; ++a) {
-                    if (freq[a] % 2 == 1) {
-                        for (int b = 0; b < 5; ++b) {
-                            if (a != b && freq[b] > 0 && freq[b] % 2 == 0) {
-                                ans = max(ans, freq[a] - freq[b]);
-                            }
-                        }
+        int n = s.size();
+        unordered_map<char, int> freq;
+        int maxDiff = INT_MIN;
+        int start = 0;
+        
+        for (int end = 0; end < n; ++end) {
+            freq[s[end]]++;
+            
+            // When we have a valid window of at least size k
+            if (end - start + 1 >= k) {
+                // Check for odd/even frequency characters within this window
+                int oddMax = INT_MIN, evenMax = INT_MIN;
+                for (auto &p : freq) {
+                    if (p.second % 2 == 1) { // odd frequency
+                        oddMax = max(oddMax, p.second);
+                    } else if (p.second > 0) { // non-zero even frequency
+                        evenMax = max(evenMax, p.second);
                     }
                 }
+                
+                // Compute potential max difference
+                if (oddMax != INT_MIN && evenMax != INT_MIN) {
+                    maxDiff = max(maxDiff, oddMax - evenMax);
+                }
+                
+                // Slide the window by reducing start point
+                freq[s[start]]--;
+                if (freq[s[start]] == 0) {
+                    freq.erase(s[start]);
+                }
+                start++;
             }
         }
-        return ans;
+        
+        return maxDiff == INT_MIN ? -1 : maxDiff;
     }
 };
 # @lc code=end
