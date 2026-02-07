@@ -3,56 +3,28 @@
 #
 # [3530] Maximum Profit from Valid Topological Order in DAG
 #
-
 # @lc code=start
 func maxProfit(n int, edges [][]int, score []int) int {
-    // Create adjacency list and indegree count for Kahn's algorithm
-    adj := make([][]int, n)
-    indegree := make([]int, n)
-    for _, edge := range edges {
-        u, v := edge[0], edge[1]
-        adj[u] = append(adj[u], v)
-        indegree[v]++
+    // Build dependency mask for each node
+    dep := make([]int, n)
+    for _, e := range edges {
+        u, v := e[0], e[1]
+        dep[v] |= 1 << u
     }
-    
-    // Initialize queue with all nodes having zero indegree (no dependencies)
-    queue := []int{}
-    for i := 0; i < n; i++ {
-        if indegree[i] == 0 {
-            queue = append(queue, i)
-        }
-    }
-    
-    // Perform Kahn's algorithm for topological sorting
-    topoOrder := []int{}
-    for len(queue) > 0 {
-        node := queue[0]
-        queue = queue[1:]
-        topoOrder = append(topoOrder, node)
-        for _, neighbor := range adj[node] {
-            indegree[neighbor]--
-            if indegree[neighbor] == 0 {
-                queue = append(queue, neighbor)
+    // dp[mask] = max profit for subset of nodes in mask
+    size := 1 << n
+    dp := make([]int, size)
+    for mask := 0; mask < size; mask++ {
+        pos := bits.OnesCount(uint(mask)) + 1
+        for i := 0; i < n; i++ {
+            if (mask>>i)&1 == 0 && (dep[i]&mask) == dep[i] {
+                next := mask | (1 << i)
+                if dp[next] < dp[mask]+score[i]*pos {
+                    dp[next] = dp[mask]+score[i]*pos
+                }
             }
         }
     }
-    
-    // Calculate maximum profit using scores and topological order position
-    maxProfit := 0
-    dp := make([][]int, n+1)
-    for i := range dp {
-        dp[i] = make([]int, n+1)
-    }
-
-    // Using dynamic programming to maximize profit respecting topological constraints
-    for pos := 1; pos <= n; pos++ {
-        for _, node := range topoOrder {
-            dp[pos][node] = score[node]*pos + dp[pos-1][node]
-            maxProfit = max(maxProfit, dp[pos][node])
-        }
-    }
-
-    return maxProfit
+    return dp[size-1]
 }
-nfunc max(x, y int) int { if x > y { return x } else { return y } }
-n# @lc code=end
+# @lc code=end
