@@ -3,43 +3,38 @@
 #
 # [3686] Number of Stable Subsequences
 #
-
 # @lc code=start
 class Solution {
 public:
     int countStableSubsequences(vector<int>& nums) {
-        static const int MOD = 1e9 + 7;
-        // dp[last_parity][run] = number of ways
-        // run = 0 (no element), 1 (one in a row), 2 (two in a row)
-        vector<vector<int>> dp(2, vector<int>(3, 0));
-        dp[0][0] = dp[1][0] = 1; // empty subsequence (for transition)
-        for (int x : nums) {
-            int p = x % 2;
-            vector<vector<int>> ndp(2, vector<int>(3, 0));
-            // For every possible previous state
-            for (int last_p = 0; last_p <= 1; ++last_p) {
-                for (int run = 0; run <= 2; ++run) {
-                    int val = dp[last_p][run];
-                    if (!val) continue;
-                    // Option 1: skip (carry over)
-                    ndp[last_p][run] = (ndp[last_p][run] + val) % MOD;
-                    // Option 2: take
-                    if (run < 2 && last_p == p) {
-                        ndp[p][run+1] = (ndp[p][run+1] + val) % MOD;
-                    }
-                    if (last_p != p) {
-                        ndp[p][1] = (ndp[p][1] + val) % MOD;
-                    }
+        const int MOD = 1e9 + 7;
+        int n = nums.size();
+        vector<int> dp_odd(n + 1, 0), dp_even(n + 1, 0);
+        // Base case initialization for first element
+        if (nums[0] % 2 == 0) {
+            dp_even[0] = 1;
+        } else {
+            dp_odd[0] = 1;
+        }
+        for (int i = 1; i < n; ++i) {
+            if (nums[i] % 2 == 0) { // Even number
+                dp_even[i] = (dp_even[i - 1] + dp_odd[i - 1]) % MOD;
+                // Check for three consecutive evens
+                if (i >= 2 && nums[i-1] % 2 == 0 && nums[i-2] % 2 == 0) {
+                    dp_even[i] = (dp_even[i] - dp_even[i-2] + MOD) % MOD;
+                }
+            } else { // Odd number
+                dp_odd[i] = (dp_odd[i - 1] + dp_even[i - 1]) % MOD;
+                // Check for three consecutive odds
+                if (i >= 2 && nums[i-1] % 2 != 0 && nums[i-2] % 2 != 0) {
+                    dp_odd[i] = (dp_odd[i] - dp_odd[i-2] + MOD) % MOD;
                 }
             }
-            dp = ndp;
         }
-        // Remove empty subsequence
-        int ans = 0;
-        for (int p = 0; p <= 1; ++p)
-            for (int run = 1; run <= 2; ++run)
-                ans = (ans + dp[p][run]) % MOD;
-        return ans;
+        long long total_stable_subsequences = accumulate(dp_odd.begin(), dp_odd.end(), static_cast<long long>(0)) \
+                                           + accumulate(dp_even.begin(), dp_even.end(), static_cast<long long>(0));
+        total_stable_subsequences %= MOD;
+        return total_stable_subsequences; // Return total valid subsequences.
     }
 };
 # @lc code=end
